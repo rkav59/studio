@@ -109,3 +109,63 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+    -webkit-print-color-adjust: exact !important; /* Chrome, Safari */
+    color-adjust: exact !important; /* Firefox, Edge */
+  }
+  #she-report-print-area, #she-report-print-area * {
+    visibility: visible;
+  }
+  #she-report-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 20px; /* Add some padding for print */
+    font-family: Arial, sans-serif; /* Use a print-friendly font */
+    font-size: 12pt;
+    line-height: 1.4;
+  }
+  #she-report-print-area h1, 
+  #she-report-print-area h2, 
+  #she-report-print-area h3,
+  #she-report-print-area h4,
+  #she-report-print-area h5,
+  #she-report-print-area h6 {
+    color: black !important;
+    margin-top: 0.8em;
+    margin-bottom: 0.4em;
+  }
+   #she-report-print-area h1 { font-size: 18pt; }
+   #she-report-print-area h2 { font-size: 16pt; }
+   #she-report-print-area h3 { font-size: 14pt; }
+  #she-report-print-area p {
+    color: black !important;
+    margin-bottom: 0.5em;
+  }
+  #she-report-print-area ul {
+    color: black !important;
+    margin-left: 20px;
+    list-style: disc !important;
+    padding-left: 20px; /* Ensure padding for list bullets */
+  }
+  #she-report-print-area li {
+    color: black !important;
+    margin-bottom: 0.25em;
+  }
+  #she-report-print-area strong {
+    font-weight: bold !important;
+    color: black !important;
+  }
+  #she-report-print-area em {
+    font-style: italic !important;
+    color: black !important;
+  }
+  /* Hide dialog close and print buttons during printing */
+  .print-hide {
+    display: none !important;
+  }
+}

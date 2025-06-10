@@ -4,30 +4,75 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Loader2, Sparkles } from "lucide-react";
+import { FileText, Loader2, Sparkles, Printer } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
 import { generateSheReport, type SheReportInput, type SheReportOutput } from "@/ai/flows/generate-she-report-flow";
 import { ScrollArea } from "../ui/scroll-area";
 
+// Basic Markdown to HTML converter
+function markdownToHtml(markdown: string): string {
+  if (!markdown) return "";
+
+  let html = markdown;
+
+  // Headers (process from h3 to h1 to avoid ### being caught by #)
+  html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+  html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+  html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+  // Bold
+  html = html.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
+  html = html.replace(/__(.*?)__/gim, '<strong>$1</strong>'); // Alternative bold
+
+  // Italic
+  html = html.replace(/\*(.*?)\*/gim, '<em>$1</em>');
+  html = html.replace(/_(.*?)_/gim, '<em>$1</em>'); // Alternative italic
+
+  // Unordered lists
+  // Convert lines starting with - or * to <li>
+  html = html.replace(/^\s*[-*+] (.*$)/gim, '<li>$1</li>');
+  // Wrap consecutive <li> blocks with <ul>. This is a simplified approach.
+  // A more robust parser would handle nested lists and mixed content better.
+  // This regex attempts to group consecutive <li> items.
+  html = html.replace(/((?:<li>.*?<\/li>\s*)+)/gis, '<ul>$1</ul>');
+  
+  // Replace escaped newlines (from AI potentially) with actual newlines for paragraph splitting
+  html = html.replace(/\\n/g, '\n');
+
+  // Paragraphs (split by double newlines, then wrap non-block elements)
+  return html.split(/\n\s*\n/).map(paragraph => {
+    const trimmedParagraph = paragraph.trim();
+    if (!trimmedParagraph) return '';
+    // Check if it's already a block element (header or list)
+    if (trimmedParagraph.match(/^<(h[1-6]|ul|ol|li|blockquote|pre|hr)/i)) {
+      return trimmedParagraph;
+    }
+    return `<p>${trimmedParagraph}</p>`;
+  }).join('');
+}
+
+
 export function GenerateReportButton() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [reportContent, setReportContent] = useState<string | null>(null);
+  const [reportingPeriod, setReportingPeriod] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleGenerateReportClick = async () => {
     setIsLoading(true);
     setReportContent(null);
+    const currentReportingPeriod = `Q${Math.floor((new Date().getMonth() / 3) + 1)} ${new Date().getFullYear()} (Sample Data)`;
+    setReportingPeriod(currentReportingPeriod);
 
-    // Simulate fetching data from various modules - use hardcoded sample data for now
     const sampleIncidentSummary = `
 - Total Incidents: 15 (5 major, 10 minor)
 - Key Trends: Increase in slips, trips, and falls in Warehouse B. 2 near misses related to forklift operations.
@@ -55,11 +100,11 @@ export function GenerateReportButton() {
         inspectionSummary: sampleInspectionSummary,
         riskAssessmentSummary: sampleRiskAssessmentSummary,
         safetyInitiativesSummary: sampleSafetyInitiatives,
-        reportingPeriod: "Q3 2024 (Sample Data)",
+        reportingPeriod: currentReportingPeriod,
       };
       const result: SheReportOutput = await generateSheReport(input);
       setReportContent(result.reportContent);
-      setIsModalOpen(true); // Open modal with report content
+      setIsModalOpen(true);
       toast({
         title: "SHE Report Generated",
         description: "The AI-generated SHE report summary is ready for review.",
@@ -76,6 +121,10 @@ export function GenerateReportButton() {
     }
   };
 
+  const handlePrintReport = () => {
+    window.print();
+  };
+
   return (
     <>
       <Button onClick={handleGenerateReportClick} disabled={isLoading}>
@@ -88,46 +137,31 @@ export function GenerateReportButton() {
       </Button>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[80vh] flex flex-col">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
                 <Sparkles className="h-6 w-6 text-primary" />
                 AI-Generated SHE Report Summary
             </DialogTitle>
             <DialogDescription>
-              Review the AI-generated SHE report summary below. This is based on sample data.
+              Review the AI-generated SHE report summary for {reportingPeriod}. You can print this summary or save it as a PDF.
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="flex-grow overflow-y-auto pr-4">
-            {reportContent ? (
-              <div className="prose dark:prose-invert prose-sm sm:prose-base max-w-none">
-                {/* Basic Markdown rendering - for more complex MD, a library might be needed */}
-                {reportContent.split('\\n\\n').map((paragraph, index) => (
-                  <p key={index} className="mb-2">
-                    {paragraph.split('\\n').map((line, lineIndex) => (
-                        <span key={lineIndex}>
-                        {line.replace(/### (.*)/g, '<h3>$1</h3>')
-                             .replace(/## (.*)/g, '<h2>$1</h2>')
-                             .replace(/# (.*)/g, '<h1>$1</h1>')
-                             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                             .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                             .replace(/^- (.*)/gm, '• $1')
-                        }
-                        <br />
-                        </span>
-                    ))}
-                  </p>
-                ))}
-              </div>
-            ) : (
-              <p>No report content to display.</p>
-            )}
+          
+          <ScrollArea className="flex-grow my-4 pr-2">
+            <div id="she-report-print-area" className="prose dark:prose-invert prose-sm sm:prose-base max-w-none leading-relaxed"
+                 dangerouslySetInnerHTML={{ __html: reportContent ? markdownToHtml(reportContent) : "<p>No report content to display.</p>" }} />
           </ScrollArea>
-          <div className="pt-4 border-t">
+          
+          <DialogFooter className="pt-4 border-t gap-2 sm:gap-0">
+            <Button variant="outline" onClick={handlePrintReport}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print / Save as PDF
+            </Button>
             <DialogClose asChild>
               <Button variant="outline">Close</Button>
             </DialogClose>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
