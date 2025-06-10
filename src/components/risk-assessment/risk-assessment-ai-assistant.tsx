@@ -16,21 +16,21 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input"; // Not used, but kept for consistency
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Sparkles, AlertTriangle, Send } from "lucide-react";
+import { Loader2, Sparkles, AlertTriangle, Send, SearchCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateRiskAssessmentSuggestion, type RiskAssessmentSuggestionInput, type RiskAssessmentSuggestionOutput } from "@/ai/flows/generate-risk-assessment-suggestion-flow";
+import { identifyHazards, type IdentifyHazardsInput, type IdentifyHazardsOutput } from "@/ai/flows/identify-hazards-flow";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const aiAssistantFormSchema = z.object({
   activityDescription: z.string().min(10, {
     message: "Activity description must be at least 10 characters.",
   }).max(2000, { message: "Activity description must be less than 2000 characters."}),
-  identifiedHazards: z.string().min(5, { // Renamed from potentialHazards for clarity
+  identifiedHazards: z.string().min(5, { 
     message: "Identified hazards must be at least 5 characters.",
-  }).max(2000, { message: "Identified hazards must be less than 2000 characters."}),
+  }).max(2000, { message: "Identified hazards must be less than 2000 characters."}).or(z.literal("")), // Allow empty string initially
 });
 
 type AiAssistantFormValues = z.infer<typeof aiAssistantFormSchema>;
@@ -41,9 +41,9 @@ interface RiskAssessmentAiAssistantProps {
 
 export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiAssistantProps) {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSuggestionLoading, setIsSuggestionLoading] = useState(false);
+  const [isHazardLoading, setIsHazardLoading] = useState(false);
   const [suggestion, setSuggestion] = useState<RiskAssessmentSuggestionOutput | null>(null);
-  // Store form values temporarily to pass them to onUseSuggestion
   const [lastFormValues, setLastFormValues] = useState<AiAssistantFormValues | null>(null);
 
 
@@ -55,10 +55,18 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
     },
   });
 
-  async function onSubmit(data: AiAssistantFormValues) {
-    setIsLoading(true);
+  async function onGetSuggestionSubmit(data: AiAssistantFormValues) {
+    if (!data.identifiedHazards) {
+        toast({
+            title: "Missing Hazards",
+            description: "Please identify hazards first, either manually or using AI assist.",
+            variant: "destructive",
+        });
+        return;
+    }
+    setIsSuggestionLoading(true);
     setSuggestion(null);
-    setLastFormValues(data); // Store current form data
+    setLastFormValues(data); 
     try {
       const input: RiskAssessmentSuggestionInput = {
         activityDescription: data.activityDescription,
@@ -78,16 +86,46 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsSuggestionLoading(false);
     }
   }
+
+  const handleIdentifyHazards = async () => {
+    const activityDescription = form.getValues("activityDescription");
+    if (!activityDescription) {
+      form.setError("activityDescription", { type: "manual", message: "Activity description is required to identify hazards." });
+      toast({
+        title: "Missing Activity Description",
+        description: "Please enter an activity description first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsHazardLoading(true);
+    try {
+        const input: IdentifyHazardsInput = { activityDescription };
+        const result: IdentifyHazardsOutput = await identifyHazards(input);
+        form.setValue("identifiedHazards", result.identifiedHazards, { shouldValidate: true });
+        toast({
+            title: "Hazards Identified",
+            description: "AI has suggested potential hazards for the activity.",
+        });
+    } catch (error) {
+        console.error("Error identifying hazards:", error);
+        toast({
+            title: "Error",
+            description: "Failed to identify hazards with AI. Please try again.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsHazardLoading(false);
+    }
+  };
+
 
   const handleApplySuggestion = () => {
     if (suggestion && lastFormValues) {
       onUseSuggestion(suggestion, lastFormValues.activityDescription, lastFormValues.identifiedHazards);
-      // Optionally reset AI assistant form or clear suggestion after applying
-      // setSuggestion(null); 
-      // form.reset();
       toast({
         title: "Suggestions Applied",
         description: "AI suggestions have been pre-filled into the main form.",
@@ -109,7 +147,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
         </CardHeader>
         <CardContent>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <form onSubmit={form.handleSubmit(onGetSuggestionSubmit)} className="space-y-8">
                 <FormField
                     control={form.control}
                     name="activityDescription"
@@ -124,7 +162,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
                         />
                         </FormControl>
                         <FormDescription>
-                        Clearly describe the task or process being assessed.
+                        Clearly describe the task or process being assessed. This will be used for hazard identification and risk suggestion.
                         </FormDescription>
                         <FormMessage />
                     </FormItem>
@@ -133,32 +171,38 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
 
                 <FormField
                     control={form.control}
-                    name="identifiedHazards" // Changed from potentialHazards
+                    name="identifiedHazards"
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Known/Identified Potential Hazards</FormLabel>
-                        <FormControl>
-                        <Textarea
-                            placeholder="e.g., Sparks, fumes, awkward postures, heavy lifting, moving vehicle, slippery surfaces."
-                            rows={3}
-                            {...field}
-                        />
-                        </FormControl>
+                        <div className="flex items-start gap-2">
+                            <FormControl className="flex-grow">
+                            <Textarea
+                                placeholder="e.g., Sparks, fumes, awkward postures, heavy lifting, moving vehicle, slippery surfaces. Or click 'Identify Hazards with AI'."
+                                rows={3}
+                                {...field}
+                            />
+                            </FormControl>
+                            <Button type="button" variant="outline" size="sm" onClick={handleIdentifyHazards} disabled={isHazardLoading || !form.watch("activityDescription")} className="shrink-0 mt-1">
+                                {isHazardLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SearchCheck className="mr-2 h-4 w-4" />}
+                                Identify Hazards with AI
+                            </Button>
+                        </div>
                         <FormDescription>
-                        List any hazards already identified or commonly associated with this activity.
+                        List any hazards already identified or commonly associated with this activity. AI can help populate this.
                         </FormDescription>
                         <FormMessage />
                     </FormItem>
                     )}
                 />
                 
-                <Button type="submit" disabled={isLoading} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                    {isLoading ? (
+                <Button type="submit" disabled={isSuggestionLoading || !form.watch("identifiedHazards")} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                    {isSuggestionLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
                     <Sparkles className="mr-2 h-4 w-4" />
                     )}
-                    Get AI Suggestion
+                    Get Full AI Suggestion (Risks, Controls, Method)
                 </Button>
                 </form>
             </Form>
@@ -171,7 +215,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-6 w-6 text-primary" />
-              AI Risk Assessment Suggestion
+              AI Full Risk Assessment Suggestion
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -209,5 +253,3 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
     </div>
   );
 }
-
-    
