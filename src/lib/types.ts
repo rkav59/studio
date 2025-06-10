@@ -25,7 +25,23 @@ export interface Inspection {
   location: string; // Added location for consistency
 }
 
-// New Types for additional modules
+// New Types for Risk Assessment - Nested Structure
+export interface RiskControlItem { // General item for hazard, risk, or control text
+  id?: string; // Optional: for react-hook-form's key, actual ID can be generated on save
+  value: string;
+}
+
+export interface RiskEntry {
+  id?: string;
+  risk: RiskControlItem; // The risk description
+  controlMeasures: RiskControlItem[]; // Controls for this specific risk
+}
+
+export interface HazardEntry {
+  id?: string;
+  hazard: RiskControlItem; // The hazard description
+  assessedRisks: RiskEntry[]; // Risks associated with this specific hazard
+}
 
 export type RiskAssessmentMethod = 
   | "Job Safety Analysis (JSA)"
@@ -38,18 +54,16 @@ export type RiskAssessmentMethod =
   | "Preliminary Hazard Analysis (PHA)";
 
 export interface RiskAssessment {
-  id: string;
+  id: string; // Main assessment ID
   activity: string;
-  identifiedHazards: string; 
-  assessedRisks: string;     
-  controlMeasures: string;   
+  hazardEntries: HazardEntry[]; // Array of hazard-risk-control structures
   residualRiskLevel: 'Low' | 'Medium' | 'High';
   methodUsed?: RiskAssessmentMethod;
   assessmentDate: string; // ISO String date
   assessor: string;
 }
 
-// For AI Suggestions, matches the flow output
+// For AI Suggestions, matches the flow output (remains unchanged)
 export interface RiskAssessmentSuggestionOutput {
   potentialRisks: string;
   recommendedControls: string;
@@ -169,5 +183,4 @@ export interface HealthMonitoringRecord {
   value: string; // Could be numeric or descriptive
   notes?: string;
 }
-
     
