@@ -29,18 +29,19 @@ export default function MedicalScreeningPage() {
                 This module helps in scheduling, recording, and managing employee medical screenings. 
                 Keep track of common screening diseases, fitness-to-work certifications, and health surveillance data.
             </p>
-            {/* Placeholder for medical screening tools */}
             <div className="mt-6 p-6 border rounded-lg bg-secondary/30">
                 <h3 className="font-semibold text-lg">Screening & Surveillance Tools</h3>
                 <p className="text-sm text-muted-foreground mt-2">
                     Key features under development:
                 </p>
                 <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-                    <li>Scheduling of pre-employment, periodic, and exit medicals.</li>
-                    <li>Secure storage of medical records and results.</li>
-                    <li>Tracking of common occupational diseases and exposure groups.</li>
-                    <li>Fitness-to-work certificate management.</li>
-                    <li>Confidential reporting and trend analysis (aggregate data).</li>
+                    <li>Scheduling for pre-employment, periodic, and exit medicals.</li>
+                    <li>Secure storage of medical records and screening results (placeholder for compliance).</li>
+                    <li>Tracking of common occupational diseases and exposure-linked screenings.</li>
+                    <li>Fitness-to-Work certificate management and expiry tracking.</li>
+                    <li>Confidential reporting and trend analysis (aggregate, anonymized data).</li>
+                    <li>Automated reminders for upcoming screening appointments.</li>
+                    <li>Integration with Health Monitoring module for holistic view.</li>
                 </ul>
             </div>
         </CardContent>

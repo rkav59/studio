@@ -68,7 +68,7 @@ Your Task:
 Based on the user's input, provide the following:
 1.  **Potential Risks Identified:** Elaborate on the potential risks that could arise from the described activity and identified hazards. Be specific and consider various consequences (e.g., injury, illness, environmental damage, property damage).
 2.  **Recommended Control Measures:** Suggest a comprehensive list of control measures. Where possible, try to follow the hierarchy of controls: Elimination, Substitution, Engineering Controls, Administrative Controls, and Personal Protective Equipment (PPE). Be practical and specific.
-3.  **Suggested Risk Assessment Method:** Recommend ONE most suitable risk assessment methodology from the following list: ${riskAssessmentMethods.join(', ')}. Briefly state why you recommend it for this scenario if possible, but keep it concise and only include the method name in the 'suggestedMethod' field.
+3.  **Suggested Risk Assessment Method:** Recommend ONE most suitable risk assessment methodology from the following list: ${riskAssessmentMethodsList.join(', ')}. Briefly state why you recommend it for this scenario if possible, but keep it concise and only include the method name in the 'suggestedMethod' field.
 
 Structure your output according to the defined output schema.
 Provide detailed and actionable advice.
@@ -86,7 +86,7 @@ const generateRiskAssessmentSuggestionFlow = ai.defineFlow(
     
     // Ensure the suggested method is one from the predefined list, or default if not.
     // This is a simple validation. More robust validation might be needed.
-    if (output && output.suggestedMethod && !riskAssessmentMethods.includes(output.suggestedMethod as RiskAssessmentMethod)) {
+    if (output && output.suggestedMethod && !riskAssessmentMethodsList.includes(output.suggestedMethod as RiskAssessmentMethod)) {
         // If the LLM suggests a method not in the list, we could either log this,
         // or pick a default, or try to map it. For now, let's just let it pass or clear it.
         // For simplicity, we'll let it pass but this is a point of potential refinement.

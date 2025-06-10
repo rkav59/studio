@@ -29,18 +29,19 @@ export default function EmergencyPreparednessPage() {
                 This module assists in creating and managing emergency preparedness plans, including evacuation routes, response procedures, and communication protocols. 
                 Facilitate and document mock drills to test and improve your organization's readiness.
             </p>
-            {/* Placeholder for emergency planning tools */}
              <div className="mt-6 p-6 border rounded-lg bg-secondary/30">
                 <h3 className="font-semibold text-lg">Preparedness Tools</h3>
                 <p className="text-sm text-muted-foreground mt-2">
                     Planned features include:
                 </p>
                 <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-                    <li>Evacuation plan designer (visual tool).</li>
-                    <li>Emergency contact list management.</li>
-                    <li>Mock drill scheduling and documentation.</li>
-                    <li>Post-drill review and action tracking.</li>
-                    <li>AI-assisted scenario generation for drills.</li>
+                    <li>Emergency plan builder with templates (e.g., fire, medical, spill).</li>
+                    <li>Visual evacuation route designer and map uploads.</li>
+                    <li>Emergency contact list and communication tree management.</li>
+                    <li>Mock drill scheduling, execution checklist, and logbook.</li>
+                    <li>Post-drill review forms and action item tracking.</li>
+                    <li>Resource inventory for emergency equipment (e.g., first aid, spill kits).</li>
+                    <li>AI-assisted scenario generation for drills (potential).</li>
                 </ul>
             </div>
         </CardContent>

@@ -29,17 +29,19 @@ export default function SheqAuditPage() {
                 This module facilitates the planning, execution, and tracking of Safety, Health, Environment, and Quality (SHEQ) audits. 
                 Document findings, assign corrective actions, and monitor progress to maintain high standards.
             </p>
-            {/* Placeholder for audit forms, lists, and AI assistance features */}
             <div className="mt-6 p-6 border rounded-lg bg-secondary/30">
                 <h3 className="font-semibold text-lg">Audit Management Tools</h3>
                 <p className="text-sm text-muted-foreground mt-2">
                     Future enhancements will include:
                 </p>
                 <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-                    <li>Audit scheduling and planning.</li>
-                    <li>Customizable audit checklists.</li>
-                    <li>Non-conformance reporting and tracking.</li>
-                    <li>AI-powered trend analysis from audit findings.</li>
+                    <li>Audit program scheduling and calendar view.</li>
+                    <li>Customizable audit checklist library and builder.</li>
+                    <li>Non-conformance reporting with severity levels.</li>
+                    <li>Corrective and preventive action (CAPA) tracking from audit findings.</li>
+                    <li>AI-powered trend analysis and insights from audit data.</li>
+                    <li>Offline audit capabilities for mobile devices.</li>
+                    <li>Automated report generation and distribution.</li>
                 </ul>
             </div>
         </CardContent>

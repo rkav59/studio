@@ -16,7 +16,7 @@ import {
   Siren, // Emergency Preparedness
   FileSearch, // Incident Investigation
   HardHat, // PPE Management
-  ClipboardUser, // Contractor Safety
+  ClipboardList, // Contractor Safety (Replaced ClipboardUser)
   Stethoscope, // Medical Screening
   HeartPulse, // Health Monitoring
 } from 'lucide-react';
@@ -37,7 +37,7 @@ const navItems = [
   { href: '/emergency-preparedness', label: 'Emergency Preparedness', icon: Siren },
   { href: '/incident-investigation', label: 'Incident Investigation', icon: FileSearch },
   { href: '/ppe-management', label: 'PPE Management', icon: HardHat },
-  { href: '/contractor-safety', label: 'Contractor Safety', icon: ClipboardUser },
+  { href: '/contractor-safety', label: 'Contractor Safety', icon: ClipboardList },
   { href: '/medical-screening', label: 'Medical Screening', icon: Stethoscope },
   { href: '/health-monitoring', label: 'Health Monitoring', icon: HeartPulse },
   { href: '/data-visualization', label: 'Data Visualization', icon: BarChartHorizontalBig },

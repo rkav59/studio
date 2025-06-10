@@ -29,18 +29,19 @@ export default function HealthMonitoringPage() {
                 This module is designed for maintaining a comprehensive health monitoring system. 
                 Record and analyze data related to occupational health surveillance, exposure monitoring (e.g., noise, dust, chemicals), and employee wellness programs.
             </p>
-            {/* Placeholder for health monitoring tools */}
             <div className="mt-6 p-6 border rounded-lg bg-secondary/30">
                 <h3 className="font-semibold text-lg">Occupational Health Surveillance</h3>
                 <p className="text-sm text-muted-foreground mt-2">
                     Future capabilities will include:
                 </p>
                 <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-                    <li>Exposure group management and risk profiling.</li>
-                    <li>Logging of industrial hygiene sampling data.</li>
-                    <li>Audiometry, spirometry, and other test result tracking.</li>
-                    <li>Trend analysis of health data to identify emerging issues.</li>
-                    <li>Integration with wearable technology (potential).</li>
+                    <li>Management of Similar Exposure Groups (SEGs) and risk profiling.</li>
+                    <li>Logging of industrial hygiene sampling data (noise, dust, chemicals, ergonomics).</li>
+                    <li>Tracking for audiometry, spirometry, biological monitoring, and other medical tests.</li>
+                    <li>Trend analysis of health data to identify emerging issues or at-risk groups.</li>
+                    <li>Alerts for exceeding exposure limits or abnormal health results.</li>
+                    <li>Integration with wearable technology for real-time data (potential).</li>
+                    <li>Wellness program tracking and participation.</li>
                 </ul>
             </div>
         </CardContent>

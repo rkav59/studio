@@ -29,18 +29,19 @@ export default function PpeManagementPage() {
                 This module helps track the issuance, inspection, and inventory of Personal Protective Equipment (PPE). 
                 Conduct PPE compliance audits and ensure employees are properly equipped and protected.
             </p>
-            {/* Placeholder for PPE management tools */}
             <div className="mt-6 p-6 border rounded-lg bg-secondary/30">
                 <h3 className="font-semibold text-lg">PPE Tracking & Compliance</h3>
                 <p className="text-sm text-muted-foreground mt-2">
                     Upcoming features:
                 </p>
                 <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-                    <li>PPE inventory and stock management.</li>
-                    <li>Issuance and return tracking per employee.</li>
-                    <li>Inspection schedules and logs for PPE.</li>
-                    <li>PPE compliance audit checklists and reporting.</li>
-                    <li>Automated alerts for PPE replacement/expiry.</li>
+                    <li>PPE inventory management: stock levels, types, and specifications.</li>
+                    <li>Issuance and return tracking per employee or job role.</li>
+                    <li>PPE inspection schedules, checklists, and logged records.</li>
+                    <li>Compliance audit forms for PPE usage and condition.</li>
+                    <li>Automated alerts for PPE reorder, replacement, or expiry dates.</li>
+                    <li>Reporting on PPE consumption, costs, and compliance rates.</li>
+                    <li>PPE matrix based on job roles and risk assessments.</li>
                 </ul>
             </div>
         </CardContent>

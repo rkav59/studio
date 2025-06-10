@@ -29,18 +29,19 @@ export default function ContractorSafetyPage() {
                 This module facilitates the management of contractor safety, including pre-qualification/vetting, induction training, on-site supervision, and a permit-to-work system. 
                 Ensure contractors adhere to your safety standards.
             </p>
-            {/* Placeholder for contractor safety tools */}
             <div className="mt-6 p-6 border rounded-lg bg-secondary/30">
                 <h3 className="font-semibold text-lg">Contractor Lifecycle Management</h3>
                 <p className="text-sm text-muted-foreground mt-2">
                     Future enhancements will provide:
                 </p>
                 <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-                    <li>Contractor pre-qualification and document management.</li>
-                    <li>Online induction training module.</li>
-                    <li>Permit-to-work (PTW) generation and tracking.</li>
-                    <li>Contractor performance reviews and incident logging.</li>
-                    <li>AI-assisted vetting based on historical data (potential).</li>
+                    <li>Contractor pre-qualification portal with document management (insurance, certifications).</li>
+                    <li>Online safety induction training module with completion tracking.</li>
+                    <li>Digital Permit-to-Work (PTW) system: generation, approval, and tracking.</li>
+                    <li>On-site supervision checklists and performance monitoring tools.</li>
+                    <li>Contractor incident logging and investigation linkage.</li>
+                    <li>Contractor performance reviews and scoring.</li>
+                    <li>AI-assisted vetting based on historical safety data (potential).</li>
                 </ul>
             </div>
         </CardContent>

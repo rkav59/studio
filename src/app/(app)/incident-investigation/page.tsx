@@ -29,18 +29,19 @@ export default function IncidentInvestigationPage() {
                 This module provides tools for conducting detailed incident and accident investigations. 
                 Identify root causes, document findings, and manage corrective and preventive actions (CAPA) to enhance safety performance.
             </p>
-            {/* Placeholder for investigation tools */}
             <div className="mt-6 p-6 border rounded-lg bg-secondary/30">
                 <h3 className="font-semibold text-lg">Investigation & CAPA Tools</h3>
                 <p className="text-sm text-muted-foreground mt-2">
                     Key features to be developed:
                 </p>
                 <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-                    <li>Investigation workflow management (e.g., 5 Whys, Fishbone).</li>
-                    <li>Evidence logging (photos, documents, witness statements).</li>
-                    <li>Corrective action assignment and tracking with deadlines.</li>
-                    <li>AI-assisted root cause analysis (potential).</li>
-                    <li>Trend analysis of investigation findings.</li>
+                    <li>Guided investigation workflow (e.g., 5 Whys, Fishbone, SCAT).</li>
+                    <li>Evidence logging: photo/video uploads, document attachment, witness statement forms.</li>
+                    <li>Root Cause Analysis (RCA) toolkit and documentation.</li>
+                    <li>Corrective and Preventive Action (CAPA) assignment, tracking, and verification.</li>
+                    <li>AI-assisted root cause suggestion based on incident details (potential).</li>
+                    <li>Trend analysis of investigation findings and CAPA effectiveness.</li>
+                    <li>Investigation report generation.</li>
                 </ul>
             </div>
         </CardContent>

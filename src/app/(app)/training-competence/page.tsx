@@ -29,17 +29,19 @@ export default function TrainingCompetencePage() {
                 This module allows you to organize training programs, record attendance, track certifications, and manage competency assessments. 
                 Ensure your workforce has the necessary skills and knowledge for a safe and productive environment.
             </p>
-            {/* Placeholder for training management tools */}
             <div className="mt-6 p-6 border rounded-lg bg-secondary/30">
                 <h3 className="font-semibold text-lg">Training Management Features</h3>
                 <p className="text-sm text-muted-foreground mt-2">
                     Future capabilities will include:
                 </p>
                 <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-                    <li>Training matrix and needs analysis.</li>
-                    <li>Course scheduling and enrollment.</li>
-                    <li>Automated reminders for refresher training.</li>
-                    <li>Competency assessment and tracking.</li>
+                    <li>Training needs analysis and skills gap identification.</li>
+                    <li>Course catalog management with content hosting.</li>
+                    <li>Employee training records and digital certifications.</li>
+                    <li>Scheduling, enrollment, and attendance tracking.</li>
+                    <li>Automated reminders for refresher training and expiring certifications.</li>
+                    <li>Competency assessment frameworks and tracking.</li>
+                    <li>Reporting on training compliance and effectiveness.</li>
                     <li>Integration with e-learning platforms (potential).</li>
                 </ul>
             </div>
