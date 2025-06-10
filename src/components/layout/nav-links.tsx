@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -9,6 +10,15 @@ import {
   BarChartHorizontalBig,
   Sparkles,
   ShieldCheck,
+  ClipboardCheck, // Risk Assessment
+  FileCheck2, // SHEQ Audit
+  BookUser, // Training & Competence
+  Siren, // Emergency Preparedness
+  FileSearch, // Incident Investigation
+  HardHat, // PPE Management
+  ClipboardUser, // Contractor Safety
+  Stethoscope, // Medical Screening
+  HeartPulse, // Health Monitoring
 } from 'lucide-react';
 import {
   SidebarMenu,
@@ -21,6 +31,15 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/incident-logging', label: 'Incident Logging', icon: ClipboardPlus },
   { href: '/inspections', label: 'Inspections', icon: ListChecks },
+  { href: '/risk-assessment', label: 'Risk Assessment', icon: ClipboardCheck },
+  { href: '/sheq-audit', label: 'SHEQ Audit', icon: FileCheck2 },
+  { href: '/training-competence', label: 'Training & Competence', icon: BookUser },
+  { href: '/emergency-preparedness', label: 'Emergency Preparedness', icon: Siren },
+  { href: '/incident-investigation', label: 'Incident Investigation', icon: FileSearch },
+  { href: '/ppe-management', label: 'PPE Management', icon: HardHat },
+  { href: '/contractor-safety', label: 'Contractor Safety', icon: ClipboardUser },
+  { href: '/medical-screening', label: 'Medical Screening', icon: Stethoscope },
+  { href: '/health-monitoring', label: 'Health Monitoring', icon: HeartPulse },
   { href: '/data-visualization', label: 'Data Visualization', icon: BarChartHorizontalBig },
   { href: '/ai-recommendations', label: 'AI Safety Assist', icon: Sparkles },
 ];
