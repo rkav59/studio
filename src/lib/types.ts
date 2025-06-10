@@ -25,24 +25,24 @@ export interface Inspection {
   location: string; // Added location for consistency
 }
 
-// New Types for Risk Assessment - Nested Structure
-export interface RiskControlItem { // General item for hazard, risk, or control text
-  id?: string; // Optional: for react-hook-form's key, actual ID can be generated on save
-  value?: string; // Made optional
+// Risk Assessment Types
+export interface RiskControlItem { 
+  id?: string; 
+  value?: string; 
 }
 
 export interface RiskEntry {
   id?: string;
-  risk: RiskControlItem; // The risk description (now optional)
-  existingControls: RiskControlItem[]; // Existing controls for this specific risk
-  proposedControls: RiskControlItem[]; // Proposed controls for this specific risk
+  risk: RiskControlItem; 
+  existingControls: RiskControlItem[]; 
+  proposedControls: RiskControlItem[]; 
 }
 
 export interface HazardEntry {
   id?: string;
-  hazard: RiskControlItem; // The hazard description
-  assessedRisks: RiskEntry[]; // Risks associated with this specific hazard
-  residualRiskLevel?: 'Low' | 'Medium' | 'High'; // Moved here
+  hazard: RiskControlItem; 
+  assessedRisks: RiskEntry[]; 
+  residualRiskLevel?: 'Low' | 'Medium' | 'High'; 
 }
 
 export type RiskAssessmentMethod = 
@@ -56,16 +56,14 @@ export type RiskAssessmentMethod =
   | "Preliminary Hazard Analysis (PHA)";
 
 export interface RiskAssessment {
-  id: string; // Main assessment ID
+  id: string; 
   activity: string;
-  hazardEntries: HazardEntry[]; // Array of hazard-risk-control structures
-  // residualRiskLevel: 'Low' | 'Medium' | 'High'; // Removed from here
+  hazardEntries: HazardEntry[]; 
   methodUsed?: RiskAssessmentMethod;
-  assessmentDate: string; // ISO String date
+  assessmentDate: string; 
   assessor: string;
 }
 
-// For AI Suggestions, matches the flow output (remains unchanged for now regarding residual risk)
 export interface RiskAssessmentSuggestionOutput {
   potentialRisks: string;
   recommendedControls: {
@@ -78,17 +76,36 @@ export interface RiskAssessmentSuggestionOutput {
   suggestedMethod: string; 
 }
 
+// SHEQ Audit Types
+export interface AuditChecklistItem {
+  id: string;
+  text: string;
+  status: 'Compliant' | 'Non-Compliant' | 'Not Applicable' | 'Pending';
+  evidenceOrRemarks?: string;
+}
+
+export interface NonConformance {
+  id: string;
+  description: string;
+  severity: 'Minor' | 'Major' | 'Critical';
+  relatedChecklistItemId?: string; // Optional link to a checklist item
+  correctiveActions?: string; // Placeholder for CAPA link/summary
+}
 
 export interface SheqAudit {
   id: string;
+  auditName: string;
   auditType: 'Safety' | 'Health' | 'Environment' | 'Quality' | 'Integrated';
   scope: string;
-  auditDate: string;
+  auditDate: string; // Scheduled/Actual date of audit - ISO string
   auditor: string;
-  findings: string; 
-  recommendations: string; 
-  status: 'Planned' | 'In Progress' | 'Completed' | 'Closed';
+  status: 'Planned' | 'In Progress' | 'Awaiting Review' | 'Completed' | 'Closed';
+  checklist: AuditChecklistItem[];
+  nonConformances: NonConformance[];
+  overallFindings?: string;
+  recommendations?: string;
 }
+
 
 export interface TrainingRecord {
   id: string;
@@ -114,16 +131,16 @@ export interface MockDrill {
   emergencyPlanId: string;
   drillDate: string;
   scenario: string;
-  participants: string[]; // Consider if string is best here or array of employee IDs/names
+  participants: string[]; 
   observations: string;
   lessonsLearned: string;
 }
 
 export interface IncidentInvestigation {
   id: string;
-  incidentId: string; // Link to original incident
+  incidentId: string; 
   investigationDate: string;
-  investigators: string[]; // Array of investigator names or IDs
+  investigators: string[]; 
   rootCauses: string; 
   correctiveActions: CorrectiveAction[];
   status: 'Open' | 'Pending Review' | 'Closed';
@@ -140,10 +157,10 @@ export interface CorrectiveAction {
 export interface PpeLog {
   id: string;
   ppeType: string;
-  employeeId: string; // Or employee name
+  employeeId: string; 
   issueDate: string;
   returnDate?: string;
-  condition: string; // e.g., New, Used, Damaged
+  condition: string; 
 }
 
 export interface PpeAudit {
@@ -151,7 +168,7 @@ export interface PpeAudit {
   area: string;
   auditDate: string;
   auditor: string;
-  complianceRate: number; // Percentage
+  complianceRate: number; 
   nonCompliances: string; 
 }
 
@@ -161,7 +178,7 @@ export interface Contractor {
   contactPerson: string;
   vettingStatus: 'Pending' | 'Approved' | 'Rejected';
   inductionCompleted: boolean;
-  activePermits: string[]; // List of permit IDs or numbers
+  activePermits: string[]; 
 }
 
 export interface PermitToWork {
@@ -176,19 +193,19 @@ export interface PermitToWork {
 
 export interface MedicalScreeningRecord {
   id: string;
-  employeeId: string; // Or employee name
+  employeeId: string; 
   screeningDate: string;
-  screeningType: string; // e.g., "Annual Checkup", "Pre-employment"
+  screeningType: string; 
   resultsSummary: string;
   fitToWork: boolean;
 }
 
 export interface HealthMonitoringRecord {
   id: string;
-  employeeId: string; // Or employee name
+  employeeId: string; 
   monitoringDate: string;
-  parameter: string; // e.g., "Noise Exposure", "Dust Levels", "Chemical X"
-  value: string; // Could be numeric or descriptive
+  parameter: string; 
+  value: string; 
   notes?: string;
 }
     
