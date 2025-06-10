@@ -1,4 +1,5 @@
 
+
 export interface Incident {
   id: string;
   type: 'Incident' | 'Near Miss' | 'Hazard';
@@ -39,14 +40,22 @@ export type RiskAssessmentMethod =
 export interface RiskAssessment {
   id: string;
   activity: string;
-  identifiedHazards: string; // Changed from string[] for simpler text area input
-  assessedRisks: string;     // Changed from string[]
-  controlMeasures: string;   // Changed from string[]
+  identifiedHazards: string; 
+  assessedRisks: string;     
+  controlMeasures: string;   
   residualRiskLevel: 'Low' | 'Medium' | 'High';
   methodUsed?: RiskAssessmentMethod;
-  assessmentDate: string;
+  assessmentDate: string; // ISO String date
   assessor: string;
 }
+
+// For AI Suggestions, matches the flow output
+export interface RiskAssessmentSuggestionOutput {
+  potentialRisks: string;
+  recommendedControls: string;
+  suggestedMethod: string; 
+}
+
 
 export interface SheqAudit {
   id: string;
@@ -54,8 +63,8 @@ export interface SheqAudit {
   scope: string;
   auditDate: string;
   auditor: string;
-  findings: string; // Changed from string[] for simpler text area input
-  recommendations: string; // Changed from string[]
+  findings: string; 
+  recommendations: string; 
   status: 'Planned' | 'In Progress' | 'Completed' | 'Closed';
 }
 
@@ -83,7 +92,7 @@ export interface MockDrill {
   emergencyPlanId: string;
   drillDate: string;
   scenario: string;
-  participants: string[];
+  participants: string[]; // Consider if string is best here or array of employee IDs/names
   observations: string;
   lessonsLearned: string;
 }
@@ -92,8 +101,8 @@ export interface IncidentInvestigation {
   id: string;
   incidentId: string; // Link to original incident
   investigationDate: string;
-  investigators: string[];
-  rootCauses: string; // Changed from string[]
+  investigators: string[]; // Array of investigator names or IDs
+  rootCauses: string; 
   correctiveActions: CorrectiveAction[];
   status: 'Open' | 'Pending Review' | 'Closed';
 }
@@ -109,10 +118,10 @@ export interface CorrectiveAction {
 export interface PpeLog {
   id: string;
   ppeType: string;
-  employeeId: string;
+  employeeId: string; // Or employee name
   issueDate: string;
   returnDate?: string;
-  condition: string;
+  condition: string; // e.g., New, Used, Damaged
 }
 
 export interface PpeAudit {
@@ -121,7 +130,7 @@ export interface PpeAudit {
   auditDate: string;
   auditor: string;
   complianceRate: number; // Percentage
-  nonCompliances: string; // Changed from string[]
+  nonCompliances: string; 
 }
 
 export interface Contractor {
@@ -130,7 +139,7 @@ export interface Contractor {
   contactPerson: string;
   vettingStatus: 'Pending' | 'Approved' | 'Rejected';
   inductionCompleted: boolean;
-  activePermits: string[]; // List of permit IDs
+  activePermits: string[]; // List of permit IDs or numbers
 }
 
 export interface PermitToWork {
@@ -145,7 +154,7 @@ export interface PermitToWork {
 
 export interface MedicalScreeningRecord {
   id: string;
-  employeeId: string;
+  employeeId: string; // Or employee name
   screeningDate: string;
   screeningType: string; // e.g., "Annual Checkup", "Pre-employment"
   resultsSummary: string;
@@ -154,9 +163,11 @@ export interface MedicalScreeningRecord {
 
 export interface HealthMonitoringRecord {
   id: string;
-  employeeId: string;
+  employeeId: string; // Or employee name
   monitoringDate: string;
-  parameter: string; // e.g., "Noise Exposure", "Dust Levels"
-  value: string;
+  parameter: string; // e.g., "Noise Exposure", "Dust Levels", "Chemical X"
+  value: string; // Could be numeric or descriptive
   notes?: string;
 }
+
+    

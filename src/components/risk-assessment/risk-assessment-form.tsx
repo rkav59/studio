@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +29,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Workflow } from "lucide-react";
+import { CalendarIcon, Save, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { RiskAssessment, RiskAssessmentMethod } from "@/lib/types";
 
@@ -48,7 +49,7 @@ const riskAssessmentFormSchema = z.object({
   residualRiskLevel: z.enum(["Low", "Medium", "High"], {
     required_error: "Please select a residual risk level.",
   }),
-  methodUsed: z.string().optional(), // Will be from RiskAssessmentMethod type
+  methodUsed: z.string().optional(),
   assessmentDate: z.date({
     required_error: "An assessment date is required.",
   }),
@@ -60,41 +61,60 @@ const riskAssessmentFormSchema = z.object({
 type RiskAssessmentFormValues = z.infer<typeof riskAssessmentFormSchema>;
 
 interface RiskAssessmentFormProps {
-  onRiskAssessmentLogged: (assessment: RiskAssessment) => void;
+  onSaveAssessment: (assessment: RiskAssessment, isEditing: boolean) => void;
   assessmentMethods: RiskAssessmentMethod[];
+  initialData?: Partial<RiskAssessment> | null;
+  onCancel: () => void;
 }
 
-export function RiskAssessmentForm({ onRiskAssessmentLogged, assessmentMethods }: RiskAssessmentFormProps) {
+export function RiskAssessmentForm({ onSaveAssessment, assessmentMethods, initialData, onCancel }: RiskAssessmentFormProps) {
   const { toast } = useToast();
+  const isEditing = !!initialData?.id;
+
   const form = useForm<RiskAssessmentFormValues>({
     resolver: zodResolver(riskAssessmentFormSchema),
     defaultValues: {
-      activity: "",
-      identifiedHazards: "",
-      assessedRisks: "",
-      controlMeasures: "",
-      residualRiskLevel: undefined,
-      methodUsed: undefined,
-      assessmentDate: new Date(),
-      assessor: "",
+      activity: initialData?.activity || "",
+      identifiedHazards: initialData?.identifiedHazards || "",
+      assessedRisks: initialData?.assessedRisks || "",
+      controlMeasures: initialData?.controlMeasures || "",
+      residualRiskLevel: initialData?.residualRiskLevel || undefined,
+      methodUsed: initialData?.methodUsed || undefined,
+      assessmentDate: initialData?.assessmentDate ? new Date(initialData.assessmentDate) : new Date(),
+      assessor: initialData?.assessor || "",
     },
   });
+  
+  useEffect(() => {
+    // Reset form when initialData changes (e.g., switching from add to edit, or new AI prefill)
+    form.reset({
+      activity: initialData?.activity || "",
+      identifiedHazards: initialData?.identifiedHazards || "",
+      assessedRisks: initialData?.assessedRisks || "",
+      controlMeasures: initialData?.controlMeasures || "",
+      residualRiskLevel: initialData?.residualRiskLevel || undefined,
+      methodUsed: initialData?.methodUsed || undefined,
+      assessmentDate: initialData?.assessmentDate ? new Date(initialData.assessmentDate) : new Date(),
+      assessor: initialData?.assessor || "",
+    });
+  }, [initialData, form]);
+
 
   async function onSubmit(data: RiskAssessmentFormValues) {
-    const newAssessment: RiskAssessment = {
-      id: new Date().toISOString(), // Simple ID generation
+    const assessmentToSave: RiskAssessment = {
+      id: initialData?.id || new Date().toISOString(), // Use existing ID if editing, else generate new
       ...data,
       assessmentDate: data.assessmentDate.toISOString(),
-      methodUsed: data.methodUsed as RiskAssessmentMethod, // Cast as it's optional in schema but methodUsed is RiskAssessmentMethod
+      methodUsed: data.methodUsed as RiskAssessmentMethod | undefined,
     };
-    onRiskAssessmentLogged(newAssessment); 
+    onSaveAssessment(assessmentToSave, isEditing); 
     
     toast({
-      title: "Risk Assessment Logged",
-      description: `Assessment for "${data.activity.substring(0,30)}..." has been successfully logged.`,
+      title: isEditing ? "Risk Assessment Updated" : "Risk Assessment Logged",
+      description: `Assessment for "${data.activity.substring(0,30)}..." has been successfully ${isEditing ? 'updated' : 'logged'}.`,
       variant: "default",
     });
-    form.reset(); 
+    // Form reset is handled by the parent component by hiding/re-keying or calling onCancel
   }
 
   return (
@@ -182,7 +202,7 @@ export function RiskAssessmentForm({ onRiskAssessmentLogged, assessmentMethods }
             render={({ field }) => (
                 <FormItem>
                 <FormLabel>Residual Risk Level</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value || ""} defaultValue={field.value}>
                     <FormControl>
                     <SelectTrigger>
                         <SelectValue placeholder="Select residual risk level" />
@@ -205,7 +225,7 @@ export function RiskAssessmentForm({ onRiskAssessmentLogged, assessmentMethods }
             render={({ field }) => (
                 <FormItem>
                 <FormLabel>Assessment Method Used</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value || ""} defaultValue={field.value}>
                     <FormControl>
                     <SelectTrigger>
                         <SelectValue placeholder="Select assessment method (optional)" />
@@ -281,11 +301,17 @@ export function RiskAssessmentForm({ onRiskAssessmentLogged, assessmentMethods }
             />
         </div>
         
-        <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            <Workflow className="mr-2 h-4 w-4" /> Log Risk Assessment
-        </Button>
+        <div className="flex space-x-2">
+            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                <Save className="mr-2 h-4 w-4" /> {isEditing ? "Save Changes" : "Log Risk Assessment"}
+            </Button>
+            <Button type="button" variant="outline" onClick={onCancel}>
+                <XCircle className="mr-2 h-4 w-4" /> Cancel
+            </Button>
+        </div>
       </form>
     </Form>
   );
 }
 
+    

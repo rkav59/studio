@@ -1,13 +1,15 @@
 
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import { format } from 'date-fns';
-import { ShieldAlert, ListChecks, CheckSquare } from 'lucide-react';
+import { ShieldAlert, ListChecks, CheckSquare, Eye, Edit, Info } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-import type { RiskAssessment, RiskAssessmentMethod } from "@/lib/types";
+import type { RiskAssessment, RiskAssessmentMethod, RiskAssessmentSuggestionOutput } from "@/lib/types";
 import { RiskAssessmentAiAssistant } from "@/components/risk-assessment/risk-assessment-ai-assistant";
 import { RiskAssessmentForm } from '@/components/risk-assessment/risk-assessment-form';
 
@@ -22,12 +24,80 @@ export const riskAssessmentMethodsList: RiskAssessmentMethod[] = [
   "Preliminary Hazard Analysis (PHA)",
 ];
 
+const LOCAL_STORAGE_KEY = 'sheild-risk-assessments';
+
 export default function RiskAssessmentPage() {
   const [loggedRiskAssessments, setLoggedRiskAssessments] = useState<RiskAssessment[]>([]);
+  const [editingAssessment, setEditingAssessment] = useState<RiskAssessment | null>(null);
+  const [viewingAssessment, setViewingAssessment] = useState<RiskAssessment | null>(null);
+  const [aiPrefillData, setAiPrefillData] = useState<Partial<RiskAssessment> | null>(null);
+  const [isFormVisible, setIsFormVisible] = useState(false); // To control form visibility for add/edit
 
-  const handleRiskAssessmentLogged = (assessment: RiskAssessment) => {
-    setLoggedRiskAssessments(prevAssessments => [assessment, ...prevAssessments]);
+  useEffect(() => {
+    try {
+      const storedAssessments = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedAssessments) {
+        setLoggedRiskAssessments(JSON.parse(storedAssessments));
+      }
+    } catch (error) {
+      console.error("Error loading risk assessments from localStorage:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(loggedRiskAssessments));
+    } catch (error) {
+      console.error("Error saving risk assessments to localStorage:", error);
+    }
+  }, [loggedRiskAssessments]);
+
+  const handleSaveAssessment = (assessment: RiskAssessment, isEditing: boolean) => {
+    if (isEditing) {
+      setLoggedRiskAssessments(prevAssessments =>
+        prevAssessments.map(ra => (ra.id === assessment.id ? assessment : ra))
+      );
+    } else {
+      setLoggedRiskAssessments(prevAssessments => [assessment, ...prevAssessments]);
+    }
+    setEditingAssessment(null);
+    setAiPrefillData(null); // Clear AI prefill data after saving
+    setIsFormVisible(false); // Hide form after save
   };
+
+  const handleEditAssessment = (assessment: RiskAssessment) => {
+    setEditingAssessment(assessment);
+    setAiPrefillData(null); // Clear any AI prefill if starting a manual edit
+    setIsFormVisible(true);
+  };
+
+  const handleViewAssessment = (assessment: RiskAssessment) => {
+    setViewingAssessment(assessment);
+  };
+
+  const handleUseAiSuggestion = (suggestion: RiskAssessmentSuggestionOutput, activityInput: string, hazardsInput: string) => {
+    setAiPrefillData({
+      activity: activityInput,
+      identifiedHazards: hazardsInput,
+      assessedRisks: suggestion.potentialRisks,
+      controlMeasures: suggestion.recommendedControls,
+      methodUsed: suggestion.suggestedMethod as RiskAssessmentMethod,
+    });
+    setEditingAssessment(null); // Clear any manual edit if using AI suggestion
+    setIsFormVisible(true); // Show the form pre-filled
+  };
+  
+  const handleAddNewAssessment = () => {
+    setEditingAssessment(null);
+    setAiPrefillData(null);
+    setIsFormVisible(true);
+  };
+
+  const handleCancelForm = () => {
+    setEditingAssessment(null);
+    setAiPrefillData(null);
+    setIsFormVisible(false);
+  }
 
   return (
     <div className="space-y-6">
@@ -58,23 +128,35 @@ export default function RiskAssessmentPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ListChecks className="h-6 w-6 text-primary" />
-            Log New Risk Assessment
-          </CardTitle>
-          <CardDescription>
-            Fill out the form below to document a new risk assessment.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <RiskAssessmentForm 
-            onRiskAssessmentLogged={handleRiskAssessmentLogged} 
-            assessmentMethods={riskAssessmentMethodsList}
-          />
-        </CardContent>
-      </Card>
+      {!isFormVisible && (
+        <Button onClick={handleAddNewAssessment} className="mb-6 bg-primary hover:bg-primary/90">
+          <ListChecks className="mr-2 h-4 w-4" /> Log New Risk Assessment
+        </Button>
+      )}
+
+      {(isFormVisible || editingAssessment || aiPrefillData) && (
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ListChecks className="h-6 w-6 text-primary" />
+              {editingAssessment ? "Edit Risk Assessment" : "Log New Risk Assessment"}
+            </CardTitle>
+            <CardDescription>
+              {editingAssessment ? "Modify the details below." : "Fill out the form below to document a new risk assessment."}
+               {aiPrefillData && !editingAssessment && " (Pre-filled with AI suggestions)"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RiskAssessmentForm
+              key={editingAssessment?.id || (aiPrefillData ? 'ai-form' : 'new-form')} // Force re-render with new key for new/edit/ai modes
+              onSaveAssessment={handleSaveAssessment}
+              assessmentMethods={riskAssessmentMethodsList}
+              initialData={editingAssessment || aiPrefillData}
+              onCancel={handleCancelForm}
+            />
+          </CardContent>
+        </Card>
+      )}
       
       {loggedRiskAssessments.length > 0 && (
         <>
@@ -83,16 +165,16 @@ export default function RiskAssessmentPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CheckSquare className="h-6 w-6 text-primary" />
-                Recently Logged Risk Assessments
+                Logged Risk Assessments
               </CardTitle>
-              <CardDescription>This list is for demonstration and will reset on page refresh.</CardDescription>
+              <CardDescription>Review and manage your documented risk assessments.</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-4">
-                {loggedRiskAssessments.slice(0, 3).map((assessment) => (
+                {loggedRiskAssessments.map((assessment) => (
                   <li key={assessment.id} className="p-4 border rounded-md bg-secondary/30">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-primary">{assessment.activity}</h3>
+                      <h3 className="font-semibold text-primary">{assessment.activity.length > 50 ? `${assessment.activity.substring(0,50)}...` : assessment.activity}</h3>
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(assessment.assessmentDate), "PPP")}
                       </span>
@@ -110,14 +192,14 @@ export default function RiskAssessmentPage() {
                         {assessment.residualRiskLevel}
                       </span>
                     </p>
-                    <details className="mt-2 text-xs">
-                        <summary className="cursor-pointer text-muted-foreground hover:text-primary">View Details</summary>
-                        <div className="mt-2 space-y-1 pl-2 border-l-2 border-border ml-1">
-                            <p><span className="font-semibold">Identified Hazards:</span> {assessment.identifiedHazards}</p>
-                            <p><span className="font-semibold">Assessed Risks:</span> {assessment.assessedRisks}</p>
-                            <p><span className="font-semibold">Control Measures:</span> {assessment.controlMeasures}</p>
-                        </div>
-                    </details>
+                    <div className="mt-3 flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleViewAssessment(assessment)}>
+                            <Eye className="mr-1 h-3 w-3" /> View Details
+                        </Button>
+                        <Button variant="secondary" size="sm" onClick={() => handleEditAssessment(assessment)}>
+                            <Edit className="mr-1 h-3 w-3" /> Edit
+                        </Button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -126,7 +208,7 @@ export default function RiskAssessmentPage() {
         </>
       )}
 
-      <RiskAssessmentAiAssistant />
+      <RiskAssessmentAiAssistant onUseSuggestion={handleUseAiSuggestion} />
 
       <Card className="shadow-lg mt-6">
         <CardHeader>
@@ -147,6 +229,64 @@ export default function RiskAssessmentPage() {
         </CardContent>
       </Card>
 
+      {viewingAssessment && (
+        <Dialog open={!!viewingAssessment} onOpenChange={() => setViewingAssessment(null)}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Info className="h-6 w-6 text-primary"/>
+                Risk Assessment Details
+              </DialogTitle>
+              <DialogDescription>
+                Activity: {viewingAssessment.activity}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Assessment Date:</p>
+                <p className="text-sm text-muted-foreground">{format(new Date(viewingAssessment.assessmentDate), "PPP")}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Assessor(s):</p>
+                <p className="text-sm text-muted-foreground">{viewingAssessment.assessor}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Assessment Method Used:</p>
+                <p className="text-sm text-muted-foreground">{viewingAssessment.methodUsed || 'N/A'}</p>
+              </div>
+               <Separator />
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Identified Hazards:</p>
+                <pre className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted p-2 rounded-md">{viewingAssessment.identifiedHazards}</pre>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Assessed Risks:</p>
+                <pre className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted p-2 rounded-md">{viewingAssessment.assessedRisks}</pre>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Control Measures:</p>
+                <pre className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted p-2 rounded-md">{viewingAssessment.controlMeasures}</pre>
+              </div>
+               <Separator />
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Residual Risk Level:</p>
+                <p className={`px-2 py-0.5 rounded-full text-xs font-semibold inline-block
+                    ${viewingAssessment.residualRiskLevel === 'Low' ? 'bg-green-100 text-green-700' : ''}
+                    ${viewingAssessment.residualRiskLevel === 'Medium' ? 'bg-yellow-100 text-yellow-700' : ''}
+                    ${viewingAssessment.residualRiskLevel === 'High' ? 'bg-red-100 text-red-700' : ''}
+                  `}>
+                    {viewingAssessment.residualRiskLevel}
+                  </p>
+              </div>
+            </div>
+            <div className="pt-4 border-t">
+                 <Button variant="outline" onClick={() => setViewingAssessment(null)}>Close</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
+
+    
