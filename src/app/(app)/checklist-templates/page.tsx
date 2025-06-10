@@ -164,7 +164,7 @@ export default function ChecklistTemplatesPage() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span className="truncate mr-2">{template.name}</span>
-                  {template.isSystemDefault && <Lock className="h-4 w-4 text-muted-foreground shrink-0" titleAccess="System Default Template (Read-Only)" />}
+                  {template.isSystemDefault && <Lock className="h-4 w-4 text-muted-foreground shrink-0" title="System Default Template (Read-Only)" />}
                 </CardTitle>
                 <CardDescription>{template.items.length} item(s)</CardDescription>
               </CardHeader>
