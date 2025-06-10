@@ -28,16 +28,14 @@ export interface Inspection {
 // New Types for Risk Assessment - Nested Structure
 export interface RiskControlItem { // General item for hazard, risk, or control text
   id?: string; // Optional: for react-hook-form's key, actual ID can be generated on save
-  value: string;
+  value?: string; // Made optional
 }
 
 export interface RiskEntry {
   id?: string;
-  risk: RiskControlItem; // The risk description
+  risk: RiskControlItem; // The risk description (now optional)
   existingControls: RiskControlItem[]; // Existing controls for this specific risk
   proposedControls: RiskControlItem[]; // Proposed controls for this specific risk
-  // controlMeasures is deprecated, will be handled by form migration
-  controlMeasures?: RiskControlItem[]; // Keep for potential data migration if old localStorage items exist
 }
 
 export interface HazardEntry {

@@ -30,12 +30,12 @@ const stringToRiskControlItems = (str: string | undefined | null): RiskControlIt
 
 const defaultRiskControlItem = (): RiskControlItem => ({ value: "" });
 const defaultRiskEntry = (): RiskEntry => ({
-    risk: defaultRiskControlItem(),
+    risk: { value: "" }, // Risk description defaults to empty
     existingControls: [],
     proposedControls: []
 });
 const defaultHazardEntry = (): HazardEntry => ({
-    hazard: defaultRiskControlItem(),
+    hazard: { value: "" }, // Hazard description defaults to empty
     assessedRisks: [defaultRiskEntry()]
 });
 
@@ -59,12 +59,12 @@ export default function RiskAssessmentPage() {
           ...ra,
           hazardEntries: (ra.hazardEntries || []).map(he => ({
             ...he,
-            hazard: he.hazard || defaultRiskControlItem(), // Ensure hazard object exists
+            hazard: he.hazard || defaultRiskControlItem(), 
             assessedRisks: (he.assessedRisks || []).map(ar => ({
               ...ar,
-              risk: ar.risk || defaultRiskControlItem(), // Ensure risk object exists
+              risk: ar.risk || { value: "" }, // risk.value is now optional
               existingControls: (ar.existingControls || []).map(c => typeof c === 'string' ? {value: c} : (c || defaultRiskControlItem())),
-              proposedControls: (ar.proposedControls || (ar as any).controlMeasures || []).map((c: any) => typeof c === 'string' ? {value: c} : (c || defaultRiskControlItem())),
+              proposedControls: (ar.proposedControls || []).map((c: any) => typeof c === 'string' ? {value: c} : (c || defaultRiskControlItem())),
             }))
           }))
         }));
@@ -121,8 +121,8 @@ export default function RiskAssessmentPage() {
       hazard: { value: hazardsInput || "AI Suggested Hazard (Please Review)" },
       assessedRisks: [
         {
-          risk: { value: suggestion.potentialRisks || "AI Suggested Risk (Please Review)" },
-          existingControls: [], // AI suggestions go to proposed controls
+          risk: { value: suggestion.potentialRisks || "AI Suggested Risk (Please Review)" }, // risk.value is now optional
+          existingControls: [], 
           proposedControls: stringToRiskControlItems(suggestion.recommendedControls),
         },
       ],
@@ -201,7 +201,7 @@ export default function RiskAssessmentPage() {
           const hazardText = escapeCsvCell(he.hazard?.value);
           if (he.assessedRisks && he.assessedRisks.length > 0) {
             he.assessedRisks.forEach(ar => {
-              const riskText = escapeCsvCell(ar.risk?.value);
+              const riskText = escapeCsvCell(ar.risk?.value); // risk.value is optional
 
               if (ar.existingControls && ar.existingControls.length > 0) {
                 ar.existingControls.forEach(cm => {
@@ -209,7 +209,6 @@ export default function RiskAssessmentPage() {
                   csvRows.push([...commonData, hazardText, riskText, "Existing", controlText].join(','));
                 });
               } else if (!ar.proposedControls || ar.proposedControls.length === 0) {
-                 // If no existing and no proposed controls, still add a row for the risk if hazard and risk exist
                 if (hazardText || riskText) {
                     csvRows.push([...commonData, hazardText, riskText, "", ""].join(','));
                 }
@@ -222,11 +221,11 @@ export default function RiskAssessmentPage() {
                 });
               }
             });
-          } else if (hazardText) { // Hazard exists but no risks
+          } else if (hazardText) { 
             csvRows.push([...commonData, hazardText, "", "", ""].join(','));
           }
         });
-      } else { // No hazard entries for this assessment
+      } else { 
         csvRows.push([...commonData, "", "", "", ""].join(','));
       }
     });
@@ -437,13 +436,13 @@ export default function RiskAssessmentPage() {
                         {hazardEntry.assessedRisks && hazardEntry.assessedRisks.length > 0 ? (
                           hazardEntry.assessedRisks.map((riskEntry, rIndex) => (
                             <div key={riskEntry.id || `risk-${hIndex}-${rIndex}`} className="pl-3 border-l-2 border-secondary space-y-2">
-                              <p className="text-sm font-semibold">Risk {rIndex + 1}: {riskEntry.risk?.value || 'N/A'}</p>
+                              <p className="text-sm font-semibold">Risk {rIndex + 1}: {riskEntry.risk?.value || '(No description provided)'}</p>
 
                               <div>
                                 <p className="text-xs font-medium text-muted-foreground mt-1">Existing Control Measures:</p>
-                                {riskEntry.existingControls && riskEntry.existingControls.length > 0 ? (
+                                {riskEntry.existingControls && riskEntry.existingControls.length > 0 && riskEntry.existingControls.some(c => c.value && c.value.trim() !== '') ? (
                                   <ul className="list-disc list-inside pl-3 text-sm text-muted-foreground">
-                                    {riskEntry.existingControls.map((control, cIndex) => (
+                                    {riskEntry.existingControls.filter(c => c.value && c.value.trim() !== '').map((control, cIndex) => (
                                       <li key={control.id || `existing-control-${hIndex}-${rIndex}-${cIndex}`}>{control.value || 'N/A'}</li>
                                     ))}
                                   </ul>
@@ -452,9 +451,9 @@ export default function RiskAssessmentPage() {
 
                               <div>
                                 <p className="text-xs font-medium text-muted-foreground mt-1">Proposed Control Measures:</p>
-                                {riskEntry.proposedControls && riskEntry.proposedControls.length > 0 ? (
+                                {riskEntry.proposedControls && riskEntry.proposedControls.length > 0 && riskEntry.proposedControls.some(c => c.value && c.value.trim() !== '') ? (
                                   <ul className="list-disc list-inside pl-3 text-sm text-muted-foreground">
-                                    {riskEntry.proposedControls.map((control, cIndex) => (
+                                    {riskEntry.proposedControls.filter(c => c.value && c.value.trim() !== '').map((control, cIndex) => (
                                       <li key={control.id || `proposed-control-${hIndex}-${rIndex}-${cIndex}`}>{control.value || 'N/A'}</li>
                                     ))}
                                   </ul>
@@ -477,7 +476,7 @@ export default function RiskAssessmentPage() {
                     ${viewingAssessment.residualRiskLevel === 'Medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-700/30 dark:text-yellow-300' : ''}
                     ${viewingAssessment.residualRiskLevel === 'High' ? 'bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-300' : ''}
                   `}>
-                    {viewingAssessment.residualRiskLevel}
+                    {viewingAssessment.residualRiskLevel || 'N/A'}
                   </p>
               </div>
             </div>
@@ -490,3 +489,4 @@ export default function RiskAssessmentPage() {
     </div>
   );
 }
+
