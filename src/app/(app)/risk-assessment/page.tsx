@@ -1,4 +1,5 @@
 
+
 "use client";
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,11 +23,6 @@ import { riskAssessmentMethodsList, type DescriptiveRiskAssessmentMethod } from 
 
 const LOCAL_STORAGE_KEY = 'sheild-risk-assessments-v2';
 
-const stringToRiskControlItems = (str: string | undefined | null): RiskControlItem[] => {
-  if (!str) return []; 
-  const lines = str.split('\n').map(line => ({ value: line.trim() })).filter(item => item.value);
-  return lines.length > 0 ? lines : []; 
-};
 
 const defaultRiskControlItem = (): RiskControlItem => ({ value: "" });
 const defaultRiskEntry = (): RiskEntry => ({
@@ -119,7 +115,18 @@ export default function RiskAssessmentPage() {
   const handleUseAiSuggestion = (suggestion: RiskAssessmentSuggestionOutput, activityInput: string, hazardsInputFromAIForm: string) => {
     const parsedHazardTexts = hazardsInputFromAIForm.split('\n').map(h => h.trim()).filter(h => h);
     const parsedRiskTexts = suggestion.potentialRisks.split('\n').map(r => r.trim()).filter(r => r);
-    const parsedControlItems = stringToRiskControlItems(suggestion.recommendedControls);
+    
+    const aiProposedControls: RiskControlItem[] = [];
+    const controlCategories = suggestion.recommendedControls;
+    (Object.keys(controlCategories) as Array<keyof typeof controlCategories>).forEach(categoryKey => {
+      const controlsInCategory = controlCategories[categoryKey];
+      if (controlsInCategory && controlsInCategory.length > 0) {
+        const categoryName = categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1);
+        controlsInCategory.forEach(ctrl => {
+          aiProposedControls.push({ value: `${categoryName}: ${ctrl}` });
+        });
+      }
+    });
 
     let newHazardEntries: HazardEntry[] = [];
 
@@ -130,29 +137,29 @@ export default function RiskAssessmentPage() {
         const effectiveRiskTexts = parsedRiskTexts.length > 0 ? parsedRiskTexts : ["AI Suggested Risk (Please Review)"];
 
         effectiveRiskTexts.forEach(riskText => {
-            const currentProposedControls = parsedControlItems.length > 0 
-                ? parsedControlItems.map(c => ({ ...c, id: undefined }))
+            const currentProposedControls = aiProposedControls.length > 0 
+                ? aiProposedControls.map(c => ({ ...c, id: undefined })) // Ensure new IDs for form
                 : [defaultRiskControlItem()];
 
             assessedRisksForThisHazard.push({
-                id: undefined,
+                id: undefined, // Will be set by useFieldArray
                 risk: { value: riskText },
-                existingControls: [defaultRiskControlItem()],
+                existingControls: [defaultRiskControlItem()], // Start with one empty existing control
                 proposedControls: currentProposedControls,
             });
         });
         
         newHazardEntries.push({
-            id: undefined,
+            id: undefined, // Will be set by useFieldArray
             hazard: { value: hazardText },
             assessedRisks: assessedRisksForThisHazard.length > 0 ? assessedRisksForThisHazard : [defaultRiskEntry()],
         });
     });
     
-    if (newHazardEntries.length === 0) {
+    if (newHazardEntries.length === 0) { // Fallback if no hazards were parsed somehow
         const fallbackRiskEntry = defaultRiskEntry();
-        if (parsedControlItems.length > 0) {
-            fallbackRiskEntry.proposedControls = parsedControlItems.map(c => ({ ...c, id: undefined }));
+        if (aiProposedControls.length > 0) {
+            fallbackRiskEntry.proposedControls = aiProposedControls.map(c => ({ ...c, id: undefined }));
         } else {
             fallbackRiskEntry.proposedControls = [defaultRiskControlItem()];
         }
@@ -168,8 +175,8 @@ export default function RiskAssessmentPage() {
       hazardEntries: newHazardEntries,
       methodUsed: suggestion.suggestedMethod as RiskAssessmentMethod,
       assessmentDate: new Date().toISOString(),
-      assessor: "",
-      residualRiskLevel: undefined,
+      assessor: "", // User to fill
+      residualRiskLevel: undefined, // User to determine
     });
     setEditingAssessment(null);
     setIsFormVisible(true);
@@ -180,7 +187,7 @@ export default function RiskAssessmentPage() {
     setEditingAssessment(null);
     setAiPrefillData({
         activity: "",
-        hazardEntries: [defaultHazardEntry()],
+        hazardEntries: [defaultHazardEntry()], // Start with one default hazard entry structure
         assessmentDate: new Date().toISOString(),
         assessor: "",
         residualRiskLevel: undefined,

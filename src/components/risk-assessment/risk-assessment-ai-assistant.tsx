@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Sparkles, AlertTriangle, Send, SearchCheck, InfoIcon } from "lucide-react";
+import { Loader2, Sparkles, AlertTriangle, Send, SearchCheck, InfoIcon, ShieldCheck, Construction, UserCheck, ClipboardSignature, VenetianMask } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateRiskAssessmentSuggestion, type RiskAssessmentSuggestionInput, type RiskAssessmentSuggestionOutput } from "@/ai/flows/generate-risk-assessment-suggestion-flow";
 import { identifyHazards, type IdentifyHazardsInput, type IdentifyHazardsOutput } from "@/ai/flows/identify-hazards-flow";
@@ -41,6 +41,14 @@ type AiAssistantFormValues = z.infer<typeof aiAssistantFormSchema>;
 interface RiskAssessmentAiAssistantProps {
   onUseSuggestion: (suggestion: RiskAssessmentSuggestionOutput, activityInput: string, hazardsInput: string) => void;
 }
+
+const controlCategoryIcons = {
+  elimination: ShieldCheck,
+  substitution: VenetianMask, // Replaced Cog with VenetianMask for better distinction
+  engineering: Construction, // Replaced Wrench with Construction
+  administrative: ClipboardSignature, // Replaced FileText with ClipboardSignature
+  ppe: UserCheck, // Replaced Shirt with UserCheck
+};
 
 export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiAssistantProps) {
   const { toast } = useToast();
@@ -133,6 +141,8 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
         title: "Suggestions Applied",
         description: "AI suggestions have been pre-filled into the main form.",
       });
+      setSuggestion(null); // Clear suggestion after applying
+      form.reset({ activityDescription: lastFormValues.activityDescription, identifiedHazards: lastFormValues.identifiedHazards}); // Keep form values, but clear suggestion card
     }
   };
 
@@ -233,7 +243,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
               AI Full Risk Assessment Suggestion
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div>
                 <h3 className="font-semibold text-lg mb-1">Suggested Risk Assessment Method:</h3>
                 <p className="text-primary font-medium p-2 bg-primary/10 rounded-md">{suggestion.suggestedMethod || "N/A"}</p>
@@ -248,16 +258,37 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
                   renderGuidance(methodSpecificGuidance[suggestion.suggestedMethod as RiskAssessmentMethod]?.assessedRisks)
                 }
             </div>
+            
             <div>
-                <h3 className="font-semibold text-lg mb-1">Recommended Control Measures by AI:</h3>
-                <pre className="whitespace-pre-wrap rounded-md bg-secondary p-4 text-sm font-mono leading-relaxed">
-                {suggestion.recommendedControls}
-                </pre>
+              <h3 className="font-semibold text-lg mb-2">Recommended Control Measures by AI (Hierarchy of Controls):</h3>
+              <div className="space-y-4">
+                {(Object.keys(suggestion.recommendedControls) as Array<keyof typeof suggestion.recommendedControls>).map(categoryKey => {
+                  const controls = suggestion.recommendedControls[categoryKey];
+                  if (controls && controls.length > 0) {
+                    const IconComponent = controlCategoryIcons[categoryKey] || InfoIcon;
+                    return (
+                      <div key={categoryKey} className="p-3 border rounded-md bg-secondary/50">
+                        <h4 className="font-medium capitalize text-md flex items-center gap-2 mb-1">
+                          <IconComponent className="h-5 w-5 text-primary" />
+                          {categoryKey.replace(/([A-Z])/g, ' $1')}
+                        </h4>
+                        <ul className="list-disc list-inside pl-4 text-sm text-muted-foreground space-y-1">
+                          {controls.map((control, index) => (
+                            <li key={index}>{control}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
                  {methodNames.includes(suggestion.suggestedMethod as RiskAssessmentMethod) &&
                   methodSpecificGuidance[suggestion.suggestedMethod as RiskAssessmentMethod]?.controlMeasures &&
                   renderGuidance(methodSpecificGuidance[suggestion.suggestedMethod as RiskAssessmentMethod]?.controlMeasures)
                 }
+              </div>
             </div>
+
             <Button onClick={handleApplySuggestion} className="mt-4 bg-primary hover:bg-primary/90">
                 <Send className="mr-2 h-4 w-4" /> Use These Suggestions in Form
             </Button>
@@ -276,3 +307,4 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
     </div>
   );
 }
+

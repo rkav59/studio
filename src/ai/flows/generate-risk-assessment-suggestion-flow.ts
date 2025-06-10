@@ -27,10 +27,14 @@ export type RiskAssessmentSuggestionInput = z.infer<typeof RiskAssessmentSuggest
 const RiskAssessmentSuggestionOutputSchema = z.object({
   potentialRisks: z
     .string()
-    .describe('A detailed list of potential risks associated with the described activity and hazards. Each risk should be clearly explained.'),
-  recommendedControls: z
-    .string()
-    .describe('A comprehensive list of recommended control measures, categorized by the hierarchy of controls (Elimination, Substitution, Engineering, Administrative, PPE) if possible.'),
+    .describe('A detailed list of potential risks associated with the described activity and hazards. Each risk should be clearly explained and listed on a new line.'),
+  recommendedControls: z.object({
+    elimination: z.array(z.string()).optional().describe("Specific control measures for Elimination, if any. Each measure as a string."),
+    substitution: z.array(z.string()).optional().describe("Specific control measures for Substitution, if any. Each measure as a string."),
+    engineering: z.array(z.string()).optional().describe("Specific control measures for Engineering Controls, if any. Each measure as a string."),
+    administrative: z.array(z.string()).optional().describe("Specific control measures for Administrative Controls, if any. Each measure as a string."),
+    ppe: z.array(z.string()).optional().describe("Specific control measures for Personal Protective Equipment (PPE), if any. Each measure as a string.")
+  }).describe("Recommended control measures categorized by the hierarchy of controls. Provide lists of specific, actionable control measures for each applicable category. If a category has no specific measures, the list can be empty or the key omitted."),
   suggestedMethod: z
     .string()
     .describe('The name of a suitable risk assessment methodology (e.g., JSA, HAZOP, FMEA, What-If). Choose from common SHEQ methodologies.')
@@ -59,8 +63,14 @@ Identified Potential Hazards: {{{identifiedHazards}}}
 
 Your Task:
 Based on the user's input, provide the following:
-1.  **Potential Risks Identified:** Elaborate on the potential risks that could arise from the described activity and identified hazards. Be specific and consider various consequences (e.g., injury, illness, environmental damage, property damage).
-2.  **Recommended Control Measures:** Suggest a comprehensive list of control measures. Where possible, try to follow the hierarchy of controls: Elimination, Substitution, Engineering Controls, Administrative Controls, and Personal Protective Equipment (PPE). Be practical and specific.
+1.  **Potential Risks Identified:** Elaborate on the potential risks that could arise from the described activity and identified hazards. Be specific and consider various consequences (e.g., injury, illness, environmental damage, property damage). List each distinct risk on a new line.
+2.  **Recommended Control Measures (Categorized):** Suggest a comprehensive list of control measures. You MUST categorize these measures according to the hierarchy of controls:
+    *   'elimination': List specific elimination controls here.
+    *   'substitution': List specific substitution controls here.
+    *   'engineering': List specific engineering controls here.
+    *   'administrative': List specific administrative controls here.
+    *   'ppe': List specific Personal Protective Equipment (PPE) controls here.
+    For each category, provide a list of concrete, actionable control measure strings. If a category has no suitable measures, provide an empty list for that category or omit the key.
 3.  **Suggested Risk Assessment Method:** Recommend ONE most suitable risk assessment methodology from the following list: ${methodNamesForPrompt.join(', ')}. Briefly state why you recommend it for this scenario if possible, but keep it concise and only include the method name in the 'suggestedMethod' field.
 
 Structure your output according to the defined output schema.
@@ -81,6 +91,25 @@ const generateRiskAssessmentSuggestionFlow = ai.defineFlow(
         // console.warn(`LLM suggested method "${output.suggestedMethod}" not in predefined list. It will be allowed but might not have specific guidance.`);
     }
 
+    // Ensure all control categories are at least empty arrays if not provided by LLM
+    if (output && output.recommendedControls) {
+        output.recommendedControls.elimination = output.recommendedControls.elimination || [];
+        output.recommendedControls.substitution = output.recommendedControls.substitution || [];
+        output.recommendedControls.engineering = output.recommendedControls.engineering || [];
+        output.recommendedControls.administrative = output.recommendedControls.administrative || [];
+        output.recommendedControls.ppe = output.recommendedControls.ppe || [];
+    } else if (output) {
+        output.recommendedControls = {
+            elimination: [],
+            substitution: [],
+            engineering: [],
+            administrative: [],
+            ppe: []
+        };
+    }
+
+
     return output!;
   }
 );
+
