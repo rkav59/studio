@@ -264,7 +264,7 @@ export default function RiskAssessmentPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
              <ShieldAlert className="h-6 w-6 text-primary"/>
-            Common Risk Assessment Methods
+            Risk Management Techniques
           </CardTitle>
           <CardDescription>Consider these established methodologies for your assessments.</CardDescription>
         </CardHeader>
