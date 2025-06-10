@@ -288,7 +288,7 @@ export default function RiskAssessmentPage() {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
                   <ShieldAlert className="mr-2 h-4 w-4" />
-                  Risk Management Techniques
+                  Brief notes on the different risk assessment methods
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-72 max-h-96 overflow-y-auto">
