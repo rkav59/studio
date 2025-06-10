@@ -1,7 +1,8 @@
+
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, AlertTriangle, CheckCircle2, ListChecks } from "lucide-react";
+import { TrendingUp, AlertTriangle, CheckCircle2, ListChecks, Activity, BedDouble, Percent, CalendarCheck, Skull } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
@@ -35,8 +36,16 @@ export function OverviewCards() {
   const inspectionsCompleted = 42;
   const complianceRate = 95;
 
+  // New KPIs - mock data
+  const injurySeverityRate = 2.5;
+  const lostTimeInjury = 3;
+  const ltifr = 1.8;
+  const accidentFreeDays = 150;
+  const fatalities = 0;
+
+
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Incidents</CardTitle>
@@ -75,6 +84,58 @@ export function OverviewCards() {
         <CardContent>
           <div className="text-2xl font-bold">{complianceRate}%</div>
           <p className="text-xs text-muted-foreground">Target: 98%</p>
+        </CardContent>
+      </Card>
+
+      {/* New KPI Cards */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Injury Severity Rate</CardTitle>
+          <Activity className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{injurySeverityRate}</div>
+          <p className="text-xs text-muted-foreground">Days lost per 200k hrs</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Lost Time Injuries</CardTitle>
+          <BedDouble className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{lostTimeInjury}</div>
+          <p className="text-xs text-muted-foreground">This year</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">LTIFR</CardTitle>
+          <Percent className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{ltifr}</div>
+          <p className="text-xs text-muted-foreground">LTIs per million hrs</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Accident Free Days</CardTitle>
+          <CalendarCheck className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{accidentFreeDays}</div>
+          <p className="text-xs text-muted-foreground">Continuous record</p>
+        </CardContent>
+      </Card>
+       <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Fatalities</CardTitle>
+          <Skull className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{fatalities}</div>
+          <p className="text-xs text-muted-foreground">This year</p>
         </CardContent>
       </Card>
     </div>

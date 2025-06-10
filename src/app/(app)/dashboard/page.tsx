@@ -1,4 +1,6 @@
+
 import { OverviewCards, IncidentTypeChart } from "@/components/dashboard/overview-cards";
+import { SuggestIndicatorForm } from "@/components/dashboard/suggest-indicator-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 
@@ -67,6 +69,8 @@ export default function DashboardPage() {
             </p>
         </CardContent>
       </Card>
+
+      <SuggestIndicatorForm />
 
     </div>
   );
