@@ -1,5 +1,6 @@
 
 import { OverviewCards, IncidentTypeChart } from "@/components/dashboard/overview-cards";
+import { KpiTrendChart } from "@/components/dashboard/kpi-trend-chart"; // Import the new chart
 import { SuggestIndicatorForm } from "@/components/dashboard/suggest-indicator-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
@@ -16,6 +17,10 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <IncidentTypeChart />
+        <KpiTrendChart /> {/* Add the new KpiTrendChart here */}
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"> {/* New grid for remaining cards */}
         <Card>
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
@@ -47,28 +52,28 @@ export default function DashboardPage() {
             </ul>
           </CardContent>
         </Card>
+
+        <Card>
+            <CardHeader>
+                <CardTitle>Safety Campaign: Zero Harm</CardTitle>
+                <CardDescription>Focusing on proactive hazard identification this month.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="relative aspect-video max-h-[300px] overflow-hidden rounded-lg">
+                    <Image 
+                        src="https://placehold.co/800x450.png" 
+                        alt="Safety campaign banner" 
+                        layout="fill"
+                        objectFit="cover"
+                        data-ai-hint="safety meeting"
+                    />
+                </div>
+                <p className="mt-4 text-sm text-muted-foreground">
+                    Join us in our commitment to a safer workplace. Report any potential hazards and participate in upcoming safety briefings.
+                </p>
+            </CardContent>
+        </Card>
       </div>
-      
-      <Card>
-        <CardHeader>
-            <CardTitle>Safety Campaign: Zero Harm</CardTitle>
-            <CardDescription>Focusing on proactive hazard identification this month.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <div className="relative aspect-video max-h-[300px] overflow-hidden rounded-lg">
-                 <Image 
-                    src="https://placehold.co/800x450.png" 
-                    alt="Safety campaign banner" 
-                    layout="fill"
-                    objectFit="cover"
-                    data-ai-hint="safety meeting"
-                  />
-            </div>
-            <p className="mt-4 text-sm text-muted-foreground">
-                Join us in our commitment to a safer workplace. Report any potential hazards and participate in upcoming safety briefings.
-            </p>
-        </CardContent>
-      </Card>
 
       <SuggestIndicatorForm />
 
