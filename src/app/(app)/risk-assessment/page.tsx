@@ -21,7 +21,7 @@ import { RiskAssessmentAiAssistant } from "@/components/risk-assessment/risk-ass
 import { RiskAssessmentForm } from '@/components/risk-assessment/risk-assessment-form';
 import { riskAssessmentMethodsList, type DescriptiveRiskAssessmentMethod } from '@/lib/risk-assessment-config';
 
-const LOCAL_STORAGE_KEY = 'sheild-risk-assessments-v2';
+const LOCAL_STORAGE_KEY = 'sheild-risk-assessments-v3';
 
 
 const defaultRiskControlItem = (): RiskControlItem => ({ value: "" });
@@ -32,7 +32,8 @@ const defaultRiskEntry = (): RiskEntry => ({
 });
 const defaultHazardEntry = (): HazardEntry => ({
     hazard: { value: "" }, 
-    assessedRisks: [defaultRiskEntry()]
+    assessedRisks: [defaultRiskEntry()],
+    residualRiskLevel: undefined,
 });
 
 
@@ -56,6 +57,7 @@ export default function RiskAssessmentPage() {
           hazardEntries: (ra.hazardEntries || []).map(he => ({
             ...he,
             hazard: he.hazard || defaultRiskControlItem(), 
+            residualRiskLevel: he.residualRiskLevel || undefined,
             assessedRisks: (he.assessedRisks || []).map(ar => ({
               ...ar,
               risk: ar.risk || { value: "" }, 
@@ -67,10 +69,16 @@ export default function RiskAssessmentPage() {
         setLoggedRiskAssessments(migratedAssessments);
 
       } else {
-        const oldStoredAssessments = localStorage.getItem('sheild-risk-assessments');
-        if (oldStoredAssessments) {
-          console.warn("SHEild: Risk assessment data structure has been updated. Old data from 'sheild-risk-assessments' will not be migrated automatically and has been cleared for the new format. Please re-enter if needed.");
-          localStorage.removeItem('sheild-risk-assessments');
+        // Clear old version data if new key is not found
+        const oldV2Key = 'sheild-risk-assessments-v2';
+        const oldV1Key = 'sheild-risk-assessments';
+        if (localStorage.getItem(oldV2Key)) {
+            console.warn(`SHEild: Risk assessment data structure has been updated. Old data from '${oldV2Key}' will not be migrated and has been cleared. Please re-enter if needed.`);
+            localStorage.removeItem(oldV2Key);
+        }
+        if (localStorage.getItem(oldV1Key)) {
+             console.warn(`SHEild: Risk assessment data structure has been updated. Old data from '${oldV1Key}' will not be migrated and has been cleared. Please re-enter if needed.`);
+            localStorage.removeItem(oldV1Key);
         }
       }
     } catch (error) {
@@ -98,14 +106,13 @@ export default function RiskAssessmentPage() {
     setEditingAssessment(null);
     setAiPrefillData(null);
     setIsFormVisible(false);
-    // isAiAssistantSectionVisible remains as is, user can toggle it
   };
 
   const handleEditAssessment = (assessment: RiskAssessment) => {
     setEditingAssessment(assessment);
     setAiPrefillData(null);
     setIsFormVisible(true);
-    setIsAiAssistantSectionVisible(false); // Hide AI section when form is active
+    setIsAiAssistantSectionVisible(false); 
   };
 
   const handleViewAssessment = (assessment: RiskAssessment) => {
@@ -116,18 +123,8 @@ export default function RiskAssessmentPage() {
     const parsedHazardTexts = hazardsInputFromAIForm.split('\n').map(h => h.trim()).filter(h => h);
     const parsedRiskTexts = suggestion.potentialRisks.split('\n').map(r => r.trim()).filter(r => r);
     
-    const aiProposedControls: RiskControlItem[] = [];
-    const controlCategories = suggestion.recommendedControls;
-    (Object.keys(controlCategories) as Array<keyof typeof controlCategories>).forEach(categoryKey => {
-      const controlsInCategory = controlCategories[categoryKey];
-      if (controlsInCategory && controlsInCategory.length > 0) {
-        const categoryName = categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1);
-        controlsInCategory.forEach(ctrl => {
-          aiProposedControls.push({ value: `${categoryName}: ${ctrl}` });
-        });
-      }
-    });
-
+    const aiProposedControlsByCategory = suggestion.recommendedControls;
+    
     let newHazardEntries: HazardEntry[] = [];
 
     const effectiveHazardTexts = parsedHazardTexts.length > 0 ? parsedHazardTexts : ["AI Suggested Hazard (Please Review)"];
@@ -137,36 +134,58 @@ export default function RiskAssessmentPage() {
         const effectiveRiskTexts = parsedRiskTexts.length > 0 ? parsedRiskTexts : ["AI Suggested Risk (Please Review)"];
 
         effectiveRiskTexts.forEach(riskText => {
-            const currentProposedControls = aiProposedControls.length > 0 
-                ? aiProposedControls.map(c => ({ ...c, id: undefined })) // Ensure new IDs for form
-                : [defaultRiskControlItem()];
+            const currentProposedControls: RiskControlItem[] = [];
+            (Object.keys(aiProposedControlsByCategory) as Array<keyof typeof aiProposedControlsByCategory>).forEach(categoryKey => {
+              const controlsInCategory = aiProposedControlsByCategory[categoryKey];
+              if (controlsInCategory && controlsInCategory.length > 0) {
+                const categoryName = categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1);
+                controlsInCategory.forEach(ctrl => {
+                  currentProposedControls.push({ value: `${categoryName}: ${ctrl}`, id: undefined });
+                });
+              }
+            });
+            
+            if (currentProposedControls.length === 0) {
+                currentProposedControls.push(defaultRiskControlItem());
+            }
 
             assessedRisksForThisHazard.push({
-                id: undefined, // Will be set by useFieldArray
+                id: undefined, 
                 risk: { value: riskText },
-                existingControls: [defaultRiskControlItem()], // Start with one empty existing control
+                existingControls: [defaultRiskControlItem()], 
                 proposedControls: currentProposedControls,
             });
         });
         
         newHazardEntries.push({
-            id: undefined, // Will be set by useFieldArray
+            id: undefined, 
             hazard: { value: hazardText },
             assessedRisks: assessedRisksForThisHazard.length > 0 ? assessedRisksForThisHazard : [defaultRiskEntry()],
+            residualRiskLevel: undefined, // Needs to be set by user for each hazard
         });
     });
     
-    if (newHazardEntries.length === 0) { // Fallback if no hazards were parsed somehow
+    if (newHazardEntries.length === 0) { 
         const fallbackRiskEntry = defaultRiskEntry();
-        if (aiProposedControls.length > 0) {
-            fallbackRiskEntry.proposedControls = aiProposedControls.map(c => ({ ...c, id: undefined }));
-        } else {
-            fallbackRiskEntry.proposedControls = [defaultRiskControlItem()];
+        const fallbackProposedControls: RiskControlItem[] = [];
+        (Object.keys(aiProposedControlsByCategory) as Array<keyof typeof aiProposedControlsByCategory>).forEach(categoryKey => {
+            const controlsInCategory = aiProposedControlsByCategory[categoryKey];
+            if (controlsInCategory && controlsInCategory.length > 0) {
+                const categoryName = categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1);
+                controlsInCategory.forEach(ctrl => {
+                    fallbackProposedControls.push({ value: `${categoryName}: ${ctrl}`, id: undefined });
+                });
+            }
+        });
+        if (fallbackProposedControls.length > 0) {
+            fallbackRiskEntry.proposedControls = fallbackProposedControls;
         }
+
         newHazardEntries.push({
             id: undefined,
             hazard: {value: "AI Suggested Hazard (Please Review)"},
-            assessedRisks: [fallbackRiskEntry]
+            assessedRisks: [fallbackRiskEntry],
+            residualRiskLevel: undefined,
         });
     }
 
@@ -175,32 +194,29 @@ export default function RiskAssessmentPage() {
       hazardEntries: newHazardEntries,
       methodUsed: suggestion.suggestedMethod as RiskAssessmentMethod,
       assessmentDate: new Date().toISOString(),
-      assessor: "", // User to fill
-      residualRiskLevel: undefined, // User to determine
+      assessor: "", 
     });
     setEditingAssessment(null);
     setIsFormVisible(true);
-    setIsAiAssistantSectionVisible(false); // Hide AI section when form is active
+    setIsAiAssistantSectionVisible(false); 
   };
 
   const handleAddNewAssessment = () => {
     setEditingAssessment(null);
     setAiPrefillData({
         activity: "",
-        hazardEntries: [defaultHazardEntry()], // Start with one default hazard entry structure
+        hazardEntries: [defaultHazardEntry()], 
         assessmentDate: new Date().toISOString(),
         assessor: "",
-        residualRiskLevel: undefined,
     });
     setIsFormVisible(true);
-    setIsAiAssistantSectionVisible(false); // Hide AI section when form is active
+    setIsAiAssistantSectionVisible(false); 
   };
 
   const handleCancelForm = () => {
     setEditingAssessment(null);
     setAiPrefillData(null);
     setIsFormVisible(false);
-    // isAiAssistantSectionVisible remains as is, user can toggle it
   }
 
   const escapeCsvCell = (cellValue: string | undefined | null): string => {
@@ -222,25 +238,27 @@ export default function RiskAssessmentPage() {
     }
 
     const headers = [
-      "Assessment ID", "Activity", "Assessor", "Assessment Date", "Method Used", "Residual Risk Level",
-      "Hazard", "Risk", "Control Type", "Control Measure"
+      "Assessment ID", "Activity", "Assessor", "Assessment Date", "Method Used", 
+      "Hazard", "Hazard Residual Risk", "Risk", "Control Type", "Control Measure"
     ];
 
     const csvRows: string[] = [headers.join(',')];
 
     loggedRiskAssessments.forEach(ra => {
-      const commonData = [
+      const commonAssessmentData = [
         escapeCsvCell(ra.id),
         escapeCsvCell(ra.activity),
         escapeCsvCell(ra.assessor),
         escapeCsvCell(ra.assessmentDate ? format(new Date(ra.assessmentDate), "yyyy-MM-dd") : ""),
         escapeCsvCell(ra.methodUsed),
-        escapeCsvCell(ra.residualRiskLevel)
       ];
 
       if (ra.hazardEntries && ra.hazardEntries.length > 0) {
         ra.hazardEntries.forEach(he => {
           const hazardText = escapeCsvCell(he.hazard?.value);
+          const hazardResidualRisk = escapeCsvCell(he.residualRiskLevel);
+          const commonHazardData = [...commonAssessmentData, hazardText, hazardResidualRisk];
+
           if (he.assessedRisks && he.assessedRisks.length > 0) {
             he.assessedRisks.forEach(ar => {
               const riskText = escapeCsvCell(ar.risk?.value); 
@@ -250,7 +268,7 @@ export default function RiskAssessmentPage() {
                 ar.existingControls.forEach(cm => {
                   if (cm?.value && cm.value.trim() !== '') {
                     const controlText = escapeCsvCell(cm.value);
-                    csvRows.push([...commonData, hazardText, riskText, "Existing", controlText].join(','));
+                    csvRows.push([...commonHazardData, riskText, "Existing", controlText].join(','));
                     riskHasControls = true;
                   }
                 });
@@ -260,22 +278,22 @@ export default function RiskAssessmentPage() {
                 ar.proposedControls.forEach(cm => {
                    if (cm?.value && cm.value.trim() !== '') {
                     const controlText = escapeCsvCell(cm.value);
-                    csvRows.push([...commonData, hazardText, riskText, "Proposed", controlText].join(','));
+                    csvRows.push([...commonHazardData, riskText, "Proposed", controlText].join(','));
                     riskHasControls = true;
                   }
                 });
               }
               
-              if (!riskHasControls && (hazardText || riskText)) { 
-                  csvRows.push([...commonData, hazardText, riskText, "", ""].join(','));
+              if (!riskHasControls && (riskText || hazardText)) { 
+                  csvRows.push([...commonHazardData, riskText, "", ""].join(','));
               }
             });
           } else if (hazardText) { 
-            csvRows.push([...commonData, hazardText, "", "", ""].join(','));
+            csvRows.push([...commonHazardData, "", "", ""].join(','));
           }
         });
       } else { 
-        csvRows.push([...commonData, "", "", "", ""].join(','));
+        csvRows.push([...commonAssessmentData, "", "", "", "", ""].join(','));
       }
     });
 
@@ -319,7 +337,7 @@ export default function RiskAssessmentPage() {
         <CardContent className="pt-6">
           <p className="text-muted-foreground">
             This module helps you conduct thorough risk assessments. Document activity, identify specific hazards, assess associated risks, and define existing and proposed control measures for each.
-            Utilize various methodologies and leverage AI assistance for comprehensive analysis.
+            Utilize various methodologies and leverage AI assistance for comprehensive analysis. Each hazard will have its own residual risk level.
           </p>
         </CardContent>
       </Card>
@@ -428,16 +446,6 @@ export default function RiskAssessmentPage() {
                     <p className="mt-1 text-sm text-muted-foreground">
                       <span className="font-medium">Method:</span> {assessment.methodUsed || 'N/A'} | <span className="font-medium">Assessor:</span> {assessment.assessor}
                     </p>
-                     <p className="mt-1 text-sm">
-                      <span className="font-medium">Residual Risk:</span>
-                      <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-semibold
-                        ${assessment.residualRiskLevel === 'Low' ? 'bg-green-100 text-green-700 dark:bg-green-700/30 dark:text-green-300' : ''}
-                        ${assessment.residualRiskLevel === 'Medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-700/30 dark:text-yellow-300' : ''}
-                        ${assessment.residualRiskLevel === 'High' ? 'bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-300' : ''}
-                      `}>
-                        {assessment.residualRiskLevel}
-                      </span>
-                    </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                         <Button variant="outline" size="sm" onClick={() => handleViewAssessment(assessment)}>
                             <Eye className="mr-1 h-3 w-3" /> View Details
@@ -491,6 +499,16 @@ export default function RiskAssessmentPage() {
                     <Card key={hazardEntry.id || `hazard-${hIndex}`} className="p-3 bg-muted/50">
                       <CardHeader className="p-1 mb-2">
                         <CardTitle className="text-base text-primary">Hazard {hIndex + 1}: {hazardEntry.hazard?.value || 'N/A'}</CardTitle>
+                        <CardDescription>
+                            Residual Risk for this Hazard:
+                            <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-semibold
+                                ${hazardEntry.residualRiskLevel === 'Low' ? 'bg-green-100 text-green-700 dark:bg-green-700/30 dark:text-green-300' : ''}
+                                ${hazardEntry.residualRiskLevel === 'Medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-700/30 dark:text-yellow-300' : ''}
+                                ${hazardEntry.residualRiskLevel === 'High' ? 'bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-300' : ''}
+                            `}>
+                                {hazardEntry.residualRiskLevel || 'N/A'}
+                            </span>
+                        </CardDescription>
                       </CardHeader>
                       <CardContent className="p-1 pl-4 space-y-3">
                         <p className="text-xs font-medium text-muted-foreground">Assessed Risks for this Hazard:</p>
@@ -527,18 +545,6 @@ export default function RiskAssessmentPage() {
                     </Card>
                   ))
                 ) : <p className="text-sm text-muted-foreground italic">No hazard entries documented.</p>}
-              </div>
-
-               <Separator />
-              <div>
-                <p className="text-sm font-medium">Overall Residual Risk Level:</p>
-                <p className={`px-2 py-0.5 rounded-full text-xs font-semibold inline-block
-                    ${viewingAssessment.residualRiskLevel === 'Low' ? 'bg-green-100 text-green-700 dark:bg-green-700/30 dark:text-green-300' : ''}
-                    ${viewingAssessment.residualRiskLevel === 'Medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-700/30 dark:text-yellow-300' : ''}
-                    ${viewingAssessment.residualRiskLevel === 'High' ? 'bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-300' : ''}
-                  `}>
-                    {viewingAssessment.residualRiskLevel || 'N/A'}
-                  </p>
               </div>
             </div>
             <div className="pt-4 border-t flex justify-end">

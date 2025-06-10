@@ -54,7 +54,10 @@ const hazardEntrySchema = z.object({
   hazard: riskControlItemSchema.refine(data => data.value && data.value.trim().length > 0, {
     message: "Hazard description cannot be empty.", 
   }),
-  assessedRisks: z.array(riskEntrySchema), 
+  assessedRisks: z.array(riskEntrySchema),
+  residualRiskLevel: z.enum(["Low", "Medium", "High"], {
+    required_error: "Please select a residual risk level for this hazard.",
+  }).optional(), // Optional initially, but can be made required by form logic/UX
 });
 
 // Main form schema
@@ -63,9 +66,6 @@ const riskAssessmentFormSchema = z.object({
     message: "Activity description must be at least 10 characters.",
   }).max(1000, "Activity description must be less than 1000 characters."),
   hazardEntries: z.array(hazardEntrySchema).min(1, "At least one hazard must be documented."),
-  residualRiskLevel: z.enum(["Low", "Medium", "High"], {
-    required_error: "Please select a residual risk level.",
-  }),
   methodUsed: z.string().optional(),
   assessmentDate: z.date({
     required_error: "An assessment date is required.",
@@ -89,7 +89,11 @@ const defaultRiskEntry = (): RiskEntry => ({
     existingControls: [defaultRiskControlItem()], 
     proposedControls: [defaultRiskControlItem()] 
 });
-const defaultHazardEntry = (): HazardEntry => ({ hazard: { value: "" }, assessedRisks: [defaultRiskEntry()] });
+const defaultHazardEntry = (): HazardEntry => ({ 
+    hazard: { value: "" }, 
+    assessedRisks: [defaultRiskEntry()],
+    residualRiskLevel: undefined,
+});
 
 
 export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: RiskAssessmentFormProps) {
@@ -101,7 +105,6 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
     defaultValues: {
       activity: "",
       hazardEntries: [defaultHazardEntry()],
-      residualRiskLevel: undefined,
       methodUsed: undefined,
       assessmentDate: new Date(),
       assessor: "",
@@ -118,13 +121,14 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
 
   useEffect(() => {
     if (initialData) {
-      const transformedInitialData = {
+      const transformedInitialData: Partial<RiskAssessmentFormValues> = {
         ...initialData,
         assessmentDate: initialData.assessmentDate ? new Date(initialData.assessmentDate) : new Date(),
         hazardEntries: initialData.hazardEntries && initialData.hazardEntries.length > 0
           ? initialData.hazardEntries.map(he => ({
               ...he,
               hazard: he.hazard || { value: "" },
+              residualRiskLevel: he.residualRiskLevel || undefined,
               assessedRisks: he.assessedRisks && he.assessedRisks.length > 0
                 ? he.assessedRisks.map(ar => {
                     return {
@@ -143,7 +147,6 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
       form.reset({
         activity: "",
         hazardEntries: [defaultHazardEntry()],
-        residualRiskLevel: undefined,
         methodUsed: undefined,
         assessmentDate: new Date(),
         assessor: "",
@@ -155,12 +158,14 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
   async function onSubmit(data: RiskAssessmentFormValues) {
     const assessmentToSave: RiskAssessment = {
       id: initialData?.id || new Date().toISOString(), 
-      ...data,
+      activity: data.activity,
       assessmentDate: data.assessmentDate.toISOString(),
       methodUsed: data.methodUsed as RiskAssessmentMethod | undefined,
+      assessor: data.assessor,
       hazardEntries: data.hazardEntries.map(he => ({
         ...he,
-        hazard: he.hazard, 
+        hazard: he.hazard,
+        residualRiskLevel: he.residualRiskLevel, 
         assessedRisks: he.assessedRisks.map(ar => ({
             ...ar,
             risk: ar.risk, 
@@ -401,6 +406,29 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
                     );
                   }}
                 />
+                {/* Residual Risk Level for this Hazard */}
+                <FormField
+                    control={form.control}
+                    name={`hazardEntries.${hazardIndex}.residualRiskLevel`}
+                    render={({ field }) => (
+                        <FormItem className="mt-4 pt-4 border-t border-muted/50">
+                        <FormLabel className="text-sm font-medium">Residual Risk Level for Hazard #{hazardIndex + 1}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""} defaultValue={field.value || ""}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select residual risk level" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            <SelectItem value="Low">Low</SelectItem>
+                            <SelectItem value="Medium">Medium</SelectItem>
+                            <SelectItem value="High">High</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
               </CardContent>
             </Card>
           ))}
@@ -410,31 +438,8 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
            <FormField name="hazardEntries" control={form.control} render={() => <FormMessage />} />
         </div>
 
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <FormField
-            control={form.control}
-            name="residualRiskLevel"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Overall Residual Risk Level (Post Controls)</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || ""} defaultValue={field.value}>
-                    <FormControl>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select residual risk level" />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                    <SelectItem value="Low">Low</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="High">High</SelectItem>
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-             <FormField
             control={form.control}
             name="assessor"
             render={({ field }) => (
@@ -447,49 +452,48 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
                 </FormItem>
             )}
             />
+            <FormField
+            control={form.control}
+            name="assessmentDate"
+            render={({ field }) => (
+                <FormItem className="flex flex-col">
+                <FormLabel>Date of Assessment</FormLabel>
+                <Popover>
+                    <PopoverTrigger asChild>
+                    <FormControl>
+                        <Button
+                        variant={"outline"}
+                        className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                        )}
+                        >
+                        {field.value ? (
+                            format(field.value, "PPP")
+                        ) : (
+                            <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                    </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                    />
+                    </PopoverContent>
+                </Popover>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
         </div>
-
-        <FormField
-          control={form.control}
-          name="assessmentDate"
-          render={({ field }) => (
-              <FormItem className="flex flex-col">
-              <FormLabel>Date of Assessment</FormLabel>
-              <Popover>
-                  <PopoverTrigger asChild>
-                  <FormControl>
-                      <Button
-                      variant={"outline"}
-                      className={cn(
-                          "w-full md:w-1/2 lg:w-1/3 pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                      )}
-                      >
-                      {field.value ? (
-                          format(field.value, "PPP")
-                      ) : (
-                          <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                  </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                      }
-                      initialFocus
-                  />
-                  </PopoverContent>
-              </Popover>
-              <FormMessage />
-              </FormItem>
-          )}
-        />
         
         <div className="flex flex-wrap gap-2 pt-4 border-t">
             <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">

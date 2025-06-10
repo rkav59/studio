@@ -42,6 +42,7 @@ export interface HazardEntry {
   id?: string;
   hazard: RiskControlItem; // The hazard description
   assessedRisks: RiskEntry[]; // Risks associated with this specific hazard
+  residualRiskLevel?: 'Low' | 'Medium' | 'High'; // Moved here
 }
 
 export type RiskAssessmentMethod = 
@@ -58,16 +59,22 @@ export interface RiskAssessment {
   id: string; // Main assessment ID
   activity: string;
   hazardEntries: HazardEntry[]; // Array of hazard-risk-control structures
-  residualRiskLevel: 'Low' | 'Medium' | 'High';
+  // residualRiskLevel: 'Low' | 'Medium' | 'High'; // Removed from here
   methodUsed?: RiskAssessmentMethod;
   assessmentDate: string; // ISO String date
   assessor: string;
 }
 
-// For AI Suggestions, matches the flow output (remains unchanged)
+// For AI Suggestions, matches the flow output (remains unchanged for now regarding residual risk)
 export interface RiskAssessmentSuggestionOutput {
   potentialRisks: string;
-  recommendedControls: string;
+  recommendedControls: {
+    elimination?: string[];
+    substitution?: string[];
+    engineering?: string[];
+    administrative?: string[];
+    ppe?: string[];
+  };
   suggestedMethod: string; 
 }
 
