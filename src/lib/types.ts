@@ -227,4 +227,28 @@ export interface HealthMonitoringRecord {
   value: string; 
   notes?: string;
 }
+
+
+// AI Insights for Audit Data
+export interface AnalyzeAuditDataInput {
+  totalAudits: number;
+  completedAuditsCount: number;
+  nonConformanceDescriptions: string[];
+  failedChecklistItemsText: string[];
+  capaStatusSummary: {
+    open: number;
+    inProgress: number;
+    completed: number;
+    overdue: number;
+  };
+  overallFindingsSummary?: string[];
+  overallRecommendationsSummary?: string[];
+}
+
+export interface AnalyzeAuditDataOutput {
+  identifiedThemes: string; // Multi-line
+  capaEffectivenessObservations: string;
+  suggestedFocusAreas: string; // Multi-line
+  positiveObservations?: string;
+}
     

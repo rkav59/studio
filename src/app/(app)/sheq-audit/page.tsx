@@ -7,12 +7,16 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { AuditScheduler } from '@/components/sheq-audit/audit-scheduler';
 import { AuditExecutionForm } from '@/components/sheq-audit/audit-execution-form';
-import type { SheqAudit, AuditChecklistItem, ChecklistItemTemplate, NonConformance } from '@/lib/types';
+import type { SheqAudit, AuditChecklistItem, ChecklistItemTemplate, NonConformance, AnalyzeAuditDataInput, AnalyzeAuditDataOutput } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { format, isValid, parseISO } from 'date-fns';
-import { ChevronLeft, Eye, ListChecks, CheckSquare } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
+import { analyzeSheqAuditData } from '@/ai/flows/analyze-audit-data-flow';
+import { Alert, AlertTitle } from '@/components/ui/alert';
+
 
 const LOCAL_STORAGE_KEY_AUDITS = 'sheild-sheq-audits-v3'; 
 
@@ -32,9 +36,15 @@ const getDefaultNonConformance = (): NonConformance => ({
 
 
 export default function SheqAuditPage() {
+  const { toast } = useToast();
   const [audits, setAudits] = useState<SheqAudit[]>([]);
   const [currentAudit, setCurrentAudit] = useState<SheqAudit | null>(null);
   const [viewingAuditDetails, setViewingAuditDetails] = useState<SheqAudit | null>(null);
+  
+  const [isAiInsightsLoading, setIsAiInsightsLoading] = useState(false);
+  const [aiInsights, setAiInsights] = useState<AnalyzeAuditDataOutput | null>(null);
+  const [isAiInsightsModalOpen, setIsAiInsightsModalOpen] = useState(false);
+
 
   useEffect(() => {
     try {
@@ -115,10 +125,78 @@ export default function SheqAuditPage() {
   
   const handleBackToScheduler = () => {
     if (currentAudit && currentAudit.status === 'In Progress') {
-        setAudits(prev => prev.map(a => a.id === currentAudit.id ? {...currentAudit, status: 'In Progress'} : a));
+        // Optionally save progress if any changes were made but not formally completed
+        // For simplicity, current implementation doesn't auto-save partial 'In Progress' state changes from execution form
+        // It only saves when "Save and Complete Audit" is clicked in AuditExecutionForm
     }
     setCurrentAudit(null);
   };
+
+  const handleGenerateAiInsights = async () => {
+    if (audits.length === 0) {
+      toast({
+        title: "No Audit Data",
+        description: "Please log some audits before generating AI insights.",
+        variant: "default"
+      });
+      return;
+    }
+    setIsAiInsightsLoading(true);
+    setAiInsights(null);
+
+    const completedAuditsForInsight = audits.filter(a => a.status === 'Completed' || a.status === 'Closed');
+
+    const nonConformanceDescriptions: string[] = [];
+    const failedChecklistItemsText: string[] = [];
+    const capaStatusCounts = { open: 0, inProgress: 0, completed: 0, overdue: 0 };
+    const overallFindingsSummary: string[] = [];
+    const overallRecommendationsSummary: string[] = [];
+
+    completedAuditsForInsight.forEach(audit => {
+      audit.nonConformances.forEach(nc => {
+        if(nc.description) nonConformanceDescriptions.push(nc.description);
+        const status = nc.actionStatus || 'Open';
+        capaStatusCounts[status.toLowerCase().replace(/\s+/g, '') as keyof typeof capaStatusCounts]++;
+      });
+      audit.checklist.forEach(item => {
+        if (item.status === 'Non-Compliant' && item.text) {
+          failedChecklistItemsText.push(item.text);
+        }
+      });
+      if (audit.overallFindings) overallFindingsSummary.push(audit.overallFindings);
+      if (audit.recommendations) overallRecommendationsSummary.push(audit.recommendations);
+    });
+    
+    const input: AnalyzeAuditDataInput = {
+      totalAudits: audits.length,
+      completedAuditsCount: completedAuditsForInsight.length,
+      nonConformanceDescriptions,
+      failedChecklistItemsText,
+      capaStatusSummary: capaStatusCounts,
+      overallFindingsSummary: overallFindingsSummary.length > 0 ? overallFindingsSummary : undefined,
+      overallRecommendationsSummary: overallRecommendationsSummary.length > 0 ? overallRecommendationsSummary : undefined,
+    };
+
+    try {
+      const result = await analyzeSheqAuditData(input);
+      setAiInsights(result);
+      setIsAiInsightsModalOpen(true);
+      toast({
+        title: "AI Insights Generated",
+        description: "Review the AI-powered analysis of your audit data.",
+      });
+    } catch (error) {
+      console.error("Error generating AI audit insights:", error);
+      toast({
+        title: "AI Insights Error",
+        description: "Failed to generate insights. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAiInsightsLoading(false);
+    }
+  };
+
 
   const getStatusColor = (status: SheqAudit['status'] | NonConformance['actionStatus']) => {
     switch (status) {
@@ -151,8 +229,12 @@ export default function SheqAuditPage() {
     <div className="space-y-6">
       {!currentAudit ? (
         <>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h1 className="text-3xl font-bold tracking-tight font-headline">SHEQ Audits</h1>
+            <Button onClick={handleGenerateAiInsights} disabled={isAiInsightsLoading || audits.length === 0} variant="outline" className="border-accent text-accent hover:bg-accent/10">
+              {isAiInsightsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              AI Audit Insights
+            </Button>
           </div>
           <Card className="shadow-lg overflow-hidden">
             <div className="relative h-60 w-full">
@@ -173,6 +255,7 @@ export default function SheqAuditPage() {
                 <p className="text-muted-foreground">
                     This module facilitates the planning, execution, and tracking of Safety, Health, Environment, and Quality (SHEQ) audits. 
                     Select from checklist templates, customize as needed, document findings, log non-conformances with proposed corrective/preventive actions (CAPA), and monitor progress.
+                    Leverage AI insights to analyze trends from your audit data (current browser session).
                 </p>
             </CardContent>
           </Card>
@@ -244,6 +327,7 @@ export default function SheqAuditPage() {
                 </li>
                 <li>Recording overall audit findings and recommendations.</li>
                 <li>Viewing detailed information for completed/closed audits, including all checklist items, non-conformances, and their CAPA details.</li>
+                <li>AI-powered insights generation based on the summary of audit data currently in the browser session.</li>
                 <li>Data persistence using browser's local storage.</li>
               </ul>
               <Separator className="my-4" />
@@ -254,7 +338,7 @@ export default function SheqAuditPage() {
                   <li>User-creatable and editable master checklist templates (Checklist Builder).</li>
                   <li>Full calendar view for audit program scheduling.</li>
                   <li>Dedicated CAPA tracking module/page with advanced filtering, dashboards, and notifications for overdue actions.</li>
-                  <li>AI-powered trend analysis and insights from audit data.</li>
+                  <li>More advanced AI trend analysis over historical data (requires backend).</li>
                   <li>Offline audit capabilities for mobile devices.</li>
                   <li>Automated report generation (e.g., PDF) and distribution.</li>
                   <li>User roles and permissions for audit management.</li>
@@ -376,7 +460,54 @@ export default function SheqAuditPage() {
             </DialogContent>
         </Dialog>
       )}
+
+      {aiInsights && isAiInsightsModalOpen && (
+        <Dialog open={isAiInsightsModalOpen} onOpenChange={setIsAiInsightsModalOpen}>
+          <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-accent">
+                <Sparkles className="h-6 w-6" /> AI-Powered Audit Insights
+              </DialogTitle>
+              <DialogDescription>
+                Analysis of audit data currently stored in your browser.
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="flex-grow my-4 pr-3 space-y-4">
+              <div>
+                <h3 className="font-semibold text-primary mb-1">Identified Themes & Patterns:</h3>
+                <pre className="whitespace-pre-wrap text-sm p-3 bg-secondary/50 rounded-md">{aiInsights.identifiedThemes}</pre>
+              </div>
+              <div>
+                <h3 className="font-semibold text-primary mb-1">CAPA Effectiveness Observations:</h3>
+                <pre className="whitespace-pre-wrap text-sm p-3 bg-secondary/50 rounded-md">{aiInsights.capaEffectivenessObservations}</pre>
+              </div>
+              <div>
+                <h3 className="font-semibold text-primary mb-1">Suggested Focus Areas:</h3>
+                <pre className="whitespace-pre-wrap text-sm p-3 bg-secondary/50 rounded-md">{aiInsights.suggestedFocusAreas}</pre>
+              </div>
+              {aiInsights.positiveObservations && (
+                <div>
+                  <h3 className="font-semibold text-primary mb-1">Positive Observations:</h3>
+                  <pre className="whitespace-pre-wrap text-sm p-3 bg-secondary/50 rounded-md">{aiInsights.positiveObservations}</pre>
+                </div>
+              )}
+              <Alert variant="info" className="mt-4">
+                <BrainCircuit className="h-4 w-4" />
+                <AlertTitle>Note on AI Insights</AlertTitle>
+                <AlertDescription>
+                  These insights are generated by an AI based on a summary of the audit data currently available in your browser.
+                  For comprehensive trend analysis over time or across a larger dataset, a dedicated backend system and more sophisticated analytics would be beneficial.
+                  Always use professional judgment when interpreting AI-generated information.
+                </AlertDescription>
+              </Alert>
+            </ScrollArea>
+            <DialogFooter className="pt-4 border-t">
+                <Button variant="outline" onClick={() => setIsAiInsightsModalOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
     </div>
   );
 }
-
