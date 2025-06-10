@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import { format } from 'date-fns';
-import { ShieldAlert, ListChecks, CheckSquare, Eye, Edit, Download, InfoIcon } from 'lucide-react';
+import { ShieldAlert, ListChecks, CheckSquare, Eye, Edit, Download, InfoIcon, SparklesIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import {
@@ -46,7 +46,7 @@ export default function RiskAssessmentPage() {
   const [viewingAssessment, setViewingAssessment] = useState<RiskAssessment | null>(null);
   const [aiPrefillData, setAiPrefillData] = useState<Partial<RiskAssessment> | null>(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
-  const [isAiAssistantVisible, setIsAiAssistantVisible] = useState(true);
+  const [isAiAssistantSectionVisible, setIsAiAssistantSectionVisible] = useState(false);
 
 
   useEffect(() => {
@@ -102,14 +102,14 @@ export default function RiskAssessmentPage() {
     setEditingAssessment(null);
     setAiPrefillData(null);
     setIsFormVisible(false);
-    setIsAiAssistantVisible(true);
+    // isAiAssistantSectionVisible remains as is, user can toggle it
   };
 
   const handleEditAssessment = (assessment: RiskAssessment) => {
     setEditingAssessment(assessment);
     setAiPrefillData(null);
     setIsFormVisible(true);
-    setIsAiAssistantVisible(false);
+    setIsAiAssistantSectionVisible(false); // Hide AI section when form is active
   };
 
   const handleViewAssessment = (assessment: RiskAssessment) => {
@@ -121,40 +121,40 @@ export default function RiskAssessmentPage() {
     const parsedRiskTexts = suggestion.potentialRisks.split('\n').map(r => r.trim()).filter(r => r);
     const parsedControlItems = stringToRiskControlItems(suggestion.recommendedControls);
 
-    const newHazardEntries: HazardEntry[] = [];
+    let newHazardEntries: HazardEntry[] = [];
 
     const effectiveHazardTexts = parsedHazardTexts.length > 0 ? parsedHazardTexts : ["AI Suggested Hazard (Please Review)"];
 
     effectiveHazardTexts.forEach(hazardText => {
-      const assessedRisksForThisHazard: RiskEntry[] = [];
-      const effectiveRiskTexts = parsedRiskTexts.length > 0 ? parsedRiskTexts : ["AI Suggested Risk (Please Review)"];
+        const assessedRisksForThisHazard: RiskEntry[] = [];
+        const effectiveRiskTexts = parsedRiskTexts.length > 0 ? parsedRiskTexts : ["AI Suggested Risk (Please Review)"];
 
-      effectiveRiskTexts.forEach(riskText => {
-        // Create new instances of control items for each risk entry
-        const currentProposedControls = parsedControlItems.length > 0 
-            ? parsedControlItems.map(c => ({ ...c, id: undefined })) // Ensure new items if needed by form keys
-            : [defaultRiskControlItem()]; 
+        effectiveRiskTexts.forEach(riskText => {
+            const currentProposedControls = parsedControlItems.length > 0 
+                ? parsedControlItems.map(c => ({ ...c, id: undefined }))
+                : [defaultRiskControlItem()];
 
-        assessedRisksForThisHazard.push({
-          id: undefined, 
-          risk: { value: riskText },
-          existingControls: [defaultRiskControlItem()], 
-          proposedControls: currentProposedControls,
+            assessedRisksForThisHazard.push({
+                id: undefined,
+                risk: { value: riskText },
+                existingControls: [defaultRiskControlItem()],
+                proposedControls: currentProposedControls,
+            });
         });
-      });
-
-      newHazardEntries.push({
-        id: undefined, 
-        hazard: { value: hazardText },
-        assessedRisks: assessedRisksForThisHazard,
-      });
+        
+        newHazardEntries.push({
+            id: undefined,
+            hazard: { value: hazardText },
+            assessedRisks: assessedRisksForThisHazard.length > 0 ? assessedRisksForThisHazard : [defaultRiskEntry()],
+        });
     });
     
-    // Fallback if somehow newHazardEntries is still empty
     if (newHazardEntries.length === 0) {
         const fallbackRiskEntry = defaultRiskEntry();
         if (parsedControlItems.length > 0) {
             fallbackRiskEntry.proposedControls = parsedControlItems.map(c => ({ ...c, id: undefined }));
+        } else {
+            fallbackRiskEntry.proposedControls = [defaultRiskControlItem()];
         }
         newHazardEntries.push({
             id: undefined,
@@ -162,7 +162,6 @@ export default function RiskAssessmentPage() {
             assessedRisks: [fallbackRiskEntry]
         });
     }
-
 
     setAiPrefillData({
       activity: activityInput,
@@ -174,7 +173,7 @@ export default function RiskAssessmentPage() {
     });
     setEditingAssessment(null);
     setIsFormVisible(true);
-    setIsAiAssistantVisible(false);
+    setIsAiAssistantSectionVisible(false); // Hide AI section when form is active
   };
 
   const handleAddNewAssessment = () => {
@@ -187,14 +186,14 @@ export default function RiskAssessmentPage() {
         residualRiskLevel: undefined,
     });
     setIsFormVisible(true);
-    setIsAiAssistantVisible(false);
+    setIsAiAssistantSectionVisible(false); // Hide AI section when form is active
   };
 
   const handleCancelForm = () => {
     setEditingAssessment(null);
     setAiPrefillData(null);
     setIsFormVisible(false);
-    setIsAiAssistantVisible(true);
+    // isAiAssistantSectionVisible remains as is, user can toggle it
   }
 
   const escapeCsvCell = (cellValue: string | undefined | null): string => {
@@ -326,6 +325,14 @@ export default function RiskAssessmentPage() {
             <Button onClick={handleDownloadRegister} variant="outline" className="text-primary border-primary hover:bg-primary/10">
                 <Download className="mr-2 h-4 w-4" /> Download Risk Register (CSV)
             </Button>
+            <Button 
+                onClick={() => setIsAiAssistantSectionVisible(!isAiAssistantSectionVisible)} 
+                variant="outline" 
+                className="text-accent border-accent hover:bg-accent/10"
+            >
+                <SparklesIcon className="mr-2 h-4 w-4" /> 
+                {isAiAssistantSectionVisible ? "Hide AI Assist Tools" : "Show AI Assist Tools"}
+            </Button>
              <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
@@ -385,6 +392,11 @@ export default function RiskAssessmentPage() {
         </Card>
       )}
 
+      {isAiAssistantSectionVisible && !isFormVisible && (
+          <RiskAssessmentAiAssistant onUseSuggestion={handleUseAiSuggestion} />
+      )}
+
+
       {loggedRiskAssessments.length > 0 && !isFormVisible && (
         <>
           <Separator className="my-8" />
@@ -435,7 +447,6 @@ export default function RiskAssessmentPage() {
         </>
       )}
 
-      {isAiAssistantVisible && <RiskAssessmentAiAssistant onUseSuggestion={handleUseAiSuggestion} />}
 
       {viewingAssessment && (
         <Dialog open={!!viewingAssessment} onOpenChange={() => setViewingAssessment(null)}>
