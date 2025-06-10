@@ -29,9 +29,10 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle } from "lucide-react";
+import { CalendarIcon, Save, XCircle, InfoIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { RiskAssessment, RiskAssessmentMethod } from "@/lib/types";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const riskAssessmentFormSchema = z.object({
   activity: z.string().min(10, {
@@ -67,6 +68,54 @@ interface RiskAssessmentFormProps {
   onCancel: () => void;
 }
 
+const methodSpecificGuidance: Partial<Record<RiskAssessmentMethod, {
+  identifiedHazards?: string;
+  assessedRisks?: string;
+  controlMeasures?: string;
+}>> = {
+  "Job Safety Analysis (JSA)": {
+    identifiedHazards: "For JSA: Break down the job into discrete steps. For each step, identify potential hazards (e.g., struck by, caught between, slip/trip, exposure).",
+    assessedRisks: "For JSA: For each identified hazard within a job step, describe the potential negative outcomes or consequences if that hazard is realized.",
+    controlMeasures: "For JSA: For each hazard, list specific actions, procedures, or PPE to eliminate or reduce the risk. Be precise for each step."
+  },
+  "Hazard Identification (HAZID)": {
+    identifiedHazards: "For HAZID: Conduct a broad identification of hazards across the entire process, system, or area. Consider energy sources, hazardous materials, environmental conditions, and human factors.",
+    assessedRisks: "For HAZID: Describe potential unwanted scenarios and their consequences that could result from the identified hazards. Think about worst-case possibilities.",
+    controlMeasures: "For HAZID: List existing or proposed high-level controls. Detailed controls might be developed in a further assessment."
+  },
+  "Hazard and Operability Study (HAZOP)": {
+    identifiedHazards: "For HAZOP: Systematically review process parameters (e.g., Flow, Temperature, Pressure) using guidewords (No, More, Less, As Well As, Part Of, Reverse, Other Than). Document deviations, causes, and consequences.",
+    assessedRisks: "For HAZOP: Focus on how deviations from design intent could lead to undesirable outcomes, including safety, environmental, or operational impacts.",
+    controlMeasures: "For HAZOP: Document existing safeguards for each deviation and make recommendations for new or improved safeguards where necessary."
+  },
+  "Failure Mode and Effects Analysis (FMEA)": {
+    identifiedHazards: "For FMEA (as Failure Modes): Identify potential failure modes for each component, system, or process step. What could go wrong?",
+    assessedRisks: "For FMEA (as Effects & Severity): Analyze the potential effects of each failure mode. Consider severity (S), likelihood of occurrence (O), and detectability (D) to calculate a Risk Priority Number (RPN = S x O x D).",
+    controlMeasures: "For FMEA: Recommend actions to reduce high RPNs, typically by improving design, processes, or detection methods for critical failure modes."
+  },
+  "Fault Tree Analysis (FTA)": {
+    identifiedHazards: "For FTA (as Top Event): Define a specific undesired top event (e.g., system explosion, major spill). This is the primary hazard you are analyzing.",
+    assessedRisks: "For FTA: Deductively identify all sequences of lower-level equipment failures or human errors (basic events, intermediate events) that could lead to the top event. Construct a logical tree. Quantify probabilities if data is available.",
+    controlMeasures: "For FTA: Identify critical paths and basic events in the fault tree where controls, redundancy, or changes can be implemented to reduce the probability of the top event occurring."
+  },
+  "Bowtie Analysis": {
+    identifiedHazards: "For Bowtie (as the 'Knot'): Identify a specific critical event or hazard that you want to manage (this is the center of the bowtie).",
+    assessedRisks: "For Bowtie: On the left side, list all credible threats that could lead to the hazard/knot. On the right side, list all potential consequences if the hazard/knot occurs and controls fail.",
+    controlMeasures: "For Bowtie: On the left side, list preventive controls (barriers) for each threat. On the right side, list mitigative/recovery controls for each consequence."
+  },
+  "What-If Analysis": {
+    identifiedHazards: "For What-If: Brainstorm a series of 'What if...?' questions related to potential equipment failures, human errors, procedural deviations, or external events.",
+    assessedRisks: "For What-If: For each 'What if' question, determine the potential consequences and estimate the likelihood. Consider if existing safeguards are adequate.",
+    controlMeasures: "For What-If: Document existing safeguards and, if consequences are significant and safeguards inadequate, recommend additional control measures."
+  },
+  "Preliminary Hazard Analysis (PHA)": {
+    identifiedHazards: "For PHA: Conduct an early-stage identification of potential hazards in a new system, product, or process, often based on system design or conceptual information.",
+    assessedRisks: "For PHA: Provide an initial, often qualitative, assessment of the severity and likelihood of the identified hazards to prioritize further analysis or design changes.",
+    controlMeasures: "For PHA: Suggest broad control measures, design criteria, or operational considerations to mitigate the identified hazards. These are often high-level at this stage."
+  }
+};
+
+
 export function RiskAssessmentForm({ onSaveAssessment, assessmentMethods, initialData, onCancel }: RiskAssessmentFormProps) {
   const { toast } = useToast();
   const isEditing = !!initialData?.id;
@@ -85,8 +134,10 @@ export function RiskAssessmentForm({ onSaveAssessment, assessmentMethods, initia
     },
   });
   
+  const selectedMethod = form.watch("methodUsed") as RiskAssessmentMethod | undefined;
+  const currentGuidance = selectedMethod ? methodSpecificGuidance[selectedMethod] : null;
+
   useEffect(() => {
-    // Reset form when initialData changes (e.g., switching from add to edit, or new AI prefill)
     form.reset({
       activity: initialData?.activity || "",
       identifiedHazards: initialData?.identifiedHazards || "",
@@ -102,7 +153,7 @@ export function RiskAssessmentForm({ onSaveAssessment, assessmentMethods, initia
 
   async function onSubmit(data: RiskAssessmentFormValues) {
     const assessmentToSave: RiskAssessment = {
-      id: initialData?.id || new Date().toISOString(), // Use existing ID if editing, else generate new
+      id: initialData?.id || new Date().toISOString(), 
       ...data,
       assessmentDate: data.assessmentDate.toISOString(),
       methodUsed: data.methodUsed as RiskAssessmentMethod | undefined,
@@ -114,8 +165,17 @@ export function RiskAssessmentForm({ onSaveAssessment, assessmentMethods, initia
       description: `Assessment for "${data.activity.substring(0,30)}..." has been successfully ${isEditing ? 'updated' : 'logged'}.`,
       variant: "default",
     });
-    // Form reset is handled by the parent component by hiding/re-keying or calling onCancel
   }
+
+  const renderGuidance = (text?: string) => {
+    if (!text) return null;
+    return (
+      <Alert variant="info" className="mt-2 text-xs">
+        <InfoIcon className="h-4 w-4" />
+        <AlertDescription>{text}</AlertDescription>
+      </Alert>
+    );
+  };
 
   return (
     <Form {...form}>
@@ -137,6 +197,34 @@ export function RiskAssessmentForm({ onSaveAssessment, assessmentMethods, initia
             </FormItem>
           )}
         />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <FormField
+            control={form.control}
+            name="methodUsed"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Assessment Method Used</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value || ""} defaultValue={field.value}>
+                    <FormControl>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select assessment method (optional)" />
+                    </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                    {assessmentMethods.map(method => (
+                        <SelectItem key={method} value={method}>{method}</SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                <FormDescription>Selecting a method will show specific guidance below.</FormDescription>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <div> {/* Placeholder for alignment if needed, or another field */} </div>
+        </div>
+
 
         <FormField
           control={form.control}
@@ -151,7 +239,7 @@ export function RiskAssessmentForm({ onSaveAssessment, assessmentMethods, initia
                   {...field}
                 />
               </FormControl>
-              <FormDescription>One hazard per line or comma-separated.</FormDescription>
+              {renderGuidance(currentGuidance?.identifiedHazards)}
               <FormMessage />
             </FormItem>
           )}
@@ -170,7 +258,7 @@ export function RiskAssessmentForm({ onSaveAssessment, assessmentMethods, initia
                   {...field}
                 />
               </FormControl>
-               <FormDescription>Detail the potential consequences.</FormDescription>
+               {renderGuidance(currentGuidance?.assessedRisks)}
               <FormMessage />
             </FormItem>
           )}
@@ -189,7 +277,7 @@ export function RiskAssessmentForm({ onSaveAssessment, assessmentMethods, initia
                   {...field}
                 />
               </FormControl>
-              <FormDescription>Specify controls to mitigate the risks.</FormDescription>
+              {renderGuidance(currentGuidance?.controlMeasures)}
               <FormMessage />
             </FormItem>
           )}
@@ -218,75 +306,7 @@ export function RiskAssessmentForm({ onSaveAssessment, assessmentMethods, initia
                 </FormItem>
             )}
             />
-
-            <FormField
-            control={form.control}
-            name="methodUsed"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Assessment Method Used</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || ""} defaultValue={field.value}>
-                    <FormControl>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select assessment method (optional)" />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                    {assessmentMethods.map(method => (
-                        <SelectItem key={method} value={method}>{method}</SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <FormField
-            control={form.control}
-            name="assessmentDate"
-            render={({ field }) => (
-                <FormItem className="flex flex-col">
-                <FormLabel>Date of Assessment</FormLabel>
-                <Popover>
-                    <PopoverTrigger asChild>
-                    <FormControl>
-                        <Button
-                        variant={"outline"}
-                        className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                        )}
-                        >
-                        {field.value ? (
-                            format(field.value, "PPP")
-                        ) : (
-                            <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                    </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                    />
-                    </PopoverContent>
-                </Popover>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-
-            <FormField
+             <FormField
             control={form.control}
             name="assessor"
             render={({ field }) => (
@@ -300,8 +320,50 @@ export function RiskAssessmentForm({ onSaveAssessment, assessmentMethods, initia
             )}
             />
         </div>
+
+        <FormField
+          control={form.control}
+          name="assessmentDate"
+          render={({ field }) => (
+              <FormItem className="flex flex-col">
+              <FormLabel>Date of Assessment</FormLabel>
+              <Popover>
+                  <PopoverTrigger asChild>
+                  <FormControl>
+                      <Button
+                      variant={"outline"}
+                      className={cn(
+                          "w-full md:w-1/2 lg:w-1/3 pl-3 text-left font-normal", // Adjusted width
+                          !field.value && "text-muted-foreground"
+                      )}
+                      >
+                      {field.value ? (
+                          format(field.value, "PPP")
+                      ) : (
+                          <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                  </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) =>
+                          date > new Date() || date < new Date("1900-01-01")
+                      }
+                      initialFocus
+                  />
+                  </PopoverContent>
+              </Popover>
+              <FormMessage />
+              </FormItem>
+          )}
+        />
         
-        <div className="flex space-x-2">
+        <div className="flex space-x-2 pt-4 border-t">
             <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 <Save className="mr-2 h-4 w-4" /> {isEditing ? "Save Changes" : "Log Risk Assessment"}
             </Button>
@@ -313,5 +375,3 @@ export function RiskAssessmentForm({ onSaveAssessment, assessmentMethods, initia
     </Form>
   );
 }
-
-    
