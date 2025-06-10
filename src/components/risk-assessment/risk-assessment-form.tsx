@@ -33,7 +33,7 @@ import { CalendarIcon, Save, XCircle, InfoIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { RiskAssessment, RiskAssessmentMethod } from "@/lib/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { riskAssessmentMethodsList, methodSpecificGuidance } from "@/lib/risk-assessment-config";
+import { riskAssessmentMethodsList, methodSpecificGuidance, type DescriptiveRiskAssessmentMethod } from "@/lib/risk-assessment-config";
 
 const riskAssessmentFormSchema = z.object({
   activity: z.string().min(10, {
@@ -51,7 +51,7 @@ const riskAssessmentFormSchema = z.object({
   residualRiskLevel: z.enum(["Low", "Medium", "High"], {
     required_error: "Please select a residual risk level.",
   }),
-  methodUsed: z.string().optional(),
+  methodUsed: z.string().optional(), // Stays as string, refers to RiskAssessmentMethod
   assessmentDate: z.date({
     required_error: "An assessment date is required.",
   }),
@@ -90,6 +90,7 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
   const currentGuidance = selectedMethod ? methodSpecificGuidance[selectedMethod] : null;
 
   useEffect(() => {
+    // Ensure form resets correctly when initialData changes (e.g., for AI prefill or editing)
     form.reset({
       activity: initialData?.activity || "",
       identifiedHazards: initialData?.identifiedHazards || "",
@@ -100,7 +101,7 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
       assessmentDate: initialData?.assessmentDate ? new Date(initialData.assessmentDate) : new Date(),
       assessor: initialData?.assessor || "",
     });
-  }, [initialData, form]);
+  }, [initialData, form.reset]); // form.reset added to dependency array
 
 
   async function onSubmit(data: RiskAssessmentFormValues) {
@@ -164,8 +165,8 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
                     </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                    {riskAssessmentMethodsList.map(method => (
-                        <SelectItem key={method} value={method}>{method}</SelectItem>
+                    {(riskAssessmentMethodsList as DescriptiveRiskAssessmentMethod[]).map(method => (
+                        <SelectItem key={method.name} value={method.name}>{method.name}</SelectItem>
                     ))}
                     </SelectContent>
                 </Select>
@@ -285,7 +286,7 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
                       <Button
                       variant={"outline"}
                       className={cn(
-                          "w-full md:w-1/2 lg:w-1/3 pl-3 text-left font-normal", // Adjusted width
+                          "w-full md:w-1/2 lg:w-1/3 pl-3 text-left font-normal",
                           !field.value && "text-muted-foreground"
                       )}
                       >
@@ -315,7 +316,7 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
           )}
         />
         
-        <div className="flex space-x-2 pt-4 border-t">
+        <div className="flex flex-wrap gap-2 pt-4 border-t">
             <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 <Save className="mr-2 h-4 w-4" /> {isEditing ? "Save Changes" : "Log Risk Assessment"}
             </Button>

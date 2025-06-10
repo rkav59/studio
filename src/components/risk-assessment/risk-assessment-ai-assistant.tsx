@@ -24,7 +24,7 @@ import { generateRiskAssessmentSuggestion, type RiskAssessmentSuggestionInput, t
 import { identifyHazards, type IdentifyHazardsInput, type IdentifyHazardsOutput } from "@/ai/flows/identify-hazards-flow";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { RiskAssessmentMethod } from "@/lib/types";
-import { riskAssessmentMethodsList, methodSpecificGuidance } from "@/lib/risk-assessment-config";
+import { riskAssessmentMethodsList, methodSpecificGuidance, type DescriptiveRiskAssessmentMethod } from "@/lib/risk-assessment-config";
 
 
 const aiAssistantFormSchema = z.object({
@@ -33,7 +33,7 @@ const aiAssistantFormSchema = z.object({
   }).max(2000, { message: "Activity description must be less than 2000 characters."}),
   identifiedHazards: z.string().min(5, { 
     message: "Identified hazards must be at least 5 characters.",
-  }).max(2000, { message: "Identified hazards must be less than 2000 characters."}).or(z.literal("")), // Allow empty string initially
+  }).max(2000, { message: "Identified hazards must be less than 2000 characters."}).or(z.literal("")),
 });
 
 type AiAssistantFormValues = z.infer<typeof aiAssistantFormSchema>;
@@ -146,6 +146,8 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
     );
   };
 
+  const methodNames = (riskAssessmentMethodsList as DescriptiveRiskAssessmentMethod[]).map(m => m.name);
+
   return (
     <div className="space-y-6">
       <Card className="shadow-lg">
@@ -188,7 +190,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Known/Identified Potential Hazards</FormLabel>
-                        <div className="flex items-start gap-2">
+                        <div className="flex flex-col sm:flex-row items-start gap-2">
                             <FormControl className="flex-grow">
                             <Textarea
                                 placeholder="e.g., Sparks, fumes, awkward postures, heavy lifting, moving vehicle, slippery surfaces. Or click 'Identify Hazards with AI'."
@@ -196,7 +198,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
                                 {...field}
                             />
                             </FormControl>
-                            <Button type="button" variant="outline" size="sm" onClick={handleIdentifyHazards} disabled={isHazardLoading || !form.watch("activityDescription")} className="shrink-0 mt-1">
+                            <Button type="button" variant="outline" size="sm" onClick={handleIdentifyHazards} disabled={isHazardLoading || !form.watch("activityDescription")} className="shrink-0 mt-1 sm:mt-0">
                                 {isHazardLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SearchCheck className="mr-2 h-4 w-4" />}
                                 Identify Hazards with AI
                             </Button>
@@ -241,7 +243,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
                 <pre className="whitespace-pre-wrap rounded-md bg-secondary p-4 text-sm font-mono leading-relaxed">
                 {suggestion.potentialRisks}
                 </pre>
-                {riskAssessmentMethodsList.includes(suggestion.suggestedMethod as RiskAssessmentMethod) &&
+                {methodNames.includes(suggestion.suggestedMethod as RiskAssessmentMethod) &&
                  methodSpecificGuidance[suggestion.suggestedMethod as RiskAssessmentMethod]?.assessedRisks &&
                   renderGuidance(methodSpecificGuidance[suggestion.suggestedMethod as RiskAssessmentMethod]?.assessedRisks)
                 }
@@ -251,7 +253,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
                 <pre className="whitespace-pre-wrap rounded-md bg-secondary p-4 text-sm font-mono leading-relaxed">
                 {suggestion.recommendedControls}
                 </pre>
-                 {riskAssessmentMethodsList.includes(suggestion.suggestedMethod as RiskAssessmentMethod) &&
+                 {methodNames.includes(suggestion.suggestedMethod as RiskAssessmentMethod) &&
                   methodSpecificGuidance[suggestion.suggestedMethod as RiskAssessmentMethod]?.controlMeasures &&
                   renderGuidance(methodSpecificGuidance[suggestion.suggestedMethod as RiskAssessmentMethod]?.controlMeasures)
                 }

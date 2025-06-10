@@ -1,15 +1,53 @@
 
 import type { RiskAssessmentMethod } from "./types";
 
-export const riskAssessmentMethodsList: RiskAssessmentMethod[] = [
-  "Job Safety Analysis (JSA)",
-  "Hazard Identification (HAZID)",
-  "Hazard and Operability Study (HAZOP)",
-  "Failure Mode and Effects Analysis (FMEA)",
-  "Fault Tree Analysis (FTA)",
-  "Bowtie Analysis",
-  "What-If Analysis",
-  "Preliminary Hazard Analysis (PHA)",
+export interface DescriptiveRiskAssessmentMethod {
+  name: RiskAssessmentMethod;
+  description: string;
+  useWhen: string;
+}
+
+export const riskAssessmentMethodsList: DescriptiveRiskAssessmentMethod[] = [
+  {
+    name: "Job Safety Analysis (JSA)",
+    description: "Breaks down a job into specific steps, identifies hazards associated with each step, and recommends controls to mitigate those hazards.",
+    useWhen: "Ideal for routine tasks, especially those with a history of incidents or high potential for harm. Good for task-specific training and developing safe work procedures."
+  },
+  {
+    name: "Hazard Identification (HAZID)",
+    description: "A systematic process to identify all potential hazards in a facility, process, or system, often conducted by a multidisciplinary team.",
+    useWhen: "Early in project lifecycles, before detailed design, or for existing facilities to ensure all major hazards are known. Forms a basis for more detailed risk assessments."
+  },
+  {
+    name: "Hazard and Operability Study (HAZOP)",
+    description: "A structured and systematic examination of a planned or existing process or operation using guidewords (e.g., No, More, Less) applied to process parameters (e.g., Flow, Pressure) to identify deviations that could lead to risks.",
+    useWhen: "Complex chemical processes, new designs, or significant modifications to existing plants. Requires detailed process information and a skilled team."
+  },
+  {
+    name: "Failure Mode and Effects Analysis (FMEA)",
+    description: "Identifies potential failure modes in a system, product, or process, and analyzes their potential effects. Often involves scoring for severity, occurrence, and detection (Risk Priority Number - RPN).",
+    useWhen: "Product design, manufacturing processes, equipment reliability studies. Helps prioritize actions to mitigate high-risk failure modes."
+  },
+  {
+    name: "Fault Tree Analysis (FTA)",
+    description: "A top-down, deductive failure analysis where an undesired state of a system (top event) is analyzed using Boolean logic to combine a series of lower-level events that could cause it.",
+    useWhen: "To understand the causes of a specific critical failure, especially in complex systems (aerospace, nuclear). Good for quantifying failure probabilities if data is available."
+  },
+  {
+    name: "Bowtie Analysis",
+    description: "Visually represents the pathways from threats (causes) to a top event (hazard), and from the top event to consequences. Shows preventative barriers on the left and mitigative/recovery barriers on the right.",
+    useWhen: "For analyzing and communicating complex risk scenarios, especially high-consequence events. Helps visualize the role and effectiveness of safety barriers."
+  },
+  {
+    name: "What-If Analysis",
+    description: "A brainstorming technique where a team asks 'What if...?' questions to explore potential hazardous scenarios, their consequences, existing safeguards, and recommendations.",
+    useWhen: "Simpler processes, modifications, or as a less formal alternative to HAZOP. Effective with experienced teams familiar with the process."
+  },
+  {
+    name: "Preliminary Hazard Analysis (PHA)",
+    description: "An early-stage analysis to identify major hazards, their causes, and potential consequences in a new system, product, or process, often based on conceptual information.",
+    useWhen: "Early in the project lifecycle (concept or design phase) to identify critical safety issues and inform design decisions before significant resources are committed."
+  }
 ];
 
 export const methodSpecificGuidance: Partial<Record<RiskAssessmentMethod, {
