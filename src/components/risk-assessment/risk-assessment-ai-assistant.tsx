@@ -16,6 +16,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Sparkles, AlertTriangle, Send, SearchCheck, InfoIcon, ShieldCheck, Construction, UserCheck, ClipboardSignature, VenetianMask } from "lucide-react";
@@ -34,6 +41,7 @@ const aiAssistantFormSchema = z.object({
   identifiedHazards: z.string().min(5, { 
     message: "Identified hazards must be at least 5 characters.",
   }).max(2000, { message: "Identified hazards must be less than 2000 characters."}).or(z.literal("")),
+  preferredMethod: z.string().optional(),
 });
 
 type AiAssistantFormValues = z.infer<typeof aiAssistantFormSchema>;
@@ -44,10 +52,10 @@ interface RiskAssessmentAiAssistantProps {
 
 const controlCategoryIcons = {
   elimination: ShieldCheck,
-  substitution: VenetianMask, // Replaced Cog with VenetianMask for better distinction
-  engineering: Construction, // Replaced Wrench with Construction
-  administrative: ClipboardSignature, // Replaced FileText with ClipboardSignature
-  ppe: UserCheck, // Replaced Shirt with UserCheck
+  substitution: VenetianMask, 
+  engineering: Construction, 
+  administrative: ClipboardSignature, 
+  ppe: UserCheck, 
 };
 
 export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiAssistantProps) {
@@ -63,6 +71,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
     defaultValues: {
       activityDescription: "",
       identifiedHazards: "",
+      preferredMethod: "",
     },
   });
 
@@ -82,6 +91,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
       const input: RiskAssessmentSuggestionInput = {
         activityDescription: data.activityDescription,
         identifiedHazards: data.identifiedHazards,
+        preferredMethod: data.preferredMethod || undefined,
       };
       const result = await generateRiskAssessmentSuggestion(input);
       setSuggestion(result);
@@ -141,8 +151,14 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
         title: "Suggestions Applied",
         description: "AI suggestions have been pre-filled into the main form.",
       });
-      setSuggestion(null); // Clear suggestion after applying
-      form.reset({ activityDescription: lastFormValues.activityDescription, identifiedHazards: lastFormValues.identifiedHazards}); // Keep form values, but clear suggestion card
+      // Clear suggestion card, but keep form values for potential re-submission with modifications
+      setSuggestion(null); 
+      // form.reset might clear preferredMethod, so let's preserve it if needed or decide on desired behavior
+      form.reset({ 
+        activityDescription: lastFormValues.activityDescription, 
+        identifiedHazards: lastFormValues.identifiedHazards,
+        preferredMethod: lastFormValues.preferredMethod
+      });
     }
   };
 
@@ -167,7 +183,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
                 AI-Assisted Risk Assessment
             </CardTitle>
             <CardDescription>
-                Provide details about the activity and known hazards to get AI-powered suggestions for your risk assessment.
+                Provide details about the activity and known hazards to get AI-powered suggestions. You can also suggest a preferred assessment method.
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -187,7 +203,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
                         />
                         </FormControl>
                         <FormDescription>
-                        Clearly describe the task or process being assessed. This will be used for hazard identification and risk suggestion.
+                        Clearly describe the task or process being assessed.
                         </FormDescription>
                         <FormMessage />
                     </FormItem>
@@ -203,7 +219,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
                         <div className="flex flex-col sm:flex-row items-start gap-2">
                             <FormControl className="flex-grow">
                             <Textarea
-                                placeholder="e.g., Sparks, fumes, awkward postures, heavy lifting, moving vehicle, slippery surfaces. Or click 'Identify Hazards with AI'."
+                                placeholder="e.g., Sparks, fumes, awkward postures. Or click 'Identify Hazards with AI'."
                                 rows={3}
                                 {...field}
                             />
@@ -214,10 +230,37 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
                             </Button>
                         </div>
                         <FormDescription>
-                        List any hazards already identified or commonly associated with this activity. AI can help populate this.
+                        List hazards or use AI to help. This is required to get full suggestions.
                         </FormDescription>
                         <FormMessage />
                     </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="preferredMethod"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Preferred Assessment Method (Optional)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a preferred method" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            <SelectItem value="">None / Let AI Decide</SelectItem>
+                            {(riskAssessmentMethodsList as DescriptiveRiskAssessmentMethod[]).map(method => (
+                                <SelectItem key={method.name} value={method.name}>{method.name}</SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        <FormDescription>
+                            Suggest a method for the AI to consider. The AI will still aim for the most suitable one.
+                        </FormDescription>
+                        <FormMessage />
+                        </FormItem>
                     )}
                 />
                 
@@ -227,7 +270,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
                     ) : (
                     <Sparkles className="mr-2 h-4 w-4" />
                     )}
-                    Get Full AI Suggestion (Risks, Controls, Method)
+                    Get Full AI Suggestion
                 </Button>
                 </form>
             </Form>
@@ -247,6 +290,14 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
             <div>
                 <h3 className="font-semibold text-lg mb-1">Suggested Risk Assessment Method:</h3>
                 <p className="text-primary font-medium p-2 bg-primary/10 rounded-md">{suggestion.suggestedMethod || "N/A"}</p>
+                 {form.getValues("preferredMethod") && suggestion.suggestedMethod !== form.getValues("preferredMethod") && (
+                    <Alert variant="info" className="mt-2 text-xs">
+                        <InfoIcon className="h-4 w-4" />
+                        <AlertDescription>
+                            Note: Your preferred method was '{form.getValues("preferredMethod")}'. The AI suggested '{suggestion.suggestedMethod}' as potentially more suitable for this specific scenario.
+                        </AlertDescription>
+                    </Alert>
+                )}
             </div>
             <div>
                 <h3 className="font-semibold text-lg mb-1">Potential Risks Identified by AI:</h3>

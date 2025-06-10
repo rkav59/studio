@@ -21,6 +21,10 @@ const RiskAssessmentSuggestionInputSchema = z.object({
   identifiedHazards: z
     .string()
     .describe('A list or summary of already identified potential hazards related to the activity.'),
+  preferredMethod: z
+    .string()
+    .optional()
+    .describe('User-preferred risk assessment method. The AI should consider this but still recommend the most suitable method overall.'),
 });
 export type RiskAssessmentSuggestionInput = z.infer<typeof RiskAssessmentSuggestionInputSchema>;
 
@@ -60,6 +64,7 @@ A user is performing a risk assessment and needs your expert guidance.
 User Input:
 Activity/Process Description: {{{activityDescription}}}
 Identified Potential Hazards: {{{identifiedHazards}}}
+{{#if preferredMethod}}User's Preferred Method: {{{preferredMethod}}}{{/if}}
 
 Your Task:
 Based on the user's input, provide the following:
@@ -71,7 +76,12 @@ Based on the user's input, provide the following:
     *   'administrative': List specific administrative controls here.
     *   'ppe': List specific Personal Protective Equipment (PPE) controls here.
     For each category, provide a list of concrete, actionable control measure strings. If a category has no suitable measures, provide an empty list for that category or omit the key.
-3.  **Suggested Risk Assessment Method:** Recommend ONE most suitable risk assessment methodology from the following list: ${methodNamesForPrompt.join(', ')}. Briefly state why you recommend it for this scenario if possible, but keep it concise and only include the method name in the 'suggestedMethod' field.
+3.  **Suggested Risk Assessment Method:** Recommend ONE most suitable risk assessment methodology from the following list: ${methodNamesForPrompt.join(', ')}.
+    {{#if preferredMethod}}
+    The user has indicated a preference for '{{{preferredMethod}}}'. If '{{{preferredMethod}}}' is indeed suitable for this scenario, please select it. Otherwise, select the method you deem most appropriate from the list and briefly explain why it's a better fit than the user's preference if you choose a different one (this explanation is for your reasoning, do not include it in the 'suggestedMethod' field output).
+    {{else}}
+    Briefly state why you recommend it for this scenario if possible, but keep it concise and only include the method name in the 'suggestedMethod' field.
+    {{/if}}
 
 Structure your output according to the defined output schema.
 Provide detailed and actionable advice.
@@ -107,7 +117,6 @@ const generateRiskAssessmentSuggestionFlow = ai.defineFlow(
             ppe: []
         };
     }
-
 
     return output!;
   }
