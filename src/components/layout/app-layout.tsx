@@ -21,7 +21,7 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   return (
-    <SidebarProvider defaultOpen>
+    <SidebarProvider defaultOpen={false}>
       <Sidebar variant="sidebar" collapsible="icon" side="left">
         <SidebarHeader>
           <AppLogo />
