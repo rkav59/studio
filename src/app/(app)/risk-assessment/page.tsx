@@ -8,6 +8,12 @@ import { format } from 'date-fns';
 import { ShieldAlert, ListChecks, CheckSquare, Eye, Edit, Download, InfoIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import type { RiskAssessment, RiskAssessmentMethod, RiskAssessmentSuggestionOutput, HazardEntry, RiskEntry, RiskControlItem } from "@/lib/types";
 import { RiskAssessmentAiAssistant } from "@/components/risk-assessment/risk-assessment-ai-assistant";
@@ -25,8 +31,8 @@ const stringToRiskControlItems = (str: string | undefined | null): RiskControlIt
 const defaultRiskControlItem = (): RiskControlItem => ({ value: "" });
 const defaultRiskEntry = (): RiskEntry => ({ 
     risk: defaultRiskControlItem(), 
-    existingControls: [], // Start empty for AI prefill
-    proposedControls: []  // Start empty for AI prefill
+    existingControls: [], 
+    proposedControls: []  
 });
 const defaultHazardEntry = (): HazardEntry => ({ 
     hazard: defaultRiskControlItem(), 
@@ -48,15 +54,17 @@ export default function RiskAssessmentPage() {
       const storedAssessments = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedAssessments) {
         const parsedAssessments: RiskAssessment[] = JSON.parse(storedAssessments);
-        // Basic migration/check for new control structure
+        
         const migratedAssessments = parsedAssessments.map(ra => ({
           ...ra,
-          hazardEntries: ra.hazardEntries.map(he => ({
+          hazardEntries: (ra.hazardEntries || []).map(he => ({
             ...he,
-            assessedRisks: he.assessedRisks.map(ar => ({
+            hazard: he.hazard || defaultRiskControlItem(), // Ensure hazard object exists
+            assessedRisks: (he.assessedRisks || []).map(ar => ({
               ...ar,
-              existingControls: ar.existingControls || [],
-              proposedControls: ar.proposedControls || (ar as any).controlMeasures || [], // Move old controlMeasures to proposed
+              risk: ar.risk || defaultRiskControlItem(), // Ensure risk object exists
+              existingControls: (ar.existingControls || []).map(c => typeof c === 'string' ? {value: c} : c), // Ensure controls are objects
+              proposedControls: (ar.proposedControls || (ar as any).controlMeasures || []).map((c: any) => typeof c === 'string' ? {value: c} : c), // Migrate old controlMeasures and ensure objects
             }))
           }))
         }));
@@ -114,7 +122,7 @@ export default function RiskAssessmentPage() {
       assessedRisks: [
         {
           risk: { value: suggestion.potentialRisks || "AI Suggested Risk (Please Review)" },
-          existingControls: [], // AI suggestions go to proposed by default
+          existingControls: [], 
           proposedControls: stringToRiskControlItems(suggestion.recommendedControls),
         },
       ],
@@ -126,7 +134,7 @@ export default function RiskAssessmentPage() {
       methodUsed: suggestion.suggestedMethod as RiskAssessmentMethod,
       assessmentDate: new Date().toISOString(),
       assessor: "",
-      residualRiskLevel: undefined, // User must set this
+      residualRiskLevel: undefined, 
     });
     setEditingAssessment(null);
     setIsFormVisible(true);
@@ -190,33 +198,35 @@ export default function RiskAssessmentPage() {
 
       if (ra.hazardEntries && ra.hazardEntries.length > 0) {
         ra.hazardEntries.forEach(he => {
-          const hazardText = escapeCsvCell(he.hazard.value);
+          const hazardText = escapeCsvCell(he.hazard?.value);
           if (he.assessedRisks && he.assessedRisks.length > 0) {
             he.assessedRisks.forEach(ar => {
-              const riskText = escapeCsvCell(ar.risk.value);
+              const riskText = escapeCsvCell(ar.risk?.value);
               
               if (ar.existingControls && ar.existingControls.length > 0) {
                 ar.existingControls.forEach(cm => {
-                  const controlText = escapeCsvCell(cm.value);
+                  const controlText = escapeCsvCell(cm?.value);
                   csvRows.push([...commonData, hazardText, riskText, "Existing", controlText].join(','));
                 });
               } else if (!ar.proposedControls || ar.proposedControls.length === 0) {
-                 // If no existing and no proposed controls, still add a row for the risk
-                csvRows.push([...commonData, hazardText, riskText, "", ""].join(','));
+                 // If no existing and no proposed controls, still add a row for the risk if hazard and risk exist
+                if (hazardText || riskText) {
+                    csvRows.push([...commonData, hazardText, riskText, "", ""].join(','));
+                }
               }
 
               if (ar.proposedControls && ar.proposedControls.length > 0) {
                 ar.proposedControls.forEach(cm => {
-                  const controlText = escapeCsvCell(cm.value);
+                  const controlText = escapeCsvCell(cm?.value);
                   csvRows.push([...commonData, hazardText, riskText, "Proposed", controlText].join(','));
                 });
               }
             });
-          } else {
+          } else if (hazardText) { // Hazard exists but no risks
             csvRows.push([...commonData, hazardText, "", "", ""].join(','));
           }
         });
-      } else {
+      } else { // No hazard entries for this assessment
         csvRows.push([...commonData, "", "", "", ""].join(','));
       }
     });
@@ -267,13 +277,46 @@ export default function RiskAssessmentPage() {
       </Card>
 
       {!isFormVisible && (
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6 items-center">
             <Button onClick={handleAddNewAssessment} className="bg-primary hover:bg-primary/90">
             <ListChecks className="mr-2 h-4 w-4" /> Log New Risk Assessment
             </Button>
             <Button onClick={handleDownloadRegister} variant="outline" className="text-primary border-primary hover:bg-primary/10">
                 <Download className="mr-2 h-4 w-4" /> Download Risk Register (CSV)
             </Button>
+             <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <ShieldAlert className="mr-2 h-4 w-4" />
+                  Risk Management Techniques
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-72 max-h-96 overflow-y-auto">
+                {(riskAssessmentMethodsList as DescriptiveRiskAssessmentMethod[]).map((method) => (
+                  <Dialog key={method.name}>
+                    <DialogTrigger asChild>
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                        {method.name}
+                      </DropdownMenuItem>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle className="text-primary">{method.name}</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-2 space-y-2 text-sm max-h-[60vh] overflow-y-auto">
+                            <p><strong>How it works:</strong> {method.description}</p>
+                            <p><strong>When to use:</strong> {method.useWhen}</p>
+                        </div>
+                         <div className="pt-4 border-t">
+                            <DialogClose asChild>
+                                <Button variant="outline">Close</Button>
+                            </DialogClose>
+                        </div>
+                    </DialogContent>
+                  </Dialog>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
         </div>
       )}
 
@@ -352,44 +395,6 @@ export default function RiskAssessmentPage() {
 
       {isAiAssistantVisible && <RiskAssessmentAiAssistant onUseSuggestion={handleUseAiSuggestion} />}
 
-
-      <Card className="shadow-lg mt-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-             <ShieldAlert className="h-6 w-6 text-primary"/>
-            Risk Management Techniques
-          </CardTitle>
-          <CardDescription>Consider these established methodologies for your assessments. Click to learn more.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {(riskAssessmentMethodsList as DescriptiveRiskAssessmentMethod[]).map((method) => (
-              <Dialog key={method.name}>
-                 <DialogTrigger asChild>
-                    <Button variant="outline" className="h-auto justify-start p-3 text-left hover:shadow-md transition-shadow bg-secondary/30 hover:bg-secondary/50">
-                        <span className="font-semibold text-primary">{method.name}</span>
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle className="text-primary">{method.name}</DialogTitle>
-                    </DialogHeader>
-                    <div className="py-2 space-y-2 text-sm max-h-[60vh] overflow-y-auto">
-                        <p><strong>How it works:</strong> {method.description}</p>
-                        <p><strong>When to use:</strong> {method.useWhen}</p>
-                    </div>
-                     <div className="pt-4 border-t">
-                        <DialogClose asChild>
-                            <Button variant="outline">Close</Button>
-                        </DialogClose>
-                    </div>
-                </DialogContent>
-              </Dialog>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
       {viewingAssessment && (
         <Dialog open={!!viewingAssessment} onOpenChange={() => setViewingAssessment(null)}>
           <DialogContent className="sm:max-w-3xl"> 
@@ -425,14 +430,14 @@ export default function RiskAssessmentPage() {
                   viewingAssessment.hazardEntries.map((hazardEntry, hIndex) => (
                     <Card key={hazardEntry.id || `hazard-${hIndex}`} className="p-3 bg-muted/50">
                       <CardHeader className="p-1 mb-2">
-                        <CardTitle className="text-base text-primary">Hazard {hIndex + 1}: {hazardEntry.hazard.value}</CardTitle>
+                        <CardTitle className="text-base text-primary">Hazard {hIndex + 1}: {hazardEntry.hazard?.value || 'N/A'}</CardTitle>
                       </CardHeader>
                       <CardContent className="p-1 pl-4 space-y-3">
                         <p className="text-xs font-medium text-muted-foreground">Assessed Risks for this Hazard:</p>
                         {hazardEntry.assessedRisks && hazardEntry.assessedRisks.length > 0 ? (
                           hazardEntry.assessedRisks.map((riskEntry, rIndex) => (
                             <div key={riskEntry.id || `risk-${hIndex}-${rIndex}`} className="pl-3 border-l-2 border-secondary space-y-2">
-                              <p className="text-sm font-semibold">Risk {rIndex + 1}: {riskEntry.risk.value}</p>
+                              <p className="text-sm font-semibold">Risk {rIndex + 1}: {riskEntry.risk?.value || 'N/A'}</p>
                               
                               <div>
                                 <p className="text-xs font-medium text-muted-foreground mt-1">Existing Control Measures:</p>
