@@ -39,8 +39,8 @@ const aiAssistantFormSchema = z.object({
     message: "Activity description must be at least 10 characters.",
   }).max(2000, { message: "Activity description must be less than 2000 characters."}),
   identifiedHazards: z.string().min(5, { 
-    message: "Identified hazards must be at least 5 characters.",
-  }).max(2000, { message: "Identified hazards must be less than 2000 characters."}).or(z.literal("")),
+    message: "Known hazards must be at least 5 characters.",
+  }).max(2000, { message: "Known hazards must be less than 2000 characters."}).or(z.literal("")), // Allow empty string if user wants AI to identify
   preferredMethod: z.string().optional(),
 });
 
@@ -58,6 +58,9 @@ const controlCategoryIcons = {
   ppe: UserCheck, 
 };
 
+// Use a distinct value for "None / Let AI Decide" that isn't an empty string
+const NONE_SELECTED_AI_DECIDE_VALUE = "none_selected_ai_decide";
+
 export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiAssistantProps) {
   const { toast } = useToast();
   const [isSuggestionLoading, setIsSuggestionLoading] = useState(false);
@@ -71,7 +74,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
     defaultValues: {
       activityDescription: "",
       identifiedHazards: "",
-      preferredMethod: "",
+      preferredMethod: "", // Empty string means placeholder will show initially
     },
   });
 
@@ -91,7 +94,9 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
       const input: RiskAssessmentSuggestionInput = {
         activityDescription: data.activityDescription,
         identifiedHazards: data.identifiedHazards,
-        preferredMethod: data.preferredMethod || undefined,
+        preferredMethod: data.preferredMethod === NONE_SELECTED_AI_DECIDE_VALUE || data.preferredMethod === "" 
+                            ? undefined 
+                            : data.preferredMethod,
       };
       const result = await generateRiskAssessmentSuggestion(input);
       setSuggestion(result);
@@ -151,9 +156,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
         title: "Suggestions Applied",
         description: "AI suggestions have been pre-filled into the main form.",
       });
-      // Clear suggestion card, but keep form values for potential re-submission with modifications
       setSuggestion(null); 
-      // form.reset might clear preferredMethod, so let's preserve it if needed or decide on desired behavior
       form.reset({ 
         activityDescription: lastFormValues.activityDescription, 
         identifiedHazards: lastFormValues.identifiedHazards,
@@ -243,14 +246,14 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Preferred Assessment Method (Optional)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select a preferred method" />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                            <SelectItem value="">None / Let AI Decide</SelectItem>
+                            <SelectItem value={NONE_SELECTED_AI_DECIDE_VALUE}>None / Let AI Decide</SelectItem>
                             {(riskAssessmentMethodsList as DescriptiveRiskAssessmentMethod[]).map(method => (
                                 <SelectItem key={method.name} value={method.name}>{method.name}</SelectItem>
                             ))}
@@ -290,7 +293,7 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
             <div>
                 <h3 className="font-semibold text-lg mb-1">Suggested Risk Assessment Method:</h3>
                 <p className="text-primary font-medium p-2 bg-primary/10 rounded-md">{suggestion.suggestedMethod || "N/A"}</p>
-                 {form.getValues("preferredMethod") && suggestion.suggestedMethod !== form.getValues("preferredMethod") && (
+                 {form.getValues("preferredMethod") && form.getValues("preferredMethod") !== NONE_SELECTED_AI_DECIDE_VALUE && suggestion.suggestedMethod !== form.getValues("preferredMethod") && (
                     <Alert variant="info" className="mt-2 text-xs">
                         <InfoIcon className="h-4 w-4" />
                         <AlertDescription>
