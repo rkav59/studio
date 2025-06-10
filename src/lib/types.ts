@@ -39,9 +39,9 @@ export type RiskAssessmentMethod =
 export interface RiskAssessment {
   id: string;
   activity: string;
-  identifiedHazards: string[];
-  assessedRisks: string[];
-  controlMeasures: string[];
+  identifiedHazards: string; // Changed from string[] for simpler text area input
+  assessedRisks: string;     // Changed from string[]
+  controlMeasures: string;   // Changed from string[]
   residualRiskLevel: 'Low' | 'Medium' | 'High';
   methodUsed?: RiskAssessmentMethod;
   assessmentDate: string;
@@ -54,8 +54,8 @@ export interface SheqAudit {
   scope: string;
   auditDate: string;
   auditor: string;
-  findings: string[];
-  recommendations: string[];
+  findings: string; // Changed from string[] for simpler text area input
+  recommendations: string; // Changed from string[]
   status: 'Planned' | 'In Progress' | 'Completed' | 'Closed';
 }
 
@@ -93,7 +93,7 @@ export interface IncidentInvestigation {
   incidentId: string; // Link to original incident
   investigationDate: string;
   investigators: string[];
-  rootCauses: string[];
+  rootCauses: string; // Changed from string[]
   correctiveActions: CorrectiveAction[];
   status: 'Open' | 'Pending Review' | 'Closed';
 }
@@ -121,7 +121,7 @@ export interface PpeAudit {
   auditDate: string;
   auditor: string;
   complianceRate: number; // Percentage
-  nonCompliances: string[];
+  nonCompliances: string; // Changed from string[]
 }
 
 export interface Contractor {
