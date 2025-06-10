@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, AlertTriangle, CheckCircle2, ListChecks, Activity, BedDouble, Percent, CalendarCheck, Skull } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Progress } from "@/components/ui/progress";
 
 
 const MOCK_INCIDENTS = [
@@ -82,7 +83,8 @@ export function OverviewCards() {
           <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{complianceRate}%</div>
+          <div className="text-2xl font-bold mb-1">{complianceRate}%</div>
+          <Progress value={complianceRate} className="h-2 mb-1" aria-label={`Compliance rate is ${complianceRate} percent`} />
           <p className="text-xs text-muted-foreground">Target: 98%</p>
         </CardContent>
       </Card>
@@ -168,3 +170,4 @@ export function IncidentTypeChart() {
     </Card>
   );
 }
+
