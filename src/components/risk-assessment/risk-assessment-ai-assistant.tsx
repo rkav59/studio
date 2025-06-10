@@ -300,10 +300,16 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
                 )}
             </div>
             <div>
-                <h3 className="font-semibold text-lg mb-1">Potential Risks Identified by AI:</h3>
-                <pre className="whitespace-pre-wrap rounded-md bg-secondary p-4 text-sm font-mono leading-relaxed">
-                {suggestion.potentialRisks}
-                </pre>
+                <h3 className="font-semibold text-lg mb-2">Potential Risks Identified by AI:</h3>
+                {suggestion.potentialRisks && suggestion.potentialRisks.trim() !== "" ? (
+                    <ul className="list-disc list-inside pl-4 space-y-1 rounded-md bg-secondary p-4 text-sm">
+                    {suggestion.potentialRisks.split('\n').map((risk, index) => risk.trim() && (
+                        <li key={index} className="leading-relaxed">{risk.trim()}</li>
+                    ))}
+                    </ul>
+                ) : (
+                    <p className="text-muted-foreground italic">No specific potential risks identified by AI.</p>
+                )}
                 {methodNames.includes(suggestion.suggestedMethod as RiskAssessmentMethod) &&
                  methodSpecificGuidance[suggestion.suggestedMethod as RiskAssessmentMethod]?.assessedRisks &&
                   renderGuidance(methodSpecificGuidance[suggestion.suggestedMethod as RiskAssessmentMethod]?.assessedRisks)
