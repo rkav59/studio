@@ -39,12 +39,12 @@ import { riskAssessmentMethodsList, methodSpecificGuidance, type DescriptiveRisk
 // Zod schemas for the new nested structure
 const riskControlItemSchema = z.object({
   id: z.string().optional(),
-  value: z.string().max(1000, "Item too long, 1000 characters maximum.").optional(), // Made value optional
+  value: z.string().max(1000, "Item too long, 1000 characters maximum.").optional(), 
 });
 
 const riskEntrySchema = z.object({
   id: z.string().optional(),
-  risk: riskControlItemSchema, // Risk description (value) is now optional
+  risk: riskControlItemSchema, 
   existingControls: z.array(riskControlItemSchema).optional().default([]),
   proposedControls: z.array(riskControlItemSchema).optional().default([]),
 });
@@ -52,9 +52,9 @@ const riskEntrySchema = z.object({
 const hazardEntrySchema = z.object({
   id: z.string().optional(),
   hazard: riskControlItemSchema.refine(data => data.value && data.value.trim().length > 0, {
-    message: "Hazard description cannot be empty.", // Hazard description remains required
+    message: "Hazard description cannot be empty.", 
   }),
-  assessedRisks: z.array(riskEntrySchema), // Can be empty initially if desired, or min(1) if a risk is always needed per hazard
+  assessedRisks: z.array(riskEntrySchema), 
 });
 
 // Main form schema
@@ -83,9 +83,9 @@ interface RiskAssessmentFormProps {
   onCancel: () => void;
 }
 
-const defaultRiskControlItem = (): RiskControlItem => ({ value: "" }); // Default is empty string, schema handles min length if required
+const defaultRiskControlItem = (): RiskControlItem => ({ value: "" }); 
 const defaultRiskEntry = (): RiskEntry => ({ 
-    risk: { value: "" }, // Risk description defaults to empty
+    risk: { value: "" }, 
     existingControls: [defaultRiskControlItem()], 
     proposedControls: [defaultRiskControlItem()] 
 });
@@ -129,7 +129,7 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
                 ? he.assessedRisks.map(ar => {
                     return {
                       ...ar,
-                      risk: ar.risk || { value: "" }, // Ensure risk object exists, value can be empty/undefined
+                      risk: ar.risk || { value: "" }, 
                       existingControls: (ar.existingControls && ar.existingControls.length > 0 ? ar.existingControls.map(ec => ec || defaultRiskControlItem()) : [defaultRiskControlItem()]),
                       proposedControls: (ar.proposedControls && ar.proposedControls.length > 0 ? ar.proposedControls.map(pc => pc || defaultRiskControlItem()) : [defaultRiskControlItem()]),
                     };
@@ -149,7 +149,7 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
         assessor: "",
       });
     }
-  }, [initialData, form]); // form.reset was form before
+  }, [initialData, form]); 
 
 
   async function onSubmit(data: RiskAssessmentFormValues) {
@@ -160,10 +160,10 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
       methodUsed: data.methodUsed as RiskAssessmentMethod | undefined,
       hazardEntries: data.hazardEntries.map(he => ({
         ...he,
-        hazard: he.hazard, // hazard value is now required by schema refine
+        hazard: he.hazard, 
         assessedRisks: he.assessedRisks.map(ar => ({
             ...ar,
-            risk: ar.risk, // risk value is optional
+            risk: ar.risk, 
             existingControls: ar.existingControls?.filter(c => c.value && c.value.trim() !== '') || [], 
             proposedControls: ar.proposedControls?.filter(c => c.value && c.value.trim() !== '') || [],
         }))
@@ -289,20 +289,19 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
                             </CardHeader>
                             <CardContent className="p-1 space-y-4">
                                 <div className="space-y-2 pl-4 border-l-2 border-muted/70 ml-1 py-2">
-                                   {/* Replaced FormField for risk.value with an "Add Risk" button */}
-                                   {/* This button is intended to add a new risk to the CURRENT HAZARD, which is what riskAppend does */}
-                                   {/* However, placing it here replaces the description field of the CURRENT risk item */}
-                                   {/* This is a functional change where individual risk descriptions are removed */}
-                                   <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => riskAppend(defaultRiskEntry())}
-                                      className="text-primary border-primary hover:bg-primary/10"
-                                    >
-                                      <PlusCircle className="mr-2 h-4 w-4" /> Add Another Risk to Hazard #{hazardIndex + 1}
-                                    </Button>
-                                    <FormDescription className="text-xs">Individual risk descriptions are no longer available. Use the button above to add a new risk structure to this hazard.</FormDescription>
+                                   <FormField
+                                      control={form.control}
+                                      name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.risk.value`}
+                                      render={({ field }) => (
+                                          <FormItem>
+                                          <FormLabel className="text-sm font-medium">Describe Risk</FormLabel>
+                                          <FormControl>
+                                              <Textarea placeholder="e.g., Fall from height, Exposure to harmful substance" rows={2} {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                          </FormItem>
+                                      )}
+                                    />
                                     {renderGuidance(currentGuidance?.assessedRisks)}
                                 </div>
 
