@@ -1,13 +1,14 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { AuditScheduler } from '@/components/sheq-audit/audit-scheduler';
 import { AuditExecutionForm } from '@/components/sheq-audit/audit-execution-form';
-import type { SheqAudit, AuditChecklistItem, ChecklistItemTemplate, NonConformance, AnalyzeAuditDataInput, AnalyzeAuditDataOutput } from '@/lib/types';
+import type { SheqAudit, AuditChecklistItem, ChecklistItemTemplate, NonConformance, AnalyzeAuditDataInput, AnalyzeAuditDataOutput, ChecklistTemplate } from '@/lib/types';
+import { defaultChecklistTemplates } from '@/lib/checklist-templates';
 import { Separator } from '@/components/ui/separator';
 import { format, isValid, parseISO } from 'date-fns';
 import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2 } from 'lucide-react';
@@ -19,6 +20,7 @@ import { Alert, AlertTitle } from '@/components/ui/alert';
 
 
 const LOCAL_STORAGE_KEY_AUDITS = 'sheild-sheq-audits-v4'; 
+const USER_TEMPLATES_STORAGE_KEY = 'sheild-user-checklist-templates-v1'; // Match key in checklist-templates page
 
 const getDefaultNonConformance = (): NonConformance => ({
   id: crypto.randomUUID(),
@@ -46,8 +48,18 @@ export default function SheqAuditPage() {
   const [aiInsights, setAiInsights] = useState<AnalyzeAuditDataOutput | null>(null);
   const [isAiInsightsModalOpen, setIsAiInsightsModalOpen] = useState(false);
 
+  const [userChecklistTemplates, setUserChecklistTemplates] = useState<ChecklistTemplate[]>([]);
 
   useEffect(() => {
+    try {
+      const storedUserTemplates = localStorage.getItem(USER_TEMPLATES_STORAGE_KEY);
+      if (storedUserTemplates) {
+        setUserChecklistTemplates(JSON.parse(storedUserTemplates));
+      }
+    } catch (error) {
+      console.error("Error loading user checklist templates from localStorage:", error);
+    }
+    
     try {
       const storedAudits = localStorage.getItem(LOCAL_STORAGE_KEY_AUDITS);
       if (storedAudits) {
@@ -62,11 +74,14 @@ export default function SheqAuditPage() {
         }));
         setAudits(migratedAudits);
       } else {
-        const oldV3Key = 'sheild-sheq-audits-v3'; // Previous key
-        if (localStorage.getItem(oldV3Key)) {
-            console.warn(`SHEild: SHEQ Audit data from '${oldV3Key}' was cleared due to structure update (added relatedIncidentId). Please re-enter if needed.`);
-            localStorage.removeItem(oldV3Key);
-        }
+        // Clean up old versions if any
+        const oldKeys = ['sheild-sheq-audits-v1', 'sheild-sheq-audits-v2', 'sheild-sheq-audits-v3'];
+        oldKeys.forEach(key => {
+            if (localStorage.getItem(key)) {
+                console.warn(`SHEild: SHEQ Audit data from '${key}' was cleared due to structure update. Please re-enter if needed.`);
+                localStorage.removeItem(key);
+            }
+        });
       }
     } catch (error) {
       console.error("Error loading SHEQ audits from localStorage:", error);
@@ -80,6 +95,13 @@ export default function SheqAuditPage() {
       console.error("Error saving SHEQ audits to localStorage:", error);
     }
   }, [audits]);
+
+  const allChecklistTemplatesForScheduler = useMemo(() => {
+    const systemTemplates = defaultChecklistTemplates.map(t => ({ ...t, isSystemDefault: true }));
+    const customTemplates = userChecklistTemplates.map(t => ({ ...t, isSystemDefault: false }));
+    return [...systemTemplates, ...customTemplates];
+  }, [userChecklistTemplates]);
+
 
   const handleScheduleAudit = (
     newAuditData: Omit<SheqAudit, 'id' | 'status' | 'checklist' | 'nonConformances' | 'overallFindings' | 'recommendations'>,
@@ -127,8 +149,6 @@ export default function SheqAuditPage() {
   const handleBackToScheduler = () => {
     if (currentAudit && currentAudit.status === 'In Progress') {
         // Optionally save progress if any changes were made but not formally completed
-        // For simplicity, current implementation doesn't auto-save partial 'In Progress' state changes from execution form
-        // It only saves when "Save and Complete Audit" is clicked in AuditExecutionForm
     }
     setCurrentAudit(null);
   };
@@ -255,7 +275,7 @@ export default function SheqAuditPage() {
             <CardContent className="pt-6">
                 <p className="text-muted-foreground">
                     This module facilitates the planning, execution, and tracking of Safety, Health, Environment, and Quality (SHEQ) audits. 
-                    Select from checklist templates, customize as needed, document findings, log non-conformances with proposed corrective/preventive actions (CAPA), and monitor progress.
+                    Select from default or custom checklist templates, customize as needed during execution, document findings, log non-conformances with proposed CAPA details, and monitor progress.
                     Leverage AI insights to analyze trends from your audit data (current browser session).
                 </p>
             </CardContent>
@@ -263,6 +283,7 @@ export default function SheqAuditPage() {
           
           <AuditScheduler
             scheduledAudits={audits.filter(a => a.status === 'Planned' || a.status === 'In Progress')}
+            allChecklistTemplates={allChecklistTemplatesForScheduler} // Pass combined templates
             onScheduleAudit={handleScheduleAudit}
             onStartAudit={handleStartAudit}
           />
@@ -305,7 +326,7 @@ export default function SheqAuditPage() {
                 Current prototype features:
               </p>
               <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                <li>Audit scheduling with selection from predefined checklist templates.</li>
+                <li>Audit scheduling with selection from both system default and user-created checklist templates. (Navigate to "Checklist Templates" to manage custom ones).</li>
                 <li>List view of planned, in-progress, and completed/closed audits.</li>
                 <li>Audit execution form allowing:
                     <ul className="list-disc list-inside pl-6">
@@ -327,16 +348,16 @@ export default function SheqAuditPage() {
                     </ul>
                 </li>
                 <li>Recording overall audit findings and recommendations.</li>
-                <li>Viewing detailed information for completed/closed audits, including all checklist items, non-conformances, and their CAPA details (including related incident IDs).</li>
+                <li>Viewing detailed information for completed/closed audits, including all checklist items, non-conformances, and their CAPA details.</li>
                 <li>AI-powered insights generation based on the summary of audit data currently in the browser session.</li>
-                <li>Data persistence using browser's local storage.</li>
+                <li>Data persistence using browser's local storage for audits and custom templates.</li>
               </ul>
               <Separator className="my-4" />
               <p className="text-sm text-muted-foreground mt-2 mb-2">
                 Future enhancements could include:
               </p>
               <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                  <li>User-creatable and editable master checklist templates (Checklist Builder).</li>
+                  <li>More advanced user-creatable and editable master checklist templates (e.g., drag-drop sections, question types).</li>
                   <li>Full calendar view for audit program scheduling.</li>
                   <li>Dedicated CAPA tracking module/page with advanced filtering, dashboards, and notifications for overdue actions.</li>
                   <li>More advanced AI trend analysis over historical data (requires backend).</li>

@@ -3,8 +3,9 @@ import type { ChecklistTemplate } from './types';
 
 export const defaultChecklistTemplates: ChecklistTemplate[] = [
   {
-    id: 'general-safety-v1',
+    id: 'system-general-safety-v1',
     name: 'General Workplace Safety',
+    isSystemDefault: true,
     items: [
       { id: 'gs-1', text: 'Are emergency exits clear, unobstructed, and clearly marked?' },
       { id: 'gs-2', text: 'Are fire extinguishers inspected, charged, and accessible?' },
@@ -19,8 +20,9 @@ export const defaultChecklistTemplates: ChecklistTemplate[] = [
     ],
   },
   {
-    id: 'office-safety-v1',
+    id: 'system-office-safety-v1',
     name: 'Office Environment Safety',
+    isSystemDefault: true,
     items: [
       { id: 'os-1', text: 'Are workstations ergonomically set up (chairs, desks, monitors)?' },
       { id: 'os-2', text: 'Are cables and cords managed to prevent trip hazards?' },
@@ -32,8 +34,9 @@ export const defaultChecklistTemplates: ChecklistTemplate[] = [
     ],
   },
   {
-    id: 'construction-site-v1',
+    id: 'system-construction-site-v1',
     name: 'Construction Site Safety (Basic)',
+    isSystemDefault: true,
     items: [
       { id: 'cs-1', text: 'Is the site secured and access controlled?' },
       { id: 'cs-2', text: 'Are risk assessments and method statements (RAMS) in place for high-risk activities?' },
@@ -48,8 +51,9 @@ export const defaultChecklistTemplates: ChecklistTemplate[] = [
     ],
   },
    {
-    id: 'blank-v1',
+    id: 'system-blank-v1',
     name: 'Blank / Custom Checklist',
+    isSystemDefault: true,
     items: [
         {id: 'blank-item-1', text: 'Custom Item 1 (Edit me)'}
     ],

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import type { SheqAudit, ChecklistItemTemplate } from "@/lib/types";
+import type { SheqAudit, ChecklistItemTemplate, ChecklistTemplate } from "@/lib/types";
 import { PlusCircle, CalendarDays, ListChecks, PlayCircle, Edit2, BookOpenCheck } from "lucide-react";
 import {
   Dialog,
@@ -21,30 +21,32 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { defaultChecklistTemplates } from "@/lib/checklist-templates";
+// Removed direct import of defaultChecklistTemplates, will be passed as prop
 
 interface AuditSchedulerProps {
   scheduledAudits: SheqAudit[];
+  allChecklistTemplates: ChecklistTemplate[]; // Now accepts all templates
   onScheduleAudit: (auditData: Omit<SheqAudit, 'id' | 'status' | 'checklist' | 'nonConformances' | 'overallFindings' | 'recommendations'>, initialChecklistItems: ChecklistItemTemplate[]) => void;
   onStartAudit: (auditId: string) => void;
 }
 
 const auditTypes: SheqAudit['auditType'][] = ['Safety', 'Health', 'Environment', 'Quality', 'Integrated'];
 
-export function AuditScheduler({ scheduledAudits, onScheduleAudit, onStartAudit }: AuditSchedulerProps) {
+export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onScheduleAudit, onStartAudit }: AuditSchedulerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newAuditName, setNewAuditName] = useState("");
   const [newAuditType, setNewAuditType] = useState<SheqAudit['auditType'] | undefined>(undefined);
   const [newAuditScope, setNewAuditScope] = useState("");
   const [newAuditDate, setNewAuditDate] = useState("");
   const [newAuditor, setNewAuditor] = useState("");
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(defaultChecklistTemplates.find(t => t.name === 'Blank / Custom Checklist')?.id || "");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(allChecklistTemplates.find(t => t.name.includes('Blank'))?.id || (allChecklistTemplates.length > 0 ? allChecklistTemplates[0].id : ""));
+
 
   const { toast } = useToast();
 
   const handleSchedule = () => {
     if (newAuditName && newAuditType && newAuditScope && newAuditDate && newAuditor && selectedTemplateId) {
-      const selectedTemplate = defaultChecklistTemplates.find(t => t.id === selectedTemplateId);
+      const selectedTemplate = allChecklistTemplates.find(t => t.id === selectedTemplateId);
       const initialItems = selectedTemplate ? selectedTemplate.items : [{id: `custom-${Date.now()}`, text: 'Custom Item 1 (Edit me)'}];
       
       onScheduleAudit(
@@ -64,7 +66,7 @@ export function AuditScheduler({ scheduledAudits, onScheduleAudit, onStartAudit 
       setNewAuditScope("");
       setNewAuditDate("");
       setNewAuditor("");
-      setSelectedTemplateId(defaultChecklistTemplates.find(t => t.name === 'Blank / Custom Checklist')?.id || "");
+      setSelectedTemplateId(allChecklistTemplates.find(t => t.name.includes('Blank'))?.id || (allChecklistTemplates.length > 0 ? allChecklistTemplates[0].id : ""));
       setIsModalOpen(false);
       toast({ title: "Audit Scheduled", description: `${newAuditName} for ${newAuditScope} has been scheduled.` });
     } else {
@@ -138,8 +140,8 @@ export function AuditScheduler({ scheduledAudits, onScheduleAudit, onStartAudit 
                     <SelectValue placeholder="Select checklist template" />
                   </SelectTrigger>
                   <SelectContent>
-                    {defaultChecklistTemplates.map(template => (
-                      <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
+                    {allChecklistTemplates.map(template => (
+                      <SelectItem key={template.id} value={template.id}>{template.name} {template.isSystemDefault ? "(System)" : "(Custom)"}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

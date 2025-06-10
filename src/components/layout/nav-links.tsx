@@ -19,6 +19,7 @@ import {
   ClipboardList, // Contractor Safety (Replaced ClipboardUser)
   Stethoscope, // Medical Screening
   HeartPulse, // Health Monitoring
+  Library, // For Checklist Templates
 } from 'lucide-react';
 import {
   SidebarMenu,
@@ -33,6 +34,7 @@ const navItems = [
   { href: '/inspections', label: 'Inspections', icon: ListChecks },
   { href: '/risk-assessment', label: 'Risk Assessment', icon: ClipboardCheck },
   { href: '/sheq-audit', label: 'SHEQ Audit', icon: FileCheck2 },
+  { href: '/checklist-templates', label: 'Checklist Templates', icon: Library }, // New Nav Item
   { href: '/training-competence', label: 'Training & Competence', icon: BookUser },
   { href: '/emergency-preparedness', label: 'Emergency Preparedness', icon: Siren },
   { href: '/incident-investigation', label: 'Incident Investigation', icon: FileSearch },

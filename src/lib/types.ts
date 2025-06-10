@@ -108,6 +108,7 @@ export interface ChecklistTemplate {
   id: string;
   name: string;
   items: ChecklistItemTemplate[];
+  isSystemDefault?: boolean; // To distinguish from user-created templates
 }
 
 
