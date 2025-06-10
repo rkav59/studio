@@ -18,11 +18,14 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Sparkles, AlertTriangle, Send, SearchCheck } from "lucide-react";
+import { Loader2, Sparkles, AlertTriangle, Send, SearchCheck, InfoIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateRiskAssessmentSuggestion, type RiskAssessmentSuggestionInput, type RiskAssessmentSuggestionOutput } from "@/ai/flows/generate-risk-assessment-suggestion-flow";
 import { identifyHazards, type IdentifyHazardsInput, type IdentifyHazardsOutput } from "@/ai/flows/identify-hazards-flow";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import type { RiskAssessmentMethod } from "@/lib/types";
+import { riskAssessmentMethodsList, methodSpecificGuidance } from "@/lib/risk-assessment-config";
+
 
 const aiAssistantFormSchema = z.object({
   activityDescription: z.string().min(10, {
@@ -133,6 +136,16 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
     }
   };
 
+  const renderGuidance = (text?: string) => {
+    if (!text) return null;
+    return (
+      <Alert variant="info" className="mt-2 text-xs">
+        <InfoIcon className="h-4 w-4" />
+        <AlertDescription>{text}</AlertDescription>
+      </Alert>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <Card className="shadow-lg">
@@ -228,12 +241,20 @@ export function RiskAssessmentAiAssistant({ onUseSuggestion }: RiskAssessmentAiA
                 <pre className="whitespace-pre-wrap rounded-md bg-secondary p-4 text-sm font-mono leading-relaxed">
                 {suggestion.potentialRisks}
                 </pre>
+                {riskAssessmentMethodsList.includes(suggestion.suggestedMethod as RiskAssessmentMethod) &&
+                 methodSpecificGuidance[suggestion.suggestedMethod as RiskAssessmentMethod]?.assessedRisks &&
+                  renderGuidance(methodSpecificGuidance[suggestion.suggestedMethod as RiskAssessmentMethod]?.assessedRisks)
+                }
             </div>
             <div>
                 <h3 className="font-semibold text-lg mb-1">Recommended Control Measures by AI:</h3>
                 <pre className="whitespace-pre-wrap rounded-md bg-secondary p-4 text-sm font-mono leading-relaxed">
                 {suggestion.recommendedControls}
                 </pre>
+                 {riskAssessmentMethodsList.includes(suggestion.suggestedMethod as RiskAssessmentMethod) &&
+                  methodSpecificGuidance[suggestion.suggestedMethod as RiskAssessmentMethod]?.controlMeasures &&
+                  renderGuidance(methodSpecificGuidance[suggestion.suggestedMethod as RiskAssessmentMethod]?.controlMeasures)
+                }
             </div>
             <Button onClick={handleApplySuggestion} className="mt-4 bg-primary hover:bg-primary/90">
                 <Send className="mr-2 h-4 w-4" /> Use These Suggestions in Form

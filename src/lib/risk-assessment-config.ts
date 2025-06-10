@@ -1,0 +1,60 @@
+
+import type { RiskAssessmentMethod } from "./types";
+
+export const riskAssessmentMethodsList: RiskAssessmentMethod[] = [
+  "Job Safety Analysis (JSA)",
+  "Hazard Identification (HAZID)",
+  "Hazard and Operability Study (HAZOP)",
+  "Failure Mode and Effects Analysis (FMEA)",
+  "Fault Tree Analysis (FTA)",
+  "Bowtie Analysis",
+  "What-If Analysis",
+  "Preliminary Hazard Analysis (PHA)",
+];
+
+export const methodSpecificGuidance: Partial<Record<RiskAssessmentMethod, {
+  identifiedHazards?: string;
+  assessedRisks?: string;
+  controlMeasures?: string;
+}>> = {
+  "Job Safety Analysis (JSA)": {
+    identifiedHazards: "For JSA: Break down the job into discrete steps. For each step, identify potential hazards (e.g., struck by, caught between, slip/trip, exposure).",
+    assessedRisks: "For JSA: For each identified hazard within a job step, describe the potential negative outcomes or consequences if that hazard is realized.",
+    controlMeasures: "For JSA: For each hazard, list specific actions, procedures, or PPE to eliminate or reduce the risk. Be precise for each step."
+  },
+  "Hazard Identification (HAZID)": {
+    identifiedHazards: "For HAZID: Conduct a broad identification of hazards across the entire process, system, or area. Consider energy sources, hazardous materials, environmental conditions, and human factors.",
+    assessedRisks: "For HAZID: Describe potential unwanted scenarios and their consequences that could result from the identified hazards. Think about worst-case possibilities.",
+    controlMeasures: "For HAZID: List existing or proposed high-level controls. Detailed controls might be developed in a further assessment."
+  },
+  "Hazard and Operability Study (HAZOP)": {
+    identifiedHazards: "For HAZOP: Systematically review process parameters (e.g., Flow, Temperature, Pressure) using guidewords (No, More, Less, As Well As, Part Of, Reverse, Other Than). Document deviations, causes, and consequences.",
+    assessedRisks: "For HAZOP: Focus on how deviations from design intent could lead to undesirable outcomes, including safety, environmental, or operational impacts.",
+    controlMeasures: "For HAZOP: Document existing safeguards for each deviation and make recommendations for new or improved safeguards where necessary."
+  },
+  "Failure Mode and Effects Analysis (FMEA)": {
+    identifiedHazards: "For FMEA (as Failure Modes): Identify potential failure modes for each component, system, or process step. What could go wrong?",
+    assessedRisks: "For FMEA (as Effects & Severity): Analyze the potential effects of each failure mode. Consider severity (S), likelihood of occurrence (O), and detectability (D) to calculate a Risk Priority Number (RPN = S x O x D).",
+    controlMeasures: "For FMEA: Recommend actions to reduce high RPNs, typically by improving design, processes, or detection methods for critical failure modes."
+  },
+  "Fault Tree Analysis (FTA)": {
+    identifiedHazards: "For FTA (as Top Event): Define a specific undesired top event (e.g., system explosion, major spill). This is the primary hazard you are analyzing.",
+    assessedRisks: "For FTA: Deductively identify all sequences of lower-level equipment failures or human errors (basic events, intermediate events) that could lead to the top event. Construct a logical tree. Quantify probabilities if data is available.",
+    controlMeasures: "For FTA: Identify critical paths and basic events in the fault tree where controls, redundancy, or changes can be implemented to reduce the probability of the top event occurring."
+  },
+  "Bowtie Analysis": {
+    identifiedHazards: "For Bowtie (as the 'Knot'): Identify a specific critical event or hazard that you want to manage (this is the center of the bowtie).",
+    assessedRisks: "For Bowtie: On the left side, list all credible threats that could lead to the hazard/knot. On the right side, list all potential consequences if the hazard/knot occurs and controls fail.",
+    controlMeasures: "For Bowtie: On the left side, list preventive controls (barriers) for each threat. On the right side, list mitigative/recovery controls for each consequence."
+  },
+  "What-If Analysis": {
+    identifiedHazards: "For What-If: Brainstorm a series of 'What if...?' questions related to potential equipment failures, human errors, procedural deviations, or external events.",
+    assessedRisks: "For What-If: For each 'What if' question, determine the potential consequences and estimate the likelihood. Consider if existing safeguards are adequate.",
+    controlMeasures: "For What-If: Document existing safeguards and, if consequences are significant and safeguards inadequate, recommend additional control measures."
+  },
+  "Preliminary Hazard Analysis (PHA)": {
+    identifiedHazards: "For PHA: Conduct an early-stage identification of potential hazards in a new system, product, or process, often based on system design or conceptual information.",
+    assessedRisks: "For PHA: Provide an initial, often qualitative, assessment of the severity and likelihood of the identified hazards to prioritize further analysis or design changes.",
+    controlMeasures: "For PHA: Suggest broad control measures, design criteria, or operational considerations to mitigate the identified hazards. These are often high-level at this stage."
+  }
+};

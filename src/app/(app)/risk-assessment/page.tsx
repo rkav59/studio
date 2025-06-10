@@ -5,24 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import { format } from 'date-fns';
-import { ShieldAlert, ListChecks, CheckSquare, Eye, Edit, Info, Download } from 'lucide-react';
+import { ShieldAlert, ListChecks, CheckSquare, Eye, Edit, Info, Download, InfoIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 import type { RiskAssessment, RiskAssessmentMethod, RiskAssessmentSuggestionOutput } from "@/lib/types";
 import { RiskAssessmentAiAssistant } from "@/components/risk-assessment/risk-assessment-ai-assistant";
 import { RiskAssessmentForm } from '@/components/risk-assessment/risk-assessment-form';
-
-export const riskAssessmentMethodsList: RiskAssessmentMethod[] = [
-  "Job Safety Analysis (JSA)",
-  "Hazard Identification (HAZID)",
-  "Hazard and Operability Study (HAZOP)",
-  "Failure Mode and Effects Analysis (FMEA)",
-  "Fault Tree Analysis (FTA)",
-  "Bowtie Analysis",
-  "What-If Analysis",
-  "Preliminary Hazard Analysis (PHA)",
-];
+import { riskAssessmentMethodsList } from '@/lib/risk-assessment-config';
 
 const LOCAL_STORAGE_KEY = 'sheild-risk-assessments';
 
@@ -211,7 +201,6 @@ export default function RiskAssessmentPage() {
             <RiskAssessmentForm
               key={editingAssessment?.id || (aiPrefillData ? 'ai-form' : 'new-form')}
               onSaveAssessment={handleSaveAssessment}
-              assessmentMethods={riskAssessmentMethodsList}
               initialData={editingAssessment || aiPrefillData}
               onCancel={handleCancelForm}
             />
@@ -295,7 +284,7 @@ export default function RiskAssessmentPage() {
           <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Info className="h-6 w-6 text-primary"/>
+                <InfoIcon className="h-6 w-6 text-primary"/>
                 Risk Assessment Details
               </DialogTitle>
               <DialogDescription>
