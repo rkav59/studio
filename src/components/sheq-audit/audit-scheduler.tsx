@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import type { SheqAudit } from "@/lib/types";
-import { PlusCircle, CalendarDays, ListChecks, PlayCircle, Edit2 } from "lucide-react";
+import type { SheqAudit, ChecklistItemTemplate } from "@/lib/types";
+import { PlusCircle, CalendarDays, ListChecks, PlayCircle, Edit2, BookOpenCheck } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,10 +21,11 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { defaultChecklistTemplates } from "@/lib/checklist-templates";
 
 interface AuditSchedulerProps {
   scheduledAudits: SheqAudit[];
-  onScheduleAudit: (auditData: Omit<SheqAudit, 'id' | 'status' | 'checklist' | 'nonConformances' | 'overallFindings' | 'recommendations'>) => void;
+  onScheduleAudit: (auditData: Omit<SheqAudit, 'id' | 'status' | 'checklist' | 'nonConformances' | 'overallFindings' | 'recommendations'>, initialChecklistItems: ChecklistItemTemplate[]) => void;
   onStartAudit: (auditId: string) => void;
 }
 
@@ -37,23 +38,33 @@ export function AuditScheduler({ scheduledAudits, onScheduleAudit, onStartAudit 
   const [newAuditScope, setNewAuditScope] = useState("");
   const [newAuditDate, setNewAuditDate] = useState("");
   const [newAuditor, setNewAuditor] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(defaultChecklistTemplates.find(t => t.name === 'Blank / Custom Checklist')?.id || "");
+
   const { toast } = useToast();
 
   const handleSchedule = () => {
-    if (newAuditName && newAuditType && newAuditScope && newAuditDate && newAuditor) {
-      onScheduleAudit({
-        auditName: newAuditName,
-        auditType: newAuditType,
-        scope: newAuditScope,
-        auditDate: new Date(newAuditDate).toISOString(),
-        auditor: newAuditor,
-      });
+    if (newAuditName && newAuditType && newAuditScope && newAuditDate && newAuditor && selectedTemplateId) {
+      const selectedTemplate = defaultChecklistTemplates.find(t => t.id === selectedTemplateId);
+      const initialItems = selectedTemplate ? selectedTemplate.items : [{id: `custom-${Date.now()}`, text: 'Custom Item 1 (Edit me)'}];
+      
+      onScheduleAudit(
+        {
+          auditName: newAuditName,
+          auditType: newAuditType,
+          scope: newAuditScope,
+          auditDate: new Date(newAuditDate).toISOString(),
+          auditor: newAuditor,
+          templateIdUsed: selectedTemplateId,
+        }, 
+        initialItems
+      );
       // Reset form
       setNewAuditName("");
       setNewAuditType(undefined);
       setNewAuditScope("");
       setNewAuditDate("");
       setNewAuditor("");
+      setSelectedTemplateId(defaultChecklistTemplates.find(t => t.name === 'Blank / Custom Checklist')?.id || "");
       setIsModalOpen(false);
       toast({ title: "Audit Scheduled", description: `${newAuditName} for ${newAuditScope} has been scheduled.` });
     } else {
@@ -79,7 +90,7 @@ export function AuditScheduler({ scheduledAudits, onScheduleAudit, onStartAudit 
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Audit Program</CardTitle>
-          <CardDescription>Schedule new audits and manage upcoming ones.</CardDescription>
+          <CardDescription>Schedule new audits and manage upcoming ones. Select a checklist template to start.</CardDescription>
         </div>
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
@@ -90,7 +101,7 @@ export function AuditScheduler({ scheduledAudits, onScheduleAudit, onStartAudit 
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Schedule New SHEQ Audit</DialogTitle>
-              <DialogDescription>Enter details for the new audit. Click schedule when you're done.</DialogDescription>
+              <DialogDescription>Enter details for the new audit and select a checklist template. Click schedule when you're done.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
@@ -120,6 +131,19 @@ export function AuditScheduler({ scheduledAudits, onScheduleAudit, onStartAudit 
                 <Label htmlFor="auditor" className="text-right">Auditor(s)</Label>
                 <Input id="auditor" value={newAuditor} onChange={(e) => setNewAuditor(e.target.value)} className="col-span-3" placeholder="e.g., John Doe, Lead Auditor" />
               </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="checklistTemplate" className="text-right">Checklist</Label>
+                <Select onValueChange={setSelectedTemplateId} value={selectedTemplateId}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select checklist template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {defaultChecklistTemplates.map(template => (
+                      <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <DialogFooter>
               <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
@@ -137,7 +161,7 @@ export function AuditScheduler({ scheduledAudits, onScheduleAudit, onStartAudit 
               <li key={audit.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow bg-secondary/30">
                 <div className="flex-grow mb-2 sm:mb-0">
                   <div className="flex items-center gap-2">
-                    <ListChecks className="h-5 w-5 text-primary" />
+                    <BookOpenCheck className="h-5 w-5 text-primary" />
                     <h3 className="font-semibold">{audit.auditName} <span className="text-xs text-muted-foreground">({audit.auditType})</span></h3>
                   </div>
                   <p className="text-sm text-muted-foreground">Scope: {audit.scope}</p>
@@ -148,7 +172,7 @@ export function AuditScheduler({ scheduledAudits, onScheduleAudit, onStartAudit 
                   <p className={`text-xs font-medium ${getStatusColor(audit.status)}`}>Status: {audit.status}</p>
                 </div>
                 <div className="flex gap-2 mt-2 sm:mt-0 self-start sm:self-center">
-                  <Button variant="outline" size="sm" onClick={() => toast({ title: "Edit Audit", description: "Edit functionality placeholder." })}>
+                  <Button variant="outline" size="sm" onClick={() => toast({ title: "Edit Audit", description: "Full audit editing (including checklist modification before start) will be available in a future update." })}>
                     <Edit2 className="h-3 w-3 mr-1" /> Edit
                   </Button>
                   {audit.status === 'Planned' && (

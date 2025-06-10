@@ -7,27 +7,12 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { AuditScheduler } from '@/components/sheq-audit/audit-scheduler';
 import { AuditExecutionForm } from '@/components/sheq-audit/audit-execution-form';
-import type { SheqAudit } from '@/lib/types';
+import type { SheqAudit, AuditChecklistItem, ChecklistItemTemplate } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { ChevronLeft } from 'lucide-react';
 
-const LOCAL_STORAGE_KEY_AUDITS = 'sheild-sheq-audits-v1';
-
-// Default checklist items for new audits
-const defaultAuditChecklist = [
-  { id: 'chk1', text: 'Is the safety policy documented and communicated?', status: 'Pending', evidenceOrRemarks: '' },
-  { id: 'chk2', text: 'Are risk assessments up-to-date and reviewed regularly?', status: 'Pending', evidenceOrRemarks: '' },
-  { id: 'chk3', text: 'Are emergency procedures established and tested?', status: 'Pending', evidenceOrRemarks: '' },
-  { id: 'chk4', text: 'Is there a system for reporting incidents and near misses?', status: 'Pending', evidenceOrRemarks: '' },
-  { id: 'chk5', text: 'Is PPE provided, maintained, and used correctly?', status: 'Pending', evidenceOrRemarks: '' },
-  { id: 'chk6', text: 'Are training records maintained and up-to-date?', status: 'Pending', evidenceOrRemarks: '' },
-  { id: 'chk7', text: 'Is there a process for managing contractors safely?', status: 'Pending', evidenceOrRemarks: '' },
-  { id: 'chk8', text: 'Are hazardous substances identified, stored, and handled correctly?', status: 'Pending', evidenceOrRemarks: '' },
-  { id: 'chk9', text: 'Are waste management procedures in place and followed?', status: 'Pending', evidenceOrRemarks: '' },
-  { id: 'chk10', text: 'Is there evidence of continuous improvement in SHEQ performance?', status: 'Pending', evidenceOrRemarks: '' },
-];
-
+const LOCAL_STORAGE_KEY_AUDITS = 'sheild-sheq-audits-v2'; // Version bump for new structure
 
 export default function SheqAuditPage() {
   const [audits, setAudits] = useState<SheqAudit[]>([]);
@@ -37,10 +22,14 @@ export default function SheqAuditPage() {
     try {
       const storedAudits = localStorage.getItem(LOCAL_STORAGE_KEY_AUDITS);
       if (storedAudits) {
-        setAudits(JSON.parse(storedAudits));
+        const parsedAudits: SheqAudit[] = JSON.parse(storedAudits);
+        // Basic validation/migration could be added here if structure changed significantly
+        setAudits(parsedAudits);
       }
     } catch (error) {
       console.error("Error loading SHEQ audits from localStorage:", error);
+       // Optionally, clear corrupted data or notify user
+      // localStorage.removeItem(LOCAL_STORAGE_KEY_AUDITS); 
     }
   }, []);
 
@@ -53,12 +42,20 @@ export default function SheqAuditPage() {
     }
   }, [audits]);
 
-  const handleScheduleAudit = (newAuditData: Omit<SheqAudit, 'id' | 'status' | 'checklist' | 'nonConformances' | 'overallFindings' | 'recommendations'>) => {
+  const handleScheduleAudit = (
+    newAuditData: Omit<SheqAudit, 'id' | 'status' | 'checklist' | 'nonConformances' | 'overallFindings' | 'recommendations'>,
+    initialChecklistItems: ChecklistItemTemplate[]
+  ) => {
     const newAudit: SheqAudit = {
-      id: new Date().toISOString(), // Simple ID
+      id: crypto.randomUUID(), 
       ...newAuditData,
       status: "Planned",
-      checklist: defaultAuditChecklist.map(item => ({ ...item, id: `${item.id}-${Date.now()}` })), // Ensure unique IDs for checklist items
+      checklist: initialChecklistItems.map(item => ({
+        id: crypto.randomUUID(), // Ensure unique ID for each checklist item instance
+        text: item.text,
+        status: 'Pending',
+        evidenceOrRemarks: '',
+      })),
       nonConformances: [],
       overallFindings: '',
       recommendations: '',
@@ -77,10 +74,15 @@ export default function SheqAuditPage() {
     setAudits(prev =>
       prev.map(a => (a.id === executedAudit.id ? executedAudit : a))
     );
-    setCurrentAudit(null);
+    setCurrentAudit(null); // Go back to scheduler view
   };
   
   const handleBackToScheduler = () => {
+    // If currentAudit has changes, prompt user or auto-save before going back
+    // For simplicity now, just go back. Consider adding a save draft for currentAudit.status === 'In Progress'
+    if (currentAudit && currentAudit.status === 'In Progress') {
+        setAudits(prev => prev.map(a => a.id === currentAudit.id ? {...currentAudit, status: 'In Progress'} : a));
+    }
     setCurrentAudit(null);
   };
 
@@ -110,7 +112,7 @@ export default function SheqAuditPage() {
                     alt="Auditor reviewing documents with a checklist" 
                     layout="fill" 
                     objectFit="cover"
-                    data-ai-hint="audit review"
+                    data-ai-hint="audit review checklist"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute bottom-0 left-0 p-6">
@@ -121,7 +123,7 @@ export default function SheqAuditPage() {
             <CardContent className="pt-6">
                 <p className="text-muted-foreground">
                     This module facilitates the planning, execution, and tracking of Safety, Health, Environment, and Quality (SHEQ) audits. 
-                    Document findings, assign corrective actions, and monitor progress to maintain high standards.
+                    Select from checklist templates, customize as needed, document findings, assign corrective actions, and monitor progress.
                 </p>
             </CardContent>
           </Card>
@@ -151,6 +153,9 @@ export default function SheqAuditPage() {
                     </li>
                   ))}
                 </ul>
+                {audits.filter(a => a.status === 'Completed' || a.status === 'Closed').length > 5 && (
+                    <p className="text-xs text-muted-foreground mt-3 text-center">And more...</p>
+                )}
               </CardContent>
             </Card>
           )}
@@ -164,19 +169,27 @@ export default function SheqAuditPage() {
                 Current prototype features:
               </p>
               <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                <li>Basic audit scheduling and list view.</li>
-                <li>Audit execution with a default checklist.</li>
-                <li>Non-conformance logging with severity levels.</li>
-                <li>Recording overall findings and recommendations.</li>
-                <li>Data persistence using browser's local storage (session-specific).</li>
+                <li>Audit scheduling with selection from predefined checklist templates.</li>
+                <li>List view of planned and in-progress audits.</li>
+                <li>Audit execution form allowing:
+                    <ul className="list-disc list-inside pl-6">
+                        <li>Editing text of individual checklist items.</li>
+                        <li>Adding new checklist items dynamically during execution.</li>
+                        <li>Removing checklist items.</li>
+                        <li>Updating status and remarks for each checklist item.</li>
+                    </ul>
+                </li>
+                <li>Non-conformance logging with description, severity, and optional link to checklist item.</li>
+                <li>Recording overall audit findings and recommendations.</li>
+                <li>Data persistence using browser's local storage.</li>
               </ul>
               <Separator className="my-4" />
               <p className="text-sm text-muted-foreground mt-2 mb-2">
                 Future enhancements will include:
               </p>
               <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                  <li>User-creatable and editable master checklist templates (Checklist Builder).</li>
                   <li>Full calendar view for audit program scheduling.</li>
-                  <li>Customizable audit checklist library and builder.</li>
                   <li>Corrective and preventive action (CAPA) tracking from audit findings.</li>
                   <li>AI-powered trend analysis and insights from audit data.</li>
                   <li>Offline audit capabilities for mobile devices.</li>
@@ -200,11 +213,12 @@ export default function SheqAuditPage() {
             <CardDescription>
               Complete the checklist, log non-conformances, and record findings for the audit:
               <span className="font-semibold"> {currentAudit.scope}</span>, scheduled for <span className="font-semibold">{format(new Date(currentAudit.auditDate), "PPP")}</span> by <span className="font-semibold">{currentAudit.auditor}</span>.
+              Checklist items can be edited, added, or removed below.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <AuditExecutionForm
-              key={currentAudit.id} // Ensure form re-renders if currentAudit changes
+              key={currentAudit.id} 
               audit={currentAudit}
               onSaveAudit={handleSaveAuditExecution}
             />

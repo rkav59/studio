@@ -78,7 +78,7 @@ export interface RiskAssessmentSuggestionOutput {
 
 // SHEQ Audit Types
 export interface AuditChecklistItem {
-  id: string;
+  id: string; // Unique ID for the instance of this item in an audit
   text: string;
   status: 'Compliant' | 'Non-Compliant' | 'Not Applicable' | 'Pending';
   evidenceOrRemarks?: string;
@@ -92,6 +92,18 @@ export interface NonConformance {
   correctiveActions?: string; // Placeholder for CAPA link/summary
 }
 
+export interface ChecklistItemTemplate {
+  id: string; // Unique ID for the template item
+  text: string;
+}
+
+export interface ChecklistTemplate {
+  id: string;
+  name: string;
+  items: ChecklistItemTemplate[];
+}
+
+
 export interface SheqAudit {
   id: string;
   auditName: string;
@@ -104,6 +116,7 @@ export interface SheqAudit {
   nonConformances: NonConformance[];
   overallFindings?: string;
   recommendations?: string;
+  templateIdUsed?: string; // Optional: to know which template was the origin
 }
 
 

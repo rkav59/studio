@@ -4,7 +4,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { z } from "zod";
-import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,13 +26,13 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { PlusCircle, Trash2, AlertTriangle, Save, CheckCircle, XCircle } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Save, CheckCircle, XCircle, Edit3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { SheqAudit, AuditChecklistItem, NonConformance } from "@/lib/types";
 
 const auditChecklistItemSchema = z.object({
   id: z.string(),
-  text: z.string().min(1, "Checklist item text cannot be empty."),
+  text: z.string().min(1, "Checklist item text cannot be empty.").max(1000, "Text too long"),
   status: z.enum(['Compliant', 'Non-Compliant', 'Not Applicable', 'Pending']),
   evidenceOrRemarks: z.string().max(1000, "Remarks too long.").optional(),
 });
@@ -43,7 +42,7 @@ const nonConformanceSchema = z.object({
   description: z.string().min(5, "Non-conformance description is required.").max(1000, "Description too long."),
   severity: z.enum(['Minor', 'Major', 'Critical']),
   relatedChecklistItemId: z.string().optional(),
-  correctiveActions: z.string().optional(),
+  correctiveActions: z.string().optional().max(2000, "Corrective actions text too long"),
 });
 
 const auditExecutionFormSchema = z.object({
@@ -73,7 +72,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
     },
   });
 
-  const { fields: checklistFields, update: updateChecklistItem } = useFieldArray({
+  const { fields: checklistFields, update: updateChecklistItem, append: appendChecklistItem, remove: removeChecklistItem } = useFieldArray({
     control: form.control,
     name: "checklist",
   });
@@ -90,7 +89,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
       nonConformances: data.nonConformances,
       overallFindings: data.overallFindings,
       recommendations: data.recommendations,
-      status: "Completed", // Or 'Awaiting Review' depending on workflow
+      status: "Completed", 
     };
     onSaveAudit(updatedAudit);
     toast({
@@ -98,21 +97,60 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
       description: `Audit findings for "${audit.auditName}" have been recorded.`,
     });
   }
+  
+  const handleAddNewChecklistItem = () => {
+    appendChecklistItem({
+      id: crypto.randomUUID(),
+      text: "New checklist item (edit me)",
+      status: 'Pending',
+      evidenceOrRemarks: ''
+    });
+  };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         
-        {/* Checklist Section */}
         <Card>
           <CardHeader>
             <CardTitle>Audit Checklist</CardTitle>
-            <CardDescription>Go through each item, update its status, and add any relevant evidence or remarks.</CardDescription>
+            <CardDescription>Go through each item, edit as needed, update status, and add remarks.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {checklistFields.map((item, index) => (
               <Card key={item.id} className="p-4 bg-secondary/40">
-                <p className="font-medium mb-2">{index + 1}. {item.text}</p>
+                <div className="flex justify-between items-start mb-2">
+                    <div className="flex-grow mr-2">
+                        <FormField
+                            control={form.control}
+                            name={`checklist.${index}.text`}
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel className="font-medium">Item {index + 1}</FormLabel>
+                                <FormControl>
+                                    <Textarea 
+                                        placeholder="Checklist item description..." 
+                                        {...field} 
+                                        rows={2}
+                                        className="bg-background"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                    <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => removeChecklistItem(index)}
+                        className="text-destructive hover:bg-destructive/10 mt-1"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Remove Item</span>
+                    </Button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -153,12 +191,20 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
                 </div>
               </Card>
             ))}
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddNewChecklistItem}
+                className="mt-4"
+            >
+                <PlusCircle className="mr-2 h-4 w-4"/> Add Checklist Item
+            </Button>
           </CardContent>
         </Card>
 
         <Separator />
 
-        {/* Non-Conformances Section */}
         <Card>
           <CardHeader>
             <CardTitle>Non-Conformances (NCs)</CardTitle>
@@ -229,7 +275,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
                                 <SelectItem value="">None</SelectItem>
                                 {form.watch("checklist").map((chkItem, chkIndex) => (
                                 <SelectItem key={chkItem.id} value={chkItem.id}>
-                                    Item {chkIndex + 1}: {chkItem.text.substring(0,50)}...
+                                    Item {chkIndex + 1}: {chkItem.text.substring(0,50)}{chkItem.text.length > 50 ? '...' : ''}
                                 </SelectItem>
                                 ))}
                             </SelectContent>
@@ -257,7 +303,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
             <Button
               type="button"
               variant="outline"
-              onClick={() => appendNc({ id: `nc-${Date.now()}`, description: "", severity: "Minor", relatedChecklistItemId: "" })}
+              onClick={() => appendNc({ id: crypto.randomUUID(), description: "", severity: "Minor", relatedChecklistItemId: "", correctiveActions: "" })}
               className="border-destructive text-destructive hover:bg-destructive/10"
             >
               <AlertTriangle className="mr-2 h-4 w-4" /> Add Non-Conformance
@@ -267,7 +313,6 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
 
         <Separator />
 
-        {/* Overall Findings & Recommendations */}
         <Card>
             <CardHeader>
                 <CardTitle>Overall Summary</CardTitle>
