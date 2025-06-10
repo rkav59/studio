@@ -89,6 +89,7 @@ export interface NonConformance {
   description: string;
   severity: 'Minor' | 'Major' | 'Critical';
   relatedChecklistItemId?: string; // Optional link to a checklist item
+  relatedIncidentId?: string; // Optional link to an incident
   correctiveActionsProposed?: string; 
   preventiveActionsProposed?: string; 
   actionAssignedTo?: string;

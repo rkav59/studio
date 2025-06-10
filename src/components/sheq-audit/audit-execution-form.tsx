@@ -47,6 +47,7 @@ const nonConformanceSchema = z.object({
   description: z.string().min(5, "NC description is required.").max(1000, "Description too long."),
   severity: z.enum(['Minor', 'Major', 'Critical']),
   relatedChecklistItemId: z.string().optional(),
+  relatedIncidentId: z.string().max(100, "Incident ID too long.").optional(), // New field
   correctiveActionsProposed: z.string().max(2000, "Proposed corrective actions text too long.").optional(),
   preventiveActionsProposed: z.string().max(2000, "Proposed preventive actions text too long.").optional(),
   actionAssignedTo: z.string().max(100, "Assignee name too long.").optional(),
@@ -75,6 +76,7 @@ const getDefaultNonConformanceValues = (): NonConformance => ({
     description: "",
     severity: "Minor",
     relatedChecklistItemId: "",
+    relatedIncidentId: "",
     correctiveActionsProposed: "",
     preventiveActionsProposed: "",
     actionAssignedTo: "",
@@ -317,6 +319,20 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
                           )}
                       />
                   </div>
+                   <FormField
+                    control={form.control}
+                    name={`nonConformances.${index}.relatedIncidentId`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Related Incident ID (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter Incident ID if applicable" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
 
                   <Separator />
                   <CardDescription className="font-medium">Corrective & Preventive Actions (CAPA)</CardDescription>
@@ -530,3 +546,4 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
     </Form>
   );
 }
+

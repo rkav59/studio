@@ -18,13 +18,14 @@ import { analyzeSheqAuditData } from '@/ai/flows/analyze-audit-data-flow';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 
 
-const LOCAL_STORAGE_KEY_AUDITS = 'sheild-sheq-audits-v3'; 
+const LOCAL_STORAGE_KEY_AUDITS = 'sheild-sheq-audits-v4'; 
 
 const getDefaultNonConformance = (): NonConformance => ({
   id: crypto.randomUUID(),
   description: "",
   severity: "Minor",
   relatedChecklistItemId: "",
+  relatedIncidentId: "",
   correctiveActionsProposed: "",
   preventiveActionsProposed: "",
   actionAssignedTo: "",
@@ -61,10 +62,10 @@ export default function SheqAuditPage() {
         }));
         setAudits(migratedAudits);
       } else {
-        const oldV2Key = 'sheild-sheq-audits-v2';
-        if (localStorage.getItem(oldV2Key)) {
-            console.warn(`SHEild: SHEQ Audit data from '${oldV2Key}' was cleared due to structure update for CAPA. Please re-enter if needed.`);
-            localStorage.removeItem(oldV2Key);
+        const oldV3Key = 'sheild-sheq-audits-v3'; // Previous key
+        if (localStorage.getItem(oldV3Key)) {
+            console.warn(`SHEild: SHEQ Audit data from '${oldV3Key}' was cleared due to structure update (added relatedIncidentId). Please re-enter if needed.`);
+            localStorage.removeItem(oldV3Key);
         }
       }
     } catch (error) {
@@ -314,7 +315,7 @@ export default function SheqAuditPage() {
                         <li>Updating status and remarks for each checklist item.</li>
                     </ul>
                 </li>
-                <li>Non-conformance logging with description, severity, optional link to checklist item, and fields for:
+                <li>Non-conformance logging with description, severity, optional link to checklist item, optional link to incident ID, and fields for:
                     <ul className="list-disc list-inside pl-6">
                         <li>Proposed Corrective Actions</li>
                         <li>Proposed Preventive Actions</li>
@@ -326,7 +327,7 @@ export default function SheqAuditPage() {
                     </ul>
                 </li>
                 <li>Recording overall audit findings and recommendations.</li>
-                <li>Viewing detailed information for completed/closed audits, including all checklist items, non-conformances, and their CAPA details.</li>
+                <li>Viewing detailed information for completed/closed audits, including all checklist items, non-conformances, and their CAPA details (including related incident IDs).</li>
                 <li>AI-powered insights generation based on the summary of audit data currently in the browser session.</li>
                 <li>Data persistence using browser's local storage.</li>
               </ul>
@@ -339,10 +340,10 @@ export default function SheqAuditPage() {
                   <li>Full calendar view for audit program scheduling.</li>
                   <li>Dedicated CAPA tracking module/page with advanced filtering, dashboards, and notifications for overdue actions.</li>
                   <li>More advanced AI trend analysis over historical data (requires backend).</li>
-                  <li>Offline audit capabilities for mobile devices.</li>
+                  <li>Offline audit capabilities for mobile devices (PWA features).</li>
                   <li>Automated report generation (e.g., PDF) and distribution.</li>
                   <li>User roles and permissions for audit management.</li>
-                  <li>Integration with other SHEQ modules (e.g., linking incidents to audits).</li>
+                  <li>Deeper integration with other SHEQ modules (e.g., linking incidents to audits and vice-versa, triggering risk assessments from NCs).</li>
               </ul>
             </CardContent>
           </Card>
@@ -415,6 +416,11 @@ export default function SheqAuditPage() {
                                         {nc.relatedChecklistItemId && (
                                             <p className="text-xs text-muted-foreground">
                                                 Related to Checklist Item: "{viewingAuditDetails.checklist.find(ci => ci.id === nc.relatedChecklistItemId)?.text.substring(0,50) || 'N/A'}..."
+                                            </p>
+                                        )}
+                                        {nc.relatedIncidentId && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Related Incident ID: {nc.relatedIncidentId}
                                             </p>
                                         )}
                                         <Separator className="my-2 bg-destructive/30"/>
@@ -511,3 +517,4 @@ export default function SheqAuditPage() {
     </div>
   );
 }
+
