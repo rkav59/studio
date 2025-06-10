@@ -270,10 +270,8 @@ export default function RiskAssessmentPage() {
             {(riskAssessmentMethodsList as DescriptiveRiskAssessmentMethod[]).map((method) => (
               <Dialog key={method.name}>
                  <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full h-auto justify-start p-3 text-left hover:shadow-md transition-shadow bg-secondary/30 hover:bg-secondary/50">
-                        <div className="flex flex-col">
-                            <span className="font-semibold text-primary">{method.name}</span>
-                        </div>
+                    <Button variant="outline" className="h-auto justify-start p-3 text-left hover:shadow-md transition-shadow bg-secondary/30 hover:bg-secondary/50">
+                        <span className="font-semibold text-primary">{method.name}</span>
                     </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-lg">
