@@ -45,7 +45,9 @@ const riskControlItemSchema = z.object({
 const riskEntrySchema = z.object({
   id: z.string().optional(),
   risk: riskControlItemSchema,
-  controlMeasures: z.array(riskControlItemSchema).min(1, "At least one control measure is required for each risk."),
+  existingControls: z.array(riskControlItemSchema).optional().default([]),
+  proposedControls: z.array(riskControlItemSchema).optional().default([]),
+  // controlMeasures is deprecated
 });
 
 const hazardEntrySchema = z.object({
@@ -81,7 +83,11 @@ interface RiskAssessmentFormProps {
 }
 
 const defaultRiskControlItem = (): RiskControlItem => ({ value: "" });
-const defaultRiskEntry = (): RiskEntry => ({ risk: defaultRiskControlItem(), controlMeasures: [defaultRiskControlItem()] });
+const defaultRiskEntry = (): RiskEntry => ({ 
+    risk: defaultRiskControlItem(), 
+    existingControls: [defaultRiskControlItem()], 
+    proposedControls: [defaultRiskControlItem()] 
+});
 const defaultHazardEntry = (): HazardEntry => ({ hazard: defaultRiskControlItem(), assessedRisks: [defaultRiskEntry()] });
 
 
@@ -111,30 +117,31 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
 
   useEffect(() => {
     if (initialData) {
-      form.reset({
-        activity: initialData.activity || "",
-        hazardEntries: initialData.hazardEntries && initialData.hazardEntries.length > 0 
+      const transformedInitialData = {
+        ...initialData,
+        assessmentDate: initialData.assessmentDate ? new Date(initialData.assessmentDate) : new Date(),
+        hazardEntries: initialData.hazardEntries && initialData.hazardEntries.length > 0
           ? initialData.hazardEntries.map(he => ({
               ...he,
               hazard: he.hazard || defaultRiskControlItem(),
-              assessedRisks: he.assessedRisks && he.assessedRisks.length > 0 
-                ? he.assessedRisks.map(ar => ({
-                    ...ar,
-                    risk: ar.risk || defaultRiskControlItem(),
-                    controlMeasures: ar.controlMeasures && ar.controlMeasures.length > 0 
-                      ? ar.controlMeasures.map(cm => cm || defaultRiskControlItem()) 
-                      : [defaultRiskControlItem()]
-                  })) 
+              assessedRisks: he.assessedRisks && he.assessedRisks.length > 0
+                ? he.assessedRisks.map(ar => {
+                    // Handle migration from old controlMeasures if present
+                    const proposedFromOld = ar.controlMeasures ? ar.controlMeasures.map(cm => cm || defaultRiskControlItem()) : [];
+                    return {
+                      ...ar,
+                      risk: ar.risk || defaultRiskControlItem(),
+                      existingControls: (ar.existingControls && ar.existingControls.length > 0 ? ar.existingControls.map(ec => ec || defaultRiskControlItem()) : []),
+                      proposedControls: (ar.proposedControls && ar.proposedControls.length > 0 ? ar.proposedControls.map(pc => pc || defaultRiskControlItem()) : proposedFromOld),
+                    };
+                  })
                 : [defaultRiskEntry()]
             }))
           : [defaultHazardEntry()],
-        residualRiskLevel: initialData.residualRiskLevel || undefined,
-        methodUsed: initialData.methodUsed || undefined,
-        assessmentDate: initialData.assessmentDate ? new Date(initialData.assessmentDate) : new Date(),
-        assessor: initialData.assessor || "",
-      });
+      };
+      form.reset(transformedInitialData  as RiskAssessmentFormValues);
     } else {
-      form.reset({ // Reset to default for a new form (especially after AI prefill which is partial)
+      form.reset({
         activity: "",
         hazardEntries: [defaultHazardEntry()],
         residualRiskLevel: undefined,
@@ -152,6 +159,15 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
       ...data,
       assessmentDate: data.assessmentDate.toISOString(),
       methodUsed: data.methodUsed as RiskAssessmentMethod | undefined,
+      hazardEntries: data.hazardEntries.map(he => ({
+        ...he,
+        assessedRisks: he.assessedRisks.map(ar => ({
+            ...ar,
+            // Ensure empty arrays are not undefined for consistency if needed by backend, though Zod default handles it.
+            existingControls: ar.existingControls || [], 
+            proposedControls: ar.proposedControls || [],
+        }))
+      }))
     };
     onSaveAssessment(assessmentToSave, isEditing); 
     
@@ -258,18 +274,18 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
                     });
                     return (
                       <div className="space-y-3 pl-4 border-l-2 border-secondary ml-2">
-                        <FormLabel className="text-base font-medium">Associated Risks</FormLabel>
+                        <FormLabel className="text-base font-medium">Associated Risks for Hazard #{hazardIndex + 1}</FormLabel>
                         {riskFields.map((riskItem, riskIndex) => (
                           <Card key={riskItem.id} className="p-3 bg-secondary/30 shadow-sm">
                             <CardHeader className="p-1">
                               <div className="flex justify-between items-center">
-                                <UICardDescription className="text-sm">Risk #{riskIndex + 1} (for Hazard #{hazardIndex+1})</UICardDescription>
+                                <UICardDescription className="text-sm">Risk #{riskIndex + 1}</UICardDescription>
                                 <Button type="button" variant="ghost" size="icon" onClick={() => riskRemove(riskIndex)} className="text-destructive hover:text-destructive/80">
                                   <Trash2 className="h-4 w-4" /><span className="sr-only">Remove Risk</span>
                                 </Button>
                               </div>
                             </CardHeader>
-                            <CardContent className="p-1 space-y-2">
+                            <CardContent className="p-1 space-y-4"> {/* Increased space for control sections */}
                               <FormField
                                 control={form.control}
                                 name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.risk.value`}
@@ -285,46 +301,92 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
                               />
                               {renderGuidance(currentGuidance?.assessedRisks)}
 
-                              {/* Control Measures for this Risk */}
-                              <Controller
-                                control={form.control}
-                                name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.controlMeasures`}
-                                render={() => {
-                                  const { fields: controlFields, append: controlAppend, remove: controlRemove } = useFieldArray({
-                                    control: form.control,
-                                    name: `hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.controlMeasures`,
-                                  });
-                                  return (
-                                    <div className="space-y-2 pl-4 border-l-2 border-muted ml-1">
-                                      <FormLabel className="text-sm font-medium">Control Measures</FormLabel>
-                                      {controlFields.map((controlItem, controlIndex) => (
-                                        <div key={controlItem.id} className="flex items-start gap-2 p-2 border rounded-md bg-background shadow-xs">
-                                          <FormField
-                                            control={form.control}
-                                            name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.controlMeasures.${controlIndex}.value`}
-                                            render={({ field }) => (
-                                              <FormItem className="flex-grow">
-                                                <FormLabel className="text-xs sr-only">Control Measure #{controlIndex + 1}</FormLabel>
-                                                <FormControl>
-                                                  <Textarea placeholder={`Control Measure ${controlIndex + 1}`} rows={1} {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                              </FormItem>
-                                            )}
-                                          />
-                                          <Button type="button" variant="ghost" size="icon" onClick={() => controlRemove(controlIndex)} className="mt-0.5 text-muted-foreground hover:text-destructive shrink-0">
-                                            <Trash2 className="h-3 w-3" /><span className="sr-only">Remove Control</span>
-                                          </Button>
-                                        </div>
-                                      ))}
-                                      <Button type="button" variant="outline" size="sm" onClick={() => controlAppend(defaultRiskControlItem())} className="text-xs text-primary border-primary hover:bg-primary/10">
-                                        <PlusCircle className="mr-1 h-3 w-3" /> Add Control
-                                      </Button>
-                                      {renderGuidance(currentGuidance?.controlMeasures)}
-                                    </div>
-                                  );
-                                }}
-                              />
+                              {/* Existing Control Measures for this Risk */}
+                              <div className="space-y-2 pl-4 border-l-2 border-muted/70 ml-1 py-2">
+                                <FormLabel className="text-sm font-medium">Existing Control Measures</FormLabel>
+                                <Controller
+                                  control={form.control}
+                                  name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.existingControls`}
+                                  render={() => {
+                                    const { fields: existingControlFields, append: existingControlAppend, remove: existingControlRemove } = useFieldArray({
+                                      control: form.control,
+                                      name: `hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.existingControls`,
+                                    });
+                                    return (
+                                      <>
+                                        {existingControlFields.map((controlItem, controlIndex) => (
+                                          <div key={controlItem.id} className="flex items-start gap-2 p-2 border rounded-md bg-background shadow-xs">
+                                            <FormField
+                                              control={form.control}
+                                              name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.existingControls.${controlIndex}.value`}
+                                              render={({ field }) => (
+                                                <FormItem className="flex-grow">
+                                                  <FormLabel className="text-xs sr-only">Existing Control #{controlIndex + 1}</FormLabel>
+                                                  <FormControl>
+                                                    <Textarea placeholder={`Existing Control ${controlIndex + 1}`} rows={1} {...field} />
+                                                  </FormControl>
+                                                  <FormMessage />
+                                                </FormItem>
+                                              )}
+                                            />
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => existingControlRemove(controlIndex)} className="mt-0.5 text-muted-foreground hover:text-destructive shrink-0">
+                                              <Trash2 className="h-3 w-3" /><span className="sr-only">Remove Control</span>
+                                            </Button>
+                                          </div>
+                                        ))}
+                                        <Button type="button" variant="outline" size="sm" onClick={() => existingControlAppend(defaultRiskControlItem())} className="text-xs text-blue-600 border-blue-600 hover:bg-blue-600/10">
+                                          <PlusCircle className="mr-1 h-3 w-3" /> Add Existing Control
+                                        </Button>
+                                      </>
+                                    );
+                                  }}
+                                />
+                                {renderGuidance(currentGuidance?.controlMeasures)}
+                              </div>
+                              
+                              {/* Proposed Control Measures for this Risk */}
+                              <div className="space-y-2 pl-4 border-l-2 border-muted/70 ml-1 py-2">
+                                <FormLabel className="text-sm font-medium">Proposed Control Measures</FormLabel>
+                                <Controller
+                                  control={form.control}
+                                  name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.proposedControls`}
+                                  render={() => {
+                                    const { fields: proposedControlFields, append: proposedControlAppend, remove: proposedControlRemove } = useFieldArray({
+                                      control: form.control,
+                                      name: `hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.proposedControls`,
+                                    });
+                                    return (
+                                      <>
+                                        {proposedControlFields.map((controlItem, controlIndex) => (
+                                          <div key={controlItem.id} className="flex items-start gap-2 p-2 border rounded-md bg-background shadow-xs">
+                                            <FormField
+                                              control={form.control}
+                                              name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.proposedControls.${controlIndex}.value`}
+                                              render={({ field }) => (
+                                                <FormItem className="flex-grow">
+                                                  <FormLabel className="text-xs sr-only">Proposed Control #{controlIndex + 1}</FormLabel>
+                                                  <FormControl>
+                                                    <Textarea placeholder={`Proposed Control ${controlIndex + 1}`} rows={1} {...field} />
+                                                  </FormControl>
+                                                  <FormMessage />
+                                                </FormItem>
+                                              )}
+                                            />
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => proposedControlRemove(controlIndex)} className="mt-0.5 text-muted-foreground hover:text-destructive shrink-0">
+                                              <Trash2 className="h-3 w-3" /><span className="sr-only">Remove Control</span>
+                                            </Button>
+                                          </div>
+                                        ))}
+                                        <Button type="button" variant="outline" size="sm" onClick={() => proposedControlAppend(defaultRiskControlItem())} className="text-xs text-green-600 border-green-600 hover:bg-green-600/10">
+                                          <PlusCircle className="mr-1 h-3 w-3" /> Add Proposed Control
+                                        </Button>
+                                      </>
+                                    );
+                                  }}
+                                />
+                                {renderGuidance(currentGuidance?.controlMeasures)}
+                              </div>
+
                             </CardContent>
                           </Card>
                         ))}

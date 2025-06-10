@@ -14,19 +14,24 @@ import { RiskAssessmentAiAssistant } from "@/components/risk-assessment/risk-ass
 import { RiskAssessmentForm } from '@/components/risk-assessment/risk-assessment-form';
 import { riskAssessmentMethodsList, type DescriptiveRiskAssessmentMethod } from '@/lib/risk-assessment-config';
 
-const LOCAL_STORAGE_KEY = 'sheild-risk-assessments-v2'; // Changed key for new structure
+const LOCAL_STORAGE_KEY = 'sheild-risk-assessments-v2'; 
 
-// Helper to convert multi-line string to RiskControlItem[] for AI prefill
 const stringToRiskControlItems = (str: string | undefined | null): RiskControlItem[] => {
-  if (!str) return [{ value: "" }];
+  if (!str) return []; // Return empty array if no string
   const lines = str.split('\n').map(line => ({ value: line.trim() })).filter(item => item.value);
-  return lines.length > 0 ? lines : [{ value: "" }];
+  return lines.length > 0 ? lines : []; // Return empty if only whitespace lines
 };
 
-// Default structures for initializing form
 const defaultRiskControlItem = (): RiskControlItem => ({ value: "" });
-const defaultRiskEntry = (): RiskEntry => ({ risk: defaultRiskControlItem(), controlMeasures: [defaultRiskControlItem()] });
-const defaultHazardEntry = (): HazardEntry => ({ hazard: defaultRiskControlItem(), assessedRisks: [defaultRiskEntry()] });
+const defaultRiskEntry = (): RiskEntry => ({ 
+    risk: defaultRiskControlItem(), 
+    existingControls: [], // Start empty for AI prefill
+    proposedControls: []  // Start empty for AI prefill
+});
+const defaultHazardEntry = (): HazardEntry => ({ 
+    hazard: defaultRiskControlItem(), 
+    assessedRisks: [defaultRiskEntry()] 
+});
 
 
 export default function RiskAssessmentPage() {
@@ -42,18 +47,30 @@ export default function RiskAssessmentPage() {
     try {
       const storedAssessments = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedAssessments) {
-        setLoggedRiskAssessments(JSON.parse(storedAssessments));
+        const parsedAssessments: RiskAssessment[] = JSON.parse(storedAssessments);
+        // Basic migration/check for new control structure
+        const migratedAssessments = parsedAssessments.map(ra => ({
+          ...ra,
+          hazardEntries: ra.hazardEntries.map(he => ({
+            ...he,
+            assessedRisks: he.assessedRisks.map(ar => ({
+              ...ar,
+              existingControls: ar.existingControls || [],
+              proposedControls: ar.proposedControls || (ar as any).controlMeasures || [], // Move old controlMeasures to proposed
+            }))
+          }))
+        }));
+        setLoggedRiskAssessments(migratedAssessments);
+
       } else {
-        // If new key is not found, check for old key to inform user about data reset
         const oldStoredAssessments = localStorage.getItem('sheild-risk-assessments');
         if (oldStoredAssessments) {
           console.warn("SHEild: Risk assessment data structure has been updated. Old data from 'sheild-risk-assessments' will not be migrated automatically and has been cleared for the new format. Please re-enter if needed.");
-          localStorage.removeItem('sheild-risk-assessments'); // Remove old data
+          localStorage.removeItem('sheild-risk-assessments');
         }
       }
     } catch (error) {
       console.error("Error loading risk assessments from localStorage:", error);
-      // Potentially clear corrupt data: localStorage.removeItem(LOCAL_STORAGE_KEY);
     }
   }, []);
 
@@ -82,7 +99,7 @@ export default function RiskAssessmentPage() {
 
   const handleEditAssessment = (assessment: RiskAssessment) => {
     setEditingAssessment(assessment);
-    setAiPrefillData(null); // Clear any AI prefill if editing manually
+    setAiPrefillData(null); 
     setIsFormVisible(true);
     setIsAiAssistantVisible(false);
   };
@@ -92,14 +109,13 @@ export default function RiskAssessmentPage() {
   };
 
   const handleUseAiSuggestion = (suggestion: RiskAssessmentSuggestionOutput, activityInput: string, hazardsInput: string) => {
-    // For the new nested structure, pre-fill only the first hazard,
-    // and put all suggested risks/controls under it for the user to refine.
     const prefillHazardEntry: HazardEntry = {
-      hazard: { value: hazardsInput || "AI Suggested Hazard (Please Review)" }, // Use the hazard input from AI assistant
+      hazard: { value: hazardsInput || "AI Suggested Hazard (Please Review)" },
       assessedRisks: [
         {
           risk: { value: suggestion.potentialRisks || "AI Suggested Risk (Please Review)" },
-          controlMeasures: stringToRiskControlItems(suggestion.recommendedControls),
+          existingControls: [], // AI suggestions go to proposed by default
+          proposedControls: stringToRiskControlItems(suggestion.recommendedControls),
         },
       ],
     };
@@ -108,20 +124,23 @@ export default function RiskAssessmentPage() {
       activity: activityInput,
       hazardEntries: [prefillHazardEntry],
       methodUsed: suggestion.suggestedMethod as RiskAssessmentMethod,
-      // Other fields (residual risk, assessor, date) will be default or set by user
+      assessmentDate: new Date().toISOString(),
+      assessor: "",
+      residualRiskLevel: undefined, // User must set this
     });
-    setEditingAssessment(null); // Ensure we are not in edit mode
+    setEditingAssessment(null);
     setIsFormVisible(true);
     setIsAiAssistantVisible(false);
   };
   
   const handleAddNewAssessment = () => {
     setEditingAssessment(null);
-    setAiPrefillData({ // Initialize with minimal structure for the form
+    setAiPrefillData({ 
         activity: "",
         hazardEntries: [defaultHazardEntry()], 
         assessmentDate: new Date().toISOString(),
         assessor: "",
+        residualRiskLevel: undefined,
     });
     setIsFormVisible(true);
     setIsAiAssistantVisible(false);
@@ -139,9 +158,7 @@ export default function RiskAssessmentPage() {
       return '';
     }
     let stringValue = String(cellValue);
-    // Escape double quotes by doubling them
     stringValue = stringValue.replace(/"/g, '""');
-    // If the string contains a comma, newline, or double quote, enclose it in double quotes
     if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
       return `"${stringValue}"`;
     }
@@ -156,7 +173,7 @@ export default function RiskAssessmentPage() {
 
     const headers = [
       "Assessment ID", "Activity", "Assessor", "Assessment Date", "Method Used", "Residual Risk Level",
-      "Hazard", "Risk", "Control Measure"
+      "Hazard", "Risk", "Control Type", "Control Measure"
     ];
 
     const csvRows: string[] = [headers.join(',')];
@@ -177,24 +194,30 @@ export default function RiskAssessmentPage() {
           if (he.assessedRisks && he.assessedRisks.length > 0) {
             he.assessedRisks.forEach(ar => {
               const riskText = escapeCsvCell(ar.risk.value);
-              if (ar.controlMeasures && ar.controlMeasures.length > 0) {
-                ar.controlMeasures.forEach(cm => {
+              
+              if (ar.existingControls && ar.existingControls.length > 0) {
+                ar.existingControls.forEach(cm => {
                   const controlText = escapeCsvCell(cm.value);
-                  csvRows.push([...commonData, hazardText, riskText, controlText].join(','));
+                  csvRows.push([...commonData, hazardText, riskText, "Existing", controlText].join(','));
                 });
-              } else {
-                // Hazard and Risk, but no Controls
-                csvRows.push([...commonData, hazardText, riskText, ""].join(','));
+              } else if (!ar.proposedControls || ar.proposedControls.length === 0) {
+                 // If no existing and no proposed controls, still add a row for the risk
+                csvRows.push([...commonData, hazardText, riskText, "", ""].join(','));
+              }
+
+              if (ar.proposedControls && ar.proposedControls.length > 0) {
+                ar.proposedControls.forEach(cm => {
+                  const controlText = escapeCsvCell(cm.value);
+                  csvRows.push([...commonData, hazardText, riskText, "Proposed", controlText].join(','));
+                });
               }
             });
           } else {
-            // Hazard, but no Risks or Controls
-            csvRows.push([...commonData, hazardText, "", ""].join(','));
+            csvRows.push([...commonData, hazardText, "", "", ""].join(','));
           }
         });
       } else {
-        // Assessment with no hazard entries (should not happen with validation but handle)
-        csvRows.push([...commonData, "", "", ""].join(','));
+        csvRows.push([...commonData, "", "", "", ""].join(','));
       }
     });
 
@@ -237,7 +260,7 @@ export default function RiskAssessmentPage() {
         </div>
         <CardContent className="pt-6">
           <p className="text-muted-foreground">
-            This module helps you conduct thorough risk assessments. Document activity, identify specific hazards, assess associated risks, and define control measures for each.
+            This module helps you conduct thorough risk assessments. Document activity, identify specific hazards, assess associated risks, and define existing and proposed control measures for each.
             Utilize various methodologies and leverage AI assistance for comprehensive analysis.
           </p>
         </CardContent>
@@ -369,7 +392,7 @@ export default function RiskAssessmentPage() {
 
       {viewingAssessment && (
         <Dialog open={!!viewingAssessment} onOpenChange={() => setViewingAssessment(null)}>
-          <DialogContent className="sm:max-w-3xl"> {/* Increased max-width for better display */}
+          <DialogContent className="sm:max-w-3xl"> 
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <InfoIcon className="h-6 w-6 text-primary"/>
@@ -404,20 +427,34 @@ export default function RiskAssessmentPage() {
                       <CardHeader className="p-1 mb-2">
                         <CardTitle className="text-base text-primary">Hazard {hIndex + 1}: {hazardEntry.hazard.value}</CardTitle>
                       </CardHeader>
-                      <CardContent className="p-1 pl-4 space-y-2">
+                      <CardContent className="p-1 pl-4 space-y-3">
                         <p className="text-xs font-medium text-muted-foreground">Assessed Risks for this Hazard:</p>
                         {hazardEntry.assessedRisks && hazardEntry.assessedRisks.length > 0 ? (
                           hazardEntry.assessedRisks.map((riskEntry, rIndex) => (
-                            <div key={riskEntry.id || `risk-${hIndex}-${rIndex}`} className="pl-3 border-l-2 border-secondary">
+                            <div key={riskEntry.id || `risk-${hIndex}-${rIndex}`} className="pl-3 border-l-2 border-secondary space-y-2">
                               <p className="text-sm font-semibold">Risk {rIndex + 1}: {riskEntry.risk.value}</p>
-                              <p className="text-xs font-medium text-muted-foreground mt-1">Control Measures for this Risk:</p>
-                              {riskEntry.controlMeasures && riskEntry.controlMeasures.length > 0 ? (
-                                <ul className="list-disc list-inside pl-3 text-sm text-muted-foreground">
-                                  {riskEntry.controlMeasures.map((control, cIndex) => (
-                                    <li key={control.id || `control-${hIndex}-${rIndex}-${cIndex}`}>{control.value}</li>
-                                  ))}
-                                </ul>
-                              ) : <p className="text-xs text-muted-foreground italic">No specific controls listed for this risk.</p>}
+                              
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mt-1">Existing Control Measures:</p>
+                                {riskEntry.existingControls && riskEntry.existingControls.length > 0 ? (
+                                  <ul className="list-disc list-inside pl-3 text-sm text-muted-foreground">
+                                    {riskEntry.existingControls.map((control, cIndex) => (
+                                      <li key={control.id || `existing-control-${hIndex}-${rIndex}-${cIndex}`}>{control.value}</li>
+                                    ))}
+                                  </ul>
+                                ) : <p className="text-xs text-muted-foreground italic">No existing controls listed.</p>}
+                              </div>
+
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mt-1">Proposed Control Measures:</p>
+                                {riskEntry.proposedControls && riskEntry.proposedControls.length > 0 ? (
+                                  <ul className="list-disc list-inside pl-3 text-sm text-muted-foreground">
+                                    {riskEntry.proposedControls.map((control, cIndex) => (
+                                      <li key={control.id || `proposed-control-${hIndex}-${rIndex}-${cIndex}`}>{control.value}</li>
+                                    ))}
+                                  </ul>
+                                ) : <p className="text-xs text-muted-foreground italic">No proposed controls listed.</p>}
+                              </div>
                             </div>
                           ))
                         ) : <p className="text-xs text-muted-foreground italic">No specific risks listed for this hazard.</p>}

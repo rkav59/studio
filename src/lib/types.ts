@@ -34,7 +34,10 @@ export interface RiskControlItem { // General item for hazard, risk, or control 
 export interface RiskEntry {
   id?: string;
   risk: RiskControlItem; // The risk description
-  controlMeasures: RiskControlItem[]; // Controls for this specific risk
+  existingControls: RiskControlItem[]; // Existing controls for this specific risk
+  proposedControls: RiskControlItem[]; // Proposed controls for this specific risk
+  // controlMeasures is deprecated, will be handled by form migration
+  controlMeasures?: RiskControlItem[]; // Keep for potential data migration if old localStorage items exist
 }
 
 export interface HazardEntry {
