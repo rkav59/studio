@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Save, Trash2, XCircle, MessageSquare } from "lucide-react";
+import { PlusCircle, Save, Trash2, XCircle, MessageSquare, User, FileText } from "lucide-react";
 import type { ChecklistTemplate, ChecklistItemTemplate } from "@/lib/types";
 import { ScrollArea } from "../ui/scroll-area";
 
@@ -24,6 +24,8 @@ const checklistItemTemplateSchema = z.object({
   id: z.string(),
   text: z.string().min(1, "Item text cannot be empty.").max(500, "Item text is too long."),
   observationPrompt: z.string().max(500, "Observation prompt is too long.").optional(),
+  defaultResponsiblePerson: z.string().max(100, "Responsible person name is too long.").optional(),
+  defaultComments: z.string().max(1000, "Comments are too long.").optional(),
 });
 
 const templateFormSchema = z.object({
@@ -45,7 +47,12 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
     resolver: zodResolver(templateFormSchema),
     defaultValues: {
       name: initialData?.name || "",
-      items: initialData?.items?.map(item => ({ ...item, observationPrompt: item.observationPrompt || "" })) || [{ id: crypto.randomUUID(), text: "", observationPrompt: "" }],
+      items: initialData?.items?.map(item => ({ 
+        ...item, 
+        observationPrompt: item.observationPrompt || "",
+        defaultResponsiblePerson: item.defaultResponsiblePerson || "",
+        defaultComments: item.defaultComments || "",
+      })) || [{ id: crypto.randomUUID(), text: "", observationPrompt: "", defaultResponsiblePerson: "", defaultComments: "" }],
     },
   });
 
@@ -65,7 +72,7 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
           <CardHeader>
             <CardTitle>{isEditing ? "Edit Checklist Template" : "Create New Checklist Template"}</CardTitle>
             <CardDescription>
-              {isEditing ? "Modify the template name and its checklist items below." : "Define a name and add items for your new reusable checklist template. You can add an optional observation prompt for each item."}
+              {isEditing ? "Modify the template name and its checklist items below." : "Define a name and add items for your new reusable checklist template. You can add optional default observation prompts, responsible persons, and comments for each item."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -88,7 +95,7 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
               <ScrollArea className="h-[400px] pr-3 border rounded-md">
                 <div className="space-y-3 p-3">
                 {fields.map((item, index) => (
-                  <Card key={item.id} className="p-3 bg-secondary/30 shadow-sm space-y-2">
+                  <Card key={item.id} className="p-3 bg-secondary/30 shadow-sm space-y-3">
                     <div className="flex items-start gap-2">
                       <FormField
                         control={form.control}
@@ -140,6 +147,47 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.defaultResponsiblePerson`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                                <User className="h-3 w-3"/>
+                                Optional Default Responsible Person
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="e.g., Area Supervisor"
+                                {...field}
+                                className="bg-background text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.defaultComments`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                                <FileText className="h-3 w-3"/>
+                                Optional Default Comments/Notes
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="e.g., Refer to procedure XYZ for details."
+                                {...field}
+                                rows={1}
+                                className="bg-background text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                   </Card>
                 ))}
                 </div>
@@ -148,7 +196,7 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => append({ id: crypto.randomUUID(), text: "", observationPrompt: "" })}
+                onClick={() => append({ id: crypto.randomUUID(), text: "", observationPrompt: "", defaultResponsiblePerson: "", defaultComments: "" })}
               >
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Item
               </Button>

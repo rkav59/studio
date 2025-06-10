@@ -83,7 +83,6 @@ export default function SheqAuditPage() {
             return {
               ...item,
               responsiblePerson: item.responsiblePerson || '',
-              // observation: item.observation || '', // Old field, now handled by observations array
               observations: newObservations,
               comments: item.comments || '',
             };
@@ -143,9 +142,9 @@ export default function SheqAuditPage() {
           text: templateItem.text,
           status: 'Pending',
           evidenceOrRemarks: '',
-          responsiblePerson: '',
+          responsiblePerson: templateItem.defaultResponsiblePerson || '',
           observations: initialObservations,
-          comments: '',
+          comments: templateItem.defaultComments || '',
         };
       }),
       nonConformances: [], 
@@ -312,7 +311,7 @@ export default function SheqAuditPage() {
             <CardContent className="pt-6">
                 <p className="text-muted-foreground">
                     This module facilitates the planning, execution, and tracking of Safety, Health, Environment, and Quality (SHEQ) audits. 
-                    Select from default or custom checklist templates. During execution, customize items, log responsible persons, multiple observations, and comments. Document non-conformances with proposed CAPA details and optional Incident ID links.
+                    Select from default or custom checklist templates (manage in "Checklist Templates" - can include default observation prompts, responsible persons, and comments). During execution, customize items, log responsible persons, multiple observations, and comments. Document non-conformances with proposed CAPA details and optional Incident ID links.
                     Leverage AI insights to analyze trends from your audit data (current browser session).
                 </p>
             </CardContent>
@@ -320,7 +319,7 @@ export default function SheqAuditPage() {
           
           <AuditScheduler
             scheduledAudits={audits.filter(a => a.status === 'Planned' || a.status === 'In Progress')}
-            allChecklistTemplates={allChecklistTemplatesForScheduler} // Pass combined templates
+            allChecklistTemplates={allChecklistTemplatesForScheduler} 
             onScheduleAudit={handleScheduleAudit}
             onStartAudit={handleStartAudit}
           />
@@ -363,7 +362,7 @@ export default function SheqAuditPage() {
                 Current prototype features:
               </p>
               <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                <li>Audit scheduling with selection from system default and user-created checklist templates (manage custom ones in "Checklist Templates"). User templates can include initial observation prompts.</li>
+                <li>Audit scheduling with selection from system default and user-created checklist templates (manage custom ones in "Checklist Templates"). User templates can include initial observation prompts, default responsible persons, and default comments.</li>
                 <li>List view of planned, in-progress, and completed/closed audits.</li>
                 <li>Audit execution form allowing:
                     <ul className="list-disc list-inside pl-6">
@@ -371,7 +370,7 @@ export default function SheqAuditPage() {
                         <li>Adding new checklist items dynamically during execution.</li>
                         <li>Removing checklist items.</li>
                         <li>Updating status and old remarks/evidence for each checklist item.</li>
-                        <li>Input for 'Responsible Person', multiple 'Observations', and 'Comments' for each checklist item. Observations can be added/removed dynamically per item. Initial observation may be pre-filled from template prompt.</li>
+                        <li>Input for 'Responsible Person', multiple 'Observations', and 'Comments' for each checklist item. Observations can be added/removed dynamically per item. Initial observation, responsible person, and comments may be pre-filled from template defaults.</li>
                     </ul>
                 </li>
                 <li>Non-conformance logging with description, severity, optional link to checklist item, and an optional field for "Related Incident ID".</li>
@@ -409,7 +408,7 @@ export default function SheqAuditPage() {
             <CardDescription>
               Complete the checklist, log non-conformances (including CAPA details), and record findings for the audit:
               <span className="font-semibold"> {currentAudit.scope}</span>, scheduled for <span className="font-semibold">{format(new Date(currentAudit.auditDate), "PPP")}</span> by <span className="font-semibold">{currentAudit.auditor}</span>.
-              Checklist items can be edited, added, or removed. Each item supports multiple observations.
+              Checklist items can be edited, added, or removed. Each item supports multiple observations. Responsible person and comments can also be pre-filled from the template.
             </CardDescription>
           </CardHeader>
           <CardContent>

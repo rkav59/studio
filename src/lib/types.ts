@@ -88,7 +88,7 @@ export interface AuditChecklistItem {
   status: 'Compliant' | 'Non-Compliant' | 'Not Applicable' | 'Pending';
   evidenceOrRemarks?: string;
   responsiblePerson?: string;
-  observations: AuditObservationEntry[]; // Changed from single observation to array
+  observations: AuditObservationEntry[]; 
   comments?: string;
 }
 
@@ -111,6 +111,8 @@ export interface ChecklistItemTemplate {
   id: string; // Unique ID for the template item
   text: string;
   observationPrompt?: string; // Optional prompt for the initial observation
+  defaultResponsiblePerson?: string; // Optional default responsible person
+  defaultComments?: string; // Optional default comments
 }
 
 export interface ChecklistTemplate {
