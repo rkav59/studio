@@ -119,27 +119,7 @@ export function OverviewCards() {
 
   return (
     <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3">
-      <KpiCard
-        title="Total Incidents"
-        value={totalIncidents}
-        // pieData removed for simple count display
-        icon={TrendingUp}
-        description="+5 this month"
-      />
-      <KpiCard
-        title="Open Hazards"
-        value={openHazards}
-        // pieData removed
-        icon={AlertTriangle}
-        description="2 critical"
-      />
-      <KpiCard
-        title="Inspections Done"
-        value={inspectionsCompleted}
-        // pieData removed
-        icon={ListChecks}
-        description="+10 this month"
-      />
+      {/* Cards with Pie Charts - Top Row */}
       <KpiCard
         title="Compliance Rate"
         value={complianceRate}
@@ -156,30 +136,47 @@ export function OverviewCards() {
         description="Days lost per 200k hrs"
       />
       <KpiCard
-        title="Lost Time Injuries"
-        value={lostTimeInjury}
-        // pieData removed
-        icon={BedDouble}
-        description="This year"
-      />
-      <KpiCard
         title="LTIFR"
         value={ltifr}
         pieData={ltifrData} // Kept for pie chart
         icon={Percent}
         description="LTIs per million hrs"
       />
+
+      {/* Cards without Pie Charts - Subsequent Rows */}
+      <KpiCard
+        title="Total Incidents"
+        value={totalIncidents}
+        icon={TrendingUp}
+        description="+5 this month"
+      />
+      <KpiCard
+        title="Open Hazards"
+        value={openHazards}
+        icon={AlertTriangle}
+        description="2 critical"
+      />
+      <KpiCard
+        title="Inspections Done"
+        value={inspectionsCompleted}
+        icon={ListChecks}
+        description="+10 this month"
+      />
+      <KpiCard
+        title="Lost Time Injuries"
+        value={lostTimeInjury}
+        icon={BedDouble}
+        description="This year"
+      />
       <KpiCard
         title="Accident Free Days"
         value={accidentFreeDays}
-        // pieData removed
         icon={CalendarCheck}
         description="Continuous record"
       />
       <KpiCard
         title="Fatalities"
         value={fatalities}
-        // pieData removed
         icon={Skull}
         description="This year"
       />
@@ -218,3 +215,4 @@ export function IncidentTypeChart() {
     </Card>
   );
 }
+
