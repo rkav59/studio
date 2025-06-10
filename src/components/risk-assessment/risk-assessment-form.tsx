@@ -47,7 +47,6 @@ const riskEntrySchema = z.object({
   risk: riskControlItemSchema,
   existingControls: z.array(riskControlItemSchema).optional().default([]),
   proposedControls: z.array(riskControlItemSchema).optional().default([]),
-  // controlMeasures is deprecated
 });
 
 const hazardEntrySchema = z.object({
@@ -126,8 +125,7 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
               hazard: he.hazard || defaultRiskControlItem(),
               assessedRisks: he.assessedRisks && he.assessedRisks.length > 0
                 ? he.assessedRisks.map(ar => {
-                    // Handle migration from old controlMeasures if present
-                    const proposedFromOld = ar.controlMeasures ? ar.controlMeasures.map(cm => cm || defaultRiskControlItem()) : [];
+                    const proposedFromOld = (ar as any).controlMeasures ? (ar as any).controlMeasures.map((cm: any) => cm || defaultRiskControlItem()) : [];
                     return {
                       ...ar,
                       risk: ar.risk || defaultRiskControlItem(),
@@ -163,7 +161,6 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
         ...he,
         assessedRisks: he.assessedRisks.map(ar => ({
             ...ar,
-            // Ensure empty arrays are not undefined for consistency if needed by backend, though Zod default handles it.
             existingControls: ar.existingControls || [], 
             proposedControls: ar.proposedControls || [],
         }))
@@ -248,20 +245,22 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
                 </div>
               </CardHeader>
               <CardContent className="p-2 space-y-4">
-                <FormField
-                  control={form.control}
-                  name={`hazardEntries.${hazardIndex}.hazard.value`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Describe Hazard</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="e.g., Working at height, Chemical exposure" rows={2} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {renderGuidance(currentGuidance?.identifiedHazards)}
+                <div className="space-y-2 pl-4 border-l-2 border-muted/70 ml-1 py-2">
+                    <FormField
+                    control={form.control}
+                    name={`hazardEntries.${hazardIndex}.hazard.value`}
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel className="text-sm font-medium">Describe Hazard</FormLabel>
+                        <FormControl>
+                            <Textarea placeholder="e.g., Working at height, Chemical exposure" rows={2} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    {renderGuidance(currentGuidance?.identifiedHazards)}
+                </div>
 
                 {/* Assessed Risks within this Hazard */}
                 <Controller
@@ -285,21 +284,23 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
                                 </Button>
                               </div>
                             </CardHeader>
-                            <CardContent className="p-1 space-y-4"> {/* Increased space for control sections */}
-                              <FormField
-                                control={form.control}
-                                name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.risk.value`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="text-xs">Describe Risk</FormLabel>
-                                    <FormControl>
-                                      <Textarea placeholder="e.g., Fall from ladder, Skin irritation" rows={2} {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              {renderGuidance(currentGuidance?.assessedRisks)}
+                            <CardContent className="p-1 space-y-4">
+                                <div className="space-y-2 pl-4 border-l-2 border-muted/70 ml-1 py-2">
+                                    <FormField
+                                        control={form.control}
+                                        name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.risk.value`}
+                                        render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-sm font-medium">Describe Risk</FormLabel>
+                                            <FormControl>
+                                            <Textarea placeholder="e.g., Fall from ladder, Skin irritation" rows={2} {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                        )}
+                                    />
+                                    {renderGuidance(currentGuidance?.assessedRisks)}
+                                </div>
 
                               {/* Existing Control Measures for this Risk */}
                               <div className="space-y-2 pl-4 border-l-2 border-muted/70 ml-1 py-2">
@@ -403,7 +404,7 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
           <Button type="button" variant="default" onClick={() => hazardAppend(defaultHazardEntry())} className="bg-primary hover:bg-primary/90">
             <PlusCircle className="mr-2 h-4 w-4" /> Add Hazard Entry
           </Button>
-           <FormField name="hazardEntries" control={form.control} render={() => <FormMessage />} /> {/* For array-level errors on hazardEntries */}
+           <FormField name="hazardEntries" control={form.control} render={() => <FormMessage />} />
         </div>
 
 
@@ -499,3 +500,4 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
     </Form>
   );
 }
+
