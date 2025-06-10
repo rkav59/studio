@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,7 +29,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { PlusCircle, Trash2, AlertTriangle, Save, CheckCircle, XCircle, Edit3, CalendarIcon } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Save, CheckCircle, XCircle, Edit3, CalendarIcon, User, FileText, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { SheqAudit, AuditChecklistItem, NonConformance } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -40,6 +41,9 @@ const auditChecklistItemSchema = z.object({
   text: z.string().min(1, "Checklist item text cannot be empty.").max(1000, "Text too long"),
   status: z.enum(['Compliant', 'Non-Compliant', 'Not Applicable', 'Pending']),
   evidenceOrRemarks: z.string().max(1000, "Remarks too long.").optional(),
+  responsiblePerson: z.string().max(100, "Responsible person name too long.").optional(),
+  observation: z.string().max(2000, "Observation text too long.").optional(),
+  comments: z.string().max(2000, "Comments text too long.").optional(),
 });
 
 const nonConformanceSchema = z.object({
@@ -47,7 +51,7 @@ const nonConformanceSchema = z.object({
   description: z.string().min(5, "NC description is required.").max(1000, "Description too long."),
   severity: z.enum(['Minor', 'Major', 'Critical']),
   relatedChecklistItemId: z.string().optional(),
-  relatedIncidentId: z.string().max(100, "Incident ID too long.").optional(), // New field
+  relatedIncidentId: z.string().max(100, "Incident ID too long.").optional(), 
   correctiveActionsProposed: z.string().max(2000, "Proposed corrective actions text too long.").optional(),
   preventiveActionsProposed: z.string().max(2000, "Proposed preventive actions text too long.").optional(),
   actionAssignedTo: z.string().max(100, "Assignee name too long.").optional(),
@@ -93,7 +97,12 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
   const form = useForm<AuditExecutionFormValues>({
     resolver: zodResolver(auditExecutionFormSchema),
     defaultValues: {
-      checklist: audit.checklist || [],
+      checklist: audit.checklist?.map(item => ({
+        ...item,
+        responsiblePerson: item.responsiblePerson || "",
+        observation: item.observation || "",
+        comments: item.comments || "",
+      })) || [],
       nonConformances: audit.nonConformances?.map(nc => ({...getDefaultNonConformanceValues(), ...nc})) || [],
       overallFindings: audit.overallFindings || "",
       recommendations: audit.recommendations || "",
@@ -131,7 +140,10 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
       id: crypto.randomUUID(),
       text: "New checklist item (edit me)",
       status: 'Pending',
-      evidenceOrRemarks: ''
+      evidenceOrRemarks: '',
+      responsiblePerson: '',
+      observation: '',
+      comments: '',
     });
   };
 
@@ -146,11 +158,11 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
         <Card>
           <CardHeader>
             <CardTitle>Audit Checklist</CardTitle>
-            <CardDescription>Go through each item, edit as needed, update status, and add remarks.</CardDescription>
+            <CardDescription>Go through each item, edit as needed, update status, and add remarks, responsible person, observations, and comments.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {checklistFields.map((item, index) => (
-              <Card key={item.id} className="p-4 bg-secondary/40">
+              <Card key={item.id} className="p-4 bg-secondary/40 space-y-3">
                 <div className="flex justify-between items-start mb-2">
                     <div className="flex-grow mr-2">
                         <FormField
@@ -183,6 +195,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
                         <span className="sr-only">Remove Item</span>
                     </Button>
                 </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -209,18 +222,57 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
                   />
                    <FormField
                     control={form.control}
-                    name={`checklist.${index}.evidenceOrRemarks`}
+                    name={`checklist.${index}.responsiblePerson`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Evidence/Remarks</FormLabel>
+                        <FormLabel className="flex items-center gap-1"><User className="h-4 w-4 text-muted-foreground"/>Responsible Person</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Note observations, evidence, or remarks..." rows={2} {...field} />
+                          <Input placeholder="e.g., Site Manager" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
+                <FormField
+                  control={form.control}
+                  name={`checklist.${index}.observation`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1"><FileText className="h-4 w-4 text-muted-foreground"/>Observation</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Detailed observation for this item..." rows={2} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`checklist.${index}.comments`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1"><MessageSquare className="h-4 w-4 text-muted-foreground"/>Comments</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Additional comments or context..." rows={2} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name={`checklist.${index}.evidenceOrRemarks`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Evidence/Old Remarks (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Note observations, evidence, or general remarks..." rows={1} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </Card>
             ))}
             <Button

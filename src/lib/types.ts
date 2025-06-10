@@ -82,6 +82,9 @@ export interface AuditChecklistItem {
   text: string;
   status: 'Compliant' | 'Non-Compliant' | 'Not Applicable' | 'Pending';
   evidenceOrRemarks?: string;
+  responsiblePerson?: string;
+  observation?: string;
+  comments?: string;
 }
 
 export interface NonConformance {
