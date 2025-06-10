@@ -11,12 +11,12 @@ import type { SheqAudit, AuditChecklistItem, ChecklistItemTemplate, NonConforman
 import { defaultChecklistTemplates } from '@/lib/checklist-templates';
 import { Separator } from '@/components/ui/separator';
 import { format, isValid, parseISO } from 'date-fns';
-import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2 } from 'lucide-react';
+import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2, LinkIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeSheqAuditData } from '@/ai/flows/analyze-audit-data-flow';
-import { Alert, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription as UIAlertDescription } from '@/components/ui/alert';
 
 
 const LOCAL_STORAGE_KEY_AUDITS = 'sheild-sheq-audits-v4'; 
@@ -275,7 +275,7 @@ export default function SheqAuditPage() {
             <CardContent className="pt-6">
                 <p className="text-muted-foreground">
                     This module facilitates the planning, execution, and tracking of Safety, Health, Environment, and Quality (SHEQ) audits. 
-                    Select from default or custom checklist templates, customize as needed during execution, document findings, log non-conformances with proposed CAPA details, and monitor progress.
+                    Select from default or custom checklist templates, customize as needed during execution, document findings, log non-conformances with proposed CAPA details and optional Incident ID links, and monitor progress.
                     Leverage AI insights to analyze trends from your audit data (current browser session).
                 </p>
             </CardContent>
@@ -292,7 +292,7 @@ export default function SheqAuditPage() {
             <Card className="shadow-lg mt-6">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><CheckSquare className="h-6 w-6 text-primary"/>Completed/Closed Audits</CardTitle>
-                <CardDescription>Review past audit records, including non-conformances and CAPA details.</CardDescription>
+                <CardDescription>Review past audit records, including non-conformances and their CAPA details. Related Incident IDs can be logged for cross-referencing.</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3">
@@ -336,7 +336,8 @@ export default function SheqAuditPage() {
                         <li>Updating status and remarks for each checklist item.</li>
                     </ul>
                 </li>
-                <li>Non-conformance logging with description, severity, optional link to checklist item, optional link to incident ID, and fields for:
+                <li>Non-conformance logging with description, severity, optional link to checklist item, and an optional field for "Related Incident ID".</li>
+                <li>Detailed CAPA documentation for each Non-Conformance:
                     <ul className="list-disc list-inside pl-6">
                         <li>Proposed Corrective Actions</li>
                         <li>Proposed Preventive Actions</li>
@@ -348,7 +349,7 @@ export default function SheqAuditPage() {
                     </ul>
                 </li>
                 <li>Recording overall audit findings and recommendations.</li>
-                <li>Viewing detailed information for completed/closed audits, including all checklist items, non-conformances, and their CAPA details.</li>
+                <li>Viewing detailed information for completed/closed audits, including all checklist items, non-conformances, their CAPA details, and any linked Incident ID.</li>
                 <li>AI-powered insights generation based on the summary of audit data currently in the browser session.</li>
                 <li>Data persistence using browser's local storage for audits and custom templates.</li>
               </ul>
@@ -364,7 +365,7 @@ export default function SheqAuditPage() {
                   <li>Offline audit capabilities for mobile devices (PWA features).</li>
                   <li>Automated report generation (e.g., PDF) and distribution.</li>
                   <li>User roles and permissions for audit management.</li>
-                  <li>Deeper integration with other SHEQ modules (e.g., linking incidents to audits and vice-versa, triggering risk assessments from NCs).</li>
+                  <li>True bi-directional linking between modules (e.g., clicking an Incident ID in an audit takes you to the Incident module).</li>
               </ul>
             </CardContent>
           </Card>
@@ -440,8 +441,21 @@ export default function SheqAuditPage() {
                                             </p>
                                         )}
                                         {nc.relatedIncidentId && (
-                                            <p className="text-xs text-muted-foreground">
-                                                Related Incident ID: {nc.relatedIncidentId}
+                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                Related Incident ID: 
+                                                <Button
+                                                    variant="link"
+                                                    className="h-auto p-0 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                                                    onClick={() => toast({
+                                                        title: "Feature: Navigate to Incident",
+                                                        description: `Navigating to Incident ID '${nc.relatedIncidentId}' is a planned feature. Full navigation will be implemented when incident data is globally accessible.`,
+                                                        variant: "default",
+                                                        duration: 5000,
+                                                    })}
+                                                >
+                                                    <LinkIcon className="h-3 w-3 mr-1" />
+                                                    {nc.relatedIncidentId}
+                                                </Button>
                                             </p>
                                         )}
                                         <Separator className="my-2 bg-destructive/30"/>
@@ -521,11 +535,11 @@ export default function SheqAuditPage() {
               <Alert variant="info" className="mt-4">
                 <BrainCircuit className="h-4 w-4" />
                 <AlertTitle>Note on AI Insights</AlertTitle>
-                <AlertDescription>
+                <UIAlertDescription>
                   These insights are generated by an AI based on a summary of the audit data currently available in your browser.
                   For comprehensive trend analysis over time or across a larger dataset, a dedicated backend system and more sophisticated analytics would be beneficial.
                   Always use professional judgment when interpreting AI-generated information.
-                </AlertDescription>
+                </UIAlertDescription>
               </Alert>
             </ScrollArea>
             <DialogFooter className="pt-4 border-t">
@@ -539,3 +553,5 @@ export default function SheqAuditPage() {
   );
 }
 
+
+    
