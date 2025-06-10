@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -49,6 +50,7 @@
     --chart-3: 170 50% 45%; /* Teal/Greenish */
     --chart-4: 300 50% 55%; /* Purpleish */
     --chart-5: 50 70% 50%; /* Yellowish */
+    --chart-positive-green: 130 55% 45%; /* A distinct positive green */
   }
 
   .dark {
@@ -95,6 +97,7 @@
     --chart-3: 170 55% 50%;
     --chart-4: 300 55% 60%;
     --chart-5: 50 75% 55%;
+    --chart-positive-green: 130 60% 50%; /* Dark theme positive green */
   }
 }
 
