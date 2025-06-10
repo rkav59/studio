@@ -14,7 +14,7 @@ from 'genkit';
 import type { AnalyzeAuditDataInput as AnalyzeAuditDataInputType, AnalyzeAuditDataOutput as AnalyzeAuditDataOutputType } from '@/lib/types';
 
 
-export const AnalyzeAuditDataInputSchema = z.object({
+const AnalyzeAuditDataInputSchema = z.object({
   totalAudits: z.number().describe("Total number of audits available in the summary period."),
   completedAuditsCount: z.number().describe("Number of audits that are marked as completed or closed."),
   nonConformanceDescriptions: z.array(z.string()).describe("A list of textual descriptions of identified non-conformances from various audits."),
@@ -31,7 +31,7 @@ export const AnalyzeAuditDataInputSchema = z.object({
 export type AnalyzeAuditDataInput = z.infer<typeof AnalyzeAuditDataInputSchema>;
 
 
-export const AnalyzeAuditDataOutputSchema = z.object({
+const AnalyzeAuditDataOutputSchema = z.object({
   identifiedThemes: z.string().describe("Common themes or recurring patterns observed across non-conformances and failed checklist items. Each distinct theme should be listed on a new line. Be concise but descriptive."),
   capaEffectivenessObservations: z.string().describe("Observations regarding the status and potential effectiveness of corrective and preventive actions. For example, comment on the ratio of open to completed CAPAs, or if many are overdue."),
   suggestedFocusAreas: z.string().describe("Specific areas or topics that might require more attention, training, or systemic improvement based on the analysis of the provided data. List each area on a new line."),
