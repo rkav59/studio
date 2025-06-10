@@ -4,6 +4,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { z } from "zod";
+import { format, isValid, parseISO } from "date-fns";
+
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,9 +28,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { PlusCircle, Trash2, AlertTriangle, Save, CheckCircle, XCircle, Edit3 } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Save, CheckCircle, XCircle, Edit3, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { SheqAudit, AuditChecklistItem, NonConformance } from "@/lib/types";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Calendar } from "../ui/calendar";
+import { cn } from "@/lib/utils";
 
 const auditChecklistItemSchema = z.object({
   id: z.string(),
@@ -39,10 +44,16 @@ const auditChecklistItemSchema = z.object({
 
 const nonConformanceSchema = z.object({
   id: z.string(),
-  description: z.string().min(5, "Non-conformance description is required.").max(1000, "Description too long."),
+  description: z.string().min(5, "NC description is required.").max(1000, "Description too long."),
   severity: z.enum(['Minor', 'Major', 'Critical']),
   relatedChecklistItemId: z.string().optional(),
-  correctiveActions: z.string().optional().max(2000, "Corrective actions text too long"),
+  correctiveActionsProposed: z.string().max(2000, "Proposed corrective actions text too long.").optional(),
+  preventiveActionsProposed: z.string().max(2000, "Proposed preventive actions text too long.").optional(),
+  actionAssignedTo: z.string().max(100, "Assignee name too long.").optional(),
+  actionDueDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid due date" }),
+  actionStatus: z.enum(['Open', 'In Progress', 'Completed', 'Overdue']).default('Open'),
+  actionCompletionDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid completion date" }),
+  actionVerificationNotes: z.string().max(2000, "Verification notes too long.").optional(),
 });
 
 const auditExecutionFormSchema = z.object({
@@ -59,6 +70,21 @@ interface AuditExecutionFormProps {
   onSaveAudit: (auditData: SheqAudit) => void;
 }
 
+const getDefaultNonConformanceValues = (): NonConformance => ({
+    id: crypto.randomUUID(),
+    description: "",
+    severity: "Minor",
+    relatedChecklistItemId: "",
+    correctiveActionsProposed: "",
+    preventiveActionsProposed: "",
+    actionAssignedTo: "",
+    actionDueDate: "",
+    actionStatus: "Open",
+    actionCompletionDate: "",
+    actionVerificationNotes: ""
+});
+
+
 export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormProps) {
   const { toast } = useToast();
   
@@ -66,7 +92,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
     resolver: zodResolver(auditExecutionFormSchema),
     defaultValues: {
       checklist: audit.checklist || [],
-      nonConformances: audit.nonConformances || [],
+      nonConformances: audit.nonConformances?.map(nc => ({...getDefaultNonConformanceValues(), ...nc})) || [],
       overallFindings: audit.overallFindings || "",
       recommendations: audit.recommendations || "",
     },
@@ -106,6 +132,10 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
       evidenceOrRemarks: ''
     });
   };
+
+  const handleAddNewNc = () => {
+    appendNc(getDefaultNonConformanceValues());
+  }
 
   return (
     <Form {...form}>
@@ -208,102 +238,246 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
         <Card>
           <CardHeader>
             <CardTitle>Non-Conformances (NCs)</CardTitle>
-            <CardDescription>Log any deviations or non-conformances identified during the audit.</CardDescription>
+            <CardDescription>Log any deviations or non-conformances identified during the audit, including proposed CAPA details.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {ncFields.map((ncItem, index) => (
-              <Card key={ncItem.id} className="p-4 relative bg-destructive/10 border-destructive/50">
-                 <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => removeNc(index)} 
-                    className="absolute top-2 right-2 text-destructive hover:bg-destructive/20"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="sr-only">Remove NC</span>
+            {ncFields.map((ncItem, index) => {
+              const currentStatus = form.watch(`nonConformances.${index}.actionStatus`);
+              return (
+                <Card key={ncItem.id} className="p-4 relative bg-destructive/10 border-destructive/50 space-y-3">
+                  <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => removeNc(index)} 
+                      className="absolute top-2 right-2 text-destructive hover:bg-destructive/20"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Remove NC {index + 1}</span>
                   </Button>
-                <FormField
-                  control={form.control}
-                  name={`nonConformances.${index}.description`}
-                  render={({ field }) => (
-                    <FormItem className="mb-2">
-                      <FormLabel>NC Description</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Describe the non-conformance observed..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
+                  <FormField
                     control={form.control}
-                    name={`nonConformances.${index}.severity`}
+                    name={`nonConformances.${index}.description`}
                     render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Severity</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select severity" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            <SelectItem value="Minor">Minor</SelectItem>
-                            <SelectItem value="Major">Major</SelectItem>
-                            <SelectItem value="Critical">Critical</SelectItem>
-                            </SelectContent>
-                        </Select>
+                      <FormItem>
+                        <FormLabel>NC #{index+1} Description</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Describe the non-conformance observed..." {...field} />
+                        </FormControl>
                         <FormMessage />
-                        </FormItem>
+                      </FormItem>
                     )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name={`nonConformances.${index}.relatedChecklistItemId`}
-                        render={({ field }) => (
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                      control={form.control}
+                      name={`nonConformances.${index}.severity`}
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Severity</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                              <SelectTrigger>
+                                  <SelectValue placeholder="Select severity" />
+                              </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                              <SelectItem value="Minor">Minor</SelectItem>
+                              <SelectItem value="Major">Major</SelectItem>
+                              <SelectItem value="Critical">Critical</SelectItem>
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                      />
+                      <FormField
+                          control={form.control}
+                          name={`nonConformances.${index}.relatedChecklistItemId`}
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Related Checklist Item (Optional)</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value || ""}>
+                              <FormControl>
+                                  <SelectTrigger>
+                                  <SelectValue placeholder="Link to checklist item" />
+                                  </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                  <SelectItem value="">None</SelectItem>
+                                  {form.watch("checklist").map((chkItem, chkIndex) => (
+                                  <SelectItem key={chkItem.id} value={chkItem.id}>
+                                      Item {chkIndex + 1}: {chkItem.text.substring(0,50)}{chkItem.text.length > 50 ? '...' : ''}
+                                  </SelectItem>
+                                  ))}
+                              </SelectContent>
+                              </Select>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                  </div>
+
+                  <Separator />
+                  <CardDescription className="font-medium">Corrective & Preventive Actions (CAPA)</CardDescription>
+
+                  <FormField
+                    control={form.control}
+                    name={`nonConformances.${index}.correctiveActionsProposed`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Proposed Corrective Actions</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Detail proposed corrective actions..." rows={2} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                   <FormField
+                    control={form.control}
+                    name={`nonConformances.${index}.preventiveActionsProposed`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Proposed Preventive Actions</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Detail proposed preventive actions..." rows={2} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name={`nonConformances.${index}.actionAssignedTo`}
+                      render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Related Checklist Item (Optional)</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="Link to checklist item" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="">None</SelectItem>
-                                {form.watch("checklist").map((chkItem, chkIndex) => (
-                                <SelectItem key={chkItem.id} value={chkItem.id}>
-                                    Item {chkIndex + 1}: {chkItem.text.substring(0,50)}{chkItem.text.length > 50 ? '...' : ''}
-                                </SelectItem>
-                                ))}
-                            </SelectContent>
-                            </Select>
-                            <FormMessage />
+                          <FormLabel>Assigned To</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., John Doe, Maintenance Team" {...field} />
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
-                        )}
+                      )}
                     />
-                </div>
-                 <FormField
-                  control={form.control}
-                  name={`nonConformances.${index}.correctiveActions`}
-                  render={({ field }) => (
-                    <FormItem className="mt-2">
-                      <FormLabel>Immediate Actions Taken / Initial CAPA (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Describe any immediate actions taken or initial thoughts for CAPA..." rows={2} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                    <FormField
+                      control={form.control}
+                      name={`nonConformances.${index}.actionDueDate`}
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Due Date</FormLabel>
+                          <Popover>
+                              <PopoverTrigger asChild>
+                                  <FormControl>
+                                  <Button
+                                      variant={"outline"}
+                                      className={cn(
+                                      "w-full pl-3 text-left font-normal",
+                                      !field.value && "text-muted-foreground"
+                                      )}
+                                  >
+                                      {field.value ? format(parseISO(field.value), "PPP") : <span>Pick a date</span>}
+                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                                  </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                  mode="single"
+                                  selected={field.value ? parseISO(field.value) : undefined}
+                                  onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
+                                  initialFocus
+                                  />
+                              </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                      control={form.control}
+                      name={`nonConformances.${index}.actionStatus`}
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Action Status</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || "Open"}>
+                              <FormControl>
+                              <SelectTrigger>
+                                  <SelectValue placeholder="Select action status" />
+                              </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                  <SelectItem value="Open">Open</SelectItem>
+                                  <SelectItem value="In Progress">In Progress</SelectItem>
+                                  <SelectItem value="Completed">Completed</SelectItem>
+                                  <SelectItem value="Overdue">Overdue</SelectItem>
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                  />
+
+                  {currentStatus === 'Completed' && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name={`nonConformances.${index}.actionCompletionDate`}
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Completion Date</FormLabel>
+                             <Popover>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                        "w-full pl-3 text-left font-normal",
+                                        !field.value && "text-muted-foreground"
+                                        )}
+                                    >
+                                        {field.value ? format(parseISO(field.value), "PPP") : <span>Pick a date</span>}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                    mode="single"
+                                    selected={field.value ? parseISO(field.value) : undefined}
+                                    onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
+                                    initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`nonConformances.${index}.actionVerificationNotes`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Verification Notes</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="Notes on verification of action completion..." rows={2} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
                   )}
-                />
-              </Card>
-            ))}
+                </Card>
+              )
+            })}
             <Button
               type="button"
               variant="outline"
-              onClick={() => appendNc({ id: crypto.randomUUID(), description: "", severity: "Minor", relatedChecklistItemId: "", correctiveActions: "" })}
+              onClick={handleAddNewNc}
               className="border-destructive text-destructive hover:bg-destructive/10"
             >
               <AlertTriangle className="mr-2 h-4 w-4" /> Add Non-Conformance

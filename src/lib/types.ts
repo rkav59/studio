@@ -89,7 +89,13 @@ export interface NonConformance {
   description: string;
   severity: 'Minor' | 'Major' | 'Critical';
   relatedChecklistItemId?: string; // Optional link to a checklist item
-  correctiveActions?: string; // Placeholder for CAPA link/summary
+  correctiveActionsProposed?: string; 
+  preventiveActionsProposed?: string; 
+  actionAssignedTo?: string;
+  actionDueDate?: string; // ISO Date string
+  actionStatus?: 'Open' | 'In Progress' | 'Completed' | 'Overdue';
+  actionCompletionDate?: string; // ISO Date string
+  actionVerificationNotes?: string;
 }
 
 export interface ChecklistItemTemplate {
