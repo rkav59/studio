@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import { format } from 'date-fns';
-import { ShieldAlert, ListChecks, CheckSquare, Eye, Edit, Info } from 'lucide-react';
+import { ShieldAlert, ListChecks, CheckSquare, Eye, Edit, Info, Download } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
@@ -47,7 +47,8 @@ export default function RiskAssessmentPage() {
   useEffect(() => {
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(loggedRiskAssessments));
-    } catch (error) {
+    } catch (error)
+ {
       console.error("Error saving risk assessments to localStorage:", error);
     }
   }, [loggedRiskAssessments]);
@@ -61,13 +62,13 @@ export default function RiskAssessmentPage() {
       setLoggedRiskAssessments(prevAssessments => [assessment, ...prevAssessments]);
     }
     setEditingAssessment(null);
-    setAiPrefillData(null); // Clear AI prefill data after saving
-    setIsFormVisible(false); // Hide form after save
+    setAiPrefillData(null); 
+    setIsFormVisible(false); 
   };
 
   const handleEditAssessment = (assessment: RiskAssessment) => {
     setEditingAssessment(assessment);
-    setAiPrefillData(null); // Clear any AI prefill if starting a manual edit
+    setAiPrefillData(null); 
     setIsFormVisible(true);
   };
 
@@ -83,8 +84,8 @@ export default function RiskAssessmentPage() {
       controlMeasures: suggestion.recommendedControls,
       methodUsed: suggestion.suggestedMethod as RiskAssessmentMethod,
     });
-    setEditingAssessment(null); // Clear any manual edit if using AI suggestion
-    setIsFormVisible(true); // Show the form pre-filled
+    setEditingAssessment(null); 
+    setIsFormVisible(true); 
   };
   
   const handleAddNewAssessment = () => {
@@ -98,6 +99,61 @@ export default function RiskAssessmentPage() {
     setAiPrefillData(null);
     setIsFormVisible(false);
   }
+
+  const escapeCsvField = (field: string | undefined | null): string => {
+    if (field === undefined || field === null) {
+      return '';
+    }
+    const stringField = String(field);
+    // If the field contains a comma, newline, or double quote, enclose it in double quotes.
+    // Also, double up any existing double quotes within the field.
+    if (stringField.includes(',') || stringField.includes('\n') || stringField.includes('"')) {
+      return `"${stringField.replace(/"/g, '""')}"`;
+    }
+    return stringField;
+  };
+
+  const handleDownloadRegister = () => {
+    if (loggedRiskAssessments.length === 0) {
+      alert("No risk assessments logged yet to download.");
+      return;
+    }
+
+    const headers = [
+      "ID", "Activity", "Assessor", "Assessment Date", "Method Used",
+      "Identified Hazards", "Assessed Risks", "Control Measures", "Residual Risk Level"
+    ];
+
+    const csvRows = [
+      headers.join(','),
+      ...loggedRiskAssessments.map(ra => [
+        escapeCsvField(ra.id),
+        escapeCsvField(ra.activity),
+        escapeCsvField(ra.assessor),
+        escapeCsvField(format(new Date(ra.assessmentDate), "yyyy-MM-dd")),
+        escapeCsvField(ra.methodUsed),
+        escapeCsvField(ra.identifiedHazards),
+        escapeCsvField(ra.assessedRisks),
+        escapeCsvField(ra.controlMeasures),
+        escapeCsvField(ra.residualRiskLevel)
+      ].join(','))
+    ];
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Risk_Register_${format(new Date(), "yyyyMMdd_HHmmss")}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -129,9 +185,14 @@ export default function RiskAssessmentPage() {
       </Card>
 
       {!isFormVisible && (
-        <Button onClick={handleAddNewAssessment} className="mb-6 bg-primary hover:bg-primary/90">
-          <ListChecks className="mr-2 h-4 w-4" /> Log New Risk Assessment
-        </Button>
+        <div className="flex gap-2 mb-6">
+            <Button onClick={handleAddNewAssessment} className="bg-primary hover:bg-primary/90">
+            <ListChecks className="mr-2 h-4 w-4" /> Log New Risk Assessment
+            </Button>
+            <Button onClick={handleDownloadRegister} variant="outline" className="text-primary border-primary hover:bg-primary/10">
+                <Download className="mr-2 h-4 w-4" /> Download Risk Register (CSV)
+            </Button>
+        </div>
       )}
 
       {(isFormVisible || editingAssessment || aiPrefillData) && (
@@ -148,7 +209,7 @@ export default function RiskAssessmentPage() {
           </CardHeader>
           <CardContent>
             <RiskAssessmentForm
-              key={editingAssessment?.id || (aiPrefillData ? 'ai-form' : 'new-form')} // Force re-render with new key for new/edit/ai modes
+              key={editingAssessment?.id || (aiPrefillData ? 'ai-form' : 'new-form')}
               onSaveAssessment={handleSaveAssessment}
               assessmentMethods={riskAssessmentMethodsList}
               initialData={editingAssessment || aiPrefillData}
@@ -167,7 +228,7 @@ export default function RiskAssessmentPage() {
                 <CheckSquare className="h-6 w-6 text-primary" />
                 Logged Risk Assessments
               </CardTitle>
-              <CardDescription>Review and manage your documented risk assessments.</CardDescription>
+              <CardDescription>Review and manage your documented risk assessments. Data is stored in your browser.</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-4">
@@ -288,5 +349,3 @@ export default function RiskAssessmentPage() {
     </div>
   );
 }
-
-    
