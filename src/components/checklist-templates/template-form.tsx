@@ -16,13 +16,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Save, Trash2, XCircle } from "lucide-react";
+import { PlusCircle, Save, Trash2, XCircle, MessageSquare } from "lucide-react";
 import type { ChecklistTemplate, ChecklistItemTemplate } from "@/lib/types";
 import { ScrollArea } from "../ui/scroll-area";
 
 const checklistItemTemplateSchema = z.object({
   id: z.string(),
   text: z.string().min(1, "Item text cannot be empty.").max(500, "Item text is too long."),
+  observationPrompt: z.string().max(500, "Observation prompt is too long.").optional(),
 });
 
 const templateFormSchema = z.object({
@@ -44,11 +45,11 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
     resolver: zodResolver(templateFormSchema),
     defaultValues: {
       name: initialData?.name || "",
-      items: initialData?.items?.map(item => ({ ...item })) || [{ id: crypto.randomUUID(), text: "" }],
+      items: initialData?.items?.map(item => ({ ...item, observationPrompt: item.observationPrompt || "" })) || [{ id: crypto.randomUUID(), text: "", observationPrompt: "" }],
     },
   });
 
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "items",
   });
@@ -64,7 +65,7 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
           <CardHeader>
             <CardTitle>{isEditing ? "Edit Checklist Template" : "Create New Checklist Template"}</CardTitle>
             <CardDescription>
-              {isEditing ? "Modify the template name and its checklist items below." : "Define a name and add items for your new reusable checklist template."}
+              {isEditing ? "Modify the template name and its checklist items below." : "Define a name and add items for your new reusable checklist template. You can add an optional observation prompt for each item."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -84,17 +85,17 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
 
             <div className="space-y-3">
               <FormLabel>Checklist Items</FormLabel>
-              <ScrollArea className="h-[300px] pr-3 border rounded-md">
+              <ScrollArea className="h-[400px] pr-3 border rounded-md">
                 <div className="space-y-3 p-3">
                 {fields.map((item, index) => (
-                  <Card key={item.id} className="p-3 bg-secondary/30 shadow-sm">
+                  <Card key={item.id} className="p-3 bg-secondary/30 shadow-sm space-y-2">
                     <div className="flex items-start gap-2">
                       <FormField
                         control={form.control}
                         name={`items.${index}.text`}
                         render={({ field }) => (
                           <FormItem className="flex-grow">
-                            <FormLabel className="sr-only">Item {index + 1} Text</FormLabel>
+                            <FormLabel className="text-sm font-medium">Item {index + 1} Text</FormLabel>
                             <FormControl>
                               <Textarea
                                 placeholder={`Enter text for item ${index + 1}`}
@@ -112,12 +113,33 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
                         variant="ghost"
                         size="icon"
                         onClick={() => remove(index)}
-                        className="text-destructive hover:bg-destructive/10 mt-1 shrink-0"
+                        className="text-destructive hover:bg-destructive/10 mt-6 shrink-0" 
                       >
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Remove Item</span>
                       </Button>
                     </div>
+                     <FormField
+                        control={form.control}
+                        name={`items.${index}.observationPrompt`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                                <MessageSquare className="h-3 w-3"/>
+                                Optional Initial Observation Prompt/Guidance
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="e.g., Check for oil leaks under the machine. Ensure safety guard is in place."
+                                {...field}
+                                rows={1}
+                                className="bg-background text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                   </Card>
                 ))}
                 </div>
@@ -126,7 +148,7 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => append({ id: crypto.randomUUID(), text: "" })}
+                onClick={() => append({ id: crypto.randomUUID(), text: "", observationPrompt: "" })}
               >
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Item
               </Button>

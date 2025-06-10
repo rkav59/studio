@@ -29,12 +29,17 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { PlusCircle, Trash2, AlertTriangle, Save, CheckCircle, XCircle, Edit3, CalendarIcon, User, FileText, MessageSquare } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Save, CheckCircle, XCircle, Edit3, CalendarIcon, User, FileText, MessageSquare, ListPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { SheqAudit, AuditChecklistItem, NonConformance } from "@/lib/types";
+import type { SheqAudit, AuditChecklistItem, NonConformance, AuditObservationEntry } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { cn } from "@/lib/utils";
+
+const auditObservationEntrySchema = z.object({
+    id: z.string(),
+    text: z.string().min(1, "Observation text cannot be empty.").max(2000, "Observation text is too long."),
+});
 
 const auditChecklistItemSchema = z.object({
   id: z.string(),
@@ -42,7 +47,7 @@ const auditChecklistItemSchema = z.object({
   status: z.enum(['Compliant', 'Non-Compliant', 'Not Applicable', 'Pending']),
   evidenceOrRemarks: z.string().max(1000, "Remarks too long.").optional(),
   responsiblePerson: z.string().max(100, "Responsible person name too long.").optional(),
-  observation: z.string().max(2000, "Observation text too long.").optional(),
+  observations: z.array(auditObservationEntrySchema),
   comments: z.string().max(2000, "Comments text too long.").optional(),
 });
 
@@ -90,6 +95,11 @@ const getDefaultNonConformanceValues = (): NonConformance => ({
     actionVerificationNotes: ""
 });
 
+const getDefaultObservationEntry = (): AuditObservationEntry => ({
+  id: crypto.randomUUID(),
+  text: "",
+});
+
 
 export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormProps) {
   const { toast } = useToast();
@@ -100,7 +110,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
       checklist: audit.checklist?.map(item => ({
         ...item,
         responsiblePerson: item.responsiblePerson || "",
-        observation: item.observation || "",
+        observations: item.observations && item.observations.length > 0 ? item.observations.map(obs => ({...obs})) : [],
         comments: item.comments || "",
       })) || [],
       nonConformances: audit.nonConformances?.map(nc => ({...getDefaultNonConformanceValues(), ...nc})) || [],
@@ -142,7 +152,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
       status: 'Pending',
       evidenceOrRemarks: '',
       responsiblePerson: '',
-      observation: '',
+      observations: [],
       comments: '',
     });
   };
@@ -161,16 +171,22 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
             <CardDescription>Go through each item, edit as needed, update status, and add remarks, responsible person, observations, and comments.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {checklistFields.map((item, index) => (
+            {checklistFields.map((item, checklistIndex) => {
+               const { fields: observationFields, append: appendObservation, remove: removeObservation } = useFieldArray({
+                control: form.control,
+                name: `checklist.${checklistIndex}.observations`
+              });
+
+              return (
               <Card key={item.id} className="p-4 bg-secondary/40 space-y-3">
                 <div className="flex justify-between items-start mb-2">
                     <div className="flex-grow mr-2">
                         <FormField
                             control={form.control}
-                            name={`checklist.${index}.text`}
+                            name={`checklist.${checklistIndex}.text`}
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel className="font-medium">Item {index + 1}</FormLabel>
+                                <FormLabel className="font-medium">Item {checklistIndex + 1}</FormLabel>
                                 <FormControl>
                                     <Textarea 
                                         placeholder="Checklist item description..." 
@@ -188,7 +204,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
                         type="button" 
                         variant="ghost" 
                         size="icon" 
-                        onClick={() => removeChecklistItem(index)}
+                        onClick={() => removeChecklistItem(checklistIndex)}
                         className="text-destructive hover:bg-destructive/10 mt-1"
                     >
                         <Trash2 className="h-4 w-4" />
@@ -199,7 +215,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name={`checklist.${index}.status`}
+                    name={`checklist.${checklistIndex}.status`}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Status</FormLabel>
@@ -222,7 +238,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
                   />
                    <FormField
                     control={form.control}
-                    name={`checklist.${index}.responsiblePerson`}
+                    name={`checklist.${checklistIndex}.responsiblePerson`}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center gap-1"><User className="h-4 w-4 text-muted-foreground"/>Responsible Person</FormLabel>
@@ -234,22 +250,53 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
                     )}
                   />
                 </div>
+
+                {/* Multiple Observations Section */}
+                <div className="space-y-2">
+                  <FormLabel className="flex items-center gap-1"><FileText className="h-4 w-4 text-muted-foreground"/>Observations</FormLabel>
+                  {observationFields.map((observationItem, observationIndex) => (
+                    <div key={observationItem.id} className="flex items-start gap-2 pl-4 border-l-2 border-muted/50 py-1">
+                      <FormField
+                        control={form.control}
+                        name={`checklist.${checklistIndex}.observations.${observationIndex}.text`}
+                        render={({ field }) => (
+                          <FormItem className="flex-grow">
+                             <FormLabel className="sr-only">Observation {observationIndex + 1}</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder={`Observation ${observationIndex + 1}...`} rows={2} {...field} className="bg-background"/>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeObservation(observationIndex)}
+                        className="text-destructive hover:bg-destructive/10 mt-1 shrink-0"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        <span className="sr-only">Remove Observation</span>
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => appendObservation(getDefaultObservationEntry())}
+                    className="text-primary border-primary hover:bg-primary/10"
+                  >
+                    <ListPlus className="mr-2 h-4 w-4" /> Add Observation
+                  </Button>
+                  <FormField name={`checklist.${checklistIndex}.observations`} control={form.control} render={() => <FormMessage />} />
+                </div>
+
+
                 <FormField
                   control={form.control}
-                  name={`checklist.${index}.observation`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1"><FileText className="h-4 w-4 text-muted-foreground"/>Observation</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Detailed observation for this item..." rows={2} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`checklist.${index}.comments`}
+                  name={`checklist.${checklistIndex}.comments`}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-1"><MessageSquare className="h-4 w-4 text-muted-foreground"/>Comments</FormLabel>
@@ -262,7 +309,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
                 />
                  <FormField
                   control={form.control}
-                  name={`checklist.${index}.evidenceOrRemarks`}
+                  name={`checklist.${checklistIndex}.evidenceOrRemarks`}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Evidence/Old Remarks (Optional)</FormLabel>
@@ -274,7 +321,8 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
                   )}
                 />
               </Card>
-            ))}
+              )
+            })}
             <Button
                 type="button"
                 variant="outline"

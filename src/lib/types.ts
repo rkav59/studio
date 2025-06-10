@@ -77,13 +77,18 @@ export interface RiskAssessmentSuggestionOutput {
 }
 
 // SHEQ Audit Types
+export interface AuditObservationEntry {
+  id: string;
+  text: string;
+}
+
 export interface AuditChecklistItem {
   id: string; // Unique ID for the instance of this item in an audit
   text: string;
   status: 'Compliant' | 'Non-Compliant' | 'Not Applicable' | 'Pending';
   evidenceOrRemarks?: string;
   responsiblePerson?: string;
-  observation?: string;
+  observations: AuditObservationEntry[]; // Changed from single observation to array
   comments?: string;
 }
 
@@ -105,6 +110,7 @@ export interface NonConformance {
 export interface ChecklistItemTemplate {
   id: string; // Unique ID for the template item
   text: string;
+  observationPrompt?: string; // Optional prompt for the initial observation
 }
 
 export interface ChecklistTemplate {
