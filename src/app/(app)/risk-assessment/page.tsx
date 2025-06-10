@@ -23,19 +23,19 @@ import { riskAssessmentMethodsList, type DescriptiveRiskAssessmentMethod } from 
 const LOCAL_STORAGE_KEY = 'sheild-risk-assessments-v2';
 
 const stringToRiskControlItems = (str: string | undefined | null): RiskControlItem[] => {
-  if (!str) return []; // Return empty array if no string
+  if (!str) return []; 
   const lines = str.split('\n').map(line => ({ value: line.trim() })).filter(item => item.value);
-  return lines.length > 0 ? lines : []; // Return empty if only whitespace lines
+  return lines.length > 0 ? lines : []; 
 };
 
 const defaultRiskControlItem = (): RiskControlItem => ({ value: "" });
 const defaultRiskEntry = (): RiskEntry => ({
-    risk: { value: "" }, // Risk description defaults to empty
-    existingControls: [],
-    proposedControls: []
+    risk: { value: "" }, 
+    existingControls: [defaultRiskControlItem()],
+    proposedControls: [defaultRiskControlItem()]
 });
 const defaultHazardEntry = (): HazardEntry => ({
-    hazard: { value: "" }, // Hazard description defaults to empty
+    hazard: { value: "" }, 
     assessedRisks: [defaultRiskEntry()]
 });
 
@@ -62,7 +62,7 @@ export default function RiskAssessmentPage() {
             hazard: he.hazard || defaultRiskControlItem(), 
             assessedRisks: (he.assessedRisks || []).map(ar => ({
               ...ar,
-              risk: ar.risk || { value: "" }, // risk.value is now optional
+              risk: ar.risk || { value: "" }, 
               existingControls: (ar.existingControls || []).map(c => typeof c === 'string' ? {value: c} : (c || defaultRiskControlItem())),
               proposedControls: (ar.proposedControls || []).map((c: any) => typeof c === 'string' ? {value: c} : (c || defaultRiskControlItem())),
             }))
@@ -116,21 +116,57 @@ export default function RiskAssessmentPage() {
     setViewingAssessment(assessment);
   };
 
-  const handleUseAiSuggestion = (suggestion: RiskAssessmentSuggestionOutput, activityInput: string, hazardsInput: string) => {
-    const prefillHazardEntry: HazardEntry = {
-      hazard: { value: hazardsInput || "AI Suggested Hazard (Please Review)" },
-      assessedRisks: [
-        {
-          risk: { value: suggestion.potentialRisks || "AI Suggested Risk (Please Review)" }, // risk.value is now optional
-          existingControls: [], 
-          proposedControls: stringToRiskControlItems(suggestion.recommendedControls),
-        },
-      ],
-    };
+  const handleUseAiSuggestion = (suggestion: RiskAssessmentSuggestionOutput, activityInput: string, hazardsInputFromAIForm: string) => {
+    const parsedHazardTexts = hazardsInputFromAIForm.split('\n').map(h => h.trim()).filter(h => h);
+    const parsedRiskTexts = suggestion.potentialRisks.split('\n').map(r => r.trim()).filter(r => r);
+    const parsedControlItems = stringToRiskControlItems(suggestion.recommendedControls);
+
+    const newHazardEntries: HazardEntry[] = [];
+
+    const effectiveHazardTexts = parsedHazardTexts.length > 0 ? parsedHazardTexts : ["AI Suggested Hazard (Please Review)"];
+
+    effectiveHazardTexts.forEach(hazardText => {
+      const assessedRisksForThisHazard: RiskEntry[] = [];
+      const effectiveRiskTexts = parsedRiskTexts.length > 0 ? parsedRiskTexts : ["AI Suggested Risk (Please Review)"];
+
+      effectiveRiskTexts.forEach(riskText => {
+        // Create new instances of control items for each risk entry
+        const currentProposedControls = parsedControlItems.length > 0 
+            ? parsedControlItems.map(c => ({ ...c, id: undefined })) // Ensure new items if needed by form keys
+            : [defaultRiskControlItem()]; 
+
+        assessedRisksForThisHazard.push({
+          id: undefined, 
+          risk: { value: riskText },
+          existingControls: [defaultRiskControlItem()], 
+          proposedControls: currentProposedControls,
+        });
+      });
+
+      newHazardEntries.push({
+        id: undefined, 
+        hazard: { value: hazardText },
+        assessedRisks: assessedRisksForThisHazard,
+      });
+    });
+    
+    // Fallback if somehow newHazardEntries is still empty
+    if (newHazardEntries.length === 0) {
+        const fallbackRiskEntry = defaultRiskEntry();
+        if (parsedControlItems.length > 0) {
+            fallbackRiskEntry.proposedControls = parsedControlItems.map(c => ({ ...c, id: undefined }));
+        }
+        newHazardEntries.push({
+            id: undefined,
+            hazard: {value: "AI Suggested Hazard (Please Review)"},
+            assessedRisks: [fallbackRiskEntry]
+        });
+    }
+
 
     setAiPrefillData({
       activity: activityInput,
-      hazardEntries: [prefillHazardEntry],
+      hazardEntries: newHazardEntries,
       methodUsed: suggestion.suggestedMethod as RiskAssessmentMethod,
       assessmentDate: new Date().toISOString(),
       assessor: "",
@@ -201,24 +237,31 @@ export default function RiskAssessmentPage() {
           const hazardText = escapeCsvCell(he.hazard?.value);
           if (he.assessedRisks && he.assessedRisks.length > 0) {
             he.assessedRisks.forEach(ar => {
-              const riskText = escapeCsvCell(ar.risk?.value); // risk.value is optional
+              const riskText = escapeCsvCell(ar.risk?.value); 
 
+              let riskHasControls = false;
               if (ar.existingControls && ar.existingControls.length > 0) {
                 ar.existingControls.forEach(cm => {
-                  const controlText = escapeCsvCell(cm?.value);
-                  csvRows.push([...commonData, hazardText, riskText, "Existing", controlText].join(','));
+                  if (cm?.value && cm.value.trim() !== '') {
+                    const controlText = escapeCsvCell(cm.value);
+                    csvRows.push([...commonData, hazardText, riskText, "Existing", controlText].join(','));
+                    riskHasControls = true;
+                  }
                 });
-              } else if (!ar.proposedControls || ar.proposedControls.length === 0) {
-                if (hazardText || riskText) {
-                    csvRows.push([...commonData, hazardText, riskText, "", ""].join(','));
-                }
               }
 
               if (ar.proposedControls && ar.proposedControls.length > 0) {
                 ar.proposedControls.forEach(cm => {
-                  const controlText = escapeCsvCell(cm?.value);
-                  csvRows.push([...commonData, hazardText, riskText, "Proposed", controlText].join(','));
+                   if (cm?.value && cm.value.trim() !== '') {
+                    const controlText = escapeCsvCell(cm.value);
+                    csvRows.push([...commonData, hazardText, riskText, "Proposed", controlText].join(','));
+                    riskHasControls = true;
+                  }
                 });
+              }
+              
+              if (!riskHasControls && (hazardText || riskText)) { 
+                  csvRows.push([...commonData, hazardText, riskText, "", ""].join(','));
               }
             });
           } else if (hazardText) { 
