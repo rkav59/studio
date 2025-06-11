@@ -184,35 +184,14 @@ export function OverviewCards() {
   );
 }
 
-// IncidentTypeChart remains unchanged as it's a BarChart, not using KpiCard
+// IncidentTypeChart now only has a header
 export function IncidentTypeChart() {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Incidents by Type</CardTitle>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={incidentTypeChartConfig} className="h-[250px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={MOCK_INCIDENTS_BY_TYPE_DATA} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false}/>
-              <XAxis dataKey="type" tickLine={false} axisLine={false} />
-              <YAxis tickLine={false} axisLine={false} />
-              <Tooltip
-                contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)'}}
-                itemStyle={{ color: 'hsl(var(--foreground))' }}
-                cursor={{fill: 'hsl(var(--muted))'}}
-              />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                 {MOCK_INCIDENTS_BY_TYPE_DATA.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartContainer>
-      </CardContent>
+      {/* CardContent containing the chart has been removed */}
     </Card>
   );
 }
-
