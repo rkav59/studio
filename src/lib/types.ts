@@ -25,26 +25,26 @@ export interface Inspection {
 }
 
 // Risk Assessment Types
-export interface RiskControlItem { 
-  id?: string; 
-  value?: string; 
+export interface RiskControlItem {
+  id?: string;
+  value?: string;
 }
 
 export interface RiskEntry {
   id?: string;
-  risk: RiskControlItem; 
-  existingControls: RiskControlItem[]; 
-  proposedControls: RiskControlItem[]; 
+  risk: RiskControlItem;
+  existingControls: RiskControlItem[];
+  proposedControls: RiskControlItem[];
 }
 
 export interface HazardEntry {
   id?: string;
-  hazard: RiskControlItem; 
-  assessedRisks: RiskEntry[]; 
-  residualRiskLevel?: 'Low' | 'Medium' | 'High'; 
+  hazard: RiskControlItem;
+  assessedRisks: RiskEntry[];
+  residualRiskLevel?: 'Low' | 'Medium' | 'High';
 }
 
-export type RiskAssessmentMethod = 
+export type RiskAssessmentMethod =
   | "Job Safety Analysis (JSA)"
   | "Hazard Identification (HAZID)"
   | "Hazard and Operability Study (HAZOP)"
@@ -55,11 +55,11 @@ export type RiskAssessmentMethod =
   | "Preliminary Hazard Analysis (PHA)";
 
 export interface RiskAssessment {
-  id: string; 
+  id: string;
   activity: string;
-  hazardEntries: HazardEntry[]; 
+  hazardEntries: HazardEntry[];
   methodUsed?: RiskAssessmentMethod;
-  assessmentDate: string; 
+  assessmentDate: string;
   assessor: string;
 }
 
@@ -72,7 +72,7 @@ export interface RiskAssessmentSuggestionOutput {
     administrative?: string[];
     ppe?: string[];
   };
-  suggestedMethod: string; 
+  suggestedMethod: string;
 }
 
 // SHEQ Audit Types
@@ -87,7 +87,7 @@ export interface AuditChecklistItem {
   status: 'Compliant' | 'Non-Compliant' | 'Not Applicable' | 'Pending';
   evidenceOrRemarks?: string;
   responsiblePerson?: string;
-  observations: AuditObservationEntry[]; 
+  observations: AuditObservationEntry[];
   comments?: string;
 }
 
@@ -97,8 +97,8 @@ export interface NonConformance {
   severity: 'Minor' | 'Major' | 'Critical';
   relatedChecklistItemId?: string; // Optional link to a checklist item
   relatedIncidentId?: string; // Optional link to an incident
-  correctiveActionsProposed?: string; 
-  preventiveActionsProposed?: string; 
+  correctiveActionsProposed?: string;
+  preventiveActionsProposed?: string;
   actionAssignedTo?: string;
   actionDueDate?: string; // ISO Date string
   actionStatus?: 'Open' | 'In Progress' | 'Completed' | 'Overdue';
@@ -109,9 +109,9 @@ export interface NonConformance {
 export interface ChecklistItemTemplate {
   id: string; // Unique ID for the template item
   text: string;
-  observationPrompt?: string; // Optional prompt for the initial observation
-  defaultResponsiblePerson?: string; // Optional default responsible person
-  defaultComments?: string; // Optional default comments
+  observationPrompt?: string;
+  defaultResponsiblePerson?: string;
+  defaultComments?: string;
 }
 
 export interface ChecklistTemplate {
@@ -232,7 +232,7 @@ export interface IncidentInvestigation {
   investigationDate: string; // ISO string
   investigators: string; // Comma-separated list of names or a team name
   techniqueUsed?: InvestigationTechnique;
-  
+
   // Technique-specific details
   fiveWhysDetails?: FiveWhyDetail[];
   fishboneCategories?: FishboneCategory[];
@@ -292,39 +292,92 @@ export interface PermitToWork {
 }
 
 
-export interface PpeLog {
+// PPE Management Types
+export interface PpeItem {
   id: string;
-  ppeType: string;
-  employeeId: string; 
-  issueDate: string;
-  returnDate?: string;
-  condition: string; 
+  name: string; // e.g., "Safety Helmet Class A"
+  type: string; // e.g., "Hard Hat", "Safety Glasses", "Respirator"
+  category: string; // e.g., "Head Protection", "Eye Protection", "Respiratory Protection"
+  specifications?: string; // e.g., "EN397, ANSI Z89.1 Type I Class E", "Size L"
+  currentStock: number;
+  reorderLevel: number;
+  supplier?: string;
+  lastStocktakeDate?: string; // ISO string
 }
 
-export interface PpeAudit {
+export interface PpeIssuanceRecord {
   id: string;
-  area: string;
-  auditDate: string;
-  auditor: string;
-  complianceRate: number; 
-  nonCompliances: string; 
+  ppeItemId: string; // Links to PpeItem.id
+  employeeName: string;
+  jobRole?: string;
+  issuedDate: string; // ISO string
+  quantityIssued: number;
+  expectedReturnDate?: string; // ISO string
+  actualReturnDate?: string; // ISO string
+  conditionOnReturn?: 'Good' | 'Damaged' | 'Lost';
+  notes?: string;
 }
 
+export interface PpeInspectionChecklistItem {
+  id: string;
+  text: string;
+  status: 'Pass' | 'Fail' | 'N/A';
+  remarks?: string;
+}
+
+export interface PpeInspectionRecord {
+  id: string;
+  ppeItemId: string; // Can link to a specific item from inventory or be a general type
+  uniquePpeIdentifier?: string; // Optional: for tracking individual serialized PPE
+  inspectionDate: string; // ISO string
+  inspectorName: string;
+  checklist: PpeInspectionChecklistItem[];
+  overallStatus: 'Good' | 'Requires Repair' | 'To be Replaced';
+  nextInspectionDate?: string; // ISO string
+  notes?: string;
+}
+
+export interface PpeComplianceAuditChecklistItem {
+  id: string;
+  question: string; // e.g., "Is appropriate PPE being worn for the task?"
+  isCompliant: boolean;
+  observations?: string;
+}
+
+export interface PpeComplianceAudit {
+  id: string;
+  auditDate: string; // ISO string
+  areaAudited: string;
+  auditorName: string;
+  checklist: PpeComplianceAuditChecklistItem[];
+  overallComplianceScore?: number; // Optional, e.g., percentage
+  findingsSummary?: string;
+  recommendations?: string;
+}
+
+export interface PpeJobRoleMatrixEntry {
+  id: string;
+  jobRole: string;
+  requiredPpeItemIds: string[]; // Array of PpeItem.id
+  riskAssessmentReference?: string; // Optional reference to a RA
+}
+
+// Medical Screening & Health Monitoring
 export interface MedicalScreeningRecord {
   id: string;
-  employeeId: string; 
+  employeeId: string;
   screeningDate: string;
-  screeningType: string; 
+  screeningType: string;
   resultsSummary: string;
   fitToWork: boolean;
 }
 
 export interface HealthMonitoringRecord {
   id: string;
-  employeeId: string; 
+  employeeId: string;
   monitoringDate: string;
-  parameter: string; 
-  value: string; 
+  parameter: string;
+  value: string;
   notes?: string;
 }
 
