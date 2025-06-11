@@ -181,11 +181,13 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
         </DialogDescription>
       </DialogHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-grow min-h-0">
-          <ScrollArea className="flex-grow pr-6 space-y-6 mb-4">
-            {/* Basic Info */}
-            <Card className="p-4">
-              <UICardHeader className="p-2">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-grow min-h-0 overflow-hidden">
+          
+          <ScrollArea className="flex-grow min-h-0">
+            <div className="p-6 space-y-6">
+            {/* Basic Info Card */}
+            <Card>
+              <UICardHeader className="p-2 pt-0">
                 <UICardTitle className="text-lg">Basic Information</UICardTitle>
               </UICardHeader>
               <CardContent className="space-y-4 p-2">
@@ -212,9 +214,9 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
               </CardContent>
             </Card>
 
-            {/* Investigation Technique & Details */}
-            <Card className="p-4">
-                <UICardHeader className="p-2">
+            {/* Investigation Technique & Details Card */}
+            <Card>
+                <UICardHeader className="p-2 pt-0">
                     <UICardTitle className="text-lg">Investigation Details</UICardTitle>
                 </UICardHeader>
                 <CardContent className="space-y-4 p-2">
@@ -320,9 +322,9 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
                 </CardContent>
             </Card>
             
-            {/* Evidence and Witness Statements */}
-            <Card className="p-4">
-                <UICardHeader className="p-2">
+            {/* Evidence and Witness Statements Card */}
+            <Card>
+                <UICardHeader className="p-2 pt-0">
                     <UICardTitle className="text-lg">Evidence & Witness Information</UICardTitle>
                 </UICardHeader>
                  <CardContent className="space-y-4 p-2">
@@ -344,9 +346,9 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
             </Card>
 
 
-            {/* Summary & CAPAs */}
-            <Card className="p-4">
-                <UICardHeader className="p-2">
+            {/* Summary & CAPAs Card */}
+            <Card>
+                <UICardHeader className="p-2 pt-0">
                     <UICardTitle className="text-lg">Findings & Actions</UICardTitle>
                 </UICardHeader>
                 <CardContent className="space-y-4 p-2">
@@ -413,9 +415,9 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
                 </CardContent>
             </Card>
 
-            {/* Status */}
-            <Card className="p-4">
-              <UICardHeader className="p-2">
+            {/* Status Card */}
+            <Card>
+              <UICardHeader className="p-2 pt-0">
                 <UICardTitle className="text-lg">Investigation Status</UICardTitle>
               </UICardHeader>
               <CardContent className="p-2">
@@ -431,9 +433,10 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
                 )}/>
               </CardContent>
             </Card>
-
+            </div>
           </ScrollArea>
-          <DialogFooter className="pt-6 border-t mt-2"> {/* Reduced top margin for footer */}
+          
+          <DialogFooter className="pt-4 border-t flex-shrink-0">
             <DialogClose asChild>
               <Button type="button" variant="outline" onClick={onCancel}>
                 <XCircle className="mr-2 h-4 w-4" /> Cancel
