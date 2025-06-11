@@ -164,11 +164,17 @@ export interface TrainingRecord {
 
 export interface EmergencyPlan {
   id: string;
-  planType: 'Evacuation' | 'Fire Response' | 'Medical Emergency' | 'Spill Response';
-  location: string;
-  description: string;
-  lastReviewedDate: string;
-  nextReviewDate: string;
+  planName: string;
+  planType: 'Evacuation' | 'Fire Response' | 'Medical Emergency' | 'Spill Response' | 'Other';
+  scope: string;
+  description?: string;
+  keyPersonnelAndRoles?: string;
+  emergencyProcedures?: string;
+  evacuationRoutesDescription?: string;
+  emergencyContacts?: string;
+  equipmentNeeded?: string;
+  lastReviewedDate?: string; // ISO Date string
+  nextReviewDate?: string; // ISO Date string
 }
 
 export interface MockDrill {
