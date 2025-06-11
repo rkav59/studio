@@ -1,49 +1,336 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+"use client";
+
+import { useState, useEffect } from 'react';
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { PlusCircle, Edit2, Trash2, Eye, FileSearch, AlertTriangle, CheckCircle2 } from "lucide-react";
+import type { IncidentInvestigation, CorrectiveAction, InvestigationTechnique } from "@/lib/types";
+import { investigationTechniques } from "@/lib/types";
+import { InvestigationForm } from "@/components/incident-investigation/investigation-form";
+import { useToast } from '@/hooks/use-toast';
+import { format, parseISO, isValid } from 'date-fns';
+import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+
+const INVESTIGATIONS_STORAGE_KEY = 'sheild-incident-investigations-v1';
 
 export default function IncidentInvestigationPage() {
+  const { toast } = useToast();
+  const [investigations, setInvestigations] = useState<IncidentInvestigation[]>([]);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingInvestigation, setEditingInvestigation] = useState<IncidentInvestigation | null>(null);
+  const [viewingInvestigation, setViewingInvestigation] = useState<IncidentInvestigation | null>(null);
+
+  useEffect(() => {
+    try {
+      const storedInvestigations = localStorage.getItem(INVESTIGATIONS_STORAGE_KEY);
+      if (storedInvestigations) {
+        setInvestigations(JSON.parse(storedInvestigations));
+      }
+    } catch (error) {
+      console.error("Error loading investigations from localStorage:", error);
+      toast({ title: "Error", description: "Could not load investigations.", variant: "destructive" });
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(INVESTIGATIONS_STORAGE_KEY, JSON.stringify(investigations));
+    } catch (error) {
+      console.error("Error saving investigations to localStorage:", error);
+    }
+  }, [investigations]);
+
+  const handleOpenNewInvestigationForm = () => {
+    setEditingInvestigation(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEditInvestigation = (investigation: IncidentInvestigation) => {
+    setEditingInvestigation(investigation);
+    setIsFormOpen(true);
+  };
+
+  const handleDeleteInvestigation = (investigationId: string) => {
+    setInvestigations(prev => prev.filter(inv => inv.id !== investigationId));
+    toast({ title: "Investigation Deleted", description: "The incident investigation has been deleted." });
+  };
+
+  const handleSaveInvestigation = (data: Omit<IncidentInvestigation, 'id'>) => {
+    if (editingInvestigation) {
+      setInvestigations(prev => prev.map(inv => inv.id === editingInvestigation.id ? { ...editingInvestigation, ...data } : inv));
+      toast({ title: "Investigation Updated", description: `Investigation "${data.investigationTitle}" has been updated.` });
+    } else {
+      const newInvestigation: IncidentInvestigation = { id: crypto.randomUUID(), ...data };
+      setInvestigations(prev => [newInvestigation, ...prev]);
+      toast({ title: "Investigation Created", description: `New investigation "${data.investigationTitle}" has been created.` });
+    }
+    setIsFormOpen(false);
+    setEditingInvestigation(null);
+  };
+
+  const getStatusColor = (status: IncidentInvestigation['status'] | CorrectiveAction['status']) => {
+    switch (status) {
+      case 'Open': return 'bg-blue-100 text-blue-700 dark:bg-blue-700/30 dark:text-blue-300';
+      case 'In Progress': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-700/30 dark:text-yellow-300';
+      case 'Review': return 'bg-purple-100 text-purple-700 dark:bg-purple-700/30 dark:text-purple-300';
+      case 'Completed': return 'bg-green-100 text-green-700 dark:bg-green-700/30 dark:text-green-300';
+      case 'Closed': return 'bg-gray-100 text-gray-700 dark:bg-gray-700/30 dark:text-gray-300';
+      case 'Overdue': return 'bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-300';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
+  
+  const getStatusIcon = (status: IncidentInvestigation['status'] | CorrectiveAction['status']) => {
+    switch (status) {
+      case 'Open':
+      case 'In Progress':
+      case 'Review':
+        return <AlertTriangle className="h-3 w-3" />;
+      case 'Completed':
+      case 'Closed':
+        return <CheckCircle2 className="h-3 w-3" />;
+      case 'Overdue':
+        return <AlertTriangle className="h-3 w-3 text-red-500" />; // Explicitly color for overdue
+      default: return null;
+    }
+  };
+
+  const InvestigationDetailView = ({ investigation }: { investigation: IncidentInvestigation }) => (
+    <ScrollArea className="max-h-[70vh] pr-3 text-sm">
+      <div className="space-y-4">
+        <p><strong>Incident ID:</strong> {investigation.incidentId}</p>
+        <p><strong>Investigation Date:</strong> {investigation.investigationDate && isValid(parseISO(investigation.investigationDate)) ? format(parseISO(investigation.investigationDate), "PPP") : "N/A"}</p>
+        <p><strong>Investigator(s):</strong> {investigation.investigators || "N/A"}</p>
+        <p><strong>Technique Used:</strong> {investigationTechniques.find(t => t.name === investigation.techniqueUsed)?.label || "N/A"}</p>
+        <p><strong>Status:</strong> <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${getStatusColor(investigation.status)}`}><StatusIcon status={investigation.status} /> {investigation.status}</span></p>
+        
+        <Separator />
+        
+        {investigation.techniqueUsed === 'FiveWhys' && investigation.fiveWhysDetails && (
+          <div>
+            <h4 className="font-semibold mb-1">5 Whys Details:</h4>
+            <ul className="list-decimal list-inside space-y-1 pl-2">
+              {investigation.fiveWhysDetails.map(item => (
+                <li key={item.id}><strong>Why:</strong> {item.why} <br/><span className="text-muted-foreground"><strong>Because:</strong> {item.because}</span></li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        {investigation.techniqueUsed === 'GenericRCA' && investigation.genericRcaDetails && (
+          <div>
+            <h4 className="font-semibold mb-1">Generic RCA Details:</h4>
+            <p><strong>Problem Statement:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.genericRcaDetails.problemStatement || "N/A"}</span></p>
+            <p><strong>Contributing Factors:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.genericRcaDetails.contributingFactors || "N/A"}</span></p>
+            <p><strong>Root Cause Summary:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.genericRcaDetails.rootCauseSummary || "N/A"}</span></p>
+          </div>
+        )}
+
+        {investigation.techniqueUsed === 'FishboneIshikawa' && investigation.fishboneCategories && (
+          <div>
+            <h4 className="font-semibold mb-1">Fishbone/Ishikawa Details:</h4>
+            {investigation.fishboneCategories.map(cat => (
+              <div key={cat.id} className="mb-2">
+                <p><strong>Category: {cat.categoryName}</strong></p>
+                <ul className="list-disc list-inside pl-4 text-muted-foreground">
+                  {cat.causes.map(cause => <li key={cause.id}>{cause.causeText}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {investigation.techniqueUsed === 'SCAT' && investigation.scatDetails && (
+           <div>
+            <h4 className="font-semibold mb-1">SCAT Details:</h4>
+            <p><strong>Summary of Events:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.scatDetails.summaryOfEvents || "N/A"}</span></p>
+            <p><strong>Immediate Causes:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.scatDetails.immediateCauses || "N/A"}</span></p>
+            <p><strong>Underlying Factors:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.scatDetails.underlyingFactors || "N/A"}</span></p>
+             <p><strong>System Deficiencies:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.scatDetails.systemDeficiencies || "N/A"}</span></p>
+          </div>
+        )}
+
+        <Separator />
+        <div>
+            <h4 className="font-semibold mb-1">Summary of Findings:</h4>
+            <p className="whitespace-pre-wrap text-muted-foreground">{investigation.summaryOfFindings || "N/A"}</p>
+        </div>
+        <Separator />
+        <div>
+            <h4 className="font-semibold mb-1">Corrective and Preventive Actions (CAPAs):</h4>
+            {investigation.correctiveActions && investigation.correctiveActions.length > 0 ? (
+                <ul className="space-y-2">
+                {investigation.correctiveActions.map(capa => (
+                    <li key={capa.id} className="p-2 border rounded bg-muted/30">
+                    <p><strong>Action:</strong> {capa.description}</p>
+                    <p><strong>Responsible:</strong> {capa.responsiblePerson}</p>
+                    <p><strong>Due Date:</strong> {capa.dueDate && isValid(parseISO(capa.dueDate)) ? format(parseISO(capa.dueDate), "PPP") : "N/A"}</p>
+                    <p><strong>Status:</strong> <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${getStatusColor(capa.status)}`}><StatusIcon status={capa.status} />{capa.status}</span></p>
+                    {capa.status === 'Completed' && capa.completionDate && <p><strong>Completed:</strong> {format(parseISO(capa.completionDate), "PPP")}</p>}
+                    {capa.verificationNotes && <p><strong>Verification:</strong> {capa.verificationNotes}</p>}
+                    </li>
+                ))}
+                </ul>
+            ) : <p className="text-muted-foreground italic">No CAPAs documented.</p>}
+        </div>
+      </div>
+    </ScrollArea>
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight font-headline">Incident Investigation</h1>
-      </div>
-
       <Card className="shadow-lg overflow-hidden">
         <div className="relative h-60 w-full">
-            <Image 
-                src="https://placehold.co/1200x400.png" 
-                alt="Investigators at a scene" 
-                layout="fill" 
-                objectFit="cover"
-                data-ai-hint="investigation team"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-0 left-0 p-6">
-                <h2 className="text-2xl font-semibold text-white font-headline">Learn and Prevent</h2>
-                <p className="text-sm text-neutral-300">Thoroughly investigate incidents to prevent recurrence.</p>
-            </div>
+          <Image 
+            src="https://placehold.co/1200x400.png" 
+            alt="Investigators at a scene" 
+            layout="fill" 
+            objectFit="cover"
+            data-ai-hint="investigation team"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className="absolute bottom-0 left-0 p-6">
+            <h1 className="text-3xl font-bold tracking-tight font-headline text-white">Incident Investigation</h1>
+            <p className="text-sm text-neutral-300">Thoroughly investigate incidents to learn and prevent recurrence.</p>
+          </div>
         </div>
         <CardContent className="pt-6">
-            <p className="text-muted-foreground">
-                This module provides tools for conducting detailed incident and accident investigations. 
-                Identify root causes, document findings, and manage corrective and preventive actions (CAPA) to enhance safety performance.
-            </p>
-            <div className="mt-6 p-6 border rounded-lg bg-secondary/30">
-                <h3 className="font-semibold text-lg">Investigation & CAPA Tools</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                    Key features to be developed:
-                </p>
-                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-                    <li>Guided investigation workflow (e.g., 5 Whys, Fishbone, SCAT).</li>
-                    <li>Evidence logging: photo/video uploads, document attachment, witness statement forms.</li>
-                    <li>Root Cause Analysis (RCA) toolkit and documentation.</li>
-                    <li>Corrective and Preventive Action (CAPA) assignment, tracking, and verification.</li>
-                    <li>AI-assisted root cause suggestion based on incident details (potential).</li>
-                    <li>Trend analysis of investigation findings and CAPA effectiveness.</li>
-                    <li>Investigation report generation.</li>
-                </ul>
+          <p className="text-muted-foreground">
+            This module provides tools for conducting detailed incident investigations. 
+            Select an investigation technique, document findings, identify root causes, and manage corrective and preventive actions (CAPA).
+          </p>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+                <CardTitle className="flex items-center gap-2"><FileSearch className="h-6 w-6 text-primary"/>Investigation Register</CardTitle>
+                <CardDescription>Manage your incident investigations. All data is stored locally.</CardDescription>
             </div>
+            <Button onClick={handleOpenNewInvestigationForm} className="bg-primary hover:bg-primary/90">
+                <PlusCircle className="mr-2 h-4 w-4" /> Start New Investigation
+            </Button>
+        </CardHeader>
+        <CardContent>
+            {investigations.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">No investigations started yet.</p>
+            ) : (
+                <ScrollArea className="max-h-[600px] pr-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {investigations.map(inv => (
+                            <Card key={inv.id} className="shadow-md flex flex-col">
+                                <CardHeader>
+                                    <CardTitle className="truncate text-lg">{inv.investigationTitle}</CardTitle>
+                                    <CardDescription>Incident ID: {inv.incidentId}</CardDescription>
+                                </CardHeader>
+                                <CardContent className="flex-grow text-xs space-y-1">
+                                    <p>Date: {inv.investigationDate && isValid(parseISO(inv.investigationDate)) ? format(parseISO(inv.investigationDate), "PPP") : "N/A"}</p>
+                                    <p>Technique: {investigationTechniques.find(t => t.name === inv.techniqueUsed)?.label || "N/A"}</p>
+                                    <p>Status: <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1 ${getStatusColor(inv.status)}`}><StatusIcon status={inv.status} /> {inv.status}</span></p>
+                                </CardContent>
+                                <CardFooter className="flex flex-wrap gap-2 justify-start border-t pt-4">
+                                    <Button variant="outline" size="sm" onClick={() => setViewingInvestigation(inv)}>
+                                        <Eye className="mr-1 h-3 w-3" /> View
+                                    </Button>
+                                    <Button variant="secondary" size="sm" onClick={() => handleEditInvestigation(inv)}>
+                                        <Edit2 className="mr-1 h-3 w-3" /> Edit
+                                    </Button>
+                                     <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="destructive" size="sm">
+                                                <Trash2 className="mr-1 h-3 w-3" /> Delete
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                This action cannot be undone. This will permanently delete the investigation "{inv.investigationTitle}".
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteInvestigation(inv.id)}>
+                                                Delete Investigation
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                    </div>
+                </ScrollArea>
+            )}
+        </CardContent>
+      </Card>
+
+    {viewingInvestigation && (
+        <Dialog open={!!viewingInvestigation} onOpenChange={() => setViewingInvestigation(null)}>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-primary">
+                        <FileSearch className="h-6 w-6"/>
+                        {viewingInvestigation.investigationTitle}
+                    </DialogTitle>
+                    <DialogDescription>
+                        Details of the incident investigation.
+                    </DialogDescription>
+                </DialogHeader>
+                <InvestigationDetailView investigation={viewingInvestigation} />
+                <DialogFooter className="pt-4 border-t">
+                    <DialogClose asChild>
+                        <Button variant="outline">Close</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+      )}
+      
+      {isFormOpen && (
+        <Dialog open={isFormOpen} onOpenChange={(isOpen) => { if(!isOpen) { setIsFormOpen(false); setEditingInvestigation(null); }}}>
+            <InvestigationForm
+                initialData={editingInvestigation}
+                onSave={handleSaveInvestigation}
+                onCancel={() => { setIsFormOpen(false); setEditingInvestigation(null); }}
+            />
+        </Dialog>
+      )}
+      
+      <Separator className="my-8"/>
+
+      <Card className="shadow-lg">
+        <CardHeader>
+            <CardTitle>Investigation Tools - Future Enhancements</CardTitle>
+        </CardHeader>
+        <CardContent>
+            <p className="text-sm text-muted-foreground mt-2 mb-2">
+                The current module provides core investigation documentation. Future capabilities could include:
+            </p>
+            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                <li>More interactive visual tools for Fishbone diagrams.</li>
+                <li>Evidence logging: photo/video uploads, document attachment, witness statement forms.</li>
+                <li>AI-assisted root cause suggestion based on incident details (potential).</li>
+                <li>Trend analysis of investigation findings and CAPA effectiveness.</li>
+                <li>Investigation report generation.</li>
+            </ul>
         </CardContent>
       </Card>
     </div>

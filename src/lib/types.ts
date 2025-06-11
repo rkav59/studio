@@ -177,33 +177,74 @@ export interface EmergencyPlan {
   nextReviewDate?: string; // ISO Date string
 }
 
-export interface MockDrill {
+// Incident Investigation Types
+export type InvestigationTechnique = 'FiveWhys' | 'FishboneIshikawa' | 'SCAT' | 'GenericRCA';
+
+export const investigationTechniques: { name: InvestigationTechnique; label: string }[] = [
+  { name: 'FiveWhys', label: '5 Whys' },
+  { name: 'FishboneIshikawa', label: 'Fishbone (Ishikawa) Diagram' },
+  { name: 'SCAT', label: 'Systematic Cause Analysis Technique (SCAT)' },
+  { name: 'GenericRCA', label: 'Generic Root Cause Analysis' },
+];
+
+export interface FiveWhyDetail {
   id: string;
-  emergencyPlanId: string;
-  drillDate: string;
-  scenario: string;
-  participants: string[]; 
-  observations: string;
-  lessonsLearned: string;
+  why: string;
+  because: string;
 }
 
-export interface IncidentInvestigation {
+export interface FishboneCause {
   id: string;
-  incidentId: string; 
-  investigationDate: string;
-  investigators: string[]; 
-  rootCauses: string; 
-  correctiveActions: CorrectiveAction[];
-  status: 'Open' | 'Pending Review' | 'Closed';
+  causeText: string;
+}
+export interface FishboneCategory {
+  id: string;
+  categoryName: string; // e.g., People, Process, Equipment, Environment, Management, Materials
+  causes: FishboneCause[];
+}
+
+export interface ScatDetails {
+  summaryOfEvents?: string;
+  immediateCauses?: string; // What directly caused the incident
+  underlyingFactors?: string; // Conditions that allowed immediate causes to exist
+  systemDeficiencies?: string; // Failures in management systems, procedures, training
+}
+
+export interface GenericRcaDetails {
+  problemStatement?: string;
+  contributingFactors?: string; // Multi-line
+  rootCauseSummary?: string; // The fundamental reason(s)
 }
 
 export interface CorrectiveAction {
   id: string;
   description: string;
   responsiblePerson: string;
-  dueDate: string;
+  dueDate: string; // ISO string
   status: 'Open' | 'In Progress' | 'Completed' | 'Overdue';
+  completionDate?: string; // ISO string
+  verificationNotes?: string;
 }
+
+export interface IncidentInvestigation {
+  id: string;
+  incidentId: string; // Link to an Incident (for now, manually entered ID)
+  investigationTitle: string; // User-defined title for the investigation
+  investigationDate: string; // ISO string
+  investigators: string; // Comma-separated list of names or a team name
+  techniqueUsed?: InvestigationTechnique;
+  
+  // Technique-specific details
+  fiveWhysDetails?: FiveWhyDetail[];
+  fishboneCategories?: FishboneCategory[];
+  scatDetails?: ScatDetails;
+  genericRcaDetails?: GenericRcaDetails;
+
+  summaryOfFindings: string; // Overall summary regardless of technique
+  correctiveActions: CorrectiveAction[];
+  status: 'Open' | 'In Progress' | 'Review' | 'Closed';
+}
+
 
 export interface PpeLog {
   id: string;
