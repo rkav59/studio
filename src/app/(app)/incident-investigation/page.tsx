@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -462,7 +463,7 @@ export default function IncidentInvestigationPage() {
 
     {viewingInvestigation && (
         <Dialog open={!!viewingInvestigation} onOpenChange={() => { setViewingInvestigation(null); setAiSuggestions(null); }}>
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-primary">
                         <FileSearch className="h-6 w-6"/>
@@ -558,3 +559,4 @@ export default function IncidentInvestigationPage() {
     </div>
   );
 }
+
