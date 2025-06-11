@@ -139,15 +139,28 @@ export interface SheqAudit {
 }
 
 
+// Training & Competence Types
+export interface TrainingCourse {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+}
+
+export type TrainingRecordStatus = 'Planned' | 'Completed' | 'Requires Renewal' | 'Expired';
+
 export interface TrainingRecord {
   id: string;
-  employeeId: string;
-  courseName: string;
-  trainingDate: string;
-  expiryDate?: string;
-  trainer: string;
-  competencyAchieved: boolean;
+  employeeName: string;
+  courseId: string; // Links to TrainingCourse.id
+  trainingDate: string; // ISO date string
+  expiryDate?: string | null; // ISO date string, optional
+  trainer?: string;
+  status: TrainingRecordStatus; // User sets 'Planned' or 'Completed'; 'Expired'/'Requires Renewal' derived
+  certificateUrl?: string; // Optional link to a certificate
+  notes?: string;
 }
+
 
 export interface EmergencyPlan {
   id: string;
