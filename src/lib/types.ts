@@ -240,8 +240,21 @@ export interface IncidentInvestigation {
   genericRcaDetails?: GenericRcaDetails;
 
   summaryOfFindings: string; // Overall summary regardless of technique
+  evidenceSummary?: string; // New field for textual summary of evidence
+  witnessStatementsSummary?: string; // New field for textual summary of witness statements
+
   correctiveActions: CorrectiveAction[];
   status: 'Open' | 'In Progress' | 'Review' | 'Closed';
+}
+
+// Input/Output for AI Root Cause Suggestion Flow
+export interface SuggestRootCauseInput {
+  incidentDescription: string; // Or perhaps investigation title if description is not directly available
+  summaryOfFindings: string;
+}
+
+export interface SuggestRootCauseOutput {
+  suggestedRootCauses: string; // A string, potentially multi-line, of suggested root causes
 }
 
 

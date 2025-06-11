@@ -34,7 +34,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, AlertTriangle, CheckCircle2, FileText, Users } from "lucide-react";
 import type { IncidentInvestigation, CorrectiveAction, InvestigationTechnique, FiveWhyDetail, FishboneCategory, FishboneCause } from "@/lib/types";
 import { investigationTechniques } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
@@ -97,6 +97,8 @@ const investigationFormSchema = z.object({
   genericRcaDetails: genericRcaDetailsSchema.optional(),
 
   summaryOfFindings: z.string().min(10, "Summary of findings is required.").max(5000),
+  evidenceSummary: z.string().max(3000).optional(),
+  witnessStatementsSummary: z.string().max(3000).optional(),
   correctiveActions: z.array(correctiveActionSchema),
   status: z.enum(['Open', 'In Progress', 'Review', 'Closed'], { required_error: "Status is required."}),
 });
@@ -138,6 +140,8 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
       scatDetails: initialData?.scatDetails || { summaryOfEvents: "", immediateCauses: "", underlyingFactors: "", systemDeficiencies: "" },
       genericRcaDetails: initialData?.genericRcaDetails || { problemStatement: "", contributingFactors: "", rootCauseSummary: "" },
       summaryOfFindings: initialData?.summaryOfFindings || "",
+      evidenceSummary: initialData?.evidenceSummary || "",
+      witnessStatementsSummary: initialData?.witnessStatementsSummary || "",
       correctiveActions: initialData?.correctiveActions?.length ? initialData.correctiveActions.map(ca => ({...ca, dueDate: ca.dueDate ? format(parseISO(ca.dueDate), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"), completionDate: ca.completionDate ? format(parseISO(ca.completionDate), "yyyy-MM-dd") : undefined })) : [getDefaultCorrectiveAction()],
       status: initialData?.status || "Open",
     },
@@ -315,6 +319,30 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
                     )}
                 </CardContent>
             </Card>
+            
+            {/* Evidence and Witness Statements */}
+            <Card className="p-4">
+                <UICardHeader className="p-2">
+                    <UICardTitle className="text-lg">Evidence & Witness Information</UICardTitle>
+                </UICardHeader>
+                 <CardContent className="space-y-4 p-2">
+                     <FormField control={form.control} name="evidenceSummary" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="flex items-center gap-1"><FileText className="h-4 w-4 text-muted-foreground"/>Summary of Evidence</FormLabel>
+                            <FormControl><Textarea placeholder="Describe collected evidence (e.g., photos, documents, interviews). Actual file uploads require backend." rows={3} {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
+                     <FormField control={form.control} name="witnessStatementsSummary" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="flex items-center gap-1"><Users className="h-4 w-4 text-muted-foreground"/>Summary of Witness Statements</FormLabel>
+                            <FormControl><Textarea placeholder="Summarize key points from witness statements. Actual statement documents require backend." rows={3} {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
+                 </CardContent>
+            </Card>
+
 
             {/* Summary & CAPAs */}
             <Card className="p-4">
