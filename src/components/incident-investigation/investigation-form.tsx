@@ -173,7 +173,7 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
   };
 
   return (
-    <DialogContent className="sm:max-w-3xl">
+    <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
       <DialogHeader>
         <DialogTitle>{initialData ? "Edit Incident Investigation" : "Start New Incident Investigation"}</DialogTitle>
         <DialogDescription>
@@ -181,8 +181,8 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
         </DialogDescription>
       </DialogHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="py-4">
-          <ScrollArea className="max-h-[75vh] pr-6 space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-grow min-h-0">
+          <ScrollArea className="flex-grow pr-6 space-y-6 mb-4">
             {/* Basic Info */}
             <Card className="p-4">
               <UICardHeader className="p-2">
@@ -433,7 +433,7 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
             </Card>
 
           </ScrollArea>
-          <DialogFooter className="pt-6 border-t mt-6">
+          <DialogFooter className="pt-6 border-t mt-2"> {/* Reduced top margin for footer */}
             <DialogClose asChild>
               <Button type="button" variant="outline" onClick={onCancel}>
                 <XCircle className="mr-2 h-4 w-4" /> Cancel
@@ -448,3 +448,4 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
     </DialogContent>
   );
 }
+
