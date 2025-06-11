@@ -2,19 +2,26 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, FileSearch, AlertTriangle, CheckCircle2, Sparkles, Loader2, Printer, Mail } from "lucide-react";
-import type { IncidentInvestigation, CorrectiveAction, InvestigationTechnique, SuggestRootCauseInput, SuggestRootCauseOutput } from "@/lib/types";
+import { PlusCircle, Edit2, Trash2, Eye, FileSearch, AlertTriangle, CheckCircle2, Sparkles, Loader2, Printer, Mail, Filter } from "lucide-react";
+import type { IncidentInvestigation, CorrectiveAction, InvestigationTechnique, SuggestRootCauseInput, SuggestRootCauseOutput, FiveWhyDetail, FishboneCategory, FishboneCause, GenericRcaDetails, ScatDetails } from "@/lib/types";
 import { investigationTechniques } from "@/lib/types";
 import { InvestigationForm } from "@/components/incident-investigation/investigation-form";
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +33,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Alert, AlertTitle, AlertDescription as UIAlertDescription } from "@/components/ui/alert"; // Renamed to avoid conflict
+import { Alert, AlertTitle, AlertDescription as UIAlertDescription } from "@/components/ui/alert"; 
 import { suggestRootCause } from '@/ai/flows/suggest-root-cause-flow';
 
 
@@ -72,6 +79,9 @@ export default function IncidentInvestigationPage() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportHtmlContent, setReportHtmlContent] = useState<string>("");
   const [rawReportMarkdown, setRawReportMarkdown] = useState<string>("");
+
+  const [statusFilter, setStatusFilter] = useState<IncidentInvestigation['status'] | 'All'>('All');
+  const [techniqueFilter, setTechniqueFilter] = useState<InvestigationTechnique | 'All'>('All');
 
 
   useEffect(() => {
@@ -144,7 +154,7 @@ export default function IncidentInvestigationPage() {
       case 'Closed':
         return <CheckCircle2 className="h-3 w-3" />;
       case 'Overdue':
-        return <AlertTriangle className="h-3 w-3 text-red-500" />; // Explicitly color for overdue
+        return <AlertTriangle className="h-3 w-3 text-red-500" />; 
       default: return null;
     }
   };
@@ -155,7 +165,7 @@ export default function IncidentInvestigationPage() {
     setAiSuggestions(null);
     try {
       const input: SuggestRootCauseInput = {
-        incidentDescription: viewingInvestigation.investigationTitle, // Or a more detailed description if available
+        incidentDescription: viewingInvestigation.investigationTitle, 
         summaryOfFindings: viewingInvestigation.summaryOfFindings,
       };
       const result: SuggestRootCauseOutput = await suggestRootCause(input);
@@ -190,9 +200,10 @@ export default function IncidentInvestigationPage() {
       });
     } else if (inv.techniqueUsed === 'GenericRCA' && inv.genericRcaDetails) {
       md += "### Generic Root Cause Analysis\n";
-      md += `**Problem Statement:** ${inv.genericRcaDetails.problemStatement || "N/A"}\n`;
-      md += `**Contributing Factors:**\n${inv.genericRcaDetails.contributingFactors?.split('\n').map(f => `- ${f}`).join('\n') || "- N/A"}\n`;
-      md += `**Root Cause Summary:** ${inv.genericRcaDetails.rootCauseSummary || "N/A"}\n`;
+      const rcaDetails = inv.genericRcaDetails as GenericRcaDetails; // Type assertion
+      md += `**Problem Statement:** ${rcaDetails.problemStatement || "N/A"}\n`;
+      md += `**Contributing Factors:**\n${rcaDetails.contributingFactors?.split('\n').map(f => `- ${f}`).join('\n') || "- N/A"}\n`;
+      md += `**Root Cause Summary:** ${rcaDetails.rootCauseSummary || "N/A"}\n`;
     } else if (inv.techniqueUsed === 'FishboneIshikawa' && inv.fishboneCategories?.length) {
         md += "### Fishbone (Ishikawa) Diagram Details\n";
         inv.fishboneCategories.forEach(cat => {
@@ -203,10 +214,11 @@ export default function IncidentInvestigationPage() {
         });
     } else if (inv.techniqueUsed === 'SCAT' && inv.scatDetails) {
         md += "### SCAT Details\n";
-        md += `**Summary of Events/Unsafe Acts:**\n${inv.scatDetails.summaryOfEvents || "N/A"}\n\n`;
-        md += `**Immediate Causes:**\n${inv.scatDetails.immediateCauses || "N/A"}\n\n`;
-        md += `**Underlying Factors/Basic Causes:**\n${inv.scatDetails.underlyingFactors || "N/A"}\n\n`;
-        md += `**System Deficiencies/Lack of Control:**\n${inv.scatDetails.systemDeficiencies || "N/A"}\n`;
+        const scat = inv.scatDetails as ScatDetails; // Type assertion
+        md += `**Summary of Events/Unsafe Acts:**\n${scat.summaryOfEvents || "N/A"}\n\n`;
+        md += `**Immediate Causes:**\n${scat.immediateCauses || "N/A"}\n\n`;
+        md += `**Underlying Factors/Basic Causes:**\n${scat.underlyingFactors || "N/A"}\n\n`;
+        md += `**System Deficiencies/Lack of Control:**\n${scat.systemDeficiencies || "N/A"}\n`;
     }
     md += "\n";
 
@@ -253,6 +265,14 @@ export default function IncidentInvestigationPage() {
     );
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
+
+  const filteredInvestigations = useMemo(() => {
+    return investigations.filter(inv => {
+      const statusMatch = statusFilter === 'All' || inv.status === statusFilter;
+      const techniqueMatch = techniqueFilter === 'All' || inv.techniqueUsed === techniqueFilter;
+      return statusMatch && techniqueMatch;
+    });
+  }, [investigations, statusFilter, techniqueFilter]);
 
 
   const InvestigationDetailView = ({ investigation }: { investigation: IncidentInvestigation }) => (
@@ -398,7 +418,7 @@ export default function IncidentInvestigationPage() {
       </Card>
       
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
                 <CardTitle className="flex items-center gap-2"><FileSearch className="h-6 w-6 text-primary"/>Investigation Register</CardTitle>
                 <CardDescription>Manage your incident investigations. All data is stored locally.</CardDescription>
@@ -408,12 +428,52 @@ export default function IncidentInvestigationPage() {
             </Button>
         </CardHeader>
         <CardContent>
-            {investigations.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">No investigations started yet.</p>
+            <div className="mb-6 p-4 border rounded-lg bg-secondary/30">
+                <div className="flex flex-col sm:flex-row gap-4 items-center">
+                    <Filter className="h-5 w-5 text-muted-foreground hidden sm:block" />
+                    <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                        <div className="w-full">
+                            <label htmlFor="status-filter" className="text-sm font-medium text-muted-foreground">Filter by Status:</label>
+                            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as IncidentInvestigation['status'] | 'All')}>
+                                <SelectTrigger id="status-filter" className="w-full mt-1">
+                                    <SelectValue placeholder="All Statuses" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="All">All Statuses</SelectItem>
+                                    <SelectItem value="Open">Open</SelectItem>
+                                    <SelectItem value="In Progress">In Progress</SelectItem>
+                                    <SelectItem value="Review">Review</SelectItem>
+                                    <SelectItem value="Closed">Closed</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="w-full">
+                            <label htmlFor="technique-filter" className="text-sm font-medium text-muted-foreground">Filter by Technique:</label>
+                             <Select value={techniqueFilter} onValueChange={(value) => setTechniqueFilter(value as InvestigationTechnique | 'All')}>
+                                <SelectTrigger id="technique-filter" className="w-full mt-1">
+                                    <SelectValue placeholder="All Techniques" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="All">All Techniques</SelectItem>
+                                    {investigationTechniques.map(tech => (
+                                        <SelectItem key={tech.name} value={tech.name}>{tech.label}</SelectItem>
+                                    ))}
+                                    <SelectItem value="N/A">Not Specified</SelectItem> 
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {filteredInvestigations.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">
+                    {investigations.length > 0 ? "No investigations match the current filter." : "No investigations started yet."}
+                </p>
             ) : (
                 <ScrollArea className="max-h-[600px] pr-3">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {investigations.map(inv => (
+                        {filteredInvestigations.map(inv => (
                             <Card key={inv.id} className="shadow-md flex flex-col">
                                 <CardHeader>
                                     <CardTitle className="truncate text-lg">{inv.investigationTitle}</CardTitle>
@@ -544,6 +604,7 @@ export default function IncidentInvestigationPage() {
                 <li>AI-assisted root cause suggestion based on incident details and findings.</li>
                 <li>Printable investigation report generation (Markdown based).</li>
                 <li>Local storage of all investigation data.</li>
+                <li>Client-side filtering of investigations by status and technique.</li>
             </ul>
             <Separator className="my-4"/>
              <p className="text-sm text-muted-foreground mt-2 mb-2">
