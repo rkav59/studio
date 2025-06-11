@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { RiskAssessment, RiskAssessmentMethod, HazardEntry, RiskEntry, RiskControlItem } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { riskAssessmentMethodsList, methodSpecificGuidance, type DescriptiveRiskAssessmentMethod } from "@/lib/risk-assessment-config";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Zod schemas for the new nested structure
 const riskControlItemSchema = z.object({
@@ -81,6 +82,7 @@ interface RiskAssessmentFormProps {
   onSaveAssessment: (assessment: RiskAssessment, isEditing: boolean) => void;
   initialData?: Partial<RiskAssessment> | null;
   onCancel: () => void;
+  className?: string; // Allow className to be passed
 }
 
 const defaultRiskControlItem = (): RiskControlItem => ({ value: "" }); 
@@ -96,7 +98,7 @@ const defaultHazardEntry = (): HazardEntry => ({
 });
 
 
-export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: RiskAssessmentFormProps) {
+export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel, className }: RiskAssessmentFormProps) {
   const { toast } = useToast();
   const isEditing = !!initialData?.id;
 
@@ -194,308 +196,312 @@ export function RiskAssessmentForm({ onSaveAssessment, initialData, onCancel }: 
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="activity"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Activity/Process Being Assessed</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Describe the activity or process in detail (e.g., Routine maintenance of conveyor belt, Office-based data entry tasks)."
-                  rows={3}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <form onSubmit={form.handleSubmit(onSubmit)} className={cn("flex flex-col h-full", className)}>
+        <ScrollArea className="flex-grow min-h-0 pr-2"> {/* Adjusted pr for scrollbar */}
+          <div className="space-y-8 py-4 pr-4"> {/* Added pr to compensate ScrollArea's pr */}
             <FormField
-            control={form.control}
-            name="methodUsed"
-            render={({ field }) => (
+              control={form.control}
+              name="activity"
+              render={({ field }) => (
                 <FormItem>
-                <FormLabel>Assessment Method Used</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || ""} defaultValue={field.value}>
-                    <FormControl>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select assessment method (optional)" />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                    {(riskAssessmentMethodsList as DescriptiveRiskAssessmentMethod[]).map(method => (
-                        <SelectItem key={method.name} value={method.name}>{method.name}</SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
-                <FormDescription>Selecting a method may show specific guidance below.</FormDescription>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-        </div>
-
-        {/* Hazard Entries Section */}
-        <div className="space-y-6">
-          <FormLabel className="text-lg font-semibold">Hazards, Risks, and Controls</FormLabel>
-          {hazardFields.map((hazardItem, hazardIndex) => (
-            <Card key={hazardItem.id} className="p-4 border-primary/50 shadow-md">
-              <CardHeader className="p-2">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-md">Hazard #{hazardIndex + 1}</CardTitle>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => hazardRemove(hazardIndex)} className="text-destructive hover:text-destructive/80">
-                    <Trash2 className="h-4 w-4" /> <span className="sr-only">Remove Hazard</span>
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-2 space-y-4">
-                <div className="space-y-2 pl-4 border-l-2 border-muted/70 ml-1 py-2">
-                    <FormField
-                    control={form.control}
-                    name={`hazardEntries.${hazardIndex}.hazard.value`}
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel className="text-sm font-medium">Describe Hazard</FormLabel>
-                        <FormControl>
-                            <Textarea placeholder="e.g., Working at height, Chemical exposure" rows={2} {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
+                  <FormLabel>Activity/Process Being Assessed</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Describe the activity or process in detail (e.g., Routine maintenance of conveyor belt, Office-based data entry tasks)."
+                      rows={3}
+                      {...field}
                     />
-                    {renderGuidance(currentGuidance?.identifiedHazards)}
-                </div>
-
-                {/* Assessed Risks within this Hazard */}
-                <Controller
-                  control={form.control}
-                  name={`hazardEntries.${hazardIndex}.assessedRisks`}
-                  render={({ field: { onChange, value: riskFieldValue, name: riskFieldName } }) => {
-                    const { fields: riskFields, append: riskAppend, remove: riskRemove } = useFieldArray({
-                      control: form.control,
-                      name: riskFieldName as `hazardEntries.${number}.assessedRisks`,
-                    });
-                    return (
-                      <div className="space-y-3 pl-4 border-l-2 border-secondary ml-2">
-                        <FormLabel className="text-base font-medium">Associated Risks for Hazard #{hazardIndex + 1}</FormLabel>
-                        {riskFields.map((riskItem, riskIndex) => (
-                          <Card key={riskItem.id} className="p-3 bg-secondary/30 shadow-sm">
-                            <CardHeader className="p-1">
-                              <div className="flex justify-between items-center">
-                                <UICardDescription className="text-sm">Risk #{riskIndex + 1}</UICardDescription>
-                                <Button type="button" variant="ghost" size="icon" onClick={() => riskRemove(riskIndex)} className="text-destructive hover:text-destructive/80">
-                                  <Trash2 className="h-4 w-4" /><span className="sr-only">Remove Risk</span>
-                                </Button>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="p-1 space-y-4">
-                                <div className="space-y-2 pl-4 border-l-2 border-muted/70 ml-1 py-2">
-                                   <FormField
-                                      control={form.control}
-                                      name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.risk.value`}
-                                      render={({ field }) => (
-                                          <FormItem>
-                                          <FormLabel className="text-sm font-medium">Describe Risk</FormLabel>
-                                          <FormControl>
-                                              <Textarea placeholder="e.g., Fall from height, Exposure to harmful substance" rows={2} {...field} />
-                                          </FormControl>
-                                          <FormMessage />
-                                          </FormItem>
-                                      )}
-                                    />
-                                    {renderGuidance(currentGuidance?.assessedRisks)}
-                                </div>
-
-                              {/* Existing Control Measures for this Risk */}
-                              <div className="space-y-2 pl-4 border-l-2 border-muted/70 ml-1 py-2">
-                                <FormLabel className="text-sm font-medium">Existing Control Measures</FormLabel>
-                                <Controller
-                                  control={form.control}
-                                  name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.existingControls`}
-                                  render={() => {
-                                    const { fields: existingControlFields, append: existingControlAppend, remove: existingControlRemove } = useFieldArray({
-                                      control: form.control,
-                                      name: `hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.existingControls`,
-                                    });
-                                    return (
-                                      <>
-                                        {existingControlFields.map((controlItem, controlIndex) => (
-                                          <div key={controlItem.id} className="flex items-start gap-2 p-2 border rounded-md bg-background shadow-xs">
-                                            <FormField
-                                              control={form.control}
-                                              name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.existingControls.${controlIndex}.value`}
-                                              render={({ field }) => (
-                                                <FormItem className="flex-grow">
-                                                  <FormLabel className="text-xs sr-only">Existing Control #{controlIndex + 1}</FormLabel>
-                                                  <FormControl>
-                                                    <Textarea placeholder={`Existing Control ${controlIndex + 1}`} rows={1} {...field} />
-                                                  </FormControl>
-                                                  <FormMessage />
-                                                </FormItem>
-                                              )}
-                                            />
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => existingControlRemove(controlIndex)} className="mt-0.5 text-muted-foreground hover:text-destructive shrink-0">
-                                              <Trash2 className="h-3 w-3" /><span className="sr-only">Remove Control</span>
-                                            </Button>
-                                          </div>
-                                        ))}
-                                        <Button type="button" variant="outline" size="sm" onClick={() => existingControlAppend(defaultRiskControlItem())} className="text-xs text-blue-600 border-blue-600 hover:bg-blue-600/10">
-                                          <PlusCircle className="mr-1 h-3 w-3" /> Add Existing Control
-                                        </Button>
-                                      </>
-                                    );
-                                  }}
-                                />
-                                {renderGuidance(currentGuidance?.controlMeasures)}
-                              </div>
-                              
-                              {/* Proposed Control Measures for this Risk */}
-                              <div className="space-y-2 pl-4 border-l-2 border-muted/70 ml-1 py-2">
-                                <FormLabel className="text-sm font-medium">Proposed Control Measures</FormLabel>
-                                <Controller
-                                  control={form.control}
-                                  name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.proposedControls`}
-                                  render={() => {
-                                    const { fields: proposedControlFields, append: proposedControlAppend, remove: proposedControlRemove } = useFieldArray({
-                                      control: form.control,
-                                      name: `hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.proposedControls`,
-                                    });
-                                    return (
-                                      <>
-                                        {proposedControlFields.map((controlItem, controlIndex) => (
-                                          <div key={controlItem.id} className="flex items-start gap-2 p-2 border rounded-md bg-background shadow-xs">
-                                            <FormField
-                                              control={form.control}
-                                              name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.proposedControls.${controlIndex}.value`}
-                                              render={({ field }) => (
-                                                <FormItem className="flex-grow">
-                                                  <FormLabel className="text-xs sr-only">Proposed Control #{controlIndex + 1}</FormLabel>
-                                                  <FormControl>
-                                                    <Textarea placeholder={`Proposed Control ${controlIndex + 1}`} rows={1} {...field} />
-                                                  </FormControl>
-                                                  <FormMessage />
-                                                </FormItem>
-                                              )}
-                                            />
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => proposedControlRemove(controlIndex)} className="mt-0.5 text-muted-foreground hover:text-destructive shrink-0">
-                                              <Trash2 className="h-3 w-3" /><span className="sr-only">Remove Control</span>
-                                            </Button>
-                                          </div>
-                                        ))}
-                                        <Button type="button" variant="outline" size="sm" onClick={() => proposedControlAppend(defaultRiskControlItem())} className="text-xs text-green-600 border-green-600 hover:bg-green-600/10">
-                                          <PlusCircle className="mr-1 h-3 w-3" /> Add Proposed Control
-                                        </Button>
-                                      </>
-                                    );
-                                  }}
-                                />
-                                {renderGuidance(currentGuidance?.controlMeasures)}
-                              </div>
-
-                            </CardContent>
-                          </Card>
-                        ))}
-                        <Button type="button" variant="outline" size="sm" onClick={() => riskAppend(defaultRiskEntry())} className="text-primary border-primary hover:bg-primary/10">
-                          <PlusCircle className="mr-2 h-4 w-4" /> Add Risk to Hazard #{hazardIndex+1}
-                        </Button>
-                      </div>
-                    );
-                  }}
-                />
-                {/* Residual Risk Level for this Hazard */}
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <FormField
-                    control={form.control}
-                    name={`hazardEntries.${hazardIndex}.residualRiskLevel`}
-                    render={({ field }) => (
-                        <FormItem className="mt-4 pt-4 border-t border-muted/50">
-                        <FormLabel className="text-sm font-medium">Residual Risk Level for Hazard #{hazardIndex + 1}</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ""} defaultValue={field.value || ""}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select residual risk level" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            <SelectItem value="Low">Low</SelectItem>
-                            <SelectItem value="Medium">Medium</SelectItem>
-                            <SelectItem value="High">High</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
+                control={form.control}
+                name="methodUsed"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Assessment Method Used</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""} defaultValue={field.value}>
+                        <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select assessment method (optional)" />
+                        </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        {(riskAssessmentMethodsList as DescriptiveRiskAssessmentMethod[]).map(method => (
+                            <SelectItem key={method.name} value={method.name}>{method.name}</SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    <FormDescription>Selecting a method may show specific guidance below.</FormDescription>
+                    <FormMessage />
+                    </FormItem>
+                )}
                 />
-              </CardContent>
-            </Card>
-          ))}
-          <Button type="button" variant="default" onClick={() => hazardAppend(defaultHazardEntry())} className="bg-primary hover:bg-primary/90">
-            <PlusCircle className="mr-2 h-4 w-4" /> Add Hazard Entry
-          </Button>
-           <FormField name="hazardEntries" control={form.control} render={() => <FormMessage />} />
-        </div>
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <FormField
-            control={form.control}
-            name="assessor"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Assessor(s)</FormLabel>
-                <FormControl>
-                    <Input placeholder="e.g., John Doe, SHEQ Department" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-            <FormField
-            control={form.control}
-            name="assessmentDate"
-            render={({ field }) => (
-                <FormItem className="flex flex-col">
-                <FormLabel>Date of Assessment</FormLabel>
-                <Popover>
-                    <PopoverTrigger asChild>
-                    <FormControl>
-                        <Button
-                        variant={"outline"}
-                        className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
+            {/* Hazard Entries Section */}
+            <div className="space-y-6">
+              <FormLabel className="text-lg font-semibold">Hazards, Risks, and Controls</FormLabel>
+              {hazardFields.map((hazardItem, hazardIndex) => (
+                <Card key={hazardItem.id} className="p-4 border-primary/50 shadow-md">
+                  <CardHeader className="p-2">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-md">Hazard #{hazardIndex + 1}</CardTitle>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => hazardRemove(hazardIndex)} className="text-destructive hover:text-destructive/80">
+                        <Trash2 className="h-4 w-4" /> <span className="sr-only">Remove Hazard</span>
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-2 space-y-4">
+                    <div className="space-y-2 pl-4 border-l-2 border-muted/70 ml-1 py-2">
+                        <FormField
+                        control={form.control}
+                        name={`hazardEntries.${hazardIndex}.hazard.value`}
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel className="text-sm font-medium">Describe Hazard</FormLabel>
+                            <FormControl>
+                                <Textarea placeholder="e.g., Working at height, Chemical exposure" rows={2} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
                         )}
-                        >
-                        {field.value ? (
-                            format(field.value, "PPP")
-                        ) : (
-                            <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                    </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
+                        />
+                        {renderGuidance(currentGuidance?.identifiedHazards)}
+                    </div>
+
+                    {/* Assessed Risks within this Hazard */}
+                    <Controller
+                      control={form.control}
+                      name={`hazardEntries.${hazardIndex}.assessedRisks`}
+                      render={({ field: { onChange, value: riskFieldValue, name: riskFieldName } }) => {
+                        const { fields: riskFields, append: riskAppend, remove: riskRemove } = useFieldArray({
+                          control: form.control,
+                          name: riskFieldName as `hazardEntries.${number}.assessedRisks`,
+                        });
+                        return (
+                          <div className="space-y-3 pl-4 border-l-2 border-secondary ml-2">
+                            <FormLabel className="text-base font-medium">Associated Risks for Hazard #{hazardIndex + 1}</FormLabel>
+                            {riskFields.map((riskItem, riskIndex) => (
+                              <Card key={riskItem.id} className="p-3 bg-secondary/30 shadow-sm">
+                                <CardHeader className="p-1">
+                                  <div className="flex justify-between items-center">
+                                    <UICardDescription className="text-sm">Risk #{riskIndex + 1}</UICardDescription>
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => riskRemove(riskIndex)} className="text-destructive hover:text-destructive/80">
+                                      <Trash2 className="h-4 w-4" /><span className="sr-only">Remove Risk</span>
+                                    </Button>
+                                  </div>
+                                </CardHeader>
+                                <CardContent className="p-1 space-y-4">
+                                    <div className="space-y-2 pl-4 border-l-2 border-muted/70 ml-1 py-2">
+                                       <FormField
+                                          control={form.control}
+                                          name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.risk.value`}
+                                          render={({ field }) => (
+                                              <FormItem>
+                                              <FormLabel className="text-sm font-medium">Describe Risk</FormLabel>
+                                              <FormControl>
+                                                  <Textarea placeholder="e.g., Fall from height, Exposure to harmful substance" rows={2} {...field} />
+                                              </FormControl>
+                                              <FormMessage />
+                                              </FormItem>
+                                          )}
+                                        />
+                                        {renderGuidance(currentGuidance?.assessedRisks)}
+                                    </div>
+
+                                  {/* Existing Control Measures for this Risk */}
+                                  <div className="space-y-2 pl-4 border-l-2 border-muted/70 ml-1 py-2">
+                                    <FormLabel className="text-sm font-medium">Existing Control Measures</FormLabel>
+                                    <Controller
+                                      control={form.control}
+                                      name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.existingControls`}
+                                      render={() => {
+                                        const { fields: existingControlFields, append: existingControlAppend, remove: existingControlRemove } = useFieldArray({
+                                          control: form.control,
+                                          name: `hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.existingControls`,
+                                        });
+                                        return (
+                                          <>
+                                            {existingControlFields.map((controlItem, controlIndex) => (
+                                              <div key={controlItem.id} className="flex items-start gap-2 p-2 border rounded-md bg-background shadow-xs">
+                                                <FormField
+                                                  control={form.control}
+                                                  name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.existingControls.${controlIndex}.value`}
+                                                  render={({ field }) => (
+                                                    <FormItem className="flex-grow">
+                                                      <FormLabel className="text-xs sr-only">Existing Control #{controlIndex + 1}</FormLabel>
+                                                      <FormControl>
+                                                        <Textarea placeholder={`Existing Control ${controlIndex + 1}`} rows={1} {...field} />
+                                                      </FormControl>
+                                                      <FormMessage />
+                                                    </FormItem>
+                                                  )}
+                                                />
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => existingControlRemove(controlIndex)} className="mt-0.5 text-muted-foreground hover:text-destructive shrink-0">
+                                                  <Trash2 className="h-3 w-3" /><span className="sr-only">Remove Control</span>
+                                                </Button>
+                                              </div>
+                                            ))}
+                                            <Button type="button" variant="outline" size="sm" onClick={() => existingControlAppend(defaultRiskControlItem())} className="text-xs text-blue-600 border-blue-600 hover:bg-blue-600/10">
+                                              <PlusCircle className="mr-1 h-3 w-3" /> Add Existing Control
+                                            </Button>
+                                          </>
+                                        );
+                                      }}
+                                    />
+                                    {renderGuidance(currentGuidance?.controlMeasures)}
+                                  </div>
+                                  
+                                  {/* Proposed Control Measures for this Risk */}
+                                  <div className="space-y-2 pl-4 border-l-2 border-muted/70 ml-1 py-2">
+                                    <FormLabel className="text-sm font-medium">Proposed Control Measures</FormLabel>
+                                    <Controller
+                                      control={form.control}
+                                      name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.proposedControls`}
+                                      render={() => {
+                                        const { fields: proposedControlFields, append: proposedControlAppend, remove: proposedControlRemove } = useFieldArray({
+                                          control: form.control,
+                                          name: `hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.proposedControls`,
+                                        });
+                                        return (
+                                          <>
+                                            {proposedControlFields.map((controlItem, controlIndex) => (
+                                              <div key={controlItem.id} className="flex items-start gap-2 p-2 border rounded-md bg-background shadow-xs">
+                                                <FormField
+                                                  control={form.control}
+                                                  name={`hazardEntries.${hazardIndex}.assessedRisks.${riskIndex}.proposedControls.${controlIndex}.value`}
+                                                  render={({ field }) => (
+                                                    <FormItem className="flex-grow">
+                                                      <FormLabel className="text-xs sr-only">Proposed Control #{controlIndex + 1}</FormLabel>
+                                                      <FormControl>
+                                                        <Textarea placeholder={`Proposed Control ${controlIndex + 1}`} rows={1} {...field} />
+                                                      </FormControl>
+                                                      <FormMessage />
+                                                    </FormItem>
+                                                  )}
+                                                />
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => proposedControlRemove(controlIndex)} className="mt-0.5 text-muted-foreground hover:text-destructive shrink-0">
+                                                  <Trash2 className="h-3 w-3" /><span className="sr-only">Remove Control</span>
+                                                </Button>
+                                              </div>
+                                            ))}
+                                            <Button type="button" variant="outline" size="sm" onClick={() => proposedControlAppend(defaultRiskControlItem())} className="text-xs text-green-600 border-green-600 hover:bg-green-600/10">
+                                              <PlusCircle className="mr-1 h-3 w-3" /> Add Proposed Control
+                                            </Button>
+                                          </>
+                                        );
+                                      }}
+                                    />
+                                    {renderGuidance(currentGuidance?.controlMeasures)}
+                                  </div>
+
+                                </CardContent>
+                              </Card>
+                            ))}
+                            <Button type="button" variant="outline" size="sm" onClick={() => riskAppend(defaultRiskEntry())} className="text-primary border-primary hover:bg-primary/10">
+                              <PlusCircle className="mr-2 h-4 w-4" /> Add Risk to Hazard #{hazardIndex+1}
+                            </Button>
+                          </div>
+                        );
+                      }}
                     />
-                    </PopoverContent>
-                </Popover>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-        </div>
+                    {/* Residual Risk Level for this Hazard */}
+                    <FormField
+                        control={form.control}
+                        name={`hazardEntries.${hazardIndex}.residualRiskLevel`}
+                        render={({ field }) => (
+                            <FormItem className="mt-4 pt-4 border-t border-muted/50">
+                            <FormLabel className="text-sm font-medium">Residual Risk Level for Hazard #{hazardIndex + 1}</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ""} defaultValue={field.value || ""}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select residual risk level" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                <SelectItem value="Low">Low</SelectItem>
+                                <SelectItem value="Medium">Medium</SelectItem>
+                                <SelectItem value="High">High</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                  </CardContent>
+                </Card>
+              ))}
+              <Button type="button" variant="default" onClick={() => hazardAppend(defaultHazardEntry())} className="bg-primary hover:bg-primary/90">
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Hazard Entry
+              </Button>
+               <FormField name="hazardEntries" control={form.control} render={() => <FormMessage />} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <FormField
+                control={form.control}
+                name="assessor"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Assessor(s)</FormLabel>
+                    <FormControl>
+                        <Input placeholder="e.g., John Doe, SHEQ Department" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="assessmentDate"
+                render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                    <FormLabel>Date of Assessment</FormLabel>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <FormControl>
+                            <Button
+                            variant={"outline"}
+                            className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                            )}
+                            >
+                            {field.value ? (
+                                format(field.value, "PPP")
+                            ) : (
+                                <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                        </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                                date > new Date() || date < new Date("1900-01-01")
+                            }
+                            initialFocus
+                        />
+                        </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </div>
+          </div>
+        </ScrollArea>
         
-        <div className="flex flex-wrap gap-2 pt-4 border-t">
+        <div className="flex flex-wrap gap-2 pt-4 border-t flex-shrink-0">
             <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 <Save className="mr-2 h-4 w-4" /> {isEditing ? "Save Changes" : "Log Risk Assessment"}
             </Button>
