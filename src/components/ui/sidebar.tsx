@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet" // Added SheetHeader, SheetTitle
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -19,6 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { ScrollArea } from "@/components/ui/scroll-area" // Added import
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -58,7 +59,7 @@ const SidebarProvider = React.forwardRef<
 >(
   (
     {
-      defaultOpen = true,
+      defaultOpen = false, // Changed default to false for collapsed by default
       open: openProp,
       onOpenChange: setOpenProp,
       className,
@@ -169,7 +170,7 @@ const Sidebar = React.forwardRef<
     {
       side = "left",
       variant = "sidebar",
-      collapsible = "offcanvas",
+      collapsible = "icon", // Default to icon collapsible
       className,
       children,
       ...props
@@ -207,7 +208,6 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-            {/* Add SheetHeader and a visually hidden SheetTitle for accessibility */}
             <SheetHeader className="sr-only">
               <SheetTitle>Main Navigation</SheetTitle>
             </SheetHeader>
@@ -372,18 +372,53 @@ SidebarHeader.displayName = "SidebarHeader"
 
 const SidebarFooter = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div">
->(({ className, ...props }, ref) => {
+  React.ComponentProps<"div"> & { children: React.ReactNode }
+>(({ className, children, ...props }, ref) => {
+  const { isMobile, state } = useSidebar(); // Get state for tooltip logic
+
+  // Ensure children is a single element for Tooltip, or handle array appropriately
+  // For simplicity, assuming children is the Button component setup
+  const buttonChild = React.Children.only(children) as React.ReactElement<
+    React.ComponentProps<typeof Button> & { "data-slot"?: string }
+  >;
+  
+  const profileButton = React.cloneElement(buttonChild, {
+    className: cn(
+      buttonChild.props.className, // Keep existing classes
+      "w-full justify-start gap-2",
+      "group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center"
+    ),
+    children: (
+      <>
+        {/* Render icon directly from children or assume it's the first child */}
+        {React.Children.toArray(buttonChild.props.children)[0]} 
+        <span className="group-data-[collapsible=icon]:hidden">
+          {/* Render text label directly from children or assume it's the second child */}
+          {React.Children.toArray(buttonChild.props.children)[1]}
+        </span>
+      </>
+    ),
+  });
+
+
   return (
     <div
       ref={ref}
       data-sidebar="footer"
       className={cn("flex flex-col gap-2 p-2", className)}
       {...props}
-    />
+    >
+      <Tooltip>
+        <TooltipTrigger asChild>{profileButton}</TooltipTrigger>
+        <TooltipContent side="right" align="center" hidden={state !== "collapsed" || isMobile}>
+          Profile {/* Assuming the text is "Profile" */}
+        </TooltipContent>
+      </Tooltip>
+    </div>
   )
 })
 SidebarFooter.displayName = "SidebarFooter"
+
 
 const SidebarSeparator = React.forwardRef<
   React.ElementRef<typeof Separator>,
@@ -401,22 +436,27 @@ const SidebarSeparator = React.forwardRef<
 SidebarSeparator.displayName = "SidebarSeparator"
 
 const SidebarContent = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentProps<"div">
->(({ className, ...props }, ref) => {
+  React.ElementRef<typeof ScrollArea>, // Ref is for ScrollArea
+  Omit<React.ComponentProps<typeof ScrollArea>, "children"> & { children?: React.ReactNode }
+>(({ className, children, ...props }, ref) => {
   return (
-    <div
+    <ScrollArea
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+        "flex-1 min-h-0", // Ensures ScrollArea takes up available space
         className
       )}
       {...props}
-    />
+    >
+      <div className="p-2"> {/* Padding applied to the direct child of viewport */}
+        {children}
+      </div>
+    </ScrollArea>
   )
 })
 SidebarContent.displayName = "SidebarContent"
+
 
 const SidebarGroup = React.forwardRef<
   HTMLDivElement,

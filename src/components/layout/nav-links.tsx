@@ -73,7 +73,15 @@ export function NavLinks() {
 
 export function AppLogo() {
   return (
-    <Link href="/dashboard" className="flex items-center gap-2 px-4 py-2 group-data-[collapsible=icon]:justify-center">
+    <Link
+      href="/dashboard"
+      className={cn(
+        "flex items-center gap-2 w-full", // Use w-full to fill header space
+        "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:h-8", // Center icon and set height when collapsed
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring rounded-md" // Focus styling
+      )}
+      title="SHEild Dashboard" // Tooltip for accessibility
+    >
       <ShieldCheck className="h-8 w-8 text-primary group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7" />
       <span className="text-xl font-semibold text-foreground group-data-[collapsible=icon]:hidden font-headline">
         SHEild
@@ -81,3 +89,5 @@ export function AppLogo() {
     </Link>
   );
 }
+
+    
