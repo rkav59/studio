@@ -38,7 +38,7 @@ import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, AlertTriangle, CheckCi
 import type { IncidentInvestigation, CorrectiveAction, InvestigationTechnique, FiveWhyDetail, FishboneCategory, FishboneCause } from "@/lib/types";
 import { investigationTechniques } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
-import { ScrollArea } from "../ui/scroll-area";
+// ScrollArea import was removed as part of rollback for form scrolling
 import { Separator } from "../ui/separator";
 import { Card, CardContent, CardHeader as UICardHeader, CardTitle as UICardTitle, CardDescription as UICardDescription } from "@/components/ui/card";
 
@@ -173,7 +173,7 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
   };
 
   return (
-    <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
+    <DialogContent className="sm:max-w-3xl">
       <DialogHeader>
         <DialogTitle>{initialData ? "Edit Incident Investigation" : "Start New Incident Investigation"}</DialogTitle>
         <DialogDescription>
@@ -181,16 +181,14 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
         </DialogDescription>
       </DialogHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-grow min-h-0 overflow-hidden">
-          
-          <ScrollArea className="flex-grow min-h-0">
-            <div className="p-6 space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4"> {/* Reverted: Removed flex, added space-y and py-4 */}
+            
             {/* Basic Info Card */}
             <Card>
-              <UICardHeader className="p-2 pt-0">
+              <UICardHeader className="p-4"> {/* Adjusted padding for consistency */}
                 <UICardTitle className="text-lg">Basic Information</UICardTitle>
               </UICardHeader>
-              <CardContent className="space-y-4 p-2">
+              <CardContent className="space-y-4 p-4"> {/* Adjusted padding */}
                 <FormField control={form.control} name="investigationTitle" render={({ field }) => (
                     <FormItem><FormLabel>Investigation Title</FormLabel><FormControl><Input placeholder="e.g., Investigation into Machine Guard Failure" {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
@@ -216,10 +214,10 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
 
             {/* Investigation Technique & Details Card */}
             <Card>
-                <UICardHeader className="p-2 pt-0">
+                <UICardHeader className="p-4">  {/* Adjusted padding */}
                     <UICardTitle className="text-lg">Investigation Details</UICardTitle>
                 </UICardHeader>
-                <CardContent className="space-y-4 p-2">
+                <CardContent className="space-y-4 p-4"> {/* Adjusted padding */}
                     <FormField control={form.control} name="techniqueUsed" render={({ field }) => (
                         <FormItem><FormLabel>Investigation Technique</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value || ""}>
@@ -324,10 +322,10 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
             
             {/* Evidence and Witness Statements Card */}
             <Card>
-                <UICardHeader className="p-2 pt-0">
+                <UICardHeader className="p-4"> {/* Adjusted padding */}
                     <UICardTitle className="text-lg">Evidence & Witness Information</UICardTitle>
                 </UICardHeader>
-                 <CardContent className="space-y-4 p-2">
+                 <CardContent className="space-y-4 p-4"> {/* Adjusted padding */}
                      <FormField control={form.control} name="evidenceSummary" render={({ field }) => (
                         <FormItem>
                             <FormLabel className="flex items-center gap-1"><FileText className="h-4 w-4 text-muted-foreground"/>Summary of Evidence</FormLabel>
@@ -348,10 +346,10 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
 
             {/* Summary & CAPAs Card */}
             <Card>
-                <UICardHeader className="p-2 pt-0">
+                <UICardHeader className="p-4"> {/* Adjusted padding */}
                     <UICardTitle className="text-lg">Findings & Actions</UICardTitle>
                 </UICardHeader>
-                <CardContent className="space-y-4 p-2">
+                <CardContent className="space-y-4 p-4"> {/* Adjusted padding */}
                     <FormField control={form.control} name="summaryOfFindings" render={({ field }) => (
                         <FormItem><FormLabel>Overall Summary of Findings</FormLabel><FormControl><Textarea placeholder="Concisely summarize the key findings from the investigation." {...field} rows={4} /></FormControl><FormMessage /></FormItem>
                     )}/>
@@ -417,10 +415,10 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
 
             {/* Status Card */}
             <Card>
-              <UICardHeader className="p-2 pt-0">
+              <UICardHeader className="p-4"> {/* Adjusted padding */}
                 <UICardTitle className="text-lg">Investigation Status</UICardTitle>
               </UICardHeader>
-              <CardContent className="p-2">
+              <CardContent className="p-4"> {/* Adjusted padding */}
                 <FormField control={form.control} name="status" render={({ field }) => (
                     <FormItem><FormLabel>Overall Investigation Status</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
@@ -433,10 +431,7 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
                 )}/>
               </CardContent>
             </Card>
-            </div>
-          </ScrollArea>
-          
-          <DialogFooter className="pt-4 border-t flex-shrink-0">
+          <DialogFooter className="pt-4 border-t"> {/* Reverted: Footer is direct child of form */}
             <DialogClose asChild>
               <Button type="button" variant="outline" onClick={onCancel}>
                 <XCircle className="mr-2 h-4 w-4" /> Cancel

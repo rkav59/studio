@@ -20,7 +20,7 @@ import type { RiskAssessment, RiskAssessmentMethod, RiskAssessmentSuggestionOutp
 import { RiskAssessmentAiAssistant } from "@/components/risk-assessment/risk-assessment-ai-assistant";
 import { RiskAssessmentForm } from '@/components/risk-assessment/risk-assessment-form';
 import { riskAssessmentMethodsList, type DescriptiveRiskAssessmentMethod } from '@/lib/risk-assessment-config';
-import { ScrollArea } from "@/components/ui/scroll-area"; // Added ScrollArea import
+import { ScrollArea } from "@/components/ui/scroll-area"; 
 
 const LOCAL_STORAGE_KEY = 'sheild-risk-assessments-v3';
 
@@ -70,7 +70,6 @@ export default function RiskAssessmentPage() {
         setLoggedRiskAssessments(migratedAssessments);
 
       } else {
-        // Clear old version data if new key is not found
         const oldV2Key = 'sheild-risk-assessments-v2';
         const oldV1Key = 'sheild-risk-assessments';
         if (localStorage.getItem(oldV2Key)) {
@@ -162,7 +161,7 @@ export default function RiskAssessmentPage() {
             id: undefined, 
             hazard: { value: hazardText },
             assessedRisks: assessedRisksForThisHazard.length > 0 ? assessedRisksForThisHazard : [defaultRiskEntry()],
-            residualRiskLevel: undefined, // Needs to be set by user for each hazard
+            residualRiskLevel: undefined, 
         });
     });
     
@@ -407,13 +406,13 @@ export default function RiskAssessmentPage() {
                {aiPrefillData && !editingAssessment && " (Partially pre-filled with AI suggestions. Please review and complete.)"}
             </CardDescription>
           </CardHeader>
-          <CardContent className="max-h-[75vh] flex flex-col overflow-hidden"> {/* Constrain height and setup flex */}
+          <CardContent> {/* Reverted: Removed flex/scroll classes */}
             <RiskAssessmentForm
               key={editingAssessment?.id || (aiPrefillData ? JSON.stringify(aiPrefillData) : 'new-form')}
               onSaveAssessment={handleSaveAssessment}
               initialData={editingAssessment || aiPrefillData}
               onCancel={handleCancelForm}
-              className="flex-grow min-h-0" // Allow form to grow and its ScrollArea to work
+              // Reverted: className prop is back to default (or whatever it was previously if set)
             />
           </CardContent>
         </Card>
