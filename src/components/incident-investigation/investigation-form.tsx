@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -181,15 +180,18 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
         </DialogDescription>
       </DialogHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-grow min-h-0 overflow-hidden">
-          <ScrollArea className="flex-grow min-h-0">
-            <div className="p-6 space-y-6">
+        {/* Form now uses flex-1 to grow and is a flex column. min-h-0 is important for nested flex growth. */}
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+          {/* ScrollArea takes up the main space within the form */}
+          <ScrollArea className="flex-1">
+            {/* Padding and spacing applied to an inner div */}
+            <div className="p-4 md:p-6 space-y-6">
               {/* Basic Info Card */}
               <Card>
-                <UICardHeader className="p-2 pt-0">
+                <UICardHeader className="p-2 pt-0 md:p-4 md:pt-0">
                   <UICardTitle className="text-lg">Basic Information</UICardTitle>
                 </UICardHeader>
-                <CardContent className="space-y-4 p-2">
+                <CardContent className="space-y-4 p-2 md:p-4">
                   <FormField control={form.control} name="investigationTitle" render={({ field }) => (
                       <FormItem><FormLabel>Investigation Title</FormLabel><FormControl><Input placeholder="e.g., Investigation into Machine Guard Failure" {...field} /></FormControl><FormMessage /></FormItem>
                   )}/>
@@ -215,10 +217,10 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
 
               {/* Investigation Technique & Details Card */}
               <Card>
-                  <UICardHeader className="p-2 pt-0">
+                  <UICardHeader className="p-2 pt-0 md:p-4 md:pt-0">
                       <UICardTitle className="text-lg">Investigation Details</UICardTitle>
                   </UICardHeader>
-                  <CardContent className="space-y-4 p-2">
+                  <CardContent className="space-y-4 p-2 md:p-4">
                       <FormField control={form.control} name="techniqueUsed" render={({ field }) => (
                           <FormItem><FormLabel>Investigation Technique</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value || ""}>
@@ -269,7 +271,7 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
                       {selectedTechnique === 'FishboneIshikawa' && (
                           <div className="space-y-3 p-3 border rounded-md bg-muted/30">
                               <FormLabel className="text-md font-semibold">Fishbone (Ishikawa) Details</FormLabel>
-                              <FormDescription className="text-xs">Define categories (e.g., People, Process, Equipment) and list causes under each.</FormDescription>
+                              <UICardDescription className="text-xs">Define categories (e.g., People, Process, Equipment) and list causes under each.</UICardDescription>
                               {fishboneCatFields.map((catItem, catIndex) => {
                                   const { fields: causeFields, append: causeAppend, remove: causeRemove } = useFieldArray({
                                       control: form.control, name: `fishboneCategories.${catIndex}.causes`
@@ -303,7 +305,7 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
                       {selectedTechnique === 'SCAT' && (
                           <div className="space-y-3 p-3 border rounded-md bg-muted/30">
                               <FormLabel className="text-md font-semibold">SCAT Details</FormLabel>
-                              <FormDescription className="text-xs">Document key aspects of the Systematic Cause Analysis Technique.</FormDescription>
+                              <UICardDescription className="text-xs">Document key aspects of the Systematic Cause Analysis Technique.</UICardDescription>
                               <FormField control={form.control} name="scatDetails.summaryOfEvents" render={({ field }) => (
                                   <FormItem><FormLabel className="text-sm">Summary of Events / Unsafe Acts/Conditions</FormLabel><FormControl><Textarea placeholder="Describe the sequence of events and any unsafe acts or conditions observed." {...field} rows={3} /></FormControl><FormMessage /></FormItem>
                               )}/>
@@ -323,10 +325,10 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
               
               {/* Evidence and Witness Statements Card */}
               <Card>
-                  <UICardHeader className="p-2 pt-0">
+                  <UICardHeader className="p-2 pt-0 md:p-4 md:pt-0">
                       <UICardTitle className="text-lg">Evidence & Witness Information</UICardTitle>
                   </UICardHeader>
-                  <CardContent className="space-y-4 p-2">
+                  <CardContent className="space-y-4 p-2 md:p-4">
                       <FormField control={form.control} name="evidenceSummary" render={({ field }) => (
                           <FormItem>
                               <FormLabel className="flex items-center gap-1"><FileText className="h-4 w-4 text-muted-foreground"/>Summary of Evidence</FormLabel>
@@ -347,10 +349,10 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
 
               {/* Summary & CAPAs Card */}
               <Card>
-                  <UICardHeader className="p-2 pt-0">
+                  <UICardHeader className="p-2 pt-0 md:p-4 md:pt-0">
                       <UICardTitle className="text-lg">Findings & Actions</UICardTitle>
                   </UICardHeader>
-                  <CardContent className="space-y-4 p-2">
+                  <CardContent className="space-y-4 p-2 md:p-4">
                       <FormField control={form.control} name="summaryOfFindings" render={({ field }) => (
                           <FormItem><FormLabel>Overall Summary of Findings</FormLabel><FormControl><Textarea placeholder="Concisely summarize the key findings from the investigation." {...field} rows={4} /></FormControl><FormMessage /></FormItem>
                       )}/>
@@ -416,10 +418,10 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
 
               {/* Status Card */}
               <Card>
-                <UICardHeader className="p-2 pt-0">
+                <UICardHeader className="p-2 pt-0 md:p-4 md:pt-0">
                   <UICardTitle className="text-lg">Investigation Status</UICardTitle>
                 </UICardHeader>
-                <CardContent className="p-2">
+                <CardContent className="p-2 md:p-4">
                   <FormField control={form.control} name="status" render={({ field }) => (
                       <FormItem><FormLabel>Overall Investigation Status</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
@@ -434,7 +436,8 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
               </Card>
             </div>
           </ScrollArea>
-          <DialogFooter className="pt-6 border-t flex-shrink-0">
+          {/* Footer remains fixed at the bottom of the form (which is within the DialogContent flex structure) */}
+          <DialogFooter className="pt-4 md:pt-6 border-t flex-shrink-0 p-4 md:p-6">
             <DialogClose asChild>
               <Button type="button" variant="outline" onClick={onCancel}>
                 <XCircle className="mr-2 h-4 w-4" /> Cancel
@@ -449,3 +452,4 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
     </DialogContent>
   );
 }
+
