@@ -1,5 +1,4 @@
 
-
 export interface Incident {
   id: string;
   type: 'Incident' | 'Near Miss' | 'Hazard';
@@ -246,6 +245,53 @@ export interface IncidentInvestigation {
 }
 
 
+// Contractor Safety Types
+export type ContractorVettingStatus = 'Pending' | 'Approved' | 'Rejected' | 'Requires Review';
+export type PtwStatus = 'Requested' | 'Approved' | 'Active' | 'Closed' | 'Cancelled' | 'Expired';
+
+export interface ContractorDocument {
+  id: string;
+  name: string; // e.g., "Public Liability Insurance", "Safety Certification XYZ"
+  documentType: 'Insurance' | 'Certification' | 'Method Statement' | 'Risk Assessment' | 'Other';
+  fileUrlPlaceholder?: string; // Placeholder for file name or mock URL
+  expiryDate?: string; // ISO Date string
+  uploadedDate: string; // ISO Date string
+}
+
+export interface Contractor {
+  id: string;
+  companyName: string;
+  contactPerson: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  tradeOrService: string;
+  vettingStatus: ContractorVettingStatus;
+  vettingNotes?: string;
+  inductionCompleted: boolean;
+  inductionDate?: string; // ISO Date string
+  documents: ContractorDocument[];
+  performanceNotes?: string;
+}
+
+export interface PermitToWork {
+  id: string;
+  ptwNumber: string; // Auto-generated or manually entered
+  contractorId: string; // Links to Contractor.id
+  workDescription: string;
+  location: string;
+  startDate: string; // ISO DateTime string
+  endDate: string; // ISO DateTime string
+  status: PtwStatus;
+  scopeOfWork: string;
+  precautions: string; // Precautions to be taken
+  authorizedBy?: string;
+  authorizationDate?: string; // ISO DateTime string
+  closedBy?: string;
+  closureDate?: string; // ISO DateTime string
+  supervisorOnSite?: string;
+}
+
+
 export interface PpeLog {
   id: string;
   ppeType: string;
@@ -262,25 +308,6 @@ export interface PpeAudit {
   auditor: string;
   complianceRate: number; 
   nonCompliances: string; 
-}
-
-export interface Contractor {
-  id: string;
-  companyName: string;
-  contactPerson: string;
-  vettingStatus: 'Pending' | 'Approved' | 'Rejected';
-  inductionCompleted: boolean;
-  activePermits: string[]; 
-}
-
-export interface PermitToWork {
-  id: string;
-  contractorId: string;
-  workDescription: string;
-  location: string;
-  startDate: string;
-  endDate: string;
-  status: 'Requested' | 'Approved' | 'Active' | 'Closed' | 'Cancelled';
 }
 
 export interface MedicalScreeningRecord {
@@ -324,4 +351,3 @@ export interface AnalyzeAuditDataOutput {
   suggestedFocusAreas: string; // Multi-line
   positiveObservations?: string;
 }
-    
