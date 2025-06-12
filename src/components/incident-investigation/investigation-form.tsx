@@ -33,6 +33,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "../ui/separator";
 import { Card, CardContent, CardHeader as UICardHeader, CardTitle as UICardTitle, CardDescription as UICardDescription } from "@/components/ui/card";
 import { FishboneCategoryItem } from "./fishbone-category-item"; // Import the new component
+import { useToast } from "@/hooks/use-toast";
 
 
 const fiveWhyDetailSchema = z.object({
@@ -119,6 +120,7 @@ const getDefaultCorrectiveAction = (): CorrectiveAction => ({
 
 
 export function InvestigationForm({ initialData, onSave, onCancel }: InvestigationFormProps) {
+  const { toast } = useToast();
   const form = useForm<InvestigationFormValues>({
     resolver: zodResolver(investigationFormSchema),
     defaultValues: {
@@ -158,13 +160,42 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
     control: form.control, name: "correctiveActions"
   });
 
-  const onSubmit = (data: InvestigationFormValues) => {
+  const processSubmit = (data: InvestigationFormValues) => {
+    console.log("InvestigationForm: processSubmit called with data:", data);
     onSave(data);
   };
 
+  const processError = (errors: any) => { // Use `any` or `FieldErrors<InvestigationFormValues>`
+    console.error("InvestigationForm: Validation errors:", errors);
+    Object.keys(errors).forEach(key => {
+      console.error(`Field: ${key}, Error: ${errors[key]?.message}`);
+      // For nested errors (like in arrays), you might need recursive logging
+      if (errors[key] && typeof errors[key] === 'object' && errors[key].message) {
+         console.error(`Field: ${key}, Error: ${errors[key].message}`);
+      } else if (errors[key] && Array.isArray(errors[key])) {
+        errors[key].forEach((itemError: any, index: number) => {
+          if (itemError) {
+            Object.keys(itemError).forEach(subKey => {
+              if (itemError[subKey] && itemError[subKey].message) {
+                console.error(`Field: ${key}[${index}].${subKey}, Error: ${itemError[subKey].message}`);
+              }
+            });
+          }
+        });
+      }
+    });
+    toast({
+      title: "Validation Error",
+      description: "Please check the form for errors. Some fields might be invalid or missing. See console for details.",
+      variant: "destructive",
+      duration: 7000,
+    });
+  };
+
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+      <form onSubmit={form.handleSubmit(processSubmit, processError)} className="flex-1 flex flex-col min-h-0">
         <ScrollArea className="flex-1"> 
           <div className="p-4 md:p-6 space-y-6">
             {/* Basic Info Card */}

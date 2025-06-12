@@ -16,6 +16,7 @@ export default function NewIncidentInvestigationPage() {
   const { toast } = useToast();
 
   const handleSaveNewInvestigation = (formData: InvestigationFormValues) => {
+    console.log("NewIncidentInvestigationPage: handleSaveNewInvestigation triggered with data:", formData); 
     try {
       const storedInvestigations = localStorage.getItem(INVESTIGATIONS_STORAGE_KEY);
       const investigations: IncidentInvestigation[] = storedInvestigations ? JSON.parse(storedInvestigations) : [];
