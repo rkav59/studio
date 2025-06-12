@@ -33,7 +33,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, AlertTriangle, CheckCircle2, FileText, Users } from "lucide-react";
+import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, AlertTriangle, CheckCircle2, FileText, Users, Workflow } from "lucide-react";
 import type { IncidentInvestigation, CorrectiveAction, InvestigationTechnique, FiveWhyDetail, FishboneCategory, FishboneCause } from "@/lib/types";
 import { investigationTechniques } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
@@ -135,7 +135,7 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
       investigators: initialData?.investigators || "",
       techniqueUsed: initialData?.techniqueUsed || undefined,
       fiveWhysDetails: initialData?.fiveWhysDetails?.length ? initialData.fiveWhysDetails : [getDefaultFiveWhy()],
-      fishboneCategories: initialData?.fishboneCategories?.length ? initialData.fishboneCategories : [getDefaultFishboneCategory()],
+      fishboneCategories: initialData?.fishboneCategories?.length ? initialData.fishboneCategories : [], // Default to empty for fishbone
       scatDetails: initialData?.scatDetails || { summaryOfEvents: "", immediateCauses: "", underlyingFactors: "", systemDeficiencies: "" },
       genericRcaDetails: initialData?.genericRcaDetails || { problemStatement: "", contributingFactors: "", rootCauseSummary: "" },
       summaryOfFindings: initialData?.summaryOfFindings || "",
@@ -180,11 +180,8 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
         </DialogDescription>
       </DialogHeader>
       <Form {...form}>
-        {/* Form now uses flex-1 to grow and is a flex column. min-h-0 is important for nested flex growth. */}
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
-          {/* ScrollArea takes up the main space within the form */}
           <ScrollArea className="flex-1">
-            {/* Padding and spacing applied to an inner div */}
             <div className="p-4 md:p-6 space-y-6">
               {/* Basic Info Card */}
               <Card>
@@ -235,7 +232,7 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
                           <div className="space-y-3 p-3 border rounded-md bg-muted/30">
                               <FormLabel className="text-md font-semibold">5 Whys Analysis</FormLabel>
                               {fiveWhysFields.map((item, index) => (
-                                  <Card key={item.id} className="p-3 space-y-2 shadow-sm">
+                                  <Card key={item.id} className="p-3 space-y-2 shadow-sm bg-background">
                                       <div className="flex justify-between items-center">
                                           <FormLabel className="text-sm">Why #{index + 1}</FormLabel>
                                           {fiveWhysFields.length > 1 && <Button type="button" variant="ghost" size="icon" onClick={() => fiveWhysRemove(index)} className="text-destructive h-6 w-6"><Trash2 className="h-4 w-4" /></Button>}
@@ -268,39 +265,86 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
                           </div>
                       )}
 
-                      {selectedTechnique === 'FishboneIshikawa' && (
-                          <div className="space-y-3 p-3 border rounded-md bg-muted/30">
-                              <FormLabel className="text-md font-semibold">Fishbone (Ishikawa) Details</FormLabel>
-                              <UICardDescription className="text-xs">Define categories (e.g., People, Process, Equipment) and list causes under each.</UICardDescription>
-                              {fishboneCatFields.map((catItem, catIndex) => {
-                                  const { fields: causeFields, append: causeAppend, remove: causeRemove } = useFieldArray({
-                                      control: form.control, name: `fishboneCategories.${catIndex}.causes`
-                                  });
-                                  return (
-                                  <Card key={catItem.id} className="p-3 space-y-2 shadow-sm">
-                                      <div className="flex justify-between items-center">
-                                          <FormField control={form.control} name={`fishboneCategories.${catIndex}.categoryName`} render={({ field }) => (
-                                              <FormItem className="flex-grow mr-2"><FormLabel className="text-sm">Category #{catIndex + 1}</FormLabel><FormControl><Input placeholder="e.g., Equipment" {...field} /></FormControl><FormMessage /></FormItem>
-                                          )}/>
-                                          {fishboneCatFields.length > 1 && <Button type="button" variant="ghost" size="icon" onClick={() => fishboneCatRemove(catIndex)} className="text-destructive h-7 w-7 mt-5"><Trash2 className="h-4 w-4" /></Button>}
-                                      </div>
-                                      <FormLabel className="text-xs">Causes for this category:</FormLabel>
-                                      {causeFields.map((causeItem, causeIndex) => (
-                                          <div key={causeItem.id} className="flex items-center gap-2 ml-4">
-                                              <FormField control={form.control} name={`fishboneCategories.${catIndex}.causes.${causeIndex}.causeText`} render={({ field }) => (
-                                                  <FormItem className="flex-grow"><FormControl><Input placeholder={`Cause ${causeIndex + 1}`} {...field} className="h-8 text-xs"/></FormControl><FormMessage /></FormItem>
-                                              )}/>
-                                              {causeFields.length > 1 && <Button type="button" variant="ghost" size="icon" onClick={() => causeRemove(causeIndex)} className="text-destructive h-6 w-6"><Trash2 className="h-3 w-3" /></Button>}
-                                          </div>
-                                      ))}
-                                      <Button type="button" variant="outline" size="xs" onClick={() => causeAppend(getDefaultFishboneCause())} className="ml-4 text-xs"><PlusCircle className="mr-1 h-3 w-3" /> Add Cause</Button>
-                                      <FormField name={`fishboneCategories.${catIndex}.causes`} render={() => (<FormMessage className="mt-1 text-xs"/>)} />
-                                  </Card>
-                              )})}
-                              <Button type="button" variant="outline" size="sm" onClick={() => fishboneCatAppend(getDefaultFishboneCategory())}><PlusCircle className="mr-2 h-4 w-4" /> Add Category</Button>
-                              <FormField name="fishboneCategories" render={() => (<FormMessage className="mt-1"/>)} />
-                          </div>
-                      )}
+                    {selectedTechnique === 'FishboneIshikawa' && (
+                        <div className="space-y-4 p-3 border rounded-md bg-muted/30">
+                            <div className="flex justify-between items-center">
+                            <FormLabel className="text-md font-semibold">Fishbone (Ishikawa) Diagram Details</FormLabel>
+                            <Button type="button" variant="outline" size="sm" onClick={() => fishboneCatAppend(getDefaultFishboneCategory())}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add Main Category
+                            </Button>
+                            </div>
+                            <UICardDescription className="text-xs">
+                            Define main categories (e.g., People, Process, Equipment, Environment, Materials, Management) and list potential causes under each.
+                            </UICardDescription>
+
+                            {fishboneCatFields.length === 0 && (
+                            <p className="text-sm text-muted-foreground text-center py-2">No categories added yet. Click "Add Main Category" to start.</p>
+                            )}
+
+                            <div className="space-y-4">
+                            {fishboneCatFields.map((catItem, catIndex) => {
+                                const { fields: causeFields, append: causeAppend, remove: causeRemove } = useFieldArray({
+                                control: form.control, name: `fishboneCategories.${catIndex}.causes`
+                                });
+                                return (
+                                <Card key={catItem.id} className="p-4 bg-background shadow-md">
+                                    <div className="flex justify-between items-center mb-3">
+                                    <FormField
+                                        control={form.control}
+                                        name={`fishboneCategories.${catIndex}.categoryName`}
+                                        render={({ field }) => (
+                                        <FormItem className="flex-grow mr-2">
+                                            <FormLabel className="text-sm font-medium text-primary">Category #{catIndex + 1}</FormLabel>
+                                            <FormControl>
+                                            <Input placeholder="e.g., Equipment, People, Process" {...field} className="text-base"/>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                        )}
+                                    />
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => fishboneCatRemove(catIndex)} className="text-destructive hover:bg-destructive/10 shrink-0 mt-6">
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="sr-only">Remove Category</span>
+                                    </Button>
+                                    </div>
+
+                                    <FormLabel className="text-xs font-medium text-muted-foreground">Potential Causes for "{form.watch(`fishboneCategories.${catIndex}.categoryName`) || 'this category'}"</FormLabel>
+                                    <div className="space-y-2 mt-1 pl-4 border-l-2 border-primary/30">
+                                    {causeFields.map((causeItem, causeIndex) => (
+                                        <div key={causeItem.id} className="flex items-center gap-2 py-1">
+                                        <span className="text-primary">-&gt;</span>
+                                        <FormField
+                                            control={form.control}
+                                            name={`fishboneCategories.${catIndex}.causes.${causeIndex}.causeText`}
+                                            render={({ field }) => (
+                                            <FormItem className="flex-grow">
+                                                <FormLabel className="sr-only">Cause {causeIndex + 1}</FormLabel>
+                                                <FormControl>
+                                                <Input placeholder={`Cause ${causeIndex + 1}`} {...field} className="h-9 text-sm"/>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                            )}
+                                        />
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => causeRemove(causeIndex)} className="text-destructive hover:bg-destructive/10 shrink-0">
+                                            <Trash2 className="h-3 w-3" />
+                                            <span className="sr-only">Remove Cause</span>
+                                        </Button>
+                                        </div>
+                                    ))}
+                                    <Button type="button" variant="outline" size="sm" onClick={() => causeAppend(getDefaultFishboneCause())} className="text-xs">
+                                        <PlusCircle className="mr-1 h-3 w-3" /> Add Cause to this Category
+                                    </Button>
+                                    <FormField name={`fishboneCategories.${catIndex}.causes`} render={() => (<FormMessage className="mt-1 text-xs"/>)} />
+                                    </div>
+                                </Card>
+                                )
+                            })}
+                            </div>
+                            <FormField name="fishboneCategories" render={() => (<FormMessage className="mt-2"/>)} />
+                        </div>
+                        )}
+
 
                       {selectedTechnique === 'SCAT' && (
                           <div className="space-y-3 p-3 border rounded-md bg-muted/30">
@@ -436,7 +480,6 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
               </Card>
             </div>
           </ScrollArea>
-          {/* Footer remains fixed at the bottom of the form (which is within the DialogContent flex structure) */}
           <DialogFooter className="pt-4 md:pt-6 border-t flex-shrink-0 p-4 md:p-6">
             <DialogClose asChild>
               <Button type="button" variant="outline" onClick={onCancel}>
