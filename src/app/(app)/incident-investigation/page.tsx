@@ -1,21 +1,27 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
 import Image from "next/image";
+import { useRouter } from 'next/navigation'; // Import useRouter
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, FileSearch, AlertTriangle, CheckCircle2, Sparkles, Loader2, Printer, Mail } from "lucide-react"; // Removed Filter icon
+import { PlusCircle, Edit2, Trash2, Eye, FileSearch, AlertTriangle, CheckCircle2, Sparkles, Loader2, Printer, Mail, Filter, Workflow } from "lucide-react";
 import type { IncidentInvestigation, CorrectiveAction, InvestigationTechnique, SuggestRootCauseInput, SuggestRootCauseOutput, FiveWhyDetail, FishboneCategory, FishboneCause, GenericRcaDetails, ScatDetails } from "@/lib/types";
 import { investigationTechniques } from "@/lib/types";
 import { InvestigationForm } from "@/components/incident-investigation/investigation-form";
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
-// Removed Select related imports for filters
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,12 +33,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Alert, AlertTitle, AlertDescription as UIAlertDescription } from "@/components/ui/alert"; 
+import { Alert, AlertTitle, AlertDescription as UIAlertDescription } from '@/components/ui/alert'; 
 import { suggestRootCause } from '@/ai/flows/suggest-root-cause-flow';
 
 
 const INVESTIGATIONS_STORAGE_KEY = 'sheild-incident-investigations-v1';
-
 
 // Helper for Markdown to HTML for report
 function markdownToHtml(markdown: string): string {
@@ -61,9 +66,10 @@ function markdownToHtml(markdown: string): string {
 
 
 export default function IncidentInvestigationPage() {
+  const router = useRouter(); // Initialize router
   const { toast } = useToast();
   const [investigations, setInvestigations] = useState<IncidentInvestigation[]>([]);
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false); // This state now only controls the edit dialog
   const [editingInvestigation, setEditingInvestigation] = useState<IncidentInvestigation | null>(null);
   const [viewingInvestigation, setViewingInvestigation] = useState<IncidentInvestigation | null>(null);
 
@@ -74,9 +80,8 @@ export default function IncidentInvestigationPage() {
   const [reportHtmlContent, setReportHtmlContent] = useState<string>("");
   const [rawReportMarkdown, setRawReportMarkdown] = useState<string>("");
 
-  // Removed filter states
-  // const [statusFilter, setStatusFilter] = useState<IncidentInvestigation['status'] | 'All'>('All');
-  // const [techniqueFilter, setTechniqueFilter] = useState<InvestigationTechnique | 'All'>('All');
+  const [statusFilter, setStatusFilter] = useState<IncidentInvestigation['status'] | 'All'>('All');
+  const [techniqueFilter, setTechniqueFilter] = useState<InvestigationTechnique | 'All' | ''>('All');
 
 
   useEffect(() => {
@@ -99,14 +104,13 @@ export default function IncidentInvestigationPage() {
     }
   }, [investigations]);
 
-  const handleOpenNewInvestigationForm = () => {
-    setEditingInvestigation(null);
-    setIsFormOpen(true);
+  const handleStartNewInvestigation = () => {
+    router.push('/incident-investigation/new'); // Navigate to the new investigation page
   };
 
   const handleEditInvestigation = (investigation: IncidentInvestigation) => {
     setEditingInvestigation(investigation);
-    setIsFormOpen(true);
+    setIsFormOpen(true); // Open dialog for editing
   };
 
   const handleDeleteInvestigation = (investigationId: string) => {
@@ -114,15 +118,24 @@ export default function IncidentInvestigationPage() {
     toast({ title: "Investigation Deleted", description: "The incident investigation has been deleted." });
   };
 
-  const handleSaveInvestigation = (data: Omit<IncidentInvestigation, 'id'>) => {
-    if (editingInvestigation) {
-      setInvestigations(prev => prev.map(inv => inv.id === editingInvestigation.id ? { ...editingInvestigation, ...data } : inv));
-      toast({ title: "Investigation Updated", description: `Investigation "${data.investigationTitle}" has been updated.` });
-    } else {
-      const newInvestigation: IncidentInvestigation = { id: crypto.randomUUID(), ...data };
-      setInvestigations(prev => [newInvestigation, ...prev]);
-      toast({ title: "Investigation Created", description: `New investigation "${data.investigationTitle}" has been created.` });
+  // This function now primarily handles updates for existing investigations
+  const handleSaveInvestigation = (data: Omit<IncidentInvestigation, 'id'> | IncidentInvestigation) => {
+    if (editingInvestigation) { // This implies it's an update
+      const updatedInvestigation: IncidentInvestigation = {
+        ...editingInvestigation, // Spread existing ID and other fields
+        ...data, // Spread new form data
+        // Ensure dates are in ISO string format if InvestigationForm provides Date objects
+        investigationDate: typeof data.investigationDate === 'string' ? data.investigationDate : (data.investigationDate as Date).toISOString(),
+        correctiveActions: data.correctiveActions.map(ca => ({
+          ...ca,
+          dueDate: typeof ca.dueDate === 'string' ? ca.dueDate : (ca.dueDate as Date).toISOString(),
+          completionDate: ca.completionDate ? (typeof ca.completionDate === 'string' ? ca.completionDate : (ca.completionDate as Date).toISOString()) : undefined,
+        })),
+      };
+      setInvestigations(prev => prev.map(inv => inv.id === editingInvestigation.id ? updatedInvestigation : inv));
+      toast({ title: "Investigation Updated", description: `Investigation "${updatedInvestigation.investigationTitle}" has been updated.` });
     }
+    // Creation is handled by the new page
     setIsFormOpen(false);
     setEditingInvestigation(null);
   };
@@ -261,8 +274,13 @@ export default function IncidentInvestigationPage() {
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
-  // Removed filteredInvestigations useMemo hook
-  // const filteredInvestigations = useMemo(() => { ... });
+  const filteredInvestigations = useMemo(() => {
+    return investigations.filter(inv => {
+      const statusMatch = statusFilter === 'All' || inv.status === statusFilter;
+      const techniqueMatch = techniqueFilter === 'All' || techniqueFilter === '' || inv.techniqueUsed === techniqueFilter;
+      return statusMatch && techniqueMatch;
+    });
+  }, [investigations, statusFilter, techniqueFilter]);
 
 
   const InvestigationDetailView = ({ investigation }: { investigation: IncidentInvestigation }) => (
@@ -274,7 +292,7 @@ export default function IncidentInvestigationPage() {
                 <p><strong>Investigation Date:</strong> {investigation.investigationDate && isValid(parseISO(investigation.investigationDate)) ? format(parseISO(investigation.investigationDate), "PPP") : "N/A"}</p>
                 <p><strong>Investigator(s):</strong> {investigation.investigators || "N/A"}</p>
                 <p><strong>Technique Used:</strong> {investigationTechniques.find(t => t.name === investigation.techniqueUsed)?.label || "N/A"}</p>
-                <p><strong>Status:</strong> <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${getStatusColor(investigation.status)}`}><StatusIcon status={investigation.status} /> {investigation.status}</span></p>
+                <p><strong>Status:</strong> <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${getStatusColor(investigation.status)}`}>{getStatusIcon({status: investigation.status})} {investigation.status}</span></p>
             </div>
              <div className="flex flex-col gap-2">
                 <Button onClick={handleAiSuggestRootCauses} disabled={isAiLoading} size="sm" variant="outline" className="border-accent text-accent hover:bg-accent/10">
@@ -369,7 +387,7 @@ export default function IncidentInvestigationPage() {
                     <p><strong>Action:</strong> {capa.description}</p>
                     <p><strong>Responsible:</strong> {capa.responsiblePerson}</p>
                     <p><strong>Due Date:</strong> {capa.dueDate && isValid(parseISO(capa.dueDate)) ? format(parseISO(capa.dueDate), "PPP") : "N/A"}</p>
-                    <p><strong>Status:</strong> <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${getStatusColor(capa.status)}`}><StatusIcon status={capa.status} />{capa.status}</span></p>
+                    <p><strong>Status:</strong> <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${getStatusColor(capa.status)}`}>{getStatusIcon({status: capa.status})} {capa.status}</span></p>
                     {capa.status === 'Completed' && capa.completionDate && <p><strong>Completed:</strong> {format(parseISO(capa.completionDate), "PPP")}</p>}
                     {capa.verificationNotes && <p><strong>Verification:</strong> {capa.verificationNotes}</p>}
                     </li>
@@ -403,29 +421,60 @@ export default function IncidentInvestigationPage() {
             This module provides tools for conducting detailed incident investigations. 
             Select an investigation technique, document findings, identify root causes, and manage corrective and preventive actions (CAPA).
             AI assistance can help suggest root causes, and a printable report can be generated.
+            New investigations are created on a dedicated page.
           </p>
         </CardContent>
       </Card>
       
       <Card>
-        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4"> {/* Reverted: Removed filter UI from header */}
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
                 <CardTitle className="flex items-center gap-2"><FileSearch className="h-6 w-6 text-primary"/>Investigation Register</CardTitle>
-                <CardDescription>Manage your incident investigations. All data is stored locally.</CardDescription>
+                <CardDescription>Manage your incident investigations. Use filters to narrow down the list. All data is stored locally.</CardDescription>
             </div>
-            <Button onClick={handleOpenNewInvestigationForm} className="bg-primary hover:bg-primary/90">
+            <Button onClick={handleStartNewInvestigation} className="bg-primary hover:bg-primary/90">
                 <PlusCircle className="mr-2 h-4 w-4" /> Start New Investigation
             </Button>
         </CardHeader>
         <CardContent>
-            {/* Reverted: Removed filter UI section */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 border rounded-md bg-muted/50">
+              <div className="flex-1 min-w-[150px]">
+                <Label htmlFor="statusFilter" className="text-xs font-medium">Filter by Status</Label>
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as IncidentInvestigation['status'] | 'All')}>
+                  <SelectTrigger id="statusFilter">
+                    <SelectValue placeholder="Filter by Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All Statuses</SelectItem>
+                    <SelectItem value="Open">Open</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="Review">Pending Review</SelectItem>
+                    <SelectItem value="Closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1 min-w-[150px]">
+                <Label htmlFor="techniqueFilter" className="text-xs font-medium">Filter by Technique</Label>
+                <Select value={techniqueFilter} onValueChange={(value) => setTechniqueFilter(value as InvestigationTechnique | 'All' | '')}>
+                  <SelectTrigger id="techniqueFilter">
+                    <SelectValue placeholder="Filter by Technique" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All Techniques</SelectItem>
+                    {investigationTechniques.map(tech => (
+                      <SelectItem key={tech.name} value={tech.name}>{tech.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             
-            {investigations.length === 0 ? ( // Reverted: Using 'investigations' directly
-                <p className="text-muted-foreground text-center py-4">No investigations started yet.</p>
+            {filteredInvestigations.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">No investigations match your current filters, or no investigations started yet.</p>
             ) : (
                 <ScrollArea className="max-h-[600px] pr-3">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {investigations.map(inv => ( // Reverted: Using 'investigations' directly
+                        {filteredInvestigations.map(inv => (
                             <Card key={inv.id} className="shadow-md flex flex-col">
                                 <CardHeader>
                                     <CardTitle className="truncate text-lg">{inv.investigationTitle}</CardTitle>
@@ -434,7 +483,7 @@ export default function IncidentInvestigationPage() {
                                 <CardContent className="flex-grow text-xs space-y-1">
                                     <p>Date: {inv.investigationDate && isValid(parseISO(inv.investigationDate)) ? format(parseISO(inv.investigationDate), "PPP") : "N/A"}</p>
                                     <p>Technique: {investigationTechniques.find(t => t.name === inv.techniqueUsed)?.label || "N/A"}</p>
-                                    <p>Status: <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1 ${getStatusColor(inv.status)}`}><StatusIcon status={inv.status} /> {inv.status}</span></p>
+                                    <p>Status: <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1 ${getStatusColor(inv.status)}`}>{getStatusIcon({status:inv.status})} {inv.status}</span></p>
                                 </CardContent>
                                 <CardFooter className="flex flex-wrap gap-2 justify-start border-t pt-4">
                                     <Button variant="outline" size="sm" onClick={() => { setViewingInvestigation(inv); setAiSuggestions(null); }}>
@@ -473,6 +522,28 @@ export default function IncidentInvestigationPage() {
         </CardContent>
       </Card>
 
+    {/* Dialog for EDITING an existing investigation */}
+    {editingInvestigation && isFormOpen && (
+        <Dialog open={isFormOpen} onOpenChange={(isOpen) => { if(!isOpen) { setIsFormOpen(false); setEditingInvestigation(null); }}}>
+            <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0"> {/* p-0 because form will handle its internal padding */}
+                 <DialogHeader className="p-4 md:p-6 border-b flex-shrink-0">
+                    <DialogTitle className="flex items-center gap-2 text-primary">
+                        <FileSearch className="h-6 w-6"/>
+                        Edit Incident Investigation
+                    </DialogTitle>
+                    <DialogDescription>
+                        Update the details of investigation: "{editingInvestigation.investigationTitle}".
+                    </DialogDescription>
+                </DialogHeader>
+                <InvestigationForm
+                    initialData={editingInvestigation}
+                    onSave={handleSaveInvestigation} // This will be an update operation
+                    onCancel={() => { setIsFormOpen(false); setEditingInvestigation(null); }}
+                />
+            </DialogContent>
+        </Dialog>
+    )}
+
     {viewingInvestigation && (
         <Dialog open={!!viewingInvestigation} onOpenChange={() => { setViewingInvestigation(null); setAiSuggestions(null); }}>
             <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
@@ -495,16 +566,6 @@ export default function IncidentInvestigationPage() {
         </Dialog>
       )}
       
-      {isFormOpen && (
-        <Dialog open={isFormOpen} onOpenChange={(isOpen) => { if(!isOpen) { setIsFormOpen(false); setEditingInvestigation(null); }}}>
-            <InvestigationForm
-                initialData={editingInvestigation}
-                onSave={handleSaveInvestigation}
-                onCancel={() => { setIsFormOpen(false); setEditingInvestigation(null); }}
-            />
-        </Dialog>
-      )}
-
       {isReportModalOpen && (
         <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
             <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
@@ -550,13 +611,15 @@ export default function IncidentInvestigationPage() {
                 This module now includes:
             </p>
             <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                <li>Creation of new investigations on a dedicated page.</li>
+                <li>Editing of existing investigations in a dialog.</li>
                 <li>Structured investigation logging with choice of technique (5 Whys, Generic RCA, simplified Fishbone & SCAT).</li>
                 <li>Detailed CAPA (Corrective and Preventive Action) tracking for each investigation.</li>
                 <li>Textual fields for summarizing evidence and witness statements (actual uploads require backend).</li>
                 <li>AI-assisted root cause suggestion based on incident details and findings.</li>
                 <li>Printable investigation report generation (Markdown based).</li>
+                <li>Client-side filtering of the investigation register by status and technique.</li>
                 <li>Local storage of all investigation data.</li>
-                {/* Reverted: Removed mention of client-side filtering */}
             </ul>
             <Separator className="my-4"/>
              <p className="text-sm text-muted-foreground mt-2 mb-2">
@@ -572,4 +635,3 @@ export default function IncidentInvestigationPage() {
     </div>
   );
 }
-
