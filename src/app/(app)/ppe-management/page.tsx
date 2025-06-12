@@ -125,7 +125,7 @@ export default function PpeManagementPage() {
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
             <CardTitle className="flex items-center gap-2"><Package className="h-6 w-6 text-primary" />PPE Inventory</CardTitle>
-            <CardDescription>Manage PPE types, stock levels, and specifications.</CardDescription>
+            <CardDescription>View and manage all PPE items in your inventory, including types, stock levels, and specifications.</CardDescription>
           </div>
           <Button onClick={handleOpenNewPpeItemForm} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             <PlusCircle className="mr-2 h-4 w-4" /> Add PPE to Inventory
