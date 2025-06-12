@@ -26,12 +26,13 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, FileText, Users, Workflow } from "lucide-react";
-import type { IncidentInvestigation, CorrectiveAction, InvestigationTechnique, FiveWhyDetail, FishboneCategory, FishboneCause, ScatDetails, GenericRcaDetails } from "@/lib/types";
+import type { IncidentInvestigation, CorrectiveAction, InvestigationTechnique, FiveWhyDetail, /*FishboneCategory, FishboneCause,*/ ScatDetails, GenericRcaDetails } from "@/lib/types"; // Removed Fishbone types from here as they will be form-specific
 import { investigationTechniques } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "../ui/separator";
 import { Card, CardContent, CardHeader as UICardHeader, CardTitle as UICardTitle, CardDescription as UICardDescription } from "@/components/ui/card";
+import { FishboneCategoryItem } from "./fishbone-category-item"; // Import the new component
 
 
 const fiveWhyDetailSchema = z.object({
@@ -50,6 +51,7 @@ const fishboneCategorySchema = z.object({
     categoryName: z.string().min(1, "Required").max(100, "Too long"),
     causes: z.array(fishboneCauseSchema).min(1, "At least one cause required for category"),
 });
+export type FishboneCategory = z.infer<typeof fishboneCategorySchema>; // Export for FishboneCategoryItem
 
 const scatDetailsSchema = z.object({
     summaryOfEvents: z.string().max(2000).optional(),
@@ -97,15 +99,14 @@ const investigationFormSchema = z.object({
 export type InvestigationFormValues = z.infer<typeof investigationFormSchema>;
 
 interface InvestigationFormProps {
-  initialData?: Partial<IncidentInvestigation> | null; // Use Partial for initialData to allow for new forms
-  onSave: (data: InvestigationFormValues) => void; // Form now passes validated form values
+  initialData?: Partial<IncidentInvestigation> | null; 
+  onSave: (data: InvestigationFormValues) => void; 
   onCancel: () => void;
 }
 
 // Default factories
 const getDefaultFiveWhy = (): FiveWhyDetail => ({ id: crypto.randomUUID(), why: "", because: "" });
-const getDefaultFishboneCause = (): FishboneCause => ({ id: crypto.randomUUID(), causeText: "" });
-const getDefaultFishboneCategory = (): FishboneCategory => ({ id: crypto.randomUUID(), categoryName: "", causes: [getDefaultFishboneCause()] });
+const getDefaultFishboneCategory = (): FishboneCategory => ({ id: crypto.randomUUID(), categoryName: "", causes: [{ id: crypto.randomUUID(), causeText: "" }] });
 const getDefaultCorrectiveAction = (): CorrectiveAction => ({
     id: crypto.randomUUID(),
     description: "",
@@ -127,7 +128,7 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
       investigators: initialData?.investigators || "",
       techniqueUsed: initialData?.techniqueUsed || undefined,
       fiveWhysDetails: initialData?.fiveWhysDetails?.length ? initialData.fiveWhysDetails : [getDefaultFiveWhy()],
-      fishboneCategories: initialData?.fishboneCategories?.length ? initialData.fishboneCategories : [],
+      fishboneCategories: initialData?.fishboneCategories?.length ? initialData.fishboneCategories.map(cat => ({...cat, causes: cat.causes.length ? cat.causes : [{id: crypto.randomUUID(), causeText: ""}] })) : [],
       scatDetails: initialData?.scatDetails || { summaryOfEvents: "", immediateCauses: "", underlyingFactors: "", systemDeficiencies: "" },
       genericRcaDetails: initialData?.genericRcaDetails || { problemStatement: "", contributingFactors: "", rootCauseSummary: "" },
       evidenceSummary: initialData?.evidenceSummary || "",
@@ -163,8 +164,8 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full"> {/* Removed min-h-0, should adapt to content */}
-        <ScrollArea className="flex-1 min-h-0"> {/* This ScrollArea handles the main form content */}
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+        <ScrollArea className="flex-1"> 
           <div className="p-4 md:p-6 space-y-6">
             {/* Basic Info Card */}
             <Card>
@@ -229,7 +230,7 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
                                 </Card>
                             ))}
                             <Button type="button" variant="outline" size="sm" onClick={() => fiveWhysAppend(getDefaultFiveWhy())}><PlusCircle className="mr-2 h-4 w-4" /> Add Another Why</Button>
-                            <FormField name="fiveWhysDetails" render={() => (<FormMessage className="mt-1"/>)} />
+                            <FormField name="fiveWhysDetails" control={form.control} render={({ fieldState }) => fieldState.error ? <FormMessage>{fieldState.error.message}</FormMessage> : null} />
                         </div>
                     )}
                     
@@ -265,66 +266,17 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
                         )}
 
                         <div className="space-y-4">
-                        {fishboneCatFields.map((catItem, catIndex) => {
-                            const { fields: causeFields, append: causeAppend, remove: causeRemove } = useFieldArray({
-                            control: form.control, name: `fishboneCategories.${catIndex}.causes`
-                            });
-                            return (
-                            <Card key={catItem.id} className="p-4 bg-background shadow-md">
-                                <div className="flex justify-between items-center mb-3">
-                                <FormField
-                                    control={form.control}
-                                    name={`fishboneCategories.${catIndex}.categoryName`}
-                                    render={({ field }) => (
-                                    <FormItem className="flex-grow mr-2">
-                                        <FormLabel className="text-sm font-medium text-primary">Category #{catIndex + 1}</FormLabel>
-                                        <FormControl>
-                                        <Input placeholder="e.g., Equipment, People, Process" {...field} className="text-base"/>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
-                                <Button type="button" variant="ghost" size="icon" onClick={() => fishboneCatRemove(catIndex)} className="text-destructive hover:bg-destructive/10 shrink-0 mt-6">
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="sr-only">Remove Category</span>
-                                </Button>
-                                </div>
-
-                                <FormLabel className="text-xs font-medium text-muted-foreground">Potential Causes for "{form.watch(`fishboneCategories.${catIndex}.categoryName`) || 'this category'}"</FormLabel>
-                                <div className="space-y-2 mt-1 pl-4 border-l-2 border-primary/30">
-                                {causeFields.map((causeItem, causeIndex) => (
-                                    <div key={causeItem.id} className="flex items-center gap-2 py-1">
-                                    <span className="text-primary">-&gt;</span>
-                                    <FormField
-                                        control={form.control}
-                                        name={`fishboneCategories.${catIndex}.causes.${causeIndex}.causeText`}
-                                        render={({ field }) => (
-                                        <FormItem className="flex-grow">
-                                            <FormLabel className="sr-only">Cause {causeIndex + 1}</FormLabel>
-                                            <FormControl>
-                                            <Input placeholder={`Cause ${causeIndex + 1}`} {...field} className="h-9 text-sm"/>
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                        )}
-                                    />
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => causeRemove(causeIndex)} className="text-destructive hover:bg-destructive/10 shrink-0">
-                                        <Trash2 className="h-3 w-3" />
-                                        <span className="sr-only">Remove Cause</span>
-                                    </Button>
-                                    </div>
-                                ))}
-                                <Button type="button" variant="outline" size="sm" onClick={() => causeAppend(getDefaultFishboneCause())} className="text-xs">
-                                    <PlusCircle className="mr-1 h-3 w-3" /> Add Cause to this Category
-                                </Button>
-                                <FormField name={`fishboneCategories.${catIndex}.causes`} render={() => (<FormMessage className="mt-1 text-xs"/>)} />
-                                </div>
-                            </Card>
-                            )
-                        })}
+                        {fishboneCatFields.map((catItem, catIndex) => (
+                           <FishboneCategoryItem
+                             key={catItem.id}
+                             categoryIndex={catIndex}
+                             control={form.control}
+                             removeCategory={fishboneCatRemove}
+                             watch={form.watch}
+                           />
+                         ))}
                         </div>
-                        <FormField name="fishboneCategories" render={() => (<FormMessage className="mt-2"/>)} />
+                        <FormField name="fishboneCategories" control={form.control} render={({ fieldState }) => fieldState.error ? <FormMessage>{fieldState.error.message || fieldState.error.root?.message}</FormMessage> : null} />
                     </div>
                     )}
 
@@ -436,7 +388,7 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
                             </Card>
                         ))}
                         <Button type="button" variant="outline" size="sm" onClick={() => capaAppend(getDefaultCorrectiveAction())}><PlusCircle className="mr-2 h-4 w-4" /> Add CAPA</Button>
-                        <FormField name="correctiveActions" render={() => (<FormMessage className="mt-1"/>)} />
+                        <FormField name="correctiveActions" control={form.control} render={({ fieldState }) => fieldState.error ? <FormMessage>{fieldState.error.message || fieldState.error.root?.message}</FormMessage> : null} />
                     </div>
                 </CardContent>
             </Card>
@@ -475,3 +427,4 @@ export function InvestigationForm({ initialData, onSave, onCancel }: Investigati
     </Form>
   );
 }
+
