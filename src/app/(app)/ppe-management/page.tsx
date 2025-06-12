@@ -3,12 +3,14 @@
 
 import { useState, useEffect } from 'react';
 import Image from "next/image";
+import { useRouter } from 'next/navigation'; // Import useRouter
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Dialog } from "@/components/ui/dialog";
+// Dialog import is no longer needed for forms, but keep for PpeItemDetailsDialog and PpeIssuanceDetailsDialog
+import { Dialog } from "@/components/ui/dialog"; 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PlusCircle, Edit2, Trash2, Eye, Package, CheckCheck, ClipboardList, Users, Settings2, AlertTriangle } from "lucide-react";
-import type { PpeItem, PpeIssuanceRecord, PpeInspectionRecord, PpeComplianceAudit, PpeJobRoleMatrixEntry } from "@/lib/types";
+import type { PpeItem, PpeIssuanceRecord } from "@/lib/types"; // Keep other types if needed
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
@@ -23,45 +25,22 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { PpeItemForm } from '@/components/ppe-management/ppe-item-form';
+// PpeItemForm and PpeIssuanceForm are no longer imported here
 import { PpeItemDetailsDialog } from '@/components/ppe-management/ppe-item-details-dialog';
-import { PpeIssuanceForm } from '@/components/ppe-management/ppe-issuance-form';
 import { PpeIssuanceDetailsDialog } from '@/components/ppe-management/ppe-issuance-details-dialog';
-// Placeholders for other forms/dialogs to be created
-// import { PpeInspectionForm } from '@/components/ppe-management/ppe-inspection-form';
-// import { PpeInspectionDetailsDialog } from '@/components/ppe-management/ppe-inspection-details-dialog';
-// import { PpeComplianceAuditForm } from '@/components/ppe-management/ppe-compliance-audit-form';
-// import { PpeComplianceAuditDetailsDialog } from '@/components/ppe-management/ppe-compliance-audit-details-dialog';
-// import { PpeMatrixForm } from '@/components/ppe-management/ppe-matrix-form';
-// import { PpeMatrixDetailsDialog } from '@/components/ppe-management/ppe-matrix-details-dialog';
-
 
 const PPE_ITEMS_KEY = 'sheild-ppe-items-v1';
 const PPE_ISSUANCES_KEY = 'sheild-ppe-issuances-v1';
-// const PPE_INSPECTIONS_KEY = 'sheild-ppe-inspections-v1';
-// const PPE_AUDITS_KEY = 'sheild-ppe-compliance-audits-v1';
-// const PPE_MATRIX_KEY = 'sheild-ppe-jobrole-matrix-v1';
-
 
 export default function PpeManagementPage() {
+  const router = useRouter();
   const { toast } = useToast();
 
-  // State for PPE Inventory
   const [ppeItems, setPpeItems] = useState<PpeItem[]>([]);
-  const [isPpeItemFormOpen, setIsPpeItemFormOpen] = useState(false);
-  const [editingPpeItem, setEditingPpeItem] = useState<PpeItem | null>(null);
   const [viewingPpeItem, setViewingPpeItem] = useState<PpeItem | null>(null);
 
-  // State for PPE Issuances
   const [ppeIssuances, setPpeIssuances] = useState<PpeIssuanceRecord[]>([]);
-  const [isPpeIssuanceFormOpen, setIsPpeIssuanceFormOpen] = useState(false);
-  const [editingPpeIssuance, setEditingPpeIssuance] = useState<PpeIssuanceRecord | null>(null);
   const [viewingPpeIssuance, setViewingPpeIssuance] = useState<PpeIssuanceRecord | null>(null);
-
-  // Placeholder states for other sections
-  // const [ppeInspections, setPpeInspections] = useState<PpeInspectionRecord[]>([]);
-  // const [ppeAudits, setPpeAudits] = useState<PpeComplianceAudit[]>([]);
-  // const [ppeMatrix, setPpeMatrix] = useState<PpeJobRoleMatrixEntry[]>([]);
 
   // --- Load & Save PPE Items ---
   useEffect(() => {
@@ -89,8 +68,8 @@ export default function PpeManagementPage() {
 
 
   // --- PPE Item Management Handlers ---
-  const handleOpenNewPpeItemForm = () => { setEditingPpeItem(null); setIsPpeItemFormOpen(true); };
-  const handleEditPpeItem = (item: PpeItem) => { setEditingPpeItem(item); setIsPpeItemFormOpen(true); };
+  const handleOpenNewPpeItemForm = () => router.push('/ppe-management/items/new');
+  const handleEditPpeItem = (item: PpeItem) => router.push(`/ppe-management/items/edit/${item.id}`);
   const handleDeletePpeItem = (itemId: string) => {
     if (ppeIssuances.some(issuance => issuance.ppeItemId === itemId)) {
       toast({ title: "Cannot Delete", description: "This PPE item is linked to issuance records.", variant: "destructive" });
@@ -99,42 +78,22 @@ export default function PpeManagementPage() {
     setPpeItems(prev => prev.filter(item => item.id !== itemId));
     toast({ title: "PPE Item Deleted" });
   };
-  const handleSavePpeItem = (data: Omit<PpeItem, 'id'>) => {
-    if (editingPpeItem) {
-      setPpeItems(prev => prev.map(item => item.id === editingPpeItem.id ? { ...editingPpeItem, ...data } : item));
-      toast({ title: "PPE Item Updated" });
-    } else {
-      setPpeItems(prev => [{ id: crypto.randomUUID(), ...data }, ...prev]);
-      toast({ title: "PPE Item Added" });
-    }
-    setIsPpeItemFormOpen(false); setEditingPpeItem(null);
-  };
-
+  
   // --- PPE Issuance Management Handlers ---
   const handleOpenNewPpeIssuanceForm = () => {
     if (ppeItems.length === 0) {
         toast({title: "No PPE Items", description: "Please add PPE items to the inventory first.", variant: "destructive"});
         return;
     }
-    setEditingPpeIssuance(null); setIsPpeIssuanceFormOpen(true);
+    router.push('/ppe-management/issuances/new');
   };
-  const handleEditPpeIssuance = (issuance: PpeIssuanceRecord) => { setEditingPpeIssuance(issuance); setIsPpeIssuanceFormOpen(true); };
+  const handleEditPpeIssuance = (issuance: PpeIssuanceRecord) => router.push(`/ppe-management/issuances/edit/${issuance.id}`);
   const handleDeletePpeIssuance = (issuanceId: string) => {
     setPpeIssuances(prev => prev.filter(item => item.id !== issuanceId));
     toast({ title: "PPE Issuance Record Deleted" });
   };
-  const handleSavePpeIssuance = (data: Omit<PpeIssuanceRecord, 'id'>) => {
-    if (editingPpeIssuance) {
-      setPpeIssuances(prev => prev.map(item => item.id === editingPpeIssuance.id ? { ...editingPpeIssuance, ...data } : item));
-      toast({ title: "PPE Issuance Updated" });
-    } else {
-      setPpeIssuances(prev => [{ id: crypto.randomUUID(), ...data }, ...prev]);
-      toast({ title: "PPE Issuance Logged" });
-    }
-    setIsPpeIssuanceFormOpen(false); setEditingPpeIssuance(null);
-  };
-  const getPpeItemName = (itemId: string) => ppeItems.find(item => item.id === itemId)?.name || "Unknown PPE";
 
+  const getPpeItemName = (itemId: string) => ppeItems.find(item => item.id === itemId)?.name || "Unknown PPE";
 
   return (
     <div className="space-y-8">
@@ -206,11 +165,7 @@ export default function PpeManagementPage() {
           )}
         </CardContent>
       </Card>
-      {isPpeItemFormOpen && (
-        <Dialog open={isPpeItemFormOpen} onOpenChange={(isOpen) => { if (!isOpen) { setIsPpeItemFormOpen(false); setEditingPpeItem(null); } }}>
-          <PpeItemForm initialData={editingPpeItem} onSave={handleSavePpeItem} onCancel={() => { setIsPpeItemFormOpen(false); setEditingPpeItem(null); }} />
-        </Dialog>
-      )}
+      
       {viewingPpeItem && <PpeItemDetailsDialog item={viewingPpeItem} onClose={() => setViewingPpeItem(null)} />}
 
       <Separator />
@@ -266,13 +221,8 @@ export default function PpeManagementPage() {
           )}
         </CardContent>
       </Card>
-      {isPpeIssuanceFormOpen && (
-        <Dialog open={isPpeIssuanceFormOpen} onOpenChange={(isOpen) => { if (!isOpen) { setIsPpeIssuanceFormOpen(false); setEditingPpeIssuance(null); } }}>
-          <PpeIssuanceForm ppeItems={ppeItems} initialData={editingPpeIssuance} onSave={handleSavePpeIssuance} onCancel={() => { setIsPpeIssuanceFormOpen(false); setEditingPpeIssuance(null); }} />
-        </Dialog>
-      )}
+      
       {viewingPpeIssuance && <PpeIssuanceDetailsDialog issuance={viewingPpeIssuance} ppeItemName={getPpeItemName(viewingPpeIssuance.ppeItemId)} onClose={() => setViewingPpeIssuance(null)} />}
-
 
       {/* Placeholder Sections for Future Development */}
       <Separator />
@@ -294,3 +244,4 @@ export default function PpeManagementPage() {
     </div>
   );
 }
+    
