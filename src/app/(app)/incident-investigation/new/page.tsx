@@ -65,13 +65,13 @@ export default function NewIncidentInvestigationPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <Card className="shadow-lg">
+    <div className="space-y-6 h-full flex flex-col"> {/* Ensure page container allows flex children to take height */}
+      <Card className="shadow-lg flex-1 flex flex-col min-h-0"> {/* Card takes available space and manages children with flex */}
         <CardHeader>
           <CardTitle className="text-3xl font-bold tracking-tight">Start New Incident Investigation</CardTitle>
           <CardDescription>Fill in the details below to document a new incident investigation. All data is saved locally in your browser.</CardDescription>
         </CardHeader>
-        <CardContent className="p-0"> {/* Remove CardContent padding as form handles its own */}
+        <CardContent className="p-0 flex-1 flex flex-col min-h-0"> {/* CardContent expands and allows InvestigationForm to manage its own layout */}
           <InvestigationForm
             onSave={handleSaveNewInvestigation}
             onCancel={handleCancelNewInvestigation}
