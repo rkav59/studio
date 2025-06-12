@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertTitle, AlertDescription as UIAlertDescription } from '@/components/ui/alert'; 
 import { suggestRootCause } from '@/ai/flows/suggest-root-cause-flow';
+import { Label } from "@/components/ui/label"; // Added missing import
 
 
 const INVESTIGATIONS_STORAGE_KEY = 'sheild-incident-investigations-v1';
@@ -50,7 +51,7 @@ function markdownToHtml(markdown: string): string {
   html = html.replace(/__(.*?)__/gim, '<strong>$1</strong>');
   html = html.replace(/\*(.*?)\*/gim, '<em>$1</em>');
   html = html.replace(/_(.*?)_/gim, '<em>$1</em>');
-  html = html.replace(/^\s*([-*_]){3,}\s*$/gim, '<hr />');
+  html = html.replace(/^\s*([-*_]){3,}\s*$/gim, '<hr />';
   html = html.replace(/^\s*[-*+] (.*$)/gim, '<li>$1</li>');
   html = html.replace(/((?:<li>.*?<\/li>\s*)+)/gis, '<ul>$1</ul>');
   html = html.replace(/\\n/g, '\n');
@@ -635,3 +636,5 @@ export default function IncidentInvestigationPage() {
     </div>
   );
 }
+
+    
