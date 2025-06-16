@@ -5,18 +5,16 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
-  ClipboardPlus,
-  ListChecks,
-  BarChartHorizontalBig,
-  Sparkles,
   ShieldCheck,
-  ClipboardCheck, // Risk Assessment
+  ListChecks, // Inspections
+  BarChartHorizontalBig, // Data Visualization
+  Sparkles, // AI Safety Assist
   FileCheck2, // SHEQ Audit
   BookUser, // Training & Competence
   Siren, // Emergency Preparedness
   FileSearch, // Incident Investigation
   HardHat, // PPE Management
-  ClipboardList, // Contractor Safety (Replaced ClipboardUser)
+  ClipboardList, // Used for Contractor Safety and now the merged Incident & Risk Hub
   Stethoscope, // Medical Screening
   HeartPulse, // Health Monitoring
   Library, // For Checklist Templates
@@ -30,16 +28,15 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/incident-logging', label: 'Incident Logging', icon: ClipboardPlus },
+  { href: '/incident-risk', label: 'Incident & Risk Hub', icon: ClipboardList }, // Merged Module
   { href: '/inspections', label: 'Inspections', icon: ListChecks },
-  { href: '/risk-assessment', label: 'Risk Assessment', icon: ClipboardCheck },
   { href: '/sheq-audit', label: 'SHEQ Audit', icon: FileCheck2 },
-  { href: '/checklist-templates', label: 'Checklist Templates', icon: Library }, // New Nav Item
+  { href: '/checklist-templates', label: 'Checklist Templates', icon: Library },
   { href: '/training-competence', label: 'Training & Competence', icon: BookUser },
   { href: '/emergency-preparedness', label: 'Emergency Preparedness', icon: Siren },
   { href: '/incident-investigation', label: 'Incident Investigation', icon: FileSearch },
   { href: '/ppe-management', label: 'PPE Management', icon: HardHat },
-  { href: '/contractor-safety', label: 'Contractor Safety', icon: ClipboardList },
+  { href: '/contractor-safety', label: 'Contractor Safety', icon: ClipboardList }, 
   { href: '/medical-screening', label: 'Medical Screening', icon: Stethoscope },
   { href: '/health-monitoring', label: 'Health Monitoring', icon: HeartPulse },
   { href: '/data-visualization', label: 'Data Visualization', icon: BarChartHorizontalBig },
@@ -89,5 +86,3 @@ export function AppLogo() {
     </Link>
   );
 }
-
-    
