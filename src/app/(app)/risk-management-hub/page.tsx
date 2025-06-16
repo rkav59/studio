@@ -40,13 +40,13 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription as UIAlertDialogDescription,
+  AlertDialogDescription as UIAlertDialogDescription, // Renamed to avoid conflict
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle as UIAlertDialogTitle,
+  AlertDialogTitle as UIAlertDialogTitle, // Renamed to avoid conflict
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Alert, AlertTitle, AlertDescription as UIOriginalAlertDescription } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription as UIOriginalAlertDescription } from '@/components/ui/alert'; // Renamed to avoid conflict
 import { suggestRootCause } from '@/ai/flows/suggest-root-cause-flow';
 import { Label } from "@/components/ui/label";
 
@@ -543,11 +543,9 @@ export default function RiskManagementHubPage() {
       const techniqueMatch = techniqueFilterInvestigation === 'All' || techniqueFilterInvestigation === '' || inv.techniqueUsed === techniqueFilterInvestigation;
       return statusMatch && techniqueMatch;
     });
-  }, [investigations, statusFilterInvestigation, techniqueFilterInvestigation]);
+  }, [investigations, statusFilterInvestigation, techniqueFilterInvestigation])
 
-  ; // Added empty statement here
-
-  return (
+  const pageContent = (
     <div className="space-y-6">
       <Card className="shadow-lg overflow-hidden">
         <div className="relative h-60 w-full">
@@ -711,4 +709,5 @@ export default function RiskManagementHubPage() {
       </Tabs>
     </div>
   );
+  return pageContent;
 }
