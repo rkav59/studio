@@ -543,10 +543,9 @@ export default function RiskManagementHubPage() {
       const techniqueMatch = techniqueFilterInvestigation === 'All' || techniqueFilterInvestigation === '' || inv.techniqueUsed === techniqueFilterInvestigation;
       return statusMatch && techniqueMatch;
     });
-  }, [investigations, statusFilterInvestigation, techniqueFilterInvestigation])
+  }, [investigations, statusFilterInvestigation, techniqueFilterInvestigation]);
 
-  const pageContent = (
-    <div className="space-y-6">
+  const pageContent = (<div className="space-y-6">
       <Card className="shadow-lg overflow-hidden">
         <div className="relative h-60 w-full">
           <Image src="https://placehold.co/1200x400.png" alt="Integrated Risk Management Concept" layout="fill" objectFit="cover" data-ai-hint="risk management gears" />
@@ -707,7 +706,6 @@ export default function RiskManagementHubPage() {
           {isReportModalOpen && ( <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}> <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col"> <DialogHeader> <DialogTitle className="flex items-center gap-2"> <Printer className="h-6 w-6 text-primary" /> Investigation Report </DialogTitle> <DialogDescription> Review the generated report. </DialogDescription> </DialogHeader> <ScrollArea className="flex-grow my-4 pr-2"> <div id="she-report-print-area" className="prose dark:prose-invert prose-sm sm:prose-base max-w-none leading-relaxed" dangerouslySetInnerHTML={{ __html: reportHtmlContent || "<p>No report content.</p>" }} /> </ScrollArea> <DialogFooter className="pt-4 border-t gap-2 flex-wrap justify-end"> <UIOriginalAlertDescription className="text-xs print-hide w-full mb-2 sm:mb-0 text-muted-foreground"> To share as PDF, first use "Print / Save as PDF", then "Share via Email" and attach. </UIOriginalAlertDescription> <Button variant="outline" onClick={handlePrintInvestigationReport} className="print-hide"> <Printer className="mr-2 h-4 w-4" /> Print / Save as PDF </Button> <Button variant="outline" onClick={handleShareInvestigationReportViaEmail} className="print-hide"> <Mail className="mr-2 h-4 w-4" /> Share via Email </Button> <DialogClose asChild className="print-hide"> <Button variant="outline">Close</Button> </DialogClose> </DialogFooter> </DialogContent> </Dialog> )}
         </TabsContent>
       </Tabs>
-    </div>
-  );
+    </div>);
   return pageContent;
 }
