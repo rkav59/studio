@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Image from "next/image";
-import { useRouter, useSearchParams } from 'next/navigation'; // Added useSearchParams
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogTrigger } from "@/components/ui/dialog";
@@ -116,7 +116,6 @@ export default function RiskManagementHubPage() {
     }
   }, [searchParams])
 
-
   // --- State for Incident Logging & Risk Assessment ---
   const [loggedIncidents, setLoggedIncidents] = useState<Incident[]>([]);
   const [loggedRiskAssessments, setLoggedRiskAssessments] = useState<RiskAssessment[]>([]);
@@ -171,6 +170,7 @@ export default function RiskManagementHubPage() {
       }
     } catch (error) { console.error("Error loading risk assessments:", error); }
   }, []);
+
   useEffect(() => {
     try { localStorage.setItem(RISK_ASSESSMENTS_STORAGE_KEY_RMH, JSON.stringify(loggedRiskAssessments)); }
     catch (error) { console.error("Error saving risk assessments:", error); }
@@ -182,6 +182,7 @@ export default function RiskManagementHubPage() {
       if (storedInspections) setInspections(JSON.parse(storedInspections));
     } catch (error) { console.error("Error loading inspections:", error); }
   }, []);
+
   useEffect(() => {
     try { localStorage.setItem(INSPECTIONS_STORAGE_KEY_RMH, JSON.stringify(inspections)); }
     catch (error) { console.error("Error saving inspections:", error); }
@@ -193,6 +194,7 @@ export default function RiskManagementHubPage() {
       if (stored) setInvestigations(JSON.parse(stored));
     } catch (error) { console.error("Error loading investigations:", error); }
   }, []);
+
   useEffect(() => {
     try { localStorage.setItem(INVESTIGATIONS_STORAGE_KEY_RMH, JSON.stringify(investigations)); }
     catch (error) { console.error("Error saving investigations:", error); }
@@ -203,6 +205,7 @@ export default function RiskManagementHubPage() {
   const handleIncidentLogged = (incident: Incident) => {
     setLoggedIncidents(prevIncidents => [incident, ...prevIncidents]);
   };
+
   const getIconForIncidentType = (type: Incident['type']) => {
     switch (type) {
       case 'Incident': return <AlertTriangle className="h-5 w-5 text-red-500" />;
@@ -211,6 +214,7 @@ export default function RiskManagementHubPage() {
       default: return null;
     }
   };
+
   const handleSaveRiskAssessment = (assessment: RiskAssessment, isEditingSubmitted: boolean) => {
     if (isEditingSubmitted && editingAssessment) {
       setLoggedRiskAssessments(prev => prev.map(ra => (ra.id === assessment.id ? assessment : ra)));
@@ -219,10 +223,12 @@ export default function RiskManagementHubPage() {
     }
     setEditingAssessment(null); setAiPrefillData(null); setIsRiskFormVisible(false);
   };
+
   const handleEditRiskAssessment = (assessment: RiskAssessment) => {
     setEditingAssessment(assessment); setAiPrefillData(null); setIsRiskFormVisible(true); setIsAiAssistantSectionVisible(false);
   };
- const handleUseAiRiskSuggestion = (suggestion: RiskAssessmentSuggestionOutput, activityInput: string, hazardsInputFromAIForm: string) => {
+
+  const handleUseAiRiskSuggestion = (suggestion: RiskAssessmentSuggestionOutput, activityInput: string, hazardsInputFromAIForm: string) => {
     const parsedHazardTexts = hazardsInputFromAIForm.split('\\n').map(h => h.trim()).filter(h => h);
     const parsedRiskTexts = suggestion.potentialRisks.split('\\n').map(r => r.trim()).filter(r => r);
     const aiProposedControlsByCategory = suggestion.recommendedControls;
@@ -279,11 +285,14 @@ export default function RiskManagementHubPage() {
     });
     setEditingAssessment(null); setIsRiskFormVisible(true); setIsAiAssistantSectionVisible(false);
   };
+
   const handleAddNewRiskAssessment = () => {
     setEditingAssessment(null); setAiPrefillData({ activity: "", hazardEntries: [defaultHazardEntry()], assessmentDate: new Date().toISOString(), assessor: "" });
     setIsRiskFormVisible(true); setIsAiAssistantSectionVisible(false);
   };
+
   const handleCancelRiskForm = () => { setEditingAssessment(null); setAiPrefillData(null); setIsRiskFormVisible(false); };
+
   const escapeCsvCell = (cellValue: string | undefined | null): string => {
     if (cellValue === undefined || cellValue === null) return '';
     let stringValue = String(cellValue);
@@ -291,6 +300,7 @@ export default function RiskManagementHubPage() {
     if (stringValue.includes(',') || stringValue.includes('\\n') || stringValue.includes('"')) return `"${stringValue}"`;
     return stringValue;
   };
+
   const handleDownloadRiskRegister = () => {
     if (loggedRiskAssessments.length === 0) { alert("No risk assessments logged yet."); return; }
     const headers = ["Assessment ID", "Activity", "Assessor", "Assessment Date", "Method Used", "Hazard", "Hazard Residual Risk", "Risk", "Control Type", "Control Measure"];
@@ -343,9 +353,11 @@ export default function RiskManagementHubPage() {
     };
     setInspections(prev => [newInspection, ...prev]);
   };
+
   const handleStartInspection = (inspection: Inspection) => {
     setCurrentInspection(inspection);
   };
+
   const handleInspectionCompleted = (completedInspection: Inspection) => {
     setInspections(prev => prev.map(insp => insp.id === completedInspection.id ? { ...completedInspection, status: "Completed" } : insp));
     setCurrentInspection(null);
@@ -353,13 +365,16 @@ export default function RiskManagementHubPage() {
 
   // --- Handlers for Incident Investigation ---
   const handleStartNewInvestigation = () => router.push('/risk-management-hub/investigation/new');
+
   const handleEditInvestigation = (investigation: IncidentInvestigation) => {
     setEditingInvestigation(investigation); setIsInvestigationFormOpen(true);
   };
+
   const handleDeleteInvestigation = (investigationId: string) => {
     setInvestigations(prev => prev.filter(inv => inv.id !== investigationId));
     toast({ title: "Investigation Deleted" });
   };
+
   const handleSaveInvestigation = (data: Omit<IncidentInvestigation, 'id'> | IncidentInvestigation) => {
     if (editingInvestigation) {
       const updatedInvestigation: IncidentInvestigation = {
@@ -376,6 +391,7 @@ export default function RiskManagementHubPage() {
     }
     setIsInvestigationFormOpen(false); setEditingInvestigation(null);
   };
+
   const getInvestigationStatusColor = (status: IncidentInvestigation['status'] | CorrectiveAction['status']) => {
     switch (status) {
       case 'Open': return 'bg-blue-100 text-blue-700 dark:bg-blue-700/30 dark:text-blue-300';
@@ -387,6 +403,7 @@ export default function RiskManagementHubPage() {
       default: return 'bg-muted text-muted-foreground';
     }
   };
+
   const getInvestigationStatusIcon = (status: IncidentInvestigation['status'] | CorrectiveAction['status']) => {
     switch (status) {
       case 'Open': case 'In Progress': case 'Review': return <AlertTriangle className="h-3 w-3" />;
@@ -395,6 +412,7 @@ export default function RiskManagementHubPage() {
       default: return null;
     }
   };
+
   const handleAiSuggestRootCauses = async () => {
     if (!viewingInvestigation) return;
     setIsAiLoadingInvestigation(true); setAiSuggestionsInvestigation(null);
@@ -411,6 +429,7 @@ export default function RiskManagementHubPage() {
       toast({ title: "AI Error", variant: "destructive" });
     } finally { setIsAiLoadingInvestigation(false); }
   };
+
   const formatInvestigationToMarkdown = (inv: IncidentInvestigation): string => {
     let md = `# Investigation Report: ${inv.investigationTitle}\n\n`;
     md += `**Incident ID:** ${inv.incidentId || "N/A"}\n`;
@@ -464,26 +483,21 @@ export default function RiskManagementHubPage() {
     } else { md += "No CAPAs documented.\n"; }
     return md;
   };
+
   const handleGenerateInvestigationReport = () => {
     if (!viewingInvestigation) return;
     const markdown = formatInvestigationToMarkdown(viewingInvestigation);
     setRawReportMarkdown(markdown); setReportHtmlContent(markdownToHtml(markdown)); setIsReportModalOpen(true);
   };
+
   const handlePrintInvestigationReport = () => window.print();
+
   const handleShareInvestigationReportViaEmail = () => {
     if (!viewingInvestigation) return;
     const subject = encodeURIComponent(`Investigation Report: ${viewingInvestigation.investigationTitle}`);
     const body = encodeURIComponent(`Please find the Investigation Report for "${viewingInvestigation.investigationTitle}" (Incident ID: ${viewingInvestigation.incidentId}) below.\n\n${rawReportMarkdown}\n\n---\nGenerated by SHEild Application.`);
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
-  const filteredInvestigations = useMemo(() => {
-    return investigations.filter(inv => {
-      const statusMatch = statusFilterInvestigation === 'All' || inv.status === statusFilterInvestigation;
-      const techniqueMatch = techniqueFilterInvestigation === 'All' || techniqueFilterInvestigation === '' || inv.techniqueUsed === techniqueFilterInvestigation;
-      return statusMatch && techniqueMatch;
-    });
-  }, [investigations, statusFilterInvestigation, techniqueFilterInvestigation]);
-
 
   const InvestigationDetailView = ({ investigation }: { investigation: IncidentInvestigation }) => {
     return (
@@ -522,6 +536,16 @@ export default function RiskManagementHubPage() {
       </ScrollArea>
     );
   };
+
+  const filteredInvestigations = useMemo(() => {
+    return investigations.filter(inv => {
+      const statusMatch = statusFilterInvestigation === 'All' || inv.status === statusFilterInvestigation;
+      const techniqueMatch = techniqueFilterInvestigation === 'All' || techniqueFilterInvestigation === '' || inv.techniqueUsed === techniqueFilterInvestigation;
+      return statusMatch && techniqueMatch;
+    });
+  }, [investigations, statusFilterInvestigation, techniqueFilterInvestigation]);
+
+  ; // Added empty statement here
 
   return (
     <div className="space-y-6">
