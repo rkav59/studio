@@ -3,13 +3,14 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Image from "next/image";
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation'; // Added useSearchParams
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Edit2, Trash2, Eye, FileSearch, AlertTriangle, CheckCircle2, Sparkles, Loader2, Printer, Mail, Filter, Workflow, ShieldAlert, ListChecks, CheckSquare as CheckSquareIcon, Download, SparklesIcon as SparklesIconRA, HelpCircle, Activity as ActivityIcon, Siren, FileText as FileTextIcon, BookOpenCheck } from "lucide-react"; // Renamed some icons to avoid conflicts
+import { PlusCircle, Edit2, Trash2, Eye, FileSearch, AlertTriangle, CheckCircle2, Sparkles, Loader2, Printer, Mail, Filter, Workflow, ShieldAlert, ListChecks, CheckSquare as CheckSquareIcon, Download, SparklesIcon as SparklesIconRA, HelpCircle, Activity as ActivityIcon, Siren, FileText as FileTextIcon, BookOpenCheck } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 import type { Incident, RiskAssessment, RiskAssessmentMethod, RiskAssessmentSuggestionOutput, HazardEntry, RiskControlItem, Inspection, InspectionChecklistItem, SheqAudit, AuditChecklistItem as SheqAuditChecklistItem, ChecklistItemTemplate as SheqChecklistItemTemplate, NonConformance as SheqNonConformance, AnalyzeAuditDataInput, AnalyzeAuditDataOutput, ChecklistTemplate as SheqChecklistTemplate, IncidentInvestigation, CorrectiveAction, InvestigationTechnique, SuggestRootCauseInput, SuggestRootCauseOutput, FiveWhyDetail, FishboneCategory, GenericRcaDetails, ScatDetails, AuditObservationEntry } from "@/lib/types";
 import { investigationTechniques } from "@/lib/types";
@@ -20,8 +21,8 @@ import { RiskAssessmentDetailsDialog } from '@/components/risk-assessment/risk-a
 import { riskAssessmentMethodsList, type DescriptiveRiskAssessmentMethod } from '@/lib/risk-assessment-config';
 
 import { InspectionScheduler } from "@/components/inspections/inspection-scheduler";
-import { InspectionForm as InspectionsModuleInspectionForm } from "@/components/inspections/inspection-form"; // Aliased
-import { defaultChecklistTemplates as defaultInspectionChecklistTemplates } from '@/lib/checklist-templates'; // For Inspections
+import { InspectionForm as InspectionsModuleInspectionForm } from "@/components/inspections/inspection-form";
+import { defaultChecklistTemplates as defaultInspectionChecklistTemplates } from '@/lib/checklist-templates';
 
 import { InvestigationForm } from "@/components/incident-investigation/investigation-form";
 import { useToast } from '@/hooks/use-toast';
@@ -39,22 +40,22 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription as UIAlertDialogDescription, // Aliased
+  AlertDialogDescription as UIAlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle as UIAlertDialogTitle, // Aliased
+  AlertDialogTitle as UIAlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Alert, AlertTitle, AlertDescription as UIOriginalAlertDescription } from '@/components/ui/alert'; // Aliased
+import { Alert, AlertTitle, AlertDescription as UIOriginalAlertDescription } from '@/components/ui/alert';
 import { suggestRootCause } from '@/ai/flows/suggest-root-cause-flow';
 import { Label } from "@/components/ui/label";
 
 
 // Storage Keys
-const INCIDENTS_STORAGE_KEY_RMH = 'sheild-incidents-rmh-v1'; // Potentially update if structure changes
-const RISK_ASSESSMENTS_STORAGE_KEY_RMH = 'sheild-risk-assessments-v3'; // Keep if structure is compatible
+const INCIDENTS_STORAGE_KEY_RMH = 'sheild-incidents-rmh-v1';
+const RISK_ASSESSMENTS_STORAGE_KEY_RMH = 'sheild-risk-assessments-v3';
 const INSPECTIONS_STORAGE_KEY_RMH = 'sheild-inspections-rmh-v1';
-const INVESTIGATIONS_STORAGE_KEY_RMH = 'sheild-incident-investigations-v1'; // Keep if structure is compatible
+const INVESTIGATIONS_STORAGE_KEY_RMH = 'sheild-incident-investigations-v1';
 
 // Helper for Markdown to HTML for investigation reports
 function markdownToHtml(markdown: string): string {
@@ -94,7 +95,7 @@ const defaultHazardEntry = (): HazardEntry => ({
     residualRiskLevel: undefined,
 });
 
-const defaultInspectionChecklist: SheqAuditChecklistItem[] = [ // Using SheqAuditChecklistItem for consistency if types merge further, or use Inspections specific type
+const defaultInspectionChecklist: SheqAuditChecklistItem[] = [
   { id: "item-1", text: "Are emergency exits clear and accessible?", status: 'Pending', observations: [] },
   { id: "item-2", text: "Are fire extinguishers in place and charged?", status: 'Pending', observations: [] },
   { id: "item-3", text: "Is PPE being used correctly?", status: 'Pending', observations: [] },
@@ -103,7 +104,18 @@ const defaultInspectionChecklist: SheqAuditChecklistItem[] = [ // Using SheqAudi
 
 export default function RiskManagementHubPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
+
+  const [activeTab, setActiveTab] = useState<string>(searchParams.get('tab') || 'occurrences-risks');
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams])
+
 
   // --- State for Incident Logging & Risk Assessment ---
   const [loggedIncidents, setLoggedIncidents] = useState<Incident[]>([]);
@@ -122,7 +134,7 @@ export default function RiskManagementHubPage() {
   const [investigations, setInvestigations] = useState<IncidentInvestigation[]>([]);
   const [editingInvestigation, setEditingInvestigation] = useState<IncidentInvestigation | null>(null);
   const [viewingInvestigation, setViewingInvestigation] = useState<IncidentInvestigation | null>(null);
-  const [isInvestigationFormOpen, setIsInvestigationFormOpen] = useState(false); // For edit dialog
+  const [isInvestigationFormOpen, setIsInvestigationFormOpen] = useState(false);
   const [isAiLoadingInvestigation, setIsAiLoadingInvestigation] = useState(false);
   const [aiSuggestionsInvestigation, setAiSuggestionsInvestigation] = useState<string | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -132,11 +144,11 @@ export default function RiskManagementHubPage() {
   const [techniqueFilterInvestigation, setTechniqueFilterInvestigation] = useState<InvestigationTechnique | 'All' | ''>('All');
 
   // --- Data Loading Effects ---
-  useEffect(() => { // Load Incidents (session only for demo for now)
-    // For this merged hub, we'll also make incidents session-only to keep it simple
+  useEffect(() => {
+    // Incidents are session-only for this hub
   }, []);
 
-  useEffect(() => { // Load Risk Assessments
+  useEffect(() => {
     try {
       const storedAssessments = localStorage.getItem(RISK_ASSESSMENTS_STORAGE_KEY_RMH);
       if (storedAssessments) {
@@ -159,29 +171,29 @@ export default function RiskManagementHubPage() {
       }
     } catch (error) { console.error("Error loading risk assessments:", error); }
   }, []);
-  useEffect(() => { // Save Risk Assessments
+  useEffect(() => {
     try { localStorage.setItem(RISK_ASSESSMENTS_STORAGE_KEY_RMH, JSON.stringify(loggedRiskAssessments)); }
     catch (error) { console.error("Error saving risk assessments:", error); }
   }, [loggedRiskAssessments]);
 
-  useEffect(() => { // Load Inspections
+  useEffect(() => {
     try {
       const storedInspections = localStorage.getItem(INSPECTIONS_STORAGE_KEY_RMH);
       if (storedInspections) setInspections(JSON.parse(storedInspections));
     } catch (error) { console.error("Error loading inspections:", error); }
   }, []);
-  useEffect(() => { // Save Inspections
+  useEffect(() => {
     try { localStorage.setItem(INSPECTIONS_STORAGE_KEY_RMH, JSON.stringify(inspections)); }
     catch (error) { console.error("Error saving inspections:", error); }
   }, [inspections]);
   
-  useEffect(() => { // Load Investigations
+  useEffect(() => {
     try {
       const stored = localStorage.getItem(INVESTIGATIONS_STORAGE_KEY_RMH);
       if (stored) setInvestigations(JSON.parse(stored));
     } catch (error) { console.error("Error loading investigations:", error); }
   }, []);
-  useEffect(() => { // Save Investigations
+  useEffect(() => {
     try { localStorage.setItem(INVESTIGATIONS_STORAGE_KEY_RMH, JSON.stringify(investigations)); }
     catch (error) { console.error("Error saving investigations:", error); }
   }, [investigations]);
@@ -473,41 +485,43 @@ export default function RiskManagementHubPage() {
   }, [investigations, statusFilterInvestigation, techniqueFilterInvestigation]);
 
 
-  const InvestigationDetailView = ({ investigation }: { investigation: IncidentInvestigation }) => (
-    <ScrollArea className="max-h-[70vh] pr-3 text-sm">
-      <div className="space-y-4">
-        <div className="flex justify-between items-start">
-            <div>
-                <p><strong>Incident ID:</strong> {investigation.incidentId}</p>
-                <p><strong>Investigation Date:</strong> {investigation.investigationDate && isValid(parseISO(investigation.investigationDate)) ? format(parseISO(investigation.investigationDate), "PPP") : "N/A"}</p>
-                <p><strong>Investigator(s):</strong> {investigation.investigators || "N/A"}</p>
-                <p><strong>Technique Used:</strong> {investigationTechniques.find(t => t.name === investigation.techniqueUsed)?.label || "N/A"}</p>
-                <p><strong>Status:</strong> <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${getInvestigationStatusColor(investigation.status)}`}>{getInvestigationStatusIcon({status: investigation.status})} {investigation.status}</span></p>
-            </div>
-             <div className="flex flex-col gap-2">
-                <Button onClick={handleAiSuggestRootCauses} disabled={isAiLoadingInvestigation} size="sm" variant="outline" className="border-accent text-accent hover:bg-accent/10">
-                    {isAiLoadingInvestigation ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>} AI: Suggest Root Causes
-                </Button>
-                 <Button onClick={handleGenerateInvestigationReport} size="sm" variant="outline"> <Printer className="mr-2 h-4 w-4"/> Generate Report </Button>
-            </div>
+  const InvestigationDetailView = ({ investigation }: { investigation: IncidentInvestigation }) => {
+    return (
+      <ScrollArea className="max-h-[70vh] pr-3 text-sm">
+        <div className="space-y-4">
+          <div className="flex justify-between items-start">
+              <div>
+                  <p><strong>Incident ID:</strong> {investigation.incidentId}</p>
+                  <p><strong>Investigation Date:</strong> {investigation.investigationDate && isValid(parseISO(investigation.investigationDate)) ? format(parseISO(investigation.investigationDate), "PPP") : "N/A"}</p>
+                  <p><strong>Investigator(s):</strong> {investigation.investigators || "N/A"}</p>
+                  <p><strong>Technique Used:</strong> {investigationTechniques.find(t => t.name === investigation.techniqueUsed)?.label || "N/A"}</p>
+                  <p><strong>Status:</strong> <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${getInvestigationStatusColor(investigation.status)}`}>{getInvestigationStatusIcon({status: investigation.status})} {investigation.status}</span></p>
+              </div>
+               <div className="flex flex-col gap-2">
+                  <Button onClick={handleAiSuggestRootCauses} disabled={isAiLoadingInvestigation} size="sm" variant="outline" className="border-accent text-accent hover:bg-accent/10">
+                      {isAiLoadingInvestigation ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4"/>} AI: Suggest Root Causes
+                  </Button>
+                   <Button onClick={handleGenerateInvestigationReport} size="sm" variant="outline"> <Printer className="mr-2 h-4 w-4"/> Generate Report </Button>
+              </div>
+          </div>
+          {aiSuggestionsInvestigation && (
+              <Alert variant="info" className="mt-3"> <Sparkles className="h-4 w-4" /> <AlertTitle>AI Suggested Root Causes</AlertTitle>
+                  <UIOriginalAlertDescription> <pre className="whitespace-pre-wrap font-mono text-xs">{aiSuggestionsInvestigation}</pre> <p className="text-xs text-muted-foreground mt-2">Review these suggestions.</p> </UIOriginalAlertDescription>
+              </Alert>
+          )}
+          <Separator />
+          {investigation.techniqueUsed === 'FiveWhys' && investigation.fiveWhysDetails && ( <div> <h4 className="font-semibold mb-1">5 Whys Details:</h4> <ul className="list-decimal list-inside space-y-1 pl-2"> {investigation.fiveWhysDetails.map(item => ( <li key={item.id}><strong>Why:</strong> {item.why} <br/><span className="text-muted-foreground"><strong>Because:</strong> {item.because}</span></li> ))} </ul> </div> )}
+          {investigation.techniqueUsed === 'GenericRCA' && investigation.genericRcaDetails && ( <div> <h4 className="font-semibold mb-1">Generic RCA Details:</h4> <p><strong>Problem Statement:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.genericRcaDetails.problemStatement || "N/A"}</span></p> <p><strong>Contributing Factors:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.genericRcaDetails.contributingFactors || "N/A"}</span></p> <p><strong>Root Cause Summary:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.genericRcaDetails.rootCauseSummary || "N/A"}</span></p> </div> )}
+          {investigation.techniqueUsed === 'FishboneIshikawa' && investigation.fishboneCategories && ( <div> <h4 className="font-semibold mb-1">Fishbone/Ishikawa Details:</h4> {investigation.fishboneCategories.map(cat => ( <div key={cat.id} className="mb-2"> <p><strong>Category: {cat.categoryName}</strong></p> <ul className="list-disc list-inside pl-4 text-muted-foreground"> {cat.causes.map(cause => <li key={cause.id}>{cause.causeText}</li>)} </ul> </div> ))} </div> )}
+          {investigation.techniqueUsed === 'SCAT' && investigation.scatDetails && ( <div> <h4 className="font-semibold mb-1">SCAT Details:</h4> <p><strong>Summary of Events:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.scatDetails.summaryOfEvents || "N/A"}</span></p> <p><strong>Immediate Causes:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.scatDetails.immediateCauses || "N/A"}</span></p> <p><strong>Underlying Factors:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.scatDetails.underlyingFactors || "N/A"}</span></p> <p><strong>System Deficiencies:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.scatDetails.systemDeficiencies || "N/A"}</span></p> </div> )}
+          <Separator /> <div> <h4 className="font-semibold mb-1">Summary of Evidence:</h4> <p className="whitespace-pre-wrap text-muted-foreground">{investigation.evidenceSummary || "N/A"}</p> </div>
+          <Separator /> <div> <h4 className="font-semibold mb-1">Summary of Witness Statements:</h4> <p className="whitespace-pre-wrap text-muted-foreground">{investigation.witnessStatementsSummary || "N/A"}</p> </div>
+          <Separator /> <div> <h4 className="font-semibold mb-1">Summary of Findings:</h4> <p className="whitespace-pre-wrap text-muted-foreground">{investigation.summaryOfFindings || "N/A"}</p> </div>
+          <Separator /> <div> <h4 className="font-semibold mb-1">Corrective and Preventive Actions (CAPAs):</h4> {investigation.correctiveActions && investigation.correctiveActions.length > 0 ? ( <ul className="space-y-2"> {investigation.correctiveActions.map(capa => ( <li key={capa.id} className="p-2 border rounded bg-muted/30"> <p><strong>Action:</strong> {capa.description}</p> <p><strong>Responsible:</strong> {capa.responsiblePerson}</p> <p><strong>Due Date:</strong> {capa.dueDate && isValid(parseISO(capa.dueDate)) ? format(parseISO(capa.dueDate), "PPP") : "N/A"}</p> <p><strong>Status:</strong> <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${getInvestigationStatusColor(capa.status)}`}>{getInvestigationStatusIcon({status: capa.status})} {capa.status}</span></p> {capa.status === 'Completed' && capa.completionDate && <p><strong>Completed:</strong> {format(parseISO(capa.completionDate), "PPP")}</p>} {capa.verificationNotes && <p><strong>Verification:</strong> {capa.verificationNotes}</p>} </li> ))} </ul> ) : <p className="text-muted-foreground italic">No CAPAs documented.</p>} </div>
         </div>
-        {aiSuggestionsInvestigation && (
-            <Alert variant="info" className="mt-3"> <Sparkles className="h-4 w-4" /> <AlertTitle>AI Suggested Root Causes</AlertTitle>
-                <UIOriginalAlertDescription> <pre className="whitespace-pre-wrap font-mono text-xs">{aiSuggestionsInvestigation}</pre> <p className="text-xs text-muted-foreground mt-2">Review these suggestions.</p> </UIOriginalAlertDescription>
-            </Alert>
-        )}
-        <Separator />
-        {investigation.techniqueUsed === 'FiveWhys' && investigation.fiveWhysDetails && ( <div> <h4 className="font-semibold mb-1">5 Whys Details:</h4> <ul className="list-decimal list-inside space-y-1 pl-2"> {investigation.fiveWhysDetails.map(item => ( <li key={item.id}><strong>Why:</strong> {item.why} <br/><span className="text-muted-foreground"><strong>Because:</strong> {item.because}</span></li> ))} </ul> </div> )}
-        {investigation.techniqueUsed === 'GenericRCA' && investigation.genericRcaDetails && ( <div> <h4 className="font-semibold mb-1">Generic RCA Details:</h4> <p><strong>Problem Statement:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.genericRcaDetails.problemStatement || "N/A"}</span></p> <p><strong>Contributing Factors:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.genericRcaDetails.contributingFactors || "N/A"}</span></p> <p><strong>Root Cause Summary:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.genericRcaDetails.rootCauseSummary || "N/A"}</span></p> </div> )}
-        {investigation.techniqueUsed === 'FishboneIshikawa' && investigation.fishboneCategories && ( <div> <h4 className="font-semibold mb-1">Fishbone/Ishikawa Details:</h4> {investigation.fishboneCategories.map(cat => ( <div key={cat.id} className="mb-2"> <p><strong>Category: {cat.categoryName}</strong></p> <ul className="list-disc list-inside pl-4 text-muted-foreground"> {cat.causes.map(cause => <li key={cause.id}>{cause.causeText}</li>)} </ul> </div> ))} </div> )}
-        {investigation.techniqueUsed === 'SCAT' && investigation.scatDetails && ( <div> <h4 className="font-semibold mb-1">SCAT Details:</h4> <p><strong>Summary of Events:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.scatDetails.summaryOfEvents || "N/A"}</span></p> <p><strong>Immediate Causes:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.scatDetails.immediateCauses || "N/A"}</span></p> <p><strong>Underlying Factors:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.scatDetails.underlyingFactors || "N/A"}</span></p> <p><strong>System Deficiencies:</strong><br/><span className="whitespace-pre-wrap text-muted-foreground">{investigation.scatDetails.systemDeficiencies || "N/A"}</span></p> </div> )}
-        <Separator /> <div> <h4 className="font-semibold mb-1">Summary of Evidence:</h4> <p className="whitespace-pre-wrap text-muted-foreground">{investigation.evidenceSummary || "N/A"}</p> </div>
-        <Separator /> <div> <h4 className="font-semibold mb-1">Summary of Witness Statements:</h4> <p className="whitespace-pre-wrap text-muted-foreground">{investigation.witnessStatementsSummary || "N/A"}</p> </div>
-        <Separator /> <div> <h4 className="font-semibold mb-1">Summary of Findings:</h4> <p className="whitespace-pre-wrap text-muted-foreground">{investigation.summaryOfFindings || "N/A"}</p> </div>
-        <Separator /> <div> <h4 className="font-semibold mb-1">Corrective and Preventive Actions (CAPAs):</h4> {investigation.correctiveActions && investigation.correctiveActions.length > 0 ? ( <ul className="space-y-2"> {investigation.correctiveActions.map(capa => ( <li key={capa.id} className="p-2 border rounded bg-muted/30"> <p><strong>Action:</strong> {capa.description}</p> <p><strong>Responsible:</strong> {capa.responsiblePerson}</p> <p><strong>Due Date:</strong> {capa.dueDate && isValid(parseISO(capa.dueDate)) ? format(parseISO(capa.dueDate), "PPP") : "N/A"}</p> <p><strong>Status:</strong> <span className={`px-1.5 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${getInvestigationStatusColor(capa.status)}`}>{getInvestigationStatusIcon({status: capa.status})} {capa.status}</span></p> {capa.status === 'Completed' && capa.completionDate && <p><strong>Completed:</strong> {format(parseISO(capa.completionDate), "PPP")}</p>} {capa.verificationNotes && <p><strong>Verification:</strong> {capa.verificationNotes}</p>} </li> ))} </ul> ) : <p className="text-muted-foreground italic">No CAPAs documented.</p>} </div>
-      </div>
-    </ScrollArea>
-  );
+      </ScrollArea>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -527,7 +541,7 @@ export default function RiskManagementHubPage() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="occurrences-risks" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="occurrences-risks">Occurrences & Risks</TabsTrigger>
           <TabsTrigger value="inspections">Inspections</TabsTrigger>
@@ -674,5 +688,3 @@ export default function RiskManagementHubPage() {
     </div>
   );
 }
-
-    
