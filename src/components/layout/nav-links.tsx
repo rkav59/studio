@@ -12,12 +12,13 @@ import {
   FileCheck2, // SHEQ Audit
   BookUser, // Training & Competence
   Siren, // Emergency Preparedness
-  FileSearch, // Incident Investigation
+  // FileSearch, // Incident Investigation (will be under Risk Management Hub)
   HardHat, // PPE Management
-  ClipboardList, // Used for Contractor Safety and now the merged Incident & Risk Hub
+  // ClipboardList, // Used for Contractor Safety and now the merged Incident & Risk Hub (replaced by ShieldAlert)
   Stethoscope, // Medical Screening
   HeartPulse, // Health Monitoring
   Library, // For Checklist Templates
+  ShieldAlert, // For new Risk Management Hub
 } from 'lucide-react';
 import {
   SidebarMenu,
@@ -28,15 +29,13 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/incident-risk', label: 'Incident & Risk Hub', icon: ClipboardList }, // Merged Module
-  { href: '/inspections', label: 'Inspections', icon: ListChecks },
+  { href: '/risk-management-hub', label: 'Risk Management Hub', icon: ShieldAlert }, // New Merged Module
   { href: '/sheq-audit', label: 'SHEQ Audit', icon: FileCheck2 },
   { href: '/checklist-templates', label: 'Checklist Templates', icon: Library },
   { href: '/training-competence', label: 'Training & Competence', icon: BookUser },
   { href: '/emergency-preparedness', label: 'Emergency Preparedness', icon: Siren },
-  { href: '/incident-investigation', label: 'Incident Investigation', icon: FileSearch },
   { href: '/ppe-management', label: 'PPE Management', icon: HardHat },
-  { href: '/contractor-safety', label: 'Contractor Safety', icon: ClipboardList }, 
+  { href: '/contractor-safety', label: 'Contractor Safety', icon: ListChecks }, // Changed icon for differentiation
   { href: '/medical-screening', label: 'Medical Screening', icon: Stethoscope },
   { href: '/health-monitoring', label: 'Health Monitoring', icon: HeartPulse },
   { href: '/data-visualization', label: 'Data Visualization', icon: BarChartHorizontalBig },
@@ -86,3 +85,4 @@ export function AppLogo() {
     </Link>
   );
 }
+    
