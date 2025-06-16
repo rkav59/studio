@@ -40,13 +40,13 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription as UIAlertDialogDescription, // Renamed to avoid conflict
+  AlertDialogDescription as UIAlertDialogDescription, 
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle as UIAlertDialogTitle, // Renamed to avoid conflict
+  AlertDialogTitle as UIAlertDialogTitle, 
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Alert, AlertTitle, AlertDescription as UIOriginalAlertDescription } from '@/components/ui/alert'; // Renamed to avoid conflict
+import { Alert, AlertTitle, AlertDescription as UIOriginalAlertDescription } from '@/components/ui/alert'; 
 import { suggestRootCause } from '@/ai/flows/suggest-root-cause-flow';
 import { Label } from "@/components/ui/label";
 
@@ -114,7 +114,7 @@ export default function RiskManagementHubPage() {
     if (tab) {
       setActiveTab(tab);
     }
-  }, [searchParams])
+  }, [searchParams]);
 
   // --- State for Incident Logging & Risk Assessment ---
   const [loggedIncidents, setLoggedIncidents] = useState<Incident[]>([]);
