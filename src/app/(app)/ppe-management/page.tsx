@@ -153,11 +153,12 @@ export default function PpeManagementPage() {
       <Card className="shadow-lg overflow-hidden">
         <div className="relative h-60 w-full">
           <Image
-            src="https://placehold.co/1200x400.png"
-            alt="Various types of PPE"
+            src="https://storage.googleapis.com/project-gameface-dev-assets/sheild/ppe-banner.png"
+            alt="Person wearing Personal Protective Equipment"
             layout="fill"
             objectFit="cover"
-            data-ai-hint="safety equipment"
+            data-ai-hint="safety gear"
+            className="transform -scale-y-100"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           <div className="absolute bottom-0 left-0 p-6">
