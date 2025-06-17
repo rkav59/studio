@@ -1,6 +1,6 @@
 
-import { OverviewCards, IncidentTypeChart } from "@/components/dashboard/overview-cards";
-import { KpiTrendChart } from "@/components/dashboard/kpi-trend-chart"; // Import the new chart
+import { OverviewCards } from "@/components/dashboard/overview-cards";
+import { KpiTrendChart } from "@/components/dashboard/kpi-trend-chart";
 import { SuggestIndicatorForm } from "@/components/dashboard/suggest-indicator-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
@@ -16,8 +16,19 @@ export default function DashboardPage() {
       <OverviewCards />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <IncidentTypeChart />
-        <KpiTrendChart /> {/* Add the new KpiTrendChart here */}
+        {/* IncidentTypeChart was here, removed as it was part of the old structure or Risk Hub */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Incidents by Type (Placeholder)</CardTitle>
+            <CardDescription>A chart showing incident distribution will be here.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[250px] w-full flex items-center justify-center text-muted-foreground bg-muted/30 rounded-md">
+              (Incident Type Chart Placeholder)
+            </div>
+          </CardContent>
+        </Card>
+        <KpiTrendChart />
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"> {/* New grid for remaining cards */}
