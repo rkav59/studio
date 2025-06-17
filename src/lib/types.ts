@@ -358,6 +358,15 @@ export interface PpeInspectionRecord {
 
 // --- End PPE Inspection Specific Types ---
 
+// --- PPE Job Role Matrix Specific Types ---
+export interface PpeJobRoleMatrixEntry {
+  id: string;
+  jobRole: string;
+  requiredPpeItemIds: string[]; // Array of PpeItem IDs
+  riskAssessmentReference?: string; // Optional reference to a RA document/ID
+}
+// --- End PPE Job Role Matrix Specific Types ---
+
 
 export interface PpeComplianceAuditChecklistItem {
   id: string;
@@ -377,12 +386,6 @@ export interface PpeComplianceAudit {
   recommendations?: string;
 }
 
-export interface PpeJobRoleMatrixEntry {
-  id: string;
-  jobRole: string;
-  requiredPpeItemIds: string[];
-  riskAssessmentReference?: string;
-}
 
 // Medical Screening & Health Monitoring
 export interface MedicalScreeningRecord {

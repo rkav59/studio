@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog"; 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, Package, CheckCheck, ClipboardList, Settings2, AlertTriangle, ListFilter, Search, ShieldCheck, Activity, CalendarClock, ClockIcon, AlertCircle } from "lucide-react";
-import type { PpeItem, PpeIssuanceRecord, PpeInspectionRecord, PpeItemStatus } from "@/lib/types";
+import { PlusCircle, Edit2, Trash2, Eye, Package, CheckCheck, ClipboardList, Settings2, AlertTriangle, ListFilter, Search, ShieldCheck, Activity, CalendarClock, ClockIcon, AlertCircle, Users } from "lucide-react";
+import type { PpeItem, PpeIssuanceRecord, PpeInspectionRecord, PpeItemStatus, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid, differenceInDays, isBefore } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
@@ -27,15 +27,19 @@ import {
 import { PpeItemDetailsDialog } from '@/components/ppe-management/ppe-item-details-dialog';
 import { PpeIssuanceDetailsDialog } from '@/components/ppe-management/ppe-issuance-details-dialog';
 import { PpeInspectionDetailsDialog } from '@/components/ppe-management/ppe-inspection-details-dialog'; 
+import { PpeJobRoleMatrixForm } from '@/components/ppe-management/ppe-job-role-matrix-form';
+import { PpeJobRoleMatrixDetailsDialog } from '@/components/ppe-management/ppe-job-role-matrix-details-dialog';
+
 
 const PPE_ITEMS_KEY = 'sheild-ppe-items-v1';
 const PPE_ISSUANCES_KEY = 'sheild-ppe-issuances-v1';
 const PPE_INSPECTIONS_KEY = 'sheild-ppe-inspections-v1';
-const REMINDER_LEAD_DAYS = 7; // Days before due date to show "Due Soon"
+const PPE_JOB_ROLE_MATRIX_KEY = 'sheild-ppe-job-role-matrix-v1';
+const REMINDER_LEAD_DAYS = 7; 
 
 interface PpeItemWithInspectionInfo extends PpeItem {
   latestInspection?: PpeInspectionRecord;
-  nextInspectionDueDate?: string; // ISO string
+  nextInspectionDueDate?: string; 
   dueStatus?: 'Overdue' | 'Due Soon' | 'Scheduled' | 'OK';
 }
 
@@ -52,6 +56,12 @@ export default function PpeManagementPage() {
   
   const [ppeInspections, setPpeInspections] = useState<PpeInspectionRecord[]>([]);
   const [viewingPpeInspection, setViewingPpeInspection] = useState<PpeInspectionRecord | null>(null);
+
+  const [ppeJobRoleMatrix, setPpeJobRoleMatrix] = useState<PpeJobRoleMatrixEntry[]>([]);
+  const [isJobRoleFormOpen, setIsJobRoleFormOpen] = useState(false);
+  const [editingJobRoleEntry, setEditingJobRoleEntry] = useState<PpeJobRoleMatrixEntry | null>(null);
+  const [viewingJobRoleEntry, setViewingJobRoleEntry] = useState<PpeJobRoleMatrixEntry | null>(null);
+
 
   // --- Load & Save PPE Items ---
   useEffect(() => {
@@ -89,14 +99,26 @@ export default function PpeManagementPage() {
     catch (e) { console.error("Error saving PPE inspections:", e); }
   }, [ppeInspections]);
 
+  // --- Load & Save PPE Job Role Matrix ---
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(PPE_JOB_ROLE_MATRIX_KEY);
+      if (stored) setPpeJobRoleMatrix(JSON.parse(stored));
+    } catch (e) { console.error("Error loading PPE Job Role Matrix:", e); }
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem(PPE_JOB_ROLE_MATRIX_KEY, JSON.stringify(ppeJobRoleMatrix)); }
+    catch (e) { console.error("Error saving PPE Job Role Matrix:", e); }
+  }, [ppeJobRoleMatrix]);
+
 
   const ppeItemsWithInspectionInfo = useMemo((): PpeItemWithInspectionInfo[] => {
     return ppeItems.map(item => {
       const itemInspections = ppeInspections
         .filter(insp => insp.ppeItemId === item.id && insp.nextInspectionDate && isValid(parseISO(insp.nextInspectionDate)))
-        .sort((a, b) => parseISO(b.inspectionDate).getTime() - parseISO(a.inspectionDate).getTime()); // Sort by inspection date, recent first
+        .sort((a, b) => parseISO(b.inspectionDate).getTime() - parseISO(a.inspectionDate).getTime()); 
       
-      const latestRelevantInspection = itemInspections.find(insp => insp.nextInspectionDate); // Find latest with a next date
+      const latestRelevantInspection = itemInspections.find(insp => insp.nextInspectionDate); 
 
       let dueStatus: PpeItemWithInspectionInfo['dueStatus'] = 'OK';
       let nextDueDate: string | undefined = undefined;
@@ -105,7 +127,7 @@ export default function PpeManagementPage() {
         nextDueDate = latestRelevantInspection.nextInspectionDate;
         const dueDate = parseISO(nextDueDate);
         const today = new Date();
-        today.setHours(0,0,0,0); // Compare dates only
+        today.setHours(0,0,0,0); 
 
         if (isBefore(dueDate, today)) {
           dueStatus = 'Overdue';
@@ -116,9 +138,8 @@ export default function PpeManagementPage() {
         }
       }
       
-      // If item is not 'Available' or 'Under Inspection', its inspection schedule might be less relevant
       if (item.status && !['Available', 'Under Inspection'].includes(item.status)) {
-         // No specific due status if item is not in active use cycle
+         
       }
 
 
@@ -135,7 +156,6 @@ export default function PpeManagementPage() {
     return ppeItemsWithInspectionInfo.filter(item => item.dueStatus === 'Overdue' || item.dueStatus === 'Due Soon');
   }, [ppeItemsWithInspectionInfo]);
 
-  // Simulated Toast Reminders
   useEffect(() => {
     if (upcomingOrOverdueInspections.length > 0) {
       const overdueCount = upcomingOrOverdueInspections.filter(item => item.dueStatus === 'Overdue').length;
@@ -149,7 +169,7 @@ export default function PpeManagementPage() {
         toast({
           title: "PPE Inspection Reminders",
           description: `${messages.join(', ')}. Check the 'Upcoming/Overdue Inspections' list.`,
-          variant: overdueCount > 0 ? "destructive" : "default", // Destructive if any are overdue
+          variant: overdueCount > 0 ? "destructive" : "default", 
           duration: 10000,
         });
       }
@@ -157,19 +177,19 @@ export default function PpeManagementPage() {
   }, [upcomingOrOverdueInspections, toast]);
 
 
-  // --- PPE Item Management Handlers ---
   const handleOpenNewPpeItemForm = () => router.push('/ppe-management/items/new');
   const handleEditPpeItem = (item: PpeItem) => router.push(`/ppe-management/items/edit/${item.id}`);
   const handleDeletePpeItem = (itemId: string) => {
-    if (ppeIssuances.some(issuance => issuance.ppeItemId === itemId) || ppeInspections.some(insp => insp.ppeItemId === itemId)) {
-      toast({ title: "Cannot Delete", description: "This PPE item is linked to issuance or inspection records.", variant: "destructive" });
+    if (ppeIssuances.some(issuance => issuance.ppeItemId === itemId) || 
+        ppeInspections.some(insp => insp.ppeItemId === itemId) ||
+        ppeJobRoleMatrix.some(matrix => matrix.requiredPpeItemIds.includes(itemId)) ) {
+      toast({ title: "Cannot Delete", description: "This PPE item is linked to issuance, inspection, or job role matrix records.", variant: "destructive" });
       return;
     }
     setPpeItems(prev => prev.filter(item => item.id !== itemId));
     toast({ title: "PPE Item Deleted" });
   };
   
-  // --- PPE Issuance Management Handlers ---
   const handleOpenNewPpeIssuanceForm = () => {
     if (ppeItems.filter(item => (item.status || 'Available') === 'Available').length === 0) {
         toast({title: "No Available PPE Items", description: "Please add available PPE items to the inventory first.", variant: "destructive"});
@@ -183,7 +203,6 @@ export default function PpeManagementPage() {
     toast({ title: "PPE Issuance Record Deleted" });
   };
 
-  // --- PPE Inspection Management Handlers ---
   const handleOpenNewPpeInspectionForm = () => {
      if (ppeItems.length === 0) {
         toast({title: "No PPE Items", description: "Please add PPE items to inventory before logging inspections.", variant: "destructive"});
@@ -195,6 +214,36 @@ export default function PpeManagementPage() {
   const handleDeletePpeInspection = (inspectionId: string) => {
     setPpeInspections(prev => prev.filter(insp => insp.id !== inspectionId));
     toast({ title: "PPE Inspection Record Deleted" });
+  };
+
+  // --- PPE Job Role Matrix Handlers ---
+  const handleOpenNewJobRoleForm = () => {
+    if (ppeItems.length === 0) {
+        toast({title: "No PPE Items", description: "Please add PPE items to inventory first to define job role requirements.", variant: "destructive"});
+        return;
+    }
+    setEditingJobRoleEntry(null);
+    setIsJobRoleFormOpen(true);
+  };
+  const handleEditJobRoleEntry = (entry: PpeJobRoleMatrixEntry) => {
+    setEditingJobRoleEntry(entry);
+    setIsJobRoleFormOpen(true);
+  };
+  const handleDeleteJobRoleEntry = (entryId: string) => {
+    setPpeJobRoleMatrix(prev => prev.filter(entry => entry.id !== entryId));
+    toast({ title: "Job Role Matrix Entry Deleted" });
+  };
+  const handleSaveJobRoleEntry = (data: Omit<PpeJobRoleMatrixEntry, 'id'>) => {
+    if (editingJobRoleEntry) {
+      setPpeJobRoleMatrix(prev => prev.map(entry => entry.id === editingJobRoleEntry.id ? { ...editingJobRoleEntry, ...data } : entry));
+      toast({ title: "Job Role Matrix Updated", description: `Requirements for "${data.jobRole}" updated.` });
+    } else {
+      const newEntry: PpeJobRoleMatrixEntry = { id: crypto.randomUUID(), ...data };
+      setPpeJobRoleMatrix(prev => [newEntry, ...prev]);
+      toast({ title: "Job Role Matrix Entry Created", description: `Requirements for "${data.jobRole}" defined.` });
+    }
+    setIsJobRoleFormOpen(false);
+    setEditingJobRoleEntry(null);
   };
 
 
@@ -252,12 +301,11 @@ export default function PpeManagementPage() {
         </div>
         <CardContent className="pt-6">
           <p className="text-muted-foreground">
-            This module helps manage all aspects of Personal Protective Equipment, including inventory, status, issuance, and inspections (with scheduling reminders). Data is stored locally.
+            This module helps manage all aspects of Personal Protective Equipment, including inventory, status, issuance, inspections (with scheduling reminders), and a job role PPE matrix. Data is stored locally.
           </p>
         </CardContent>
       </Card>
 
-      {/* Upcoming/Overdue Inspections Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><CalendarClock className="h-6 w-6 text-orange-500"/>Upcoming/Overdue Inspections</CardTitle>
@@ -293,8 +341,6 @@ export default function PpeManagementPage() {
       </Card>
       <Separator/>
 
-
-      {/* PPE Inventory Management Section */}
       <Card>
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
@@ -352,7 +398,6 @@ export default function PpeManagementPage() {
 
       <Separator />
 
-      {/* PPE Issuance & Return Log */}
       <Card>
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
@@ -408,7 +453,6 @@ export default function PpeManagementPage() {
 
       <Separator />
 
-      {/* PPE Inspection Log Section */}
       <Card>
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
@@ -461,15 +505,71 @@ export default function PpeManagementPage() {
       </Card>
 
       {viewingPpeInspection && <PpeInspectionDetailsDialog inspection={viewingPpeInspection} ppeItemName={getPpeItemName(viewingPpeInspection.ppeItemId)} onClose={() => setViewingPpeInspection(null)} />}
+      
+      <Separator />
+
+      {/* PPE Job Role Matrix Section */}
+      <Card>
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-indigo-600" />PPE Job Role Matrix</CardTitle>
+            <CardDescription>Define standard PPE requirements for different job roles.</CardDescription>
+          </div>
+          <Button onClick={handleOpenNewJobRoleForm} className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={ppeItems.length === 0}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Define New Job Role PPE
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {ppeItems.length === 0 && <p className="text-center text-muted-foreground py-4">Add PPE items to inventory first to define job role requirements.</p>}
+          {ppeJobRoleMatrix.length === 0 && ppeItems.length > 0 && (
+            <p className="text-muted-foreground text-center py-4">No job role PPE requirements defined yet.</p>
+          )}
+          {ppeJobRoleMatrix.length > 0 && (
+            <ScrollArea className="max-h-[400px] pr-3">
+              <div className="space-y-3">
+                {ppeJobRoleMatrix.map(entry => (
+                  <Card key={entry.id} className="p-4 shadow-sm">
+                    <div className="flex flex-col sm:flex-row justify-between items-start">
+                      <div className="mb-2 sm:mb-0">
+                        <h4 className="font-semibold text-lg">{entry.jobRole}</h4>
+                        <p className="text-xs text-muted-foreground">Requires: {entry.requiredPpeItemIds.length} PPE item(s)</p>
+                        {entry.riskAssessmentReference && <p className="text-xs text-muted-foreground">RA Ref: {entry.riskAssessmentReference}</p>}
+                      </div>
+                      <div className="flex gap-2 self-start sm:self-center shrink-0">
+                        <Button variant="outline" size="sm" onClick={() => setViewingJobRoleEntry(entry)}><Eye className="mr-1 h-3 w-3" /> View</Button>
+                        <Button variant="secondary" size="sm" onClick={() => handleEditJobRoleEntry(entry)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader><AlertDialogTitle>Delete Job Role Entry?</AlertDialogTitle><AlertDialogDescription>Delete requirements for "{entry.jobRole}"? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+                            <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteJobRoleEntry(entry.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
+
+      {isJobRoleFormOpen && (
+        <Dialog open={isJobRoleFormOpen} onOpenChange={(isOpen) => { if(!isOpen) { setIsJobRoleFormOpen(false); setEditingJobRoleEntry(null); }}}>
+            <PpeJobRoleMatrixForm 
+                ppeItems={ppeItems} 
+                initialData={editingJobRoleEntry}
+                onSave={handleSaveJobRoleEntry}
+                onCancel={() => { setIsJobRoleFormOpen(false); setEditingJobRoleEntry(null); }}
+            />
+        </Dialog>
+      )}
+      {viewingJobRoleEntry && <PpeJobRoleMatrixDetailsDialog entry={viewingJobRoleEntry} ppeItems={ppeItems} onClose={() => setViewingJobRoleEntry(null)} />}
 
 
-      {/* Placeholder Sections for Future Development */}
       <Separator />
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Settings2 className="h-6 w-6 text-gray-400"/>PPE Job Role Matrix (Placeholder)</CardTitle></CardHeader>
-        <CardContent><p className="text-muted-foreground">Feature to define PPE requirements by job role will be implemented here.</p></CardContent>
-      </Card>
-       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><ListFilter className="h-6 w-6 text-gray-400"/>Advanced Inspection Scheduling (Placeholder)</CardTitle></CardHeader>
         <CardContent><p className="text-muted-foreground">More advanced features like rule-based scheduling and automated reminders (via backend) will be here.</p></CardContent>
       </Card>
