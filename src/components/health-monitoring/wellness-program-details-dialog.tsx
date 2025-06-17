@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { WellnessProgram, WellnessProgramStatus } from "@/lib/types";
 import { format, parseISO } from 'date-fns';
-import { Award, CalendarDays, Info, Users, CheckSquare, AlertCircle, PlayCircle, PauseCircle, Users2 } from "lucide-react";
+import { Award, CalendarDays, Info, Users, CheckSquare, AlertCircle, PlayCircle, PauseCircle, Users2, Percent } from "lucide-react";
 
 interface WellnessProgramDetailsDialogProps {
   program: WellnessProgram;
@@ -43,6 +43,11 @@ export function WellnessProgramDetailsDialog({ program, onClose }: WellnessProgr
       default: return 'text-muted-foreground';
     }
   };
+
+  const engagementRate = (program.targetParticipants && program.targetParticipants > 0 && program.actualParticipants !== undefined)
+    ? ((program.actualParticipants / program.targetParticipants) * 100).toFixed(1)
+    : null;
+
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -76,6 +81,18 @@ export function WellnessProgramDetailsDialog({ program, onClose }: WellnessProgr
                      <div className="flex items-center"><Users2 className="h-4 w-4 mr-2 text-muted-foreground" /><strong>Target Audience:</strong> <span className="ml-1">{program.targetAudience}</span></div>
                 )}
                 
+                {(program.targetParticipants !== undefined || program.actualParticipants !== undefined) && <Separator className="my-2"/>}
+
+                {program.targetParticipants !== undefined && (
+                    <div className="flex items-center"><Users className="h-4 w-4 mr-2 text-muted-foreground" /><strong>Target Participants:</strong> <span className="ml-1">{program.targetParticipants}</span></div>
+                )}
+                {program.actualParticipants !== undefined && (
+                    <div className="flex items-center"><Users className="h-4 w-4 mr-2 text-muted-foreground" /><strong>Actual Participants:</strong> <span className="ml-1">{program.actualParticipants}</span></div>
+                )}
+                {engagementRate !== null && (
+                     <div className="flex items-center"><Percent className="h-4 w-4 mr-2 text-muted-foreground" /><strong>Engagement Rate:</strong> <span className="ml-1 font-semibold">{engagementRate}%</span></div>
+                )}
+
                 {program.description && (
                     <>
                         <Separator className="my-2"/>

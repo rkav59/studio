@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, ShieldCheck, Users } from "lucide-react";
+import { CalendarIcon, Save, XCircle, ShieldCheck, Users, AlignLeft } from "lucide-react";
 import type { MedicalTestRecord, MedicalTestRecordType, SimilarExposureGroup } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 
@@ -49,6 +49,7 @@ const medicalTestFormSchema = z.object({
   specificTestName: z.string().max(100).optional(),
   testDate: z.string().refine(val => isValid(parseISO(val)), { message: "Test date is required." }),
   resultSummary: z.string().min(5, "Result summary is required.").max(2000),
+  referenceRange: z.string().max(200).optional(),
   isFitForWork: z.boolean().optional(),
   followUpRequired: z.boolean().optional(),
   notes: z.string().max(2000).optional(),
@@ -74,6 +75,7 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel }: Medical
       specificTestName: initialData?.specificTestName || "",
       testDate: initialData?.testDate ? format(parseISO(initialData.testDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       resultSummary: initialData?.resultSummary || "",
+      referenceRange: initialData?.referenceRange || "",
       isFitForWork: initialData?.isFitForWork === undefined ? undefined : initialData.isFitForWork,
       followUpRequired: initialData?.followUpRequired === undefined ? undefined : initialData.followUpRequired,
       notes: initialData?.notes || "",
@@ -136,6 +138,11 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel }: Medical
             )}
             <FormField control={form.control} name="resultSummary" render={({ field }) => (
                 <FormItem><FormLabel>Result Summary</FormLabel><FormControl><Textarea placeholder="Summarize key findings, values, or observations from the test." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
+            )}/>
+            <FormField control={form.control} name="referenceRange" render={({ field }) => (
+                <FormItem><FormLabel className="flex items-center gap-1"><AlignLeft className="h-4 w-4"/>Reference Range (Optional)</FormLabel><FormControl><Input placeholder="e.g., < 5 mg/L, 70-99 mg/dL, Negative" {...field} /></FormControl>
+                <FormDescription>Provide the normal/expected range for this test if applicable.</FormDescription>
+                <FormMessage /></FormItem>
             )}/>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="isFitForWork" render={({ field }) => (

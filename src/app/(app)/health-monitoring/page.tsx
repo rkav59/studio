@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, Users, Thermometer, ShieldCheck, Award, BarChart, BellDot } from "lucide-react";
+import { Edit2, Trash2, Eye, Users, Thermometer, ShieldCheck, Award, BarChart, BellDot, UserPlus, FlaskConical, ClipboardPlus, Users2Icon } from "lucide-react"; // Added specific icons
 import type { SimilarExposureGroup, IndustrialHygieneSample, MedicalTestRecord, WellnessProgram } from "@/lib/types";
 import { SegForm } from "@/components/health-monitoring/seg-form";
 import { IhSampleForm } from "@/components/health-monitoring/ih-sample-form";
@@ -90,7 +90,6 @@ export default function HealthMonitoringPage() {
     setIsSegFormOpen(false); setEditingSeg(null);
   };
   const handleDeleteSeg = (id: string) => {
-    // Check if SEG is used in IH Samples or Medical Tests
     if (ihSamples.some(s => s.segId === id) || medicalTests.some(t => t.segId === id)) {
       toast({ title: "Cannot Delete SEG", description: "This SEG is linked to IH samples or medical tests. Please reassign or delete them first.", variant: "destructive", duration: 7000 });
       return;
@@ -148,7 +147,7 @@ export default function HealthMonitoringPage() {
         </div>
         <CardContent className="pt-6">
             <p className="text-muted-foreground">
-                This module facilitates the management of Similar Exposure Groups (SEGs), industrial hygiene sampling data, medical surveillance records, and employee wellness programs. 
+                This module facilitates the management of Similar Exposure Groups (SEGs), industrial hygiene sampling data (including OEL tracking), medical surveillance records (with reference ranges), and employee wellness programs (with participation metrics). 
                 All data is stored locally in your browser.
             </p>
         </CardContent>
@@ -162,11 +161,11 @@ export default function HealthMonitoringPage() {
             <CardDescription>Define and manage groups of employees with similar exposure profiles.</CardDescription>
           </div>
           <Button onClick={() => { setEditingSeg(null); setIsSegFormOpen(true); }} className="bg-primary hover:bg-primary/90">
-            <PlusCircle className="mr-2 h-4 w-4" /> Add New SEG
+            <UserPlus className="mr-2 h-4 w-4" /> Add New SEG
           </Button>
         </CardHeader>
         <CardContent>
-          {segs.length === 0 ? <p className="text-muted-foreground text-center py-4">No SEGs defined yet.</p> : (
+          {segs.length === 0 ? <p className="text-muted-foreground text-center py-4">No SEGs defined. Click 'Add New SEG' to start grouping employees by exposure.</p> : (
             <ScrollArea className="max-h-[300px] pr-3"><div className="space-y-3">
               {segs.map(seg => (
                 <Card key={seg.id} className="p-3 shadow-sm"><div className="flex justify-between items-start">
@@ -193,20 +192,22 @@ export default function HealthMonitoringPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2"><Thermometer className="h-6 w-6 text-accent"/>Industrial Hygiene Sampling</CardTitle>
-            <CardDescription>Log and track exposure monitoring data (noise, dust, chemicals, etc.).</CardDescription>
+            <CardTitle className="flex items-center gap-2"><FlaskConical className="h-6 w-6 text-accent"/>Industrial Hygiene Sampling</CardTitle>
+            <CardDescription>Log and track exposure monitoring data (noise, dust, chemicals, etc.), including OELs.</CardDescription>
           </div>
           <Button onClick={() => { setEditingIhSample(null); setIsIhSampleFormOpen(true); }} className="bg-accent hover:bg-accent/90">
-            <PlusCircle className="mr-2 h-4 w-4" /> Log New IH Sample
+            <Thermometer className="mr-2 h-4 w-4" /> Log New IH Sample
           </Button>
         </CardHeader>
         <CardContent>
-          {ihSamples.length === 0 ? <p className="text-muted-foreground text-center py-4">No IH samples logged yet.</p> : (
+          {ihSamples.length === 0 ? <p className="text-muted-foreground text-center py-4">No IH samples logged. Click 'Log New IH Sample' to record exposure data.</p> : (
             <ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">
               {ihSamples.map(sample => (
                 <Card key={sample.id} className="p-3 shadow-sm"><div className="flex justify-between items-start">
                   <div><h4 className="font-semibold">{sample.agent}{sample.specificAgentName ? ` (${sample.specificAgentName})` : ''} - {format(parseISO(sample.sampleDate), "PPP")}</h4>
-                  <p className="text-xs text-muted-foreground">Level: {sample.exposureLevel} {sample.units} | Location: {sample.location} | SEG: {getSegName(sample.segId)}</p></div>
+                  <p className="text-xs text-muted-foreground">Level: {sample.exposureLevel} {sample.units} {sample.oel && `(OEL: ${sample.oel} ${sample.oelUnits || sample.units})`} | Location: {sample.location} | SEG: {getSegName(sample.segId)}</p>
+                   {sample.oel !== undefined && sample.exposureLevel > sample.oel && <p className="text-xs font-bold text-red-500">EXPOSURE EXCEEDS OEL!</p>}
+                  </div>
                   <div className="flex gap-1 shrink-0">
                     <Button variant="outline" size="sm" onClick={() => setViewingIhSample(sample)}><Eye className="h-3 w-3"/></Button>
                     <Button variant="secondary" size="sm" onClick={() => { setEditingIhSample(sample); setIsIhSampleFormOpen(true);}}><Edit2 className="h-3 w-3"/></Button>
@@ -229,15 +230,15 @@ export default function HealthMonitoringPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-6 w-6 text-teal-500"/>Medical Surveillance Records</CardTitle>
-            <CardDescription>Track employee medical tests and fitness-to-work status.</CardDescription>
+            <CardTitle className="flex items-center gap-2"><ClipboardPlus className="h-6 w-6 text-teal-500"/>Medical Surveillance Records</CardTitle>
+            <CardDescription>Track employee medical tests, fitness-to-work status, and reference ranges.</CardDescription>
           </div>
           <Button onClick={() => { setEditingMedicalTest(null); setIsMedicalTestFormOpen(true); }} className="bg-teal-500 hover:bg-teal-600 text-white">
-            <PlusCircle className="mr-2 h-4 w-4" /> Log New Medical Test
+            <ShieldCheck className="mr-2 h-4 w-4" /> Log New Medical Test
           </Button>
         </CardHeader>
         <CardContent>
-          {medicalTests.length === 0 ? <p className="text-muted-foreground text-center py-4">No medical test records logged.</p> : (
+          {medicalTests.length === 0 ? <p className="text-muted-foreground text-center py-4">No medical tests recorded. Click 'Log New Medical Test' to add records.</p> : (
             <ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">
               {medicalTests.map(test => (
                 <Card key={test.id} className="p-3 shadow-sm"><div className="flex justify-between items-start">
@@ -265,15 +266,15 @@ export default function HealthMonitoringPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2"><Award className="h-6 w-6 text-purple-500"/>Employee Wellness Programs</CardTitle>
-            <CardDescription>Manage and track participation in wellness initiatives.</CardDescription>
+            <CardTitle className="flex items-center gap-2"><Users2Icon className="h-6 w-6 text-purple-500"/>Employee Wellness Programs</CardTitle>
+            <CardDescription>Manage and track participation in wellness initiatives and their engagement.</CardDescription>
           </div>
           <Button onClick={() => { setEditingWellnessProgram(null); setIsWellnessProgramFormOpen(true); }} className="bg-purple-500 hover:bg-purple-600 text-white">
-            <PlusCircle className="mr-2 h-4 w-4" /> Add Wellness Program
+            <Award className="mr-2 h-4 w-4" /> Add Wellness Program
           </Button>
         </CardHeader>
         <CardContent>
-          {wellnessPrograms.length === 0 ? <p className="text-muted-foreground text-center py-4">No wellness programs defined yet.</p> : (
+          {wellnessPrograms.length === 0 ? <p className="text-muted-foreground text-center py-4">No wellness programs defined. Click 'Add Wellness Program' to create one.</p> : (
             <ScrollArea className="max-h-[300px] pr-3"><div className="space-y-3">
               {wellnessPrograms.map(program => (
                 <Card key={program.id} className="p-3 shadow-sm"><div className="flex justify-between items-start">

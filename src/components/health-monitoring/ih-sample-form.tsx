@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, Thermometer, Users } from "lucide-react";
+import { CalendarIcon, Save, XCircle, Thermometer, Users, AlertTriangle } from "lucide-react";
 import type { IndustrialHygieneSample, IndustrialHygieneSampleAgent, SimilarExposureGroup } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 
@@ -49,6 +49,8 @@ const ihSampleFormSchema = z.object({
   specificAgentName: z.string().max(100).optional(),
   exposureLevel: z.coerce.number({ invalid_type_error: "Exposure level must be a number." }),
   units: z.string().min(1, "Units are required.").max(20),
+  oel: z.coerce.number().optional(),
+  oelUnits: z.string().max(20).optional(),
   sampleType: z.enum(['Personal', 'Area', 'Source'], { required_error: "Please select sample type." }),
   durationHours: z.coerce.number().min(0).optional(),
   twa: z.coerce.number().optional(),
@@ -57,7 +59,10 @@ const ihSampleFormSchema = z.object({
   notes: z.string().max(2000).optional(),
 }).refine(data => data.segId || data.employeeName, {
   message: "Either SEG or Employee Name must be provided.",
-  path: ["employeeName"], // Or segId, doesn't matter much where it's shown
+  path: ["employeeName"], 
+}).refine(data => (data.oel === undefined && data.oelUnits === undefined) || (data.oel !== undefined && data.oelUnits !== undefined && data.oelUnits.trim() !== ""), {
+    message: "OEL Units must be provided if OEL value is entered.",
+    path: ["oelUnits"],
 });
 
 type IhSampleFormValues = z.infer<typeof ihSampleFormSchema>;
@@ -80,6 +85,8 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel }: IhSampleFo
       specificAgentName: initialData?.specificAgentName || "",
       exposureLevel: initialData?.exposureLevel || 0,
       units: initialData?.units || "",
+      oel: initialData?.oel || undefined,
+      oelUnits: initialData?.oelUnits || "",
       sampleType: initialData?.sampleType || undefined,
       durationHours: initialData?.durationHours || undefined,
       twa: initialData?.twa || undefined,
@@ -95,6 +102,7 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel }: IhSampleFo
     const sampleToSave = {
         ...data,
         specificAgentName: (data.agent === 'Specific Chemical' || data.agent === 'Other') ? data.specificAgentName : undefined,
+        oelUnits: data.oel !== undefined ? data.oelUnits : undefined, // Ensure OEL units only saved if OEL is present
     };
     onSave(sampleToSave);
   };
@@ -162,6 +170,14 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel }: IhSampleFo
                 )}/>
                 <FormField control={form.control} name="units" render={({ field }) => (
                     <FormItem><FormLabel>Units</FormLabel><FormControl><Input placeholder="e.g., dBA, mg/m³, ppm" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="oel" render={({ field }) => (
+                    <FormItem><FormLabel className="flex items-center gap-1"><AlertTriangle className="h-4 w-4 text-muted-foreground"/>OEL (Optional)</FormLabel><FormControl><Input type="number" step="any" placeholder="Occupational Exposure Limit" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="oelUnits" render={({ field }) => (
+                    <FormItem><FormLabel>OEL Units (if OEL set)</FormLabel><FormControl><Input placeholder="Units for OEL" {...field} disabled={!form.watch("oel")}/></FormControl><FormMessage /></FormItem>
                 )}/>
             </div>
             <FormField control={form.control} name="sampleType" render={({ field }) => (

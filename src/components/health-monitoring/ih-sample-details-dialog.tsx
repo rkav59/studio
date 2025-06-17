@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { IndustrialHygieneSample } from "@/lib/types";
 import { format, parseISO } from 'date-fns';
-import { Thermometer, CalendarDays, User, MapPin, Beaker, Package, Tag, Clock, FileText, Users } from "lucide-react";
+import { Thermometer, CalendarDays, User, MapPin, Beaker, Package, Tag, Clock, FileText, Users, AlertTriangle, ShieldAlert } from "lucide-react";
 
 interface IhSampleDetailsDialogProps {
   sample: IndustrialHygieneSample;
@@ -24,6 +24,8 @@ interface IhSampleDetailsDialogProps {
 }
 
 export function IhSampleDetailsDialog({ sample, segName, onClose }: IhSampleDetailsDialogProps) {
+  const exceedsOel = sample.oel !== undefined && sample.exposureLevel > sample.oel;
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg">
@@ -46,6 +48,15 @@ export function IhSampleDetailsDialog({ sample, segName, onClose }: IhSampleDeta
 
                 <div className="flex items-center"><Beaker className="h-4 w-4 mr-2 text-muted-foreground" /><strong>Agent:</strong> <span className="ml-1">{sample.agent}{sample.specificAgentName ? ` - ${sample.specificAgentName}` : ''}</span></div>
                 <div className="flex items-center"><Package className="h-4 w-4 mr-2 text-muted-foreground" /><strong>Exposure Level:</strong> <span className="ml-1">{sample.exposureLevel} {sample.units}</span></div>
+                 {sample.oel !== undefined && (
+                  <div className="flex items-center">
+                    <AlertTriangle className={`h-4 w-4 mr-2 ${exceedsOel ? 'text-red-500' : 'text-muted-foreground'}`} />
+                    <strong>OEL:</strong> <span className="ml-1">{sample.oel} {sample.oelUnits || sample.units}</span>
+                  </div>
+                )}
+                {exceedsOel && (
+                  <p className="text-red-500 font-semibold flex items-center gap-1"><ShieldAlert className="h-4 w-4" /> EXPOSURE EXCEEDS OEL!</p>
+                )}
                 <div className="flex items-center"><Tag className="h-4 w-4 mr-2 text-muted-foreground" /><strong>Sample Type:</strong> <span className="ml-1">{sample.sampleType}</span></div>
                 <div className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-muted-foreground" /><strong>Location:</strong> <span className="ml-1">{sample.location}</span></div>
                 

@@ -1,5 +1,4 @@
 
-
 export interface Incident {
   id: string;
   type: 'Incident' | 'Near Miss' | 'Hazard';
@@ -406,6 +405,8 @@ export interface IndustrialHygieneSample {
   specificAgentName?: string; // If agent is 'Specific Chemical' or 'Other'
   exposureLevel: number;
   units: string; // e.g., "dBA", "mg/m³", "ppm", "fibers/cc"
+  oel?: number; // Occupational Exposure Limit
+  oelUnits?: string; // Units for the OEL, should match 'units' if possible
   sampleType: 'Personal' | 'Area' | 'Source';
   durationHours?: number;
   twa?: number; // Time-Weighted Average (if applicable)
@@ -424,6 +425,7 @@ export interface MedicalTestRecord {
   specificTestName?: string; // If testType is 'Other' or more detail needed
   testDate: string; // ISO Date string
   resultSummary: string;
+  referenceRange?: string; // E.g., "0.5 - 2.0 mg/L", "Negative"
   isFitForWork?: boolean;
   followUpRequired?: boolean;
   notes?: string;
@@ -440,6 +442,8 @@ export interface WellnessProgram {
   endDate?: string; // ISO Date string, optional
   status: WellnessProgramStatus;
   targetAudience?: string; // e.g., "All Employees", "Specific SEG", "Department X"
+  targetParticipants?: number;
+  actualParticipants?: number;
   participationNotes?: string; // General notes on participation, or could be separate records
 }
 // --- End Health Monitoring Module Types ---

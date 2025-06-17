@@ -12,6 +12,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,7 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, Award } from "lucide-react";
+import { CalendarIcon, Save, XCircle, Award, Users } from "lucide-react";
 import type { WellnessProgram, WellnessProgramStatus } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 
@@ -47,7 +48,12 @@ const wellnessProgramFormSchema = z.object({
   endDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid end date." }),
   status: z.enum(wellnessProgramStatuses, { required_error: "Program status is required." }),
   targetAudience: z.string().max(200).optional(),
+  targetParticipants: z.coerce.number().min(0).int().optional(),
+  actualParticipants: z.coerce.number().min(0).int().optional(),
   participationNotes: z.string().max(2000).optional(),
+}).refine(data => data.actualParticipants === undefined || data.targetParticipants === undefined || data.actualParticipants <= data.targetParticipants, {
+    message: "Actual participants cannot exceed target participants.",
+    path: ["actualParticipants"],
 });
 
 type WellnessProgramFormValues = z.infer<typeof wellnessProgramFormSchema>;
@@ -68,6 +74,8 @@ export function WellnessProgramForm({ initialData, onSave, onCancel }: WellnessP
       endDate: initialData?.endDate ? format(parseISO(initialData.endDate), 'yyyy-MM-dd') : undefined,
       status: initialData?.status || 'Planned',
       targetAudience: initialData?.targetAudience || "",
+      targetParticipants: initialData?.targetParticipants || undefined,
+      actualParticipants: initialData?.actualParticipants || undefined,
       participationNotes: initialData?.participationNotes || "",
     },
   });
@@ -126,6 +134,14 @@ export function WellnessProgramForm({ initialData, onSave, onCancel }: WellnessP
             <FormField control={form.control} name="targetAudience" render={({ field }) => (
                 <FormItem><FormLabel>Target Audience (Optional)</FormLabel><FormControl><Input placeholder="e.g., All Employees, Night Shift Staff, Specific Department" {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <FormField control={form.control} name="targetParticipants" render={({ field }) => (
+                    <FormItem><FormLabel className="flex items-center gap-1"><Users className="h-4 w-4"/>Target Participants (Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 100" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="actualParticipants" render={({ field }) => (
+                    <FormItem><FormLabel className="flex items-center gap-1"><Users className="h-4 w-4"/>Actual Participants (Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 75" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+            </div>
             <FormField control={form.control} name="participationNotes" render={({ field }) => (
                 <FormItem><FormLabel>Participation Notes (Optional)</FormLabel><FormControl><Textarea placeholder="General notes about participation numbers, engagement, feedback, etc." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
             )}/>

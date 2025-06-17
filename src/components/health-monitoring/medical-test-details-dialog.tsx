@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { MedicalTestRecord } from "@/lib/types";
 import { format, parseISO } from 'date-fns';
-import { ShieldCheck, User, CalendarDays, Activity, Info, CheckCircle2, AlertTriangle, Users, Tag } from "lucide-react";
+import { ShieldCheck, User, CalendarDays, Activity, Info, CheckCircle2, AlertTriangle, Users, Tag, AlignLeft } from "lucide-react";
 
 interface MedicalTestDetailsDialogProps {
   record: MedicalTestRecord;
@@ -51,6 +51,14 @@ export function MedicalTestDetailsDialog({ record, segName, onClose }: MedicalTe
                     <strong className="text-muted-foreground">Result Summary:</strong>
                     <p className="whitespace-pre-wrap text-foreground bg-secondary/50 p-2 rounded-md text-xs mt-0.5">{record.resultSummary}</p>
                 </div>
+                 {record.referenceRange && (
+                    <div className="flex items-start"><AlignLeft className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground shrink-0" />
+                        <div>
+                            <strong className="text-muted-foreground">Reference Range:</strong>
+                            <p className="text-foreground bg-secondary/50 p-2 rounded-md text-xs mt-0.5">{record.referenceRange}</p>
+                        </div>
+                    </div>
+                )}
                 
                 <Separator className="my-2"/>
 
