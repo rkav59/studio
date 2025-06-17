@@ -53,7 +53,7 @@ function markdownToHtml(markdown: string): string {
   return html.split(/\n\s*\n/).map(paragraph => {
     const trimmedParagraph = paragraph.trim();
     if (!trimmedParagraph) return '';
-    if (trimmedParagraph.match(/^<(h[1-6]|ul|ol|li|blockquote|pre|hr|table|thead|tbody|tr|th|td)/i)) {
+    if (!(trimmedParagraph.match(/^<(h[1-6]|ul|ol|li|blockquote|pre|hr|table|thead|tbody|tr|th|td)/i as RegExp))) {
       // If it's already a block element or part of one, return as is
       return trimmedParagraph;
     }
