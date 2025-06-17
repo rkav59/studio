@@ -16,13 +16,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { PpeItem } from "@/lib/types";
-import { Save, XCircle, CalendarIcon, Package } from "lucide-react";
+import type { PpeItem, PpeItemStatus } from "@/lib/types";
+import { Save, XCircle, CalendarIcon, Package, Activity } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { cn } from "@/lib/utils";
 import { format, parseISO, isValid } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+
+const ppeItemStatuses: PpeItemStatus[] = ['Available', 'Under Inspection', 'Awaiting Repair', 'Awaiting Replacement', 'Discarded'];
 
 const ppeItemFormSchema = z.object({
   name: z.string().min(2, "Name is required.").max(150),
@@ -33,6 +36,7 @@ const ppeItemFormSchema = z.object({
   reorderLevel: z.coerce.number().min(0, "Reorder level cannot be negative.").int(),
   supplier: z.string().max(100).optional(),
   lastStocktakeDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid stocktake date" }),
+  status: z.enum(ppeItemStatuses).default('Available').optional(),
 });
 
 export type PpeItemFormValues = z.infer<typeof ppeItemFormSchema>; // Export for use in pages
@@ -56,6 +60,7 @@ export function PpeItemForm({ initialData, onSave, onCancel }: PpeItemFormProps)
       reorderLevel: initialData?.reorderLevel || 0,
       supplier: initialData?.supplier || "",
       lastStocktakeDate: initialData?.lastStocktakeDate ? format(parseISO(initialData.lastStocktakeDate), 'yyyy-MM-dd') : undefined,
+      status: initialData?.status || 'Available',
     },
   });
 
@@ -100,6 +105,17 @@ export function PpeItemForm({ initialData, onSave, onCancel }: PpeItemFormProps)
                       <FormItem><FormLabel>Reorder Level</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                   )}/>
               </div>
+              <FormField control={form.control} name="status" render={({ field }) => (
+                <FormItem><FormLabel className="flex items-center gap-1"><Activity className="h-4 w-4"/>Item Status</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || 'Available'}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Select item status" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      {ppeItemStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>Current operational status of the PPE item type.</FormDescription>
+                <FormMessage /></FormItem>
+              )}/>
               <FormField control={form.control} name="supplier" render={({ field }) => (
                 <FormItem><FormLabel>Supplier (Optional)</FormLabel><FormControl><Input placeholder="Supplier name or contact" {...field} /></FormControl><FormMessage /></FormItem>
               )}/>

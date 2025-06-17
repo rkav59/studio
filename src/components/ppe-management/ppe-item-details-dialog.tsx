@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { PpeItem } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
-import { Package, Tag, ListChecks, Archive, Layers,ShoppingCart, CalendarDays, AlertTriangle } from "lucide-react";
+import { Package, Tag, ListChecks, Archive, Layers,ShoppingCart, CalendarDays, AlertTriangle, Activity } from "lucide-react";
 
 interface PpeItemDetailsDialogProps {
   item: PpeItem;
@@ -23,6 +23,18 @@ interface PpeItemDetailsDialogProps {
 }
 
 export function PpeItemDetailsDialog({ item, onClose }: PpeItemDetailsDialogProps) {
+
+  const getStatusColor = (status?: PpeItem['status']) => {
+    switch (status) {
+      case 'Available': return 'text-green-600 dark:text-green-400';
+      case 'Under Inspection':
+      case 'Awaiting Repair':
+      case 'Awaiting Replacement': return 'text-yellow-600 dark:text-yellow-400';
+      case 'Discarded': return 'text-red-600 dark:text-red-400';
+      default: return 'text-muted-foreground';
+    }
+  };
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg">
@@ -67,6 +79,10 @@ export function PpeItemDetailsDialog({ item, onClose }: PpeItemDetailsDialogProp
                 <div className="flex items-center">
                     <AlertTriangle className="h-4 w-4 mr-2 text-muted-foreground" />
                     <strong>Reorder Level:</strong> <span className="ml-1">{item.reorderLevel}</span>
+                </div>
+                 <div className="flex items-center">
+                    <Activity className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <strong>Status:</strong> <span className={`ml-1 font-semibold ${getStatusColor(item.status)}`}>{item.status || 'N/A'}</span>
                 </div>
                  {item.supplier && (
                     <div className="flex items-center">

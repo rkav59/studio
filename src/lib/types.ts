@@ -1,4 +1,5 @@
 
+
 export interface Incident {
   id: string;
   type: 'Incident' | 'Near Miss' | 'Hazard';
@@ -24,7 +25,7 @@ export interface Inspection {
   location: string; // Added location for consistency
 }
 
-// Risk Assessment Types
+// Risk Assessment Types - Retained as they are not explicitly marked for removal yet
 export interface RiskControlItem {
   id?: string;
   value?: string;
@@ -176,7 +177,7 @@ export interface EmergencyPlan {
   nextReviewDate?: string; // ISO Date string
 }
 
-// Incident Investigation Types
+// Incident Investigation Types (Retained as not explicitly marked for removal)
 export type InvestigationTechnique = 'FiveWhys' | 'FishboneIshikawa' | 'SCAT' | 'GenericRCA';
 
 export const investigationTechniques: { name: InvestigationTechnique; label: string }[] = [
@@ -232,29 +233,24 @@ export interface IncidentInvestigation {
   investigationDate: string; // ISO string
   investigators: string; // Comma-separated list of names or a team name
   techniqueUsed?: InvestigationTechnique;
-
-  // Technique-specific details
   fiveWhysDetails?: FiveWhyDetail[];
   fishboneCategories?: FishboneCategory[];
   scatDetails?: ScatDetails;
   genericRcaDetails?: GenericRcaDetails;
-
-  summaryOfFindings: string; // Overall summary regardless of technique
-  evidenceSummary?: string; // New field for textual summary of evidence
-  witnessStatementsSummary?: string; // New field for textual summary of witness statements
-
+  summaryOfFindings: string;
+  evidenceSummary?: string;
+  witnessStatementsSummary?: string;
   correctiveActions: CorrectiveAction[];
   status: 'Open' | 'In Progress' | 'Review' | 'Closed';
 }
 
-// Input/Output for AI Root Cause Suggestion Flow
 export interface SuggestRootCauseInput {
-  incidentDescription: string; // Or perhaps investigation title if description is not directly available
+  incidentDescription: string;
   summaryOfFindings: string;
 }
 
 export interface SuggestRootCauseOutput {
-  suggestedRootCauses: string; // A string, potentially multi-line, of suggested root causes
+  suggestedRootCauses: string;
 }
 
 
@@ -264,11 +260,11 @@ export type PtwStatus = 'Requested' | 'Approved' | 'Active' | 'Closed' | 'Cancel
 
 export interface ContractorDocument {
   id: string;
-  name: string; // e.g., "Public Liability Insurance", "Safety Certification XYZ"
+  name: string;
   documentType: 'Insurance' | 'Certification' | 'Method Statement' | 'Risk Assessment' | 'Other';
-  fileUrlPlaceholder?: string; // Placeholder for file name or mock URL
-  expiryDate?: string; // ISO Date string
-  uploadedDate: string; // ISO Date string
+  fileUrlPlaceholder?: string;
+  expiryDate?: string;
+  uploadedDate: string;
 }
 
 export interface Contractor {
@@ -281,89 +277,122 @@ export interface Contractor {
   vettingStatus: ContractorVettingStatus;
   vettingNotes?: string;
   inductionCompleted: boolean;
-  inductionDate?: string; // ISO Date string
+  inductionDate?: string;
   documents: ContractorDocument[];
   performanceNotes?: string;
 }
 
 export interface PermitToWork {
   id: string;
-  ptwNumber: string; // Auto-generated or manually entered
-  contractorId: string; // Links to Contractor.id
+  ptwNumber: string;
+  contractorId: string;
   workDescription: string;
   location: string;
-  startDate: string; // ISO DateTime string
-  endDate: string; // ISO DateTime string
+  startDate: string;
+  endDate: string;
   status: PtwStatus;
   scopeOfWork: string;
-  precautions: string; // Precautions to be taken
+  precautions: string;
   authorizedBy?: string;
-  authorizationDate?: string; // ISO DateTime string
+  authorizationDate?: string;
   closedBy?: string;
-  closureDate?: string; // ISO DateTime string
+  closureDate?: string;
   supervisorOnSite?: string;
 }
 
 
 // PPE Management Types
+export type PpeItemStatus = 'Available' | 'Under Inspection' | 'Awaiting Repair' | 'Awaiting Replacement' | 'Discarded';
+
 export interface PpeItem {
   id: string;
-  name: string; // e.g., "Safety Helmet Class A"
-  type: string; // e.g., "Hard Hat", "Safety Glasses", "Respirator"
-  category: string; // e.g., "Head Protection", "Eye Protection", "Respiratory Protection"
-  specifications?: string; // e.g., "EN397, ANSI Z89.1 Type I Class E", "Size L"
+  name: string;
+  type: string;
+  category: string;
+  specifications?: string;
   currentStock: number;
   reorderLevel: number;
   supplier?: string;
-  lastStocktakeDate?: string; // ISO string
+  lastStocktakeDate?: string;
+  status?: PpeItemStatus; // New status field
 }
 
 export interface PpeIssuanceRecord {
   id: string;
-  ppeItemId: string; // Links to PpeItem.id
+  ppeItemId: string;
   employeeName: string;
   jobRole?: string;
-  issuedDate: string; // ISO string
+  issuedDate: string;
   quantityIssued: number;
-  expectedReturnDate?: string; // ISO string
-  actualReturnDate?: string; // ISO string
+  expectedReturnDate?: string;
+  actualReturnDate?: string;
   conditionOnReturn?: 'Good' | 'Damaged' | 'Lost';
   notes?: string;
 }
 
-export interface PpeInspectionChecklistItem {
+// --- PPE Inspection Specific Types ---
+export type PpeInspectionOverallStatus = 'Pass' | 'Requires Repair' | 'To be Replaced' | 'Action Pending';
+
+// This is a placeholder for detailed checklist items in future iterations.
+// For now, the inspection form will focus on overall status and notes.
+export interface PpeInspectionChecklistItemInstance {
+  id: string;
+  text: string; // Text of the check item (could be from a template or custom)
+  result: 'Pass' | 'Fail' | 'N/A' | 'Pending';
+  remarks?: string;
+}
+
+export interface PpeInspectionRecord {
+  id: string;
+  ppeItemId: string; // ID of the PpeItem being inspected
+  uniquePpeIdentifier?: string; // Optional: For serialized/uniquely tracked PPE items
+  inspectionDate: string; // ISO Date string
+  inspectorName: string;
+  overallStatus: PpeInspectionOverallStatus;
+  // checklistItems: PpeInspectionChecklistItemInstance[]; // For future detailed checklist implementation
+  notes?: string;
+  followUpAction?: string;
+  nextInspectionDate?: string; // ISO Date string (optional)
+}
+
+// --- End PPE Inspection Specific Types ---
+
+
+export interface PpeInspectionChecklistItem { // Old type for general inspection, might be confused. Renamed to avoid conflict
   id: string;
   text: string;
   status: 'Pass' | 'Fail' | 'N/A';
   remarks?: string;
 }
 
-export interface PpeInspectionRecord {
-  id: string;
-  ppeItemId: string; // Can link to a specific item from inventory or be a general type
-  uniquePpeIdentifier?: string; // Optional: for tracking individual serialized PPE
-  inspectionDate: string; // ISO string
-  inspectorName: string;
-  checklist: PpeInspectionChecklistItem[];
-  overallStatus: 'Good' | 'Requires Repair' | 'To be Replaced';
-  nextInspectionDate?: string; // ISO string
-  notes?: string;
-}
+// This was PpeInspectionRecord, potentially conflicting. Keeping for reference if it was used by other future features.
+// export interface PpeInspectionRecordOld {
+//   id: string;
+//   ppeItemId: string;
+//   uniquePpeIdentifier?: string;
+//   inspectionDate: string;
+//   inspectorName: string;
+//   checklist: PpeInspectionChecklistItem[]; // Uses the old checklist item type
+//   overallStatus: 'Good' | 'Requires Repair' | 'To be Replaced';
+//   nextInspectionDate?: string;
+//   notes?: string;
+// }
+
 
 export interface PpeComplianceAuditChecklistItem {
   id: string;
-  question: string; // e.g., "Is appropriate PPE being worn for the task?"
+  question: string;
   isCompliant: boolean;
   observations?: string;
 }
 
 export interface PpeComplianceAudit {
   id: string;
-  auditDate: string; // ISO string
+  auditDate: string;
   areaAudited: string;
   auditorName: string;
   checklist: PpeComplianceAuditChecklistItem[];
-  overallComplianceScore?: number; // Optional, e.g., percentage
+  overallComplianceScore?: number;
   findingsSummary?: string;
   recommendations?: string;
 }
@@ -371,8 +400,8 @@ export interface PpeComplianceAudit {
 export interface PpeJobRoleMatrixEntry {
   id: string;
   jobRole: string;
-  requiredPpeItemIds: string[]; // Array of PpeItem.id
-  riskAssessmentReference?: string; // Optional reference to a RA
+  requiredPpeItemIds: string[];
+  riskAssessmentReference?: string;
 }
 
 // Medical Screening & Health Monitoring
@@ -412,8 +441,8 @@ export interface AnalyzeAuditDataInput {
 }
 
 export interface AnalyzeAuditDataOutput {
-  identifiedThemes: string; // Multi-line
+  identifiedThemes: string;
   capaEffectivenessObservations: string;
-  suggestedFocusAreas: string; // Multi-line
+  suggestedFocusAreas: string;
   positiveObservations?: string;
 }
