@@ -387,10 +387,68 @@ export interface PpeComplianceAudit {
 }
 
 
-// Medical Screening & Health Monitoring
+// --- Health Monitoring Module Types ---
+export interface SimilarExposureGroup {
+  id: string;
+  name: string; // e.g., "Welders - Workshop A", "Office Admin Staff - Building C"
+  description?: string; // Brief description of the group
+  riskProfileNotes?: string; // Notes on typical exposures or health risks
+}
+
+export type IndustrialHygieneSampleAgent = 'Noise' | 'Dust (Respirable)' | 'Dust (Inhalable)' | 'Silica' | 'Asbestos' | 'VOCs' | 'Lead' | 'Welding Fumes' | 'Specific Chemical' | 'Ergonomic Strain' | 'Other';
+
+export interface IndustrialHygieneSample {
+  id: string;
+  segId?: string; // Optional link to SimilarExposureGroup
+  employeeName?: string; // If personal sample not linked to SEG
+  sampleDate: string; // ISO Date string
+  agent: IndustrialHygieneSampleAgent;
+  specificAgentName?: string; // If agent is 'Specific Chemical' or 'Other'
+  exposureLevel: number;
+  units: string; // e.g., "dBA", "mg/m³", "ppm", "fibers/cc"
+  sampleType: 'Personal' | 'Area' | 'Source';
+  durationHours?: number;
+  twa?: number; // Time-Weighted Average (if applicable)
+  stel?: number; // Short-Term Exposure Limit (if applicable)
+  location: string;
+  notes?: string;
+}
+
+export type MedicalTestRecordType = 'Audiometry' | 'Spirometry (Lung Function)' | 'Vision Test' | 'Blood Test' | 'Urine Test' | 'Biological Monitoring' | 'X-Ray' | 'Musculoskeletal Assessment' | 'Fitness to Work Assessment' | 'Other';
+
+export interface MedicalTestRecord {
+  id: string;
+  employeeName: string;
+  employeeId?: string; // Optional employee ID
+  testType: MedicalTestRecordType;
+  specificTestName?: string; // If testType is 'Other' or more detail needed
+  testDate: string; // ISO Date string
+  resultSummary: string;
+  isFitForWork?: boolean;
+  followUpRequired?: boolean;
+  notes?: string;
+  segId?: string; // Optional link to SEG for group analysis
+}
+
+export type WellnessProgramStatus = 'Planned' | 'Active' | 'Completed' | 'On Hold';
+
+export interface WellnessProgram {
+  id: string;
+  programName: string;
+  description?: string;
+  startDate: string; // ISO Date string
+  endDate?: string; // ISO Date string, optional
+  status: WellnessProgramStatus;
+  targetAudience?: string; // e.g., "All Employees", "Specific SEG", "Department X"
+  participationNotes?: string; // General notes on participation, or could be separate records
+}
+// --- End Health Monitoring Module Types ---
+
+
+// Medical Screening & Health Monitoring (Old - to be reviewed/merged/removed if Health Monitoring Module covers all)
 export interface MedicalScreeningRecord {
   id: string;
-  employeeId: string;
+  employeeId: string; // This should be employeeName to match MedicalTestRecord
   screeningDate: string;
   screeningType: string;
   resultsSummary: string;
@@ -399,7 +457,7 @@ export interface MedicalScreeningRecord {
 
 export interface HealthMonitoringRecord {
   id: string;
-  employeeId: string;
+  employeeId: string; // This should be employeeName to match MedicalTestRecord
   monitoringDate: string;
   parameter: string;
   value: string;
