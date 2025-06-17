@@ -288,7 +288,7 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDril
                     <UiCardTitle className="flex items-center gap-2 text-base"><ClipboardCheck className="h-5 w-5"/>Action Items from Drill</UiCardTitle>
                     <UiCardDescription>Document any follow-up actions identified during or after the drill.</UiCardDescription>
                 </UiCardHeader>
-                <UiCardContent className="space-y-3">
+                <CardContent className="space-y-3">
                     {actionItemFields.map((item, index) => (
                         <Card key={item.id} className="p-3 bg-background shadow-sm space-y-3">
                             <div className="flex justify-between items-center">
@@ -323,7 +323,7 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDril
                     ))}
                     <Button type="button" variant="outline" size="sm" onClick={() => appendActionItem(newActionItemDefault())}><PlusCircle className="mr-2 h-4 w-4"/>Add Action Item</Button>
                     <FormField name="actionItems" control={form.control} render={() => <FormMessage />} />
-                </UiCardContent>
+                </CardContent>
             </Card>
 
             </ScrollArea>
