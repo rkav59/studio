@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -17,12 +18,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { PpeItem, PpeItemStatus } from "@/lib/types";
-import { Save, XCircle, CalendarIcon, Package, Activity, RefreshCw } from "lucide-react"; // Added RefreshCw
+import { Save, XCircle, CalendarIcon, Package, Activity, RefreshCw } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { cn } from "@/lib/utils";
 import { format, parseISO, isValid } from "date-fns";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription as UiCardDescription } from "@/components/ui/card"; // Renamed CardDescription to avoid conflict
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 const ppeItemStatuses: PpeItemStatus[] = ['Available', 'Under Inspection', 'Awaiting Repair', 'Awaiting Replacement', 'Discarded'];
@@ -40,7 +41,7 @@ const ppeItemFormSchema = z.object({
   inspectionIntervalDays: z.coerce.number().min(1, "Interval must be at least 1 day.").int().optional(),
 });
 
-export type PpeItemFormValues = z.infer<typeof ppeItemFormSchema>; // Export for use in pages
+export type PpeItemFormValues = z.infer<typeof ppeItemFormSchema>;
 
 interface PpeItemFormProps {
   initialData?: PpeItem | null;
@@ -77,9 +78,9 @@ export function PpeItemForm({ initialData, onSave, onCancel }: PpeItemFormProps)
             <Package className="h-6 w-6 text-primary" />
             {isEditing ? "Edit PPE Item" : "Add New PPE Item"}
         </CardTitle>
-        <CardDescription>
+        <UiCardDescription> {/* Use renamed CardDescription */}
           {isEditing ? "Update details for this PPE item." : "Enter details for a new PPE item in your inventory."}
-        </CardDescription>
+        </UiCardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
