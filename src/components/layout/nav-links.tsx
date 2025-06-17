@@ -13,10 +13,8 @@ import {
   BookUser, // Training & Competence
   Siren, // Emergency Preparedness
   HardHat, // PPE Management
-  Stethoscope, // Medical Screening
-  HeartPulse, // Health Monitoring
+  HeartPulse, // Health Monitoring (now covers Medical Screening)
   Library, // For Checklist Templates
-  // ShieldAlert was for Risk Management Hub, removed
 } from 'lucide-react';
 import {
   SidebarMenu,
@@ -27,15 +25,13 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  // { href: '/risk-management-hub', label: 'Risk Management Hub', icon: ShieldAlert }, // Removed
   { href: '/sheq-audit', label: 'SHEQ Audit', icon: FileCheck2 },
   { href: '/checklist-templates', label: 'Checklist Templates', icon: Library },
   { href: '/training-competence', label: 'Training & Competence', icon: BookUser },
   { href: '/emergency-preparedness', label: 'Emergency Preparedness', icon: Siren },
   { href: '/ppe-management', label: 'PPE Management', icon: HardHat },
   { href: '/contractor-safety', label: 'Contractor Safety', icon: ListChecks },
-  { href: '/medical-screening', label: 'Medical Screening', icon: Stethoscope },
-  { href: '/health-monitoring', label: 'Health Monitoring', icon: HeartPulse },
+  { href: '/health-monitoring', label: 'Health Monitoring', icon: HeartPulse }, // Medical Screening merged here
   { href: '/data-visualization', label: 'Data Visualization', icon: BarChartHorizontalBig },
   { href: '/ai-recommendations', label: 'AI Safety Assist', icon: Sparkles },
 ];

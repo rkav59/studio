@@ -36,11 +36,12 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, ShieldCheck, Users, AlignLeft } from "lucide-react";
-import type { MedicalTestRecord, MedicalTestRecordType, SimilarExposureGroup } from "@/lib/types";
+import { CalendarIcon, Save, XCircle, ShieldCheck, Users, AlignLeft, Activity, Link2, Briefcase } from "lucide-react";
+import type { MedicalTestRecord, MedicalTestRecordType, SimilarExposureGroup, MedicalScreeningPurpose } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 
 const medicalTestTypes: MedicalTestRecordType[] = ['Audiometry', 'Spirometry (Lung Function)', 'Vision Test', 'Blood Test', 'Urine Test', 'Biological Monitoring', 'X-Ray', 'Musculoskeletal Assessment', 'Fitness to Work Assessment', 'Other'];
+const medicalScreeningPurposes: MedicalScreeningPurpose[] = ['Pre-employment', 'Periodic', 'Exit', 'Post-Incident', 'Exposure-Specific', 'Return-to-Work', 'Other'];
 
 const medicalTestFormSchema = z.object({
   employeeName: z.string().min(2, "Employee name is required.").max(150),
@@ -48,9 +49,12 @@ const medicalTestFormSchema = z.object({
   testType: z.enum(medicalTestTypes, { required_error: "Please select a test type." }),
   specificTestName: z.string().max(100).optional(),
   testDate: z.string().refine(val => isValid(parseISO(val)), { message: "Test date is required." }),
+  screeningPurpose: z.enum(medicalScreeningPurposes).optional(),
+  linkedExposure: z.string().max(200).optional(),
   resultSummary: z.string().min(5, "Result summary is required.").max(2000),
   referenceRange: z.string().max(200).optional(),
   isFitForWork: z.boolean().optional(),
+  certificateExpiryDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid certificate expiry date" }),
   followUpRequired: z.boolean().optional(),
   notes: z.string().max(2000).optional(),
   segId: z.string().optional(),
@@ -74,9 +78,12 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel }: Medical
       testType: initialData?.testType || undefined,
       specificTestName: initialData?.specificTestName || "",
       testDate: initialData?.testDate ? format(parseISO(initialData.testDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+      screeningPurpose: initialData?.screeningPurpose || undefined,
+      linkedExposure: initialData?.linkedExposure || "",
       resultSummary: initialData?.resultSummary || "",
       referenceRange: initialData?.referenceRange || "",
       isFitForWork: initialData?.isFitForWork === undefined ? undefined : initialData.isFitForWork,
+      certificateExpiryDate: initialData?.certificateExpiryDate ? format(parseISO(initialData.certificateExpiryDate), 'yyyy-MM-dd') : undefined,
       followUpRequired: initialData?.followUpRequired === undefined ? undefined : initialData.followUpRequired,
       notes: initialData?.notes || "",
       segId: initialData?.segId || undefined,
@@ -89,6 +96,7 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel }: Medical
      const testToSave = {
         ...data,
         specificTestName: data.testType === 'Other' ? data.specificTestName : undefined,
+        certificateExpiryDate: data.certificateExpiryDate || undefined, // Ensure it's undefined if empty
     };
     onSave(testToSave);
   };
@@ -98,10 +106,10 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel }: Medical
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="h-6 w-6 text-teal-500" />
-            {initialData ? "Edit Medical Test Record" : "Log New Medical Test Record"}
+            {initialData ? "Edit Medical Test/Screening Record" : "Log New Medical Test/Screening Record"}
         </DialogTitle>
         <DialogDescription>
-          {initialData ? "Update the medical test details." : "Enter details for a new medical test record."}
+          {initialData ? "Update the medical test/screening details." : "Enter details for a new medical test or screening record."}
         </DialogDescription>
       </DialogHeader>
       <Form {...form}>
@@ -116,7 +124,7 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel }: Medical
                 )}/>
             </div>
              <FormField control={form.control} name="testDate" render={({ field }) => (
-                <FormItem className="flex flex-col"><FormLabel>Test Date</FormLabel>
+                <FormItem className="flex flex-col"><FormLabel>Test/Screening Date</FormLabel>
                 <Popover><PopoverTrigger asChild><FormControl>
                     <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
                     {field.value ? format(parseISO(field.value), "PPP") : <span>Pick test date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
@@ -125,7 +133,7 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel }: Medical
                 </Popover><FormMessage /></FormItem>
             )}/>
              <FormField control={form.control} name="testType" render={({ field }) => (
-                <FormItem><FormLabel>Test Type</FormLabel>
+                <FormItem><FormLabel className="flex items-center gap-1"><Activity className="h-4 w-4"/>Test Type</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select test type" /></SelectTrigger></FormControl>
                     <SelectContent>{medicalTestTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
@@ -136,6 +144,22 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel }: Medical
                     <FormItem><FormLabel>Specific Test Name</FormLabel><FormControl><Input placeholder="Name of the 'Other' test" {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
             )}
+            <FormField control={form.control} name="screeningPurpose" render={({ field }) => (
+                <FormItem><FormLabel className="flex items-center gap-1"><Briefcase className="h-4 w-4"/>Screening Purpose (Optional)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select purpose" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            <SelectItem value="">None</SelectItem>
+                            {medicalScreeningPurposes.map(purpose => <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>)}
+                        </SelectContent>
+                    </Select><FormMessage /></FormItem>
+            )}/>
+            <FormField control={form.control} name="linkedExposure" render={({ field }) => (
+                <FormItem><FormLabel className="flex items-center gap-1"><Link2 className="h-4 w-4"/>Linked Exposure (Optional)</FormLabel><FormControl><Input placeholder="e.g., Noise in Workshop A, Silica Dust" {...field} /></FormControl>
+                <FormDescription>Note any specific exposure this screening is related to.</FormDescription>
+                <FormMessage /></FormItem>
+            )}/>
+
             <FormField control={form.control} name="resultSummary" render={({ field }) => (
                 <FormItem><FormLabel>Result Summary</FormLabel><FormControl><Textarea placeholder="Summarize key findings, values, or observations from the test." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
@@ -160,6 +184,15 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel }: Medical
                     </FormItem>
                 )}/>
             </div>
+             <FormField control={form.control} name="certificateExpiryDate" render={({ field }) => (
+                <FormItem className="flex flex-col"><FormLabel>Certificate/Validity Expiry Date (Optional)</FormLabel>
+                <Popover><PopoverTrigger asChild><FormControl>
+                    <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                    {field.value ? format(parseISO(field.value), "PPP") : <span>Pick expiry date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button></FormControl></PopoverTrigger>
+                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)} /></PopoverContent>
+                </Popover><FormMessage /></FormItem>
+            )}/>
              <FormField
                 control={form.control}
                 name="segId"

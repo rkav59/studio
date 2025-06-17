@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Edit2, Trash2, Eye, Users, Thermometer, ShieldCheck, Award, BarChart, BellDot, UserPlus, FlaskConical, ClipboardPlus, Users2Icon } from "lucide-react"; // Added specific icons
-import type { SimilarExposureGroup, IndustrialHygieneSample, MedicalTestRecord, WellnessProgram } from "@/lib/types";
+import { Edit2, Trash2, Eye, Users, Thermometer, ShieldCheck, Award, BarChart, BellDot, UserPlus, FlaskConical, ClipboardPlus, Users2Icon, AlertTriangle, CalendarClock, ClockIcon } from "lucide-react";
+import type { SimilarExposureGroup, IndustrialHygieneSample, MedicalTestRecord, WellnessProgram, MedicalTestWithCertStatus } from "@/lib/types";
 import { SegForm } from "@/components/health-monitoring/seg-form";
 import { IhSampleForm } from "@/components/health-monitoring/ih-sample-form";
 import { MedicalTestForm } from "@/components/health-monitoring/medical-test-form";
@@ -18,7 +18,7 @@ import { IhSampleDetailsDialog } from '@/components/health-monitoring/ih-sample-
 import { MedicalTestDetailsDialog } from '@/components/health-monitoring/medical-test-details-dialog';
 import { WellnessProgramDetailsDialog } from '@/components/health-monitoring/wellness-program-details-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid, differenceInDays, isBefore } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
@@ -26,6 +26,7 @@ const SEGS_STORAGE_KEY = 'sheild-health-segs-v1';
 const IH_SAMPLES_STORAGE_KEY = 'sheild-health-ih-samples-v1';
 const MEDICAL_TESTS_STORAGE_KEY = 'sheild-health-medical-tests-v1';
 const WELLNESS_PROGRAMS_STORAGE_KEY = 'sheild-health-wellness-programs-v1';
+const CERT_EXPIRY_REMINDER_LEAD_DAYS = 30;
 
 export default function HealthMonitoringPage() {
   const { toast } = useToast();
@@ -51,30 +52,32 @@ export default function HealthMonitoringPage() {
   const [editingWellnessProgram, setEditingWellnessProgram] = useState<WellnessProgram | null>(null);
   const [viewingWellnessProgram, setViewingWellnessProgram] = useState<WellnessProgram | null>(null);
 
-  // Load data
+  const loadAllHealthData = () => {
+    try {
+      const storedSegs = localStorage.getItem(SEGS_STORAGE_KEY);
+      setSegs(storedSegs ? JSON.parse(storedSegs) : []);
+
+      const storedIhSamples = localStorage.getItem(IH_SAMPLES_STORAGE_KEY);
+      setIhSamples(storedIhSamples ? JSON.parse(storedIhSamples) : []);
+
+      const storedMedicalTests = localStorage.getItem(MEDICAL_TESTS_STORAGE_KEY);
+      setMedicalTests(storedMedicalTests ? JSON.parse(storedMedicalTests) : []);
+
+      const storedWellnessPrograms = localStorage.getItem(WELLNESS_PROGRAMS_STORAGE_KEY);
+      setWellnessPrograms(storedWellnessPrograms ? JSON.parse(storedWellnessPrograms) : []);
+    } catch (error) {
+      console.error("Error loading health monitoring data:", error);
+      toast({ title: "Error", description: "Could not load health monitoring data.", variant: "destructive" });
+      setSegs([]); setIhSamples([]); setMedicalTests([]); setWellnessPrograms([]);
+    }
+  };
+  
   useEffect(() => {
-    const loadData = () => {
-      try {
-        const storedSegs = localStorage.getItem(SEGS_STORAGE_KEY);
-        if (storedSegs) setSegs(JSON.parse(storedSegs));
-
-        const storedIhSamples = localStorage.getItem(IH_SAMPLES_STORAGE_KEY);
-        if (storedIhSamples) setIhSamples(JSON.parse(storedIhSamples));
-
-        const storedMedicalTests = localStorage.getItem(MEDICAL_TESTS_STORAGE_KEY);
-        if (storedMedicalTests) setMedicalTests(JSON.parse(storedMedicalTests));
-
-        const storedWellnessPrograms = localStorage.getItem(WELLNESS_PROGRAMS_STORAGE_KEY);
-        if (storedWellnessPrograms) setWellnessPrograms(JSON.parse(storedWellnessPrograms));
-      } catch (error) {
-        console.error("Error loading health monitoring data:", error);
-        toast({ title: "Error", description: "Could not load health monitoring data.", variant: "destructive" });
-      }
-    };
-    loadData();
-    window.addEventListener('focus', loadData);
-    return () => window.removeEventListener('focus', loadData);
+    loadAllHealthData();
+    window.addEventListener('focus', loadAllHealthData);
+    return () => window.removeEventListener('focus', loadAllHealthData);
   }, [toast]);
+
 
   // Save data
   useEffect(() => { try { localStorage.setItem(SEGS_STORAGE_KEY, JSON.stringify(segs)); } catch (e) { console.error("Error saving SEGs"); } }, [segs]);
@@ -127,6 +130,60 @@ export default function HealthMonitoringPage() {
   
   const getSegName = (segId?: string) => segs.find(s => s.id === segId)?.name || "N/A";
 
+  const medicalTestsWithCertStatus = useMemo((): MedicalTestWithCertStatus[] => {
+    return medicalTests.map(test => {
+      let certificateStatus: MedicalTestWithCertStatus['certificateStatus'] = 'N/A';
+      if (test.certificateExpiryDate && isValid(parseISO(test.certificateExpiryDate))) {
+        const expiry = parseISO(test.certificateExpiryDate);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        if (isBefore(expiry, today)) {
+          certificateStatus = 'Expired';
+        } else if (differenceInDays(expiry, today) <= CERT_EXPIRY_REMINDER_LEAD_DAYS) {
+          certificateStatus = 'Expiring Soon';
+        } else {
+          certificateStatus = 'Valid';
+        }
+      }
+      return { ...test, certificateStatus };
+    });
+  }, [medicalTests]);
+
+  const upcomingOrOverdueCerts = useMemo(() => {
+    return medicalTestsWithCertStatus.filter(test => test.certificateStatus === 'Expired' || test.certificateStatus === 'Expiring Soon');
+  }, [medicalTestsWithCertStatus]);
+
+  useEffect(() => {
+    if (upcomingOrOverdueCerts.length > 0) {
+      const overdueCount = upcomingOrOverdueCerts.filter(item => item.certificateStatus === 'Expired').length;
+      const dueSoonCount = upcomingOrOverdueCerts.filter(item => item.certificateStatus === 'Expiring Soon').length;
+      
+      let messages: string[] = [];
+      if (overdueCount > 0) messages.push(`${overdueCount} certificate(s) expired`);
+      if (dueSoonCount > 0) messages.push(`${dueSoonCount} certificate(s) expiring soon`);
+
+      if (messages.length > 0) {
+        toast({
+          title: "Medical Certificate Reminders",
+          description: `${messages.join(', ')}. Check 'Upcoming/Overdue Certificate Expiries'.`,
+          variant: overdueCount > 0 ? "destructive" : "default", 
+          duration: 10000,
+        });
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upcomingOrOverdueCerts, toast]);
+
+  const getCertStatusColor = (status?: MedicalTestWithCertStatus['certificateStatus']) => {
+    if (!status) return 'text-muted-foreground';
+    switch (status) {
+      case 'Expired': return 'text-red-500 font-bold';
+      case 'Expiring Soon': return 'text-yellow-600 font-semibold';
+      case 'Valid': return 'text-green-500';
+      default: return 'text-muted-foreground'; // N/A
+    }
+  };
+
 
   return (
     <div className="space-y-8">
@@ -142,16 +199,53 @@ export default function HealthMonitoringPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-0 left-0 p-6">
                 <h1 className="text-3xl font-bold tracking-tight font-headline text-white">Proactive Health Management</h1>
-                <p className="text-sm text-neutral-300">Monitor occupational health, exposure data, and wellness initiatives.</p>
+                <p className="text-sm text-neutral-300">Monitor occupational health, exposure data, medical screenings, and wellness initiatives.</p>
             </div>
         </div>
         <CardContent className="pt-6">
             <p className="text-muted-foreground">
-                This module facilitates the management of Similar Exposure Groups (SEGs), industrial hygiene sampling data (including OEL tracking), medical surveillance records (with reference ranges), and employee wellness programs (with participation metrics). 
+                This module facilitates the management of Similar Exposure Groups (SEGs), industrial hygiene sampling data (including OEL tracking), comprehensive medical test/screening records (including purpose, fitness-to-work, certificate expiry, and linked exposures), and employee wellness programs. 
                 All data is stored locally in your browser.
             </p>
         </CardContent>
       </Card>
+      
+      {/* Upcoming/Overdue Certificate Expiries Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><CalendarClock className="h-6 w-6 text-orange-500"/>Upcoming/Overdue Certificate Expiries</CardTitle>
+          <CardDescription>Medical test certificates requiring attention.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {upcomingOrOverdueCerts.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">No medical certificates currently due or overdue for renewal.</p>
+          ) : (
+            <ScrollArea className="max-h-[300px] pr-3">
+              <div className="space-y-3">
+                {upcomingOrOverdueCerts.map(test => (
+                  <Card key={`due-cert-${test.id}`} className={`p-3 shadow-sm border-l-4 ${test.certificateStatus === 'Expired' ? 'border-red-500' : 'border-yellow-500'}`}>
+                    <div className="flex flex-col sm:flex-row justify-between items-start">
+                      <div className="mb-1 sm:mb-0">
+                        <h4 className="font-semibold text-md">{test.employeeName} - {test.testType}</h4>
+                        <p className={`text-xs font-semibold ${getCertStatusColor(test.certificateStatus)}`}>
+                          Status: {test.certificateStatus}
+                          {test.certificateExpiryDate && ` (Expires: ${format(parseISO(test.certificateExpiryDate), "PPP")})`}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Test Date: {format(parseISO(test.testDate), "PPP")}</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => { setViewingMedicalTest(test); }}>
+                         View Record
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
+      <Separator/>
+
 
       {/* Similar Exposure Groups (SEGs) */}
       <Card>
@@ -193,7 +287,7 @@ export default function HealthMonitoringPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2"><FlaskConical className="h-6 w-6 text-accent"/>Industrial Hygiene Sampling</CardTitle>
-            <CardDescription>Log and track exposure monitoring data (noise, dust, chemicals, etc.), including OELs.</CardDescription>
+            <CardDescription>Log and track exposure monitoring data, including OELs.</CardDescription>
           </div>
           <Button onClick={() => { setEditingIhSample(null); setIsIhSampleFormOpen(true); }} className="bg-accent hover:bg-accent/90">
             <Thermometer className="mr-2 h-4 w-4" /> Log New IH Sample
@@ -205,8 +299,8 @@ export default function HealthMonitoringPage() {
               {ihSamples.map(sample => (
                 <Card key={sample.id} className="p-3 shadow-sm"><div className="flex justify-between items-start">
                   <div><h4 className="font-semibold">{sample.agent}{sample.specificAgentName ? ` (${sample.specificAgentName})` : ''} - {format(parseISO(sample.sampleDate), "PPP")}</h4>
-                  <p className="text-xs text-muted-foreground">Level: {sample.exposureLevel} {sample.units} {sample.oel && `(OEL: ${sample.oel} ${sample.oelUnits || sample.units})`} | Location: {sample.location} | SEG: {getSegName(sample.segId)}</p>
-                   {sample.oel !== undefined && sample.exposureLevel > sample.oel && <p className="text-xs font-bold text-red-500">EXPOSURE EXCEEDS OEL!</p>}
+                  <p className="text-xs text-muted-foreground">Level: {sample.exposureLevel} {sample.units} {sample.oel !== undefined && `(OEL: ${sample.oel} ${sample.oelUnits || sample.units})`} | Location: {sample.location} | SEG: {getSegName(sample.segId)}</p>
+                   {sample.oel !== undefined && sample.exposureLevel > sample.oel && <p className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertTriangle className="h-3 w-3"/>EXPOSURE EXCEEDS OEL!</p>}
                   </div>
                   <div className="flex gap-1 shrink-0">
                     <Button variant="outline" size="sm" onClick={() => setViewingIhSample(sample)}><Eye className="h-3 w-3"/></Button>
@@ -230,20 +324,26 @@ export default function HealthMonitoringPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2"><ClipboardPlus className="h-6 w-6 text-teal-500"/>Medical Surveillance Records</CardTitle>
-            <CardDescription>Track employee medical tests, fitness-to-work status, and reference ranges.</CardDescription>
+            <CardTitle className="flex items-center gap-2"><ClipboardPlus className="h-6 w-6 text-teal-500"/>Medical Test & Screening Records</CardTitle>
+            <CardDescription>Track employee medical tests, screenings, fitness-to-work status, certificate expiries, and reference ranges.</CardDescription>
           </div>
           <Button onClick={() => { setEditingMedicalTest(null); setIsMedicalTestFormOpen(true); }} className="bg-teal-500 hover:bg-teal-600 text-white">
-            <ShieldCheck className="mr-2 h-4 w-4" /> Log New Medical Test
+            <ShieldCheck className="mr-2 h-4 w-4" /> Log New Medical Record
           </Button>
         </CardHeader>
         <CardContent>
-          {medicalTests.length === 0 ? <p className="text-muted-foreground text-center py-4">No medical tests recorded. Click 'Log New Medical Test' to add records.</p> : (
+          {medicalTestsWithCertStatus.length === 0 ? <p className="text-muted-foreground text-center py-4">No medical records. Click 'Log New Medical Record' to add.</p> : (
             <ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">
-              {medicalTests.map(test => (
+              {medicalTestsWithCertStatus.map(test => (
                 <Card key={test.id} className="p-3 shadow-sm"><div className="flex justify-between items-start">
-                  <div><h4 className="font-semibold">{test.employeeName} - {test.testType}{test.specificTestName ? ` (${test.specificTestName})` : ''}</h4>
-                  <p className="text-xs text-muted-foreground">Date: {format(parseISO(test.testDate), "PPP")} | Fit to Work: {test.isFitForWork === undefined ? 'N/A' : test.isFitForWork ? 'Yes' : 'No'}</p></div>
+                  <div>
+                    <h4 className="font-semibold">{test.employeeName} - {test.testType}{test.specificTestName ? ` (${test.specificTestName})` : ''}</h4>
+                    <p className="text-xs text-muted-foreground">Date: {format(parseISO(test.testDate), "PPP")} | Fit to Work: {test.isFitForWork === undefined ? 'N/A' : test.isFitForWork ? 'Yes' : 'No'}</p>
+                    {test.screeningPurpose && <p className="text-xs text-muted-foreground">Purpose: {test.screeningPurpose}</p>}
+                    {test.certificateExpiryDate && (<p className={`text-xs flex items-center gap-1 ${getCertStatusColor(test.certificateStatus)}`}>
+                        <ClockIcon className="h-3 w-3"/>Cert. Expiry: {format(parseISO(test.certificateExpiryDate), "PPP")} {test.certificateStatus && test.certificateStatus !== 'N/A' && `(${test.certificateStatus})`}</p>
+                    )}
+                  </div>
                   <div className="flex gap-1 shrink-0">
                     <Button variant="outline" size="sm" onClick={() => setViewingMedicalTest(test)}><Eye className="h-3 w-3"/></Button>
                     <Button variant="secondary" size="sm" onClick={() => { setEditingMedicalTest(test); setIsMedicalTestFormOpen(true);}}><Edit2 className="h-3 w-3"/></Button>

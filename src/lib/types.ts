@@ -416,6 +416,8 @@ export interface IndustrialHygieneSample {
 }
 
 export type MedicalTestRecordType = 'Audiometry' | 'Spirometry (Lung Function)' | 'Vision Test' | 'Blood Test' | 'Urine Test' | 'Biological Monitoring' | 'X-Ray' | 'Musculoskeletal Assessment' | 'Fitness to Work Assessment' | 'Other';
+export type MedicalScreeningPurpose = 'Pre-employment' | 'Periodic' | 'Exit' | 'Post-Incident' | 'Exposure-Specific' | 'Return-to-Work' | 'Other';
+
 
 export interface MedicalTestRecord {
   id: string;
@@ -424,9 +426,12 @@ export interface MedicalTestRecord {
   testType: MedicalTestRecordType;
   specificTestName?: string; // If testType is 'Other' or more detail needed
   testDate: string; // ISO Date string
+  screeningPurpose?: MedicalScreeningPurpose;
+  linkedExposure?: string; // e.g. "Noise exposure in Workshop A"
   resultSummary: string;
   referenceRange?: string; // E.g., "0.5 - 2.0 mg/L", "Negative"
   isFitForWork?: boolean;
+  certificateExpiryDate?: string; // ISO Date string
   followUpRequired?: boolean;
   notes?: string;
   segId?: string; // Optional link to SEG for group analysis
@@ -449,15 +454,15 @@ export interface WellnessProgram {
 // --- End Health Monitoring Module Types ---
 
 
-// Medical Screening & Health Monitoring (Old - to be reviewed/merged/removed if Health Monitoring Module covers all)
-export interface MedicalScreeningRecord {
-  id: string;
-  employeeId: string; // This should be employeeName to match MedicalTestRecord
-  screeningDate: string;
-  screeningType: string;
-  resultsSummary: string;
-  fitToWork: boolean;
-}
+// Old MedicalScreeningRecord type - now superseded by enhanced MedicalTestRecord
+// export interface MedicalScreeningRecord {
+//   id: string;
+//   employeeId: string; 
+//   screeningDate: string;
+//   screeningType: string;
+//   resultsSummary: string;
+//   fitToWork: boolean;
+// }
 
 export interface HealthMonitoringRecord {
   id: string;
@@ -492,3 +497,7 @@ export interface AnalyzeAuditDataOutput {
   positiveObservations?: string;
 }
 
+// Derived status type for medical test records with certificate expiry
+export type MedicalTestWithCertStatus = MedicalTestRecord & {
+  certificateStatus?: 'Valid' | 'Expiring Soon' | 'Expired' | 'N/A';
+};
