@@ -48,6 +48,7 @@ const drillTypes: MockDrill['drillType'][] = ['Evacuation', 'Fire', 'Medical', '
 const drillStatuses: MockDrill['status'][] = ['Planned', 'Completed', 'Cancelled'];
 const actionItemStatuses: DrillActionStatus[] = ['Open', 'In Progress', 'Completed', 'Deferred'];
 
+const NO_PLAN_VALUE = "NO_PLAN_SELECTED_BY_USER";
 
 const drillActionItemSchema = z.object({
   id: z.string(),
@@ -117,6 +118,7 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDril
   const onSubmit = (data: MockDrillFormValues) => {
     const drillToSave = {
       ...data,
+      linkedPlanId: data.linkedPlanId === NO_PLAN_VALUE ? undefined : data.linkedPlanId,
       scheduledDate: parseISO(data.scheduledDate).toISOString(),
       actualDate: data.actualDate ? parseISO(data.actualDate).toISOString() : undefined,
       actionItems: data.actionItems || [],
@@ -126,7 +128,7 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDril
 
   const handleSuggestScenario = async () => {
     const drillType = form.getValues("drillType");
-    const linkedPlanId = form.getValues("linkedPlanId");
+    const linkedPlanIdValue = form.getValues("linkedPlanId");
     const currentDrillName = form.getValues("drillName");
 
     if (!drillType) {
@@ -140,8 +142,8 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDril
 
     setIsScenarioLoading(true);
     let planContext: Partial<GenerateDrillScenarioInput> = {};
-    if (linkedPlanId) {
-      const plan = plans.find(p => p.id === linkedPlanId);
+    if (linkedPlanIdValue && linkedPlanIdValue !== NO_PLAN_VALUE) {
+      const plan = plans.find(p => p.id === linkedPlanIdValue);
       if (plan) {
         planContext = {
           planName: plan.planName,
@@ -204,10 +206,10 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDril
                 )}/>
                 <FormField control={form.control} name="linkedPlanId" render={({ field }) => (
                     <FormItem><FormLabel>Linked Emergency Plan (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <FormControl><SelectTrigger><SelectValue placeholder={plans.length > 0 ? "Select plan" : "No plans available"} /></SelectTrigger></FormControl>
                         <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value={NO_PLAN_VALUE}>None</SelectItem>
                             {plans.map(plan => <SelectItem key={plan.id} value={plan.id}>{plan.planName}</SelectItem>)}
                         </SelectContent>
                     </Select><FormMessage /></FormItem>
