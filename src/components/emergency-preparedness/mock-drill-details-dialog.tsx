@@ -14,14 +14,37 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { MockDrill, DrillActionItem } from "@/lib/types";
-import { format, parseISO, isValid } from 'date-fns';
-import { Activity, CalendarDays, FileText, Users, MessageSquare, BookOpen, ClipboardCheck, AlertTriangle, CheckCircle, ListChecks, Link } from "lucide-react";
+import { format, parseISO, isValid, isBefore, differenceInDays } from 'date-fns';
+import { Activity, CalendarDays, FileText, Users, MessageSquare, BookOpen, ClipboardCheck, AlertTriangle, CheckCircle, ListChecks, Link, ClockIcon } from "lucide-react";
 
 interface MockDrillDetailsDialogProps {
   drill: MockDrill;
   planName?: string;
   onClose: () => void;
 }
+
+const REMINDER_LEAD_DAYS_EP_ACTION = 7; // For action item due dates
+
+function getActionItemDateStatusInfo(dateString?: string, leadDays: number = REMINDER_LEAD_DAYS_EP_ACTION): { status: 'Overdue' | 'Upcoming' | 'OK'; textClass: string; icon?: JSX.Element; displayText: string; } | null {
+  if (!dateString || !isValid(parseISO(dateString))) {
+    return null;
+  }
+  const date = parseISO(dateString);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const formattedDate = format(date, "PPP");
+
+  if (isBefore(date, today)) {
+    return { status: 'Overdue', textClass: 'text-red-600 font-semibold', icon: <AlertTriangle className="h-3 w-3 mr-1" />, displayText: `${formattedDate} (Overdue)` };
+  }
+  const daysDiff = differenceInDays(date, today);
+  if (daysDiff <= leadDays) {
+    return { status: 'Upcoming', textClass: 'text-yellow-600 font-semibold', icon: <ClockIcon className="h-3 w-3 mr-1" />, displayText: `${formattedDate} (Upcoming)` };
+  }
+  return { status: 'OK', textClass: 'text-muted-foreground', displayText: formattedDate };
+}
+
 
 export function MockDrillDetailsDialog({ drill, planName, onClose }: MockDrillDetailsDialogProps) {
   
@@ -110,7 +133,9 @@ export function MockDrillDetailsDialog({ drill, planName, onClose }: MockDrillDe
                         <section>
                             <h3 className="text-md font-semibold mb-1 flex items-center gap-1"><ClipboardCheck className="h-5 w-5"/>Action Items</h3>
                             <ul className="space-y-2">
-                                {drill.actionItems.map(item => (
+                                {drill.actionItems.map(item => {
+                                    const dueDateStatus = item.status !== 'Completed' ? getActionItemDateStatusInfo(item.dueDate) : null;
+                                    return (
                                     <li key={item.id} className="p-2 border rounded-md bg-muted/30">
                                         <p className="font-medium">{item.description}</p>
                                         <div className="grid grid-cols-2 gap-x-2 text-xs text-muted-foreground">
@@ -120,11 +145,14 @@ export function MockDrillDetailsDialog({ drill, planName, onClose }: MockDrillDe
                                                 <strong className="ml-1">Status:</strong> {item.status}
                                             </p>
                                             {item.dueDate && isValid(parseISO(item.dueDate)) && (
-                                                <p><strong>Due:</strong> {format(parseISO(item.dueDate), "PPP")}</p>
+                                                <p className={`flex items-center ${dueDateStatus?.textClass || 'text-muted-foreground'}`}>
+                                                    {dueDateStatus?.icon || <ClockIcon className="h-3 w-3 mr-1" />}
+                                                    <strong>Due:</strong> {dueDateStatus?.displayText || format(parseISO(item.dueDate), "PPP")}
+                                                </p>
                                             )}
                                         </div>
                                     </li>
-                                ))}
+                                )})}
                             </ul>
                         </section>
                     </>
@@ -141,3 +169,4 @@ export function MockDrillDetailsDialog({ drill, planName, onClose }: MockDrillDe
     </Dialog>
   );
 }
+

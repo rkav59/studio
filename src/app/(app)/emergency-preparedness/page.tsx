@@ -1,27 +1,58 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { PlusCircle, Edit2, Trash2, Eye, Siren, FileText, Box, ShieldAlert, Activity, Users } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, Eye, Siren, FileText, Box, ShieldAlert, Activity, Users, CalendarClock, ClockIcon, AlertTriangle, ListChecksIcon } from "lucide-react";
 import Image from "next/image";
-import { format, isValid, parseISO } from 'date-fns';
+import { format, isValid, parseISO, differenceInDays, isBefore } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { EmergencyPlanForm } from '@/components/emergency-preparedness/emergency-plan-form';
 import { EmergencyResourceForm } from '@/components/emergency-preparedness/emergency-resource-form';
 import { EmergencyResourceDetailsDialog } from '@/components/emergency-preparedness/emergency-resource-details-dialog';
 import { MockDrillForm } from '@/components/emergency-preparedness/mock-drill-form';
 import { MockDrillDetailsDialog } from '@/components/emergency-preparedness/mock-drill-details-dialog';
-import type { EmergencyPlan, EmergencyResource, MockDrill } from '@/lib/types';
+import type { EmergencyPlan, EmergencyResource, MockDrill, DrillActionItem } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertTitle, AlertDescription as UiAlertDescription } from '@/components/ui/alert';
+
 
 const PLANS_STORAGE_KEY = 'sheild-emergency-plans-v1';
 const RESOURCES_STORAGE_KEY = 'sheild-emergency-resources-v1';
 const DRILLS_STORAGE_KEY = 'sheild-emergency-drills-v1';
+const REMINDER_LEAD_DAYS_EP = 14; // For "Upcoming" status, e.g., 14 days
+
+interface DateStatusInfo {
+  status: 'Overdue' | 'Upcoming' | 'OK';
+  textClass: string;
+  icon?: JSX.Element;
+  displayText: string;
+}
+
+function getDateStatusInfo(dateString?: string, leadDays: number = REMINDER_LEAD_DAYS_EP): DateStatusInfo | null {
+  if (!dateString || !isValid(parseISO(dateString))) {
+    return null;
+  }
+  const date = parseISO(dateString);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize today to start of day
+
+  const formattedDate = format(date, "PPP");
+
+  if (isBefore(date, today)) {
+    return { status: 'Overdue', textClass: 'text-red-600 font-semibold', icon: <AlertTriangle className="h-3 w-3 mr-1" />, displayText: `${formattedDate} (Overdue)` };
+  }
+  const daysDiff = differenceInDays(date, today);
+  if (daysDiff <= leadDays) {
+    return { status: 'Upcoming', textClass: 'text-yellow-600 font-semibold', icon: <ClockIcon className="h-3 w-3 mr-1" />, displayText: `${formattedDate} (Upcoming)` };
+  }
+  return { status: 'OK', textClass: 'text-muted-foreground', icon: <CalendarClock className="h-3 w-3 mr-1" />, displayText: formattedDate };
+}
+
 
 export default function EmergencyPreparednessPage() {
   const { toast } = useToast();
@@ -139,6 +170,19 @@ export default function EmergencyPreparednessPage() {
     }
   };
 
+  const pendingDrillActions = useMemo(() => {
+    let openCount = 0;
+    let inProgressCount = 0;
+    drills.filter(d => d.status === 'Completed').forEach(drill => {
+        (drill.actionItems || []).forEach(item => {
+            if (item.status === 'Open') openCount++;
+            if (item.status === 'In Progress') inProgressCount++;
+        });
+    });
+    return { openCount, inProgressCount, totalPending: openCount + inProgressCount };
+  }, [drills]);
+
+
   return (
     <div className="space-y-8">
       <Card className="shadow-lg overflow-hidden">
@@ -158,17 +202,27 @@ export default function EmergencyPreparednessPage() {
         </div>
         <CardContent className="pt-6">
           <p className="text-muted-foreground">
-            This module assists in creating emergency plans, managing resources, scheduling and logging mock drills, and documenting lessons learned.
+            This module assists in creating emergency plans, managing resources, scheduling and logging mock drills (including lessons learned and action items), and tracking pending actions. Review dates and check dates are highlighted if upcoming or overdue.
           </p>
         </CardContent>
       </Card>
+
+      {pendingDrillActions.totalPending > 0 && (
+         <Alert variant="info" className="shadow-md">
+            <ListChecksIcon className="h-4 w-4" />
+            <AlertTitle>Pending Drill Action Items</AlertTitle>
+            <UiAlertDescription>
+                There are <strong className="text-accent">{pendingDrillActions.openCount} Open</strong> and <strong className="text-blue-600">{pendingDrillActions.inProgressCount} In Progress</strong> action items from completed mock drills requiring attention.
+            </UiAlertDescription>
+        </Alert>
+      )}
       
       {/* Emergency Plans Section */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
             <div>
                 <CardTitle className="flex items-center gap-2"><FileText className="h-6 w-6 text-primary"/>Emergency Plan Register</CardTitle>
-                <CardDescription>Manage your organization's emergency plans.</CardDescription>
+                <CardDescription>Manage your organization's emergency plans. Monitor next review dates.</CardDescription>
             </div>
             <Button onClick={handleOpenNewPlanForm} className="bg-primary hover:bg-primary/90">
                 <PlusCircle className="mr-2 h-4 w-4" /> Create New Plan
@@ -179,16 +233,23 @@ export default function EmergencyPreparednessPage() {
                 <p className="text-muted-foreground text-center py-4">No emergency plans created yet.</p>
             ) : (
                 <ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">
-                {plans.map(plan => (
+                {plans.map(plan => {
+                    const reviewDateStatus = getDateStatusInfo(plan.nextReviewDate);
+                    return (
                     <Card key={plan.id} className="p-3 shadow-sm"><div className="flex justify-between items-start">
-                        <div><h4 className="font-semibold">{plan.planName}</h4><p className="text-xs text-muted-foreground">{plan.planType} - {plan.scope}</p></div>
+                        <div>
+                            <h4 className="font-semibold">{plan.planName}</h4>
+                            <p className="text-xs text-muted-foreground">{plan.planType} - {plan.scope}</p>
+                            {reviewDateStatus && <p className={`text-xs flex items-center ${reviewDateStatus.textClass}`}>{reviewDateStatus.icon} Next Review: {reviewDateStatus.displayText}</p>}
+                        </div>
                         <div className="flex gap-1 shrink-0">
                             <Button variant="outline" size="sm" onClick={() => setViewingPlan(plan)}><Eye className="h-3 w-3"/></Button>
                             <Button variant="secondary" size="sm" onClick={() => handleEditPlan(plan)}><Edit2 className="h-3 w-3"/></Button>
                             <AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger>
                             <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Plan "{plan.planName}"?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. Ensure plan is not linked to active drills.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePlan(plan.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
                         </div></div></Card>
-                ))}</div></ScrollArea>
+                )})
+                }</div></ScrollArea>
             )}
         </CardContent>
       </Card>
@@ -200,21 +261,29 @@ export default function EmergencyPreparednessPage() {
       {/* Emergency Resources Section */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-            <div><CardTitle className="flex items-center gap-2"><Box className="h-6 w-6 text-accent"/>Emergency Resource Inventory</CardTitle><CardDescription>Track essential emergency equipment.</CardDescription></div>
+            <div><CardTitle className="flex items-center gap-2"><Box className="h-6 w-6 text-accent"/>Emergency Resource Inventory</CardTitle><CardDescription>Track essential emergency equipment and their check dates.</CardDescription></div>
             <Button onClick={handleOpenNewResourceForm} className="bg-accent hover:bg-accent/90"><PlusCircle className="mr-2 h-4 w-4" /> Add Resource</Button>
         </CardHeader>
         <CardContent>
             {resources.length === 0 ? <p className="text-muted-foreground text-center py-4">No emergency resources logged.</p> : (
                 <ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">
-                {resources.map(resource => (
+                {resources.map(resource => {
+                     const checkDateStatus = getDateStatusInfo(resource.nextCheckDate);
+                    return(
                     <Card key={resource.id} className="p-3 shadow-sm"><div className="flex justify-between items-start">
-                        <div><h4 className="font-semibold">{resource.name} <span className="text-xs text-muted-foreground">({resource.type})</span></h4><p className="text-xs text-muted-foreground">Location: {resource.location} | Qty: {resource.quantity}</p><p className={`text-xs font-semibold ${getResourceStatusColor(resource.status)}`}>Status: {resource.status}</p></div>
+                        <div>
+                            <h4 className="font-semibold">{resource.name} <span className="text-xs text-muted-foreground">({resource.type})</span></h4>
+                            <p className="text-xs text-muted-foreground">Location: {resource.location} | Qty: {resource.quantity}</p>
+                            <p className={`text-xs font-semibold ${getResourceStatusColor(resource.status)}`}>Status: {resource.status}</p>
+                            {checkDateStatus && <p className={`text-xs flex items-center ${checkDateStatus.textClass}`}>{checkDateStatus.icon} Next Check: {checkDateStatus.displayText}</p>}
+                        </div>
                         <div className="flex gap-1 shrink-0">
                             <Button variant="outline" size="sm" onClick={() => setViewingResource(resource)}><Eye className="h-3 w-3"/></Button>
                             <Button variant="secondary" size="sm" onClick={() => handleEditResource(resource)}><Edit2 className="h-3 w-3"/></Button>
                             <AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Resource "{resource.name}"?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteResource(resource.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
                         </div></div></Card>
-                ))}</div></ScrollArea>
+                )})
+                }</div></ScrollArea>
             )}
         </CardContent>
       </Card>
@@ -226,21 +295,32 @@ export default function EmergencyPreparednessPage() {
       {/* Mock Drills Section */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-            <div><CardTitle className="flex items-center gap-2"><Activity className="h-6 w-6 text-teal-500"/>Mock Drill Logbook</CardTitle><CardDescription>Schedule, log, and review mock drills.</CardDescription></div>
+            <div><CardTitle className="flex items-center gap-2"><Activity className="h-6 w-6 text-teal-500"/>Mock Drill Logbook</CardTitle><CardDescription>Schedule, log, and review mock drills. Monitor overdue planned drills.</CardDescription></div>
             <Button onClick={handleOpenNewDrillForm} className="bg-teal-500 hover:bg-teal-600 text-white"><PlusCircle className="mr-2 h-4 w-4" /> Log/Schedule Drill</Button>
         </CardHeader>
         <CardContent>
             {drills.length === 0 ? <p className="text-muted-foreground text-center py-4">No mock drills recorded.</p> : (
                 <ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">
-                {drills.map(drill => (
+                {drills.map(drill => {
+                    const scheduledDateStatus = drill.status === 'Planned' ? getDateStatusInfo(drill.scheduledDate, 0) : null; // leadDays 0 for immediate overdue
+                    return (
                     <Card key={drill.id} className="p-3 shadow-sm"><div className="flex justify-between items-start">
-                        <div><h4 className="font-semibold">{drill.drillName} <span className="text-xs text-muted-foreground">({drill.drillType})</span></h4><p className="text-xs text-muted-foreground">Date: {format(parseISO(drill.scheduledDate), "PPP")}</p><p className={`text-xs font-semibold ${getDrillStatusColor(drill.status)}`}>Status: {drill.status}</p></div>
+                        <div>
+                            <h4 className="font-semibold">{drill.drillName} <span className="text-xs text-muted-foreground">({drill.drillType})</span></h4>
+                            <p className={`text-xs font-semibold ${getDrillStatusColor(drill.status)}`}>Status: {drill.status}</p>
+                            {scheduledDateStatus && scheduledDateStatus.status === 'Overdue' ? (
+                                <p className={`text-xs flex items-center ${scheduledDateStatus.textClass}`}>{scheduledDateStatus.icon} Scheduled: {scheduledDateStatus.displayText}</p>
+                            ) : (
+                                <p className="text-xs text-muted-foreground">Scheduled: {format(parseISO(drill.scheduledDate), "PPP")}</p>
+                            )}
+                        </div>
                         <div className="flex gap-1 shrink-0">
                             <Button variant="outline" size="sm" onClick={() => setViewingDrill(drill)}><Eye className="h-3 w-3"/></Button>
                             <Button variant="secondary" size="sm" onClick={() => handleEditDrill(drill)}><Edit2 className="h-3 w-3"/></Button>
                             <AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Drill "{drill.drillName}"?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteDrill(drill.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
                         </div></div></Card>
-                ))}</div></ScrollArea>
+                )})
+                }</div></ScrollArea>
             )}
         </CardContent>
       </Card>
@@ -251,16 +331,17 @@ export default function EmergencyPreparednessPage() {
       <Separator className="my-8"/>
       <Card className="shadow-lg">
         <CardHeader>
-            <CardTitle>Preparedness Tools - Further Enhancements</CardTitle>
+            <CardTitle>Preparedness Tools - Current & Future Enhancements</CardTitle>
         </CardHeader>
         <CardContent>
             <p className="text-sm text-muted-foreground mt-2 mb-2">
                 Current features include:
             </p>
             <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                <li>Emergency Plan management with detailed fields.</li>
-                <li>Emergency Resource Inventory tracking.</li>
-                <li>Mock Drill scheduling, logging (scenario, participants, observations), and post-drill review (lessons learned, action items).</li>
+                <li>Emergency Plan management with detailed fields, and upcoming/overdue review date indicators.</li>
+                <li>Emergency Resource Inventory tracking, with upcoming/overdue check date indicators.</li>
+                <li>Mock Drill scheduling, logging (scenario, participants, observations, lessons learned, action items), and post-drill review features. Overdue planned drills are highlighted.</li>
+                <li>Summary card for pending action items from completed drills.</li>
                 <li>Textual description for evacuation routes within plans.</li>
             </ul>
              <Separator className="my-4"/>
@@ -277,3 +358,4 @@ export default function EmergencyPreparednessPage() {
     </div>
   );
 }
+
