@@ -1,18 +1,44 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { type ReactNode, useState, useEffect, useMemo } from 'react';
 import Image from "next/image";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as UIDialogDescription, DialogClose, DialogTrigger } from "@/components/ui/dialog"; // Renamed DialogDescription to avoid conflict
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlusCircle, Edit2, Trash2, Eye, FileSearch, AlertTriangle, CheckCircle2, Sparkles, Loader2, Printer, Mail, Filter, Workflow, ShieldAlert, ListChecks, CheckSquare as CheckSquareIcon, Download, SparklesIcon as SparklesIconRA, HelpCircle, Activity as ActivityIcon, Siren, FileText as FileTextIcon, BookOpenCheck } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-import type { Incident, RiskAssessment, RiskAssessmentMethod, RiskAssessmentSuggestionOutput, HazardEntry, RiskControlItem, Inspection, InspectionChecklistItem, SheqAudit, AuditChecklistItem as SheqAuditChecklistItem, ChecklistItemTemplate as SheqChecklistItemTemplate, NonConformance as SheqNonConformance, AnalyzeAuditDataInput, AnalyzeAuditDataOutput, ChecklistTemplate as SheqChecklistTemplate, IncidentInvestigation, CorrectiveAction, InvestigationTechnique, SuggestRootCauseInput, SuggestRootCauseOutput, FiveWhyDetail, FishboneCategory, GenericRcaDetails, ScatDetails, AuditObservationEntry } from "@/lib/types";
+import { 
+    type Incident, 
+    type RiskAssessment, 
+    type RiskAssessmentMethod, 
+    type RiskAssessmentSuggestionOutput, 
+    type HazardEntry, 
+    type RiskControlItem, 
+    type Inspection, 
+    type InspectionChecklistItem, 
+    type SheqAudit, 
+    type AuditChecklistItem as SheqAuditChecklistItem, 
+    type ChecklistItemTemplate as SheqChecklistItemTemplate, 
+    type NonConformance as SheqNonConformance, 
+    type AnalyzeAuditDataInput, 
+    type AnalyzeAuditDataOutput, 
+    type ChecklistTemplate as SheqChecklistTemplate, 
+    type IncidentInvestigation, 
+    type CorrectiveAction, 
+    type InvestigationTechnique, 
+    type SuggestRootCauseInput, 
+    type SuggestRootCauseOutput, 
+    type FiveWhyDetail, 
+    type FishboneCategory, 
+    type GenericRcaDetails, 
+    type ScatDetails, 
+    type AuditObservationEntry 
+} from '@/lib/types';
 import { investigationTechniques } from "@/lib/types";
 import { IncidentForm } from "@/components/incident-logging/incident-form";
 import { RiskAssessmentAiAssistant } from "@/components/risk-assessment/risk-assessment-ai-assistant";
@@ -58,7 +84,7 @@ const INSPECTIONS_STORAGE_KEY_RMH = 'sheild-inspections-rmh-v1';
 const INVESTIGATIONS_STORAGE_KEY_RMH = 'sheild-incident-investigations-v1';
 
 // Helper for Markdown to HTML for investigation reports
-function markdownToHtml(markdown: string): string {
+const markdownToHtml = (markdown: string): string => {
   if (!markdown) return "<p>No content to display.</p>";
   let html = markdown;
   html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
@@ -71,7 +97,7 @@ function markdownToHtml(markdown: string): string {
   html = html.replace(new RegExp("^\\s*([*_\\-]){3,}\\s*$", "gim"), '<hr />');
   html = html.replace(/^\s*[-*+] (.*$)/gim, '<li>$1</li>');
   html = html.replace(/((?:<li>.*?<\/li>\s*)+)/gis, '<ul>$1</ul>');
-  html = html.replace(/\\n/g, '\n');
+  html = html.replace(/\n/g, '\n'); 
   return html.split(/\n\s*\n/).map(paragraph => {
     const trimmedParagraph = paragraph.trim();
     if (!trimmedParagraph) return '';
@@ -80,7 +106,7 @@ function markdownToHtml(markdown: string): string {
     }
     return `<p>${trimmedParagraph.replace(/\n/g, '<br />')}</p>`;
   }).join('');
-}
+}; 
 
 // Risk Assessment Default Factories
 const defaultRiskControlItem = (): RiskControlItem => ({ value: "" });
@@ -229,8 +255,8 @@ export default function RiskManagementHubPage() {
   };
 
   const handleUseAiRiskSuggestion = (suggestion: RiskAssessmentSuggestionOutput, activityInput: string, hazardsInputFromAIForm: string) => {
-    const parsedHazardTexts = hazardsInputFromAIForm.split('\\n').map(h => h.trim()).filter(h => h);
-    const parsedRiskTexts = suggestion.potentialRisks.split('\\n').map(r => r.trim()).filter(r => r);
+    const parsedHazardTexts = hazardsInputFromAIForm.split('\n').map(h => h.trim()).filter(h => h);
+    const parsedRiskTexts = suggestion.potentialRisks.split('\n').map(r => r.trim()).filter(r => r);
     const aiProposedControlsByCategory = suggestion.recommendedControls;
     let newHazardEntries: HazardEntry[] = [];
     const effectiveHazardTexts = parsedHazardTexts.length > 0 ? parsedHazardTexts : ["AI Suggested Hazard (Please Review)"];
@@ -297,7 +323,7 @@ export default function RiskManagementHubPage() {
     if (cellValue === undefined || cellValue === null) return '';
     let stringValue = String(cellValue);
     stringValue = stringValue.replace(/"/g, '""');
-    if (stringValue.includes(',') || stringValue.includes('\\n') || stringValue.includes('"')) return `"${stringValue}"`;
+    if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) return `"${stringValue}"`;
     return stringValue;
   };
 
@@ -499,7 +525,7 @@ export default function RiskManagementHubPage() {
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
-  const InvestigationDetailView = ({ investigation }: { investigation: IncidentInvestigation }) => {
+  const InvestigationDetailView = ({ investigation }: { investigation: IncidentInvestigation }): ReactNode => {
     return (
       <ScrollArea className="max-h-[70vh] pr-3 text-sm">
         <div className="space-y-4">
@@ -535,7 +561,7 @@ export default function RiskManagementHubPage() {
         </div>
       </ScrollArea>
     );
-  };
+  }; 
 
   const filteredInvestigations = useMemo(() => {
     return investigations.filter(inv => {
@@ -545,7 +571,7 @@ export default function RiskManagementHubPage() {
     });
   }, [investigations, statusFilterInvestigation, techniqueFilterInvestigation]);
 
-  const pageContent = (<div className="space-y-6">
+  return (<div className="space-y-6">
       <Card className="shadow-lg overflow-hidden">
         <div className="relative h-60 w-full">
           <Image src="https://placehold.co/1200x400.png" alt="Integrated Risk Management Concept" layout="fill" objectFit="cover" data-ai-hint="risk management gears" />
@@ -701,11 +727,10 @@ export default function RiskManagementHubPage() {
                 )}
             </CardContent>
           </Card>
-          {editingInvestigation && isInvestigationFormOpen && ( <Dialog open={isInvestigationFormOpen} onOpenChange={(isOpen) => { if(!isOpen) { setIsInvestigationFormOpen(false); setEditingInvestigation(null); }}}> <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0"> <DialogHeader className="p-4 md:p-6 border-b flex-shrink-0"> <DialogTitle className="flex items-center gap-2 text-primary"> <FileSearch className="h-6 w-6"/> Edit Incident Investigation </DialogTitle> <DialogDescription> Update details of: "{editingInvestigation.investigationTitle}". </DialogDescription> </DialogHeader> <InvestigationForm initialData={editingInvestigation} onSave={handleSaveInvestigation} onCancel={() => { setIsInvestigationFormOpen(false); setEditingInvestigation(null); }} /> </DialogContent> </Dialog> )}
-          {viewingInvestigation && ( <Dialog open={!!viewingInvestigation} onOpenChange={() => { setViewingInvestigation(null); setAiSuggestionsInvestigation(null); }}> <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col"> <DialogHeader> <DialogTitle className="flex items-center gap-2 text-primary"> <FileSearch className="h-6 w-6"/> {viewingInvestigation.investigationTitle} </DialogTitle> <DialogDescription> Details of the incident investigation. </DialogDescription> </DialogHeader> <InvestigationDetailView investigation={viewingInvestigation} /> <DialogFooter className="pt-4 border-t"> <DialogClose asChild> <Button variant="outline">Close</Button> </DialogClose> </DialogFooter> </DialogContent> </Dialog> )}
-          {isReportModalOpen && ( <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}> <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col"> <DialogHeader> <DialogTitle className="flex items-center gap-2"> <Printer className="h-6 w-6 text-primary" /> Investigation Report </DialogTitle> <DialogDescription> Review the generated report. </DialogDescription> </DialogHeader> <ScrollArea className="flex-grow my-4 pr-2"> <div id="she-report-print-area" className="prose dark:prose-invert prose-sm sm:prose-base max-w-none leading-relaxed" dangerouslySetInnerHTML={{ __html: reportHtmlContent || "<p>No report content.</p>" }} /> </ScrollArea> <DialogFooter className="pt-4 border-t gap-2 flex-wrap justify-end"> <UIOriginalAlertDescription className="text-xs print-hide w-full mb-2 sm:mb-0 text-muted-foreground"> To share as PDF, first use "Print / Save as PDF", then "Share via Email" and attach. </UIOriginalAlertDescription> <Button variant="outline" onClick={handlePrintInvestigationReport} className="print-hide"> <Printer className="mr-2 h-4 w-4" /> Print / Save as PDF </Button> <Button variant="outline" onClick={handleShareInvestigationReportViaEmail} className="print-hide"> <Mail className="mr-2 h-4 w-4" /> Share via Email </Button> <DialogClose asChild className="print-hide"> <Button variant="outline">Close</Button> </DialogClose> </DialogFooter> </DialogContent> </Dialog> )}
+          {editingInvestigation && isInvestigationFormOpen && ( <Dialog open={isInvestigationFormOpen} onOpenChange={(isOpen) => { if(!isOpen) { setIsInvestigationFormOpen(false); setEditingInvestigation(null); }}}> <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0"> <DialogHeader className="p-4 md:p-6 border-b flex-shrink-0"> <DialogTitle className="flex items-center gap-2 text-primary"> <FileSearch className="h-6 w-6"/> Edit Incident Investigation </DialogTitle> <UIDialogDescription> Update details of: "{editingInvestigation.investigationTitle}". </UIDialogDescription> </DialogHeader> <InvestigationForm initialData={editingInvestigation} onSave={handleSaveInvestigation} onCancel={() => { setIsInvestigationFormOpen(false); setEditingInvestigation(null); }} /> </DialogContent> </Dialog> )}
+          {viewingInvestigation && ( <Dialog open={!!viewingInvestigation} onOpenChange={() => { setViewingInvestigation(null); setAiSuggestionsInvestigation(null); }}> <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col"> <DialogHeader> <DialogTitle className="flex items-center gap-2 text-primary"> <FileSearch className="h-6 w-6"/> {viewingInvestigation.investigationTitle} </DialogTitle> <UIDialogDescription> Details of the incident investigation. </UIDialogDescription> </DialogHeader> <InvestigationDetailView investigation={viewingInvestigation} /> <DialogFooter className="pt-4 border-t"> <DialogClose asChild> <Button variant="outline">Close</Button> </DialogClose> </DialogFooter> </DialogContent> </Dialog> )}
+          {isReportModalOpen && ( <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}> <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col"> <DialogHeader> <DialogTitle className="flex items-center gap-2"> <Printer className="h-6 w-6 text-primary" /> Investigation Report </DialogTitle> <UIDialogDescription> Review the generated report. </UIDialogDescription> </DialogHeader> <ScrollArea className="flex-grow my-4 pr-2"> <div id="she-report-print-area" className="prose dark:prose-invert prose-sm sm:prose-base max-w-none leading-relaxed" dangerouslySetInnerHTML={{ __html: reportHtmlContent || "<p>No report content.</p>" }} /> </ScrollArea> <DialogFooter className="pt-4 border-t gap-2 flex-wrap justify-end"> <UIOriginalAlertDescription className="text-xs print-hide w-full mb-2 sm:mb-0 text-muted-foreground"> To share as PDF, first use "Print / Save as PDF", then "Share via Email" and attach. </UIOriginalAlertDescription> <Button variant="outline" onClick={handlePrintInvestigationReport} className="print-hide"> <Printer className="mr-2 h-4 w-4" /> Print / Save as PDF </Button> <Button variant="outline" onClick={handleShareInvestigationReportViaEmail} className="print-hide"> <Mail className="mr-2 h-4 w-4" /> Share via Email </Button> <DialogClose asChild className="print-hide"> <Button variant="outline">Close</Button> </DialogClose> </DialogFooter> </DialogContent> </Dialog> )}
         </TabsContent>
       </Tabs>
     </div>);
-  return pageContent;
 }
