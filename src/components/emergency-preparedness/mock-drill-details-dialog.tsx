@@ -42,7 +42,7 @@ function getActionItemDateStatusInfo(dateString?: string, leadDays: number = REM
   if (daysDiff <= leadDays) {
     return { status: 'Upcoming', textClass: 'text-yellow-600 font-semibold', icon: <ClockIcon className="h-3 w-3 mr-1" />, displayText: `${formattedDate} (Upcoming)` };
   }
-  return { status: 'OK', textClass: 'text-muted-foreground', displayText: formattedDate };
+  return { status: 'OK', textClass: 'text-muted-foreground', icon: <ClockIcon className="h-3 w-3 mr-1"/>, displayText: formattedDate };
 }
 
 
