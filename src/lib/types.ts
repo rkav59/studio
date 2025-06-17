@@ -333,12 +333,12 @@ export interface PpeIssuanceRecord {
 // --- PPE Inspection Specific Types ---
 export type PpeInspectionOverallStatus = 'Pass' | 'Requires Repair' | 'To be Replaced' | 'Action Pending';
 
-// This is a placeholder for detailed checklist items in future iterations.
-// For now, the inspection form will focus on overall status and notes.
+export type PpeInspectionChecklistItemResult = 'Pass' | 'Fail' | 'N/A' | 'Pending';
 export interface PpeInspectionChecklistItemInstance {
-  id: string;
+  id: string; // Unique ID for this instance of the check item in this specific inspection
+  templateItemId?: string; // Optional: ID of the original template item, for traceability
   text: string; // Text of the check item (could be from a template or custom)
-  result: 'Pass' | 'Fail' | 'N/A' | 'Pending';
+  result: PpeInspectionChecklistItemResult;
   remarks?: string;
 }
 
@@ -349,34 +349,13 @@ export interface PpeInspectionRecord {
   inspectionDate: string; // ISO Date string
   inspectorName: string;
   overallStatus: PpeInspectionOverallStatus;
-  // checklistItems: PpeInspectionChecklistItemInstance[]; // For future detailed checklist implementation
+  checklistItems: PpeInspectionChecklistItemInstance[]; 
   notes?: string;
   followUpAction?: string;
   nextInspectionDate?: string; // ISO Date string (optional)
 }
 
 // --- End PPE Inspection Specific Types ---
-
-
-export interface PpeInspectionChecklistItem { // Old type for general inspection, might be confused. Renamed to avoid conflict
-  id: string;
-  text: string;
-  status: 'Pass' | 'Fail' | 'N/A';
-  remarks?: string;
-}
-
-// This was PpeInspectionRecord, potentially conflicting. Keeping for reference if it was used by other future features.
-// export interface PpeInspectionRecordOld {
-//   id: string;
-//   ppeItemId: string;
-//   uniquePpeIdentifier?: string;
-//   inspectionDate: string;
-//   inspectorName: string;
-//   checklist: PpeInspectionChecklistItem[]; // Uses the old checklist item type
-//   overallStatus: 'Good' | 'Requires Repair' | 'To be Replaced';
-//   nextInspectionDate?: string;
-//   notes?: string;
-// }
 
 
 export interface PpeComplianceAuditChecklistItem {
@@ -446,3 +425,4 @@ export interface AnalyzeAuditDataOutput {
   suggestedFocusAreas: string;
   positiveObservations?: string;
 }
+

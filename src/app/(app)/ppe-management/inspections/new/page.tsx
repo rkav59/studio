@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { PpeInspectionRecord, PpeItem, PpeItemStatus, PpeInspectionOverallStatus } from "@/lib/types";
-import { PpeInspectionForm, type PpeInspectionFormValues } from "@/components/ppe-management/ppe-inspection-form";
+import { PpeInspectionForm, type PpeInspectionFormValues, DEFAULT_PPE_CHECKLIST_ITEMS_TEMPLATE } from "@/components/ppe-management/ppe-inspection-form";
 import { useToast } from '@/hooks/use-toast';
 import { parseISO } from 'date-fns';
 
@@ -46,7 +46,7 @@ export default function NewPpeInspectionPage() {
             newPpeStatus = 'Awaiting Replacement';
             break;
         case 'Action Pending':
-            newPpeStatus = 'Under Inspection'; // Or a more specific status if needed
+            newPpeStatus = 'Under Inspection'; 
             break;
     }
 
@@ -66,16 +66,18 @@ export default function NewPpeInspectionPage() {
         inspectionDate: parseISO(formData.inspectionDate).toISOString(),
         inspectorName: formData.inspectorName,
         overallStatus: formData.overallStatus,
+        checklistItems: formData.checklistItems.map(item => ({ // Ensure checklist items are saved
+          ...item, 
+          id: item.id || crypto.randomUUID(), // Ensure IDs if somehow missing
+        })),
         notes: formData.notes,
         followUpAction: formData.followUpAction,
         nextInspectionDate: formData.nextInspectionDate ? parseISO(formData.nextInspectionDate).toISOString() : undefined,
-        // checklistItems: [], // For future detailed checklist
       };
 
       inspections.unshift(newInspection);
       localStorage.setItem(PPE_INSPECTIONS_KEY, JSON.stringify(inspections));
       
-      // Update status of the inspected PPE item
       updatePpeItemStatus(newInspection.ppeItemId, newInspection.overallStatus);
       
       toast({ 
@@ -101,10 +103,26 @@ export default function NewPpeInspectionPage() {
       return <div className="p-6">Loading PPE items...</div>;
   }
 
+  // Prepare initial data for the form, including the default checklist
+  const initialFormValues: Partial<PpeInspectionRecord> = {
+      checklistItems: DEFAULT_PPE_CHECKLIST_ITEMS_TEMPLATE.map(templateItem => ({
+        id: crypto.randomUUID(),
+        templateItemId: templateItem.templateItemId,
+        text: templateItem.text,
+        result: 'Pending',
+        remarks: '',
+      })),
+      // other default fields for a new inspection can be set here if needed by the form.
+      // For example, if the PpeInspectionForm expects 'overallStatus' to be pre-filled:
+      // overallStatus: undefined, // Let user choose
+  };
+
+
   return (
     <div className="h-full flex flex-col">
       <PpeInspectionForm
         ppeItems={ppeItems}
+        initialData={initialFormValues as PpeInspectionRecord} // Pass initial checklist structure
         onSave={handleSaveNewInspection}
         onCancel={handleCancel}
       />

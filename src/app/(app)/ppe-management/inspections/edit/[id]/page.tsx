@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import type { PpeInspectionRecord, PpeItem, PpeItemStatus, PpeInspectionOverallStatus } from "@/lib/types";
-import { PpeInspectionForm, type PpeInspectionFormValues } from "@/components/ppe-management/ppe-inspection-form";
+import { PpeInspectionForm, type PpeInspectionFormValues, DEFAULT_PPE_CHECKLIST_ITEMS_TEMPLATE } from "@/components/ppe-management/ppe-inspection-form";
 import { useToast } from '@/hooks/use-toast';
 import { parseISO } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,7 +32,23 @@ export default function EditPpeInspectionPage() {
 
         const storedInspections = localStorage.getItem(PPE_INSPECTIONS_KEY);
         const inspections: PpeInspectionRecord[] = storedInspections ? JSON.parse(storedInspections) : [];
-        const foundInspection = inspections.find(insp => insp.id === inspectionId);
+        let foundInspection = inspections.find(insp => insp.id === inspectionId);
+        
+        if (foundInspection) {
+          // Ensure checklistItems exists, if not, populate with default
+          if (!foundInspection.checklistItems || foundInspection.checklistItems.length === 0) {
+            foundInspection = {
+              ...foundInspection,
+              checklistItems: DEFAULT_PPE_CHECKLIST_ITEMS_TEMPLATE.map(templateItem => ({
+                id: crypto.randomUUID(),
+                templateItemId: templateItem.templateItemId,
+                text: templateItem.text,
+                result: 'Pending',
+                remarks: '',
+              })),
+            };
+          }
+        }
         setInspectionToEdit(foundInspection || null);
       } catch (error) {
         console.error("Error loading PPE inspection for editing:", error);
@@ -47,7 +63,7 @@ export default function EditPpeInspectionPage() {
     const storedItems = localStorage.getItem(PPE_ITEMS_KEY);
     let items: PpeItem[] = storedItems ? JSON.parse(storedItems) : [];
     
-    let newPpeStatus: PpeItemStatus = 'Available'; // Default
+    let newPpeStatus: PpeItemStatus = 'Available'; 
     switch (inspectionStatus) {
         case 'Pass':
             newPpeStatus = 'Available';
@@ -80,16 +96,18 @@ export default function EditPpeInspectionPage() {
         inspectionDate: parseISO(formData.inspectionDate).toISOString(),
         inspectorName: formData.inspectorName,
         overallStatus: formData.overallStatus,
+        checklistItems: formData.checklistItems.map(item => ({ // Ensure checklist items are saved
+          ...item,
+          id: item.id || crypto.randomUUID(), 
+        })),
         notes: formData.notes,
         followUpAction: formData.followUpAction,
         nextInspectionDate: formData.nextInspectionDate ? parseISO(formData.nextInspectionDate).toISOString() : undefined,
-        // checklistItems: formData.checklistItems, // For future detailed checklist
       };
 
       const updatedInspections = inspections.map(i => (i.id === inspectionId ? updatedInspection : i));
       localStorage.setItem(PPE_INSPECTIONS_KEY, JSON.stringify(updatedInspections));
 
-      // Update status of the inspected PPE item
       updatePpeItemStatus(updatedInspection.ppeItemId, updatedInspection.overallStatus);
       
       toast({ 
@@ -120,7 +138,7 @@ export default function EditPpeInspectionPage() {
             <Skeleton className="h-4 w-1/2" />
           </CardHeader>
           <CardContent className="space-y-6 p-4 md:p-6">
-            {[...Array(6)].map((_, i) => (
+            {[...Array(8)].map((_, i) => ( // Increased skeleton items for checklist
               <div key={i} className="space-y-2">
                 <Skeleton className="h-4 w-1/4" />
                 <Skeleton className="h-10 w-full" />
