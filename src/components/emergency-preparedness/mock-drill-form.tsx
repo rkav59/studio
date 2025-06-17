@@ -33,12 +33,15 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, Activity, PlusCircle, Trash2, ClipboardCheck, AlertTriangle, CheckCircle, ListChecksIcon } from "lucide-react";
+import { CalendarIcon, Save, XCircle, Activity, PlusCircle, Trash2, ClipboardCheck, AlertTriangle, CheckCircle, ListChecksIcon, Sparkles, Loader2 } from "lucide-react";
 import type { MockDrill, DrillActionItem, EmergencyPlan, DrillActionStatus } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { ScrollArea } from "../ui/scroll-area";
-import { Card, CardContent, CardHeader as UiCardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from "../ui/card"; // Aliased to avoid conflict
+import { Card, CardContent, CardHeader as UiCardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from "../ui/card"; 
 import { Separator } from "../ui/separator";
+import { generateDrillScenario, type GenerateDrillScenarioInput } from "@/ai/flows/generate-drill-scenario-flow";
+import { useToast } from "@/hooks/use-toast";
+import React from "react";
 
 
 const drillTypes: MockDrill['drillType'][] = ['Evacuation', 'Fire', 'Medical', 'Spill', 'Security', 'Tabletop', 'Other'];
@@ -86,6 +89,9 @@ const newActionItemDefault = (): DrillActionItem => ({
 });
 
 export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDrillFormProps) {
+  const { toast } = useToast();
+  const [isScenarioLoading, setIsScenarioLoading] = React.useState(false);
+
   const form = useForm<MockDrillFormValues>({
     resolver: zodResolver(mockDrillFormSchema),
     defaultValues: {
@@ -117,6 +123,59 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDril
     };
     onSave(drillToSave);
   };
+
+  const handleSuggestScenario = async () => {
+    const drillType = form.getValues("drillType");
+    const linkedPlanId = form.getValues("linkedPlanId");
+    const currentDrillName = form.getValues("drillName");
+
+    if (!drillType) {
+      toast({
+        title: "Drill Type Required",
+        description: "Please select a drill type before generating a scenario.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsScenarioLoading(true);
+    let planContext: Partial<GenerateDrillScenarioInput> = {};
+    if (linkedPlanId) {
+      const plan = plans.find(p => p.id === linkedPlanId);
+      if (plan) {
+        planContext = {
+          planName: plan.planName,
+          planType: plan.planType,
+          planScope: plan.scope,
+        };
+      }
+    }
+    
+    const input: GenerateDrillScenarioInput = {
+      drillType,
+      ...planContext,
+      currentDrillName: currentDrillName || undefined,
+    };
+
+    try {
+      const result = await generateDrillScenario(input);
+      form.setValue("scenario", result.suggestedScenario);
+      toast({
+        title: "Scenario Suggested",
+        description: "AI has generated a scenario. Please review and edit as needed.",
+      });
+    } catch (error) {
+      console.error("Error generating scenario:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate scenario. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsScenarioLoading(false);
+    }
+  };
+
 
   return (
     <DialogContent className="sm:max-w-2xl">
@@ -181,9 +240,38 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDril
                     <SelectContent>{drillStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent>
                     </Select><FormMessage /></FormItem>
               )}/>
-              <FormField control={form.control} name="scenario" render={({ field }) => (
-                <FormItem><FormLabel>Drill Scenario</FormLabel><FormControl><Textarea placeholder="Describe the scenario being simulated..." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
-              )}/>
+              
+              <FormField
+                control={form.control}
+                name="scenario"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex justify-between items-center">
+                      <FormLabel>Drill Scenario</FormLabel>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSuggestScenario}
+                        disabled={isScenarioLoading || !form.watch("drillType")}
+                        className="text-accent border-accent hover:bg-accent/10"
+                      >
+                        {isScenarioLoading ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="mr-2 h-4 w-4" />
+                        )}
+                        Suggest with AI
+                      </Button>
+                    </div>
+                    <FormControl>
+                      <Textarea placeholder="Describe the scenario being simulated..." rows={3} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField control={form.control} name="participants" render={({ field }) => (
                 <FormItem><FormLabel>Participants (Optional)</FormLabel><FormControl><Input placeholder="e.g., All Warehouse Staff, ERT Members, Floor Wardens" {...field} /></FormControl><FormMessage /></FormItem>
               )}/>
@@ -239,7 +327,7 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDril
             </Card>
 
             </ScrollArea>
-            <DialogFooter className="pt-6 border-t">
+            <DialogFooter className="pt-6 border-t mt-4">
                 <DialogClose asChild><Button type="button" variant="outline" onClick={onCancel}><XCircle className="mr-2 h-4 w-4" /> Cancel</Button></DialogClose>
                 <Button type="submit" className="bg-teal-500 hover:bg-teal-600 text-white"><Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Save Drill"}</Button>
             </DialogFooter>
