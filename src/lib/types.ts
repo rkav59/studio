@@ -161,6 +161,7 @@ export interface TrainingRecord {
 }
 
 
+// --- Emergency Preparedness Module Types ---
 export interface EmergencyPlan {
   id: string;
   planName: string;
@@ -175,6 +176,47 @@ export interface EmergencyPlan {
   lastReviewedDate?: string; // ISO Date string
   nextReviewDate?: string; // ISO Date string
 }
+
+export type EmergencyResourceType = 'First Aid Kit' | 'Fire Extinguisher' | 'Spill Kit' | 'AED' | 'Evacuation Chair' | 'Emergency Lighting' | 'Alarm System' | 'Communication Device' | 'Other';
+export type EmergencyResourceStatus = 'Operational' | 'Requires Maintenance' | 'Requires Refill' | 'Out of Service' | 'Expired';
+
+export interface EmergencyResource {
+  id: string;
+  name: string;
+  type: EmergencyResourceType;
+  location: string;
+  quantity: number;
+  status: EmergencyResourceStatus;
+  lastCheckedDate?: string; // ISO Date string
+  nextCheckDate?: string; // ISO Date string
+  notes?: string;
+}
+
+export type DrillActionStatus = 'Open' | 'In Progress' | 'Completed' | 'Deferred';
+export interface DrillActionItem {
+  id: string;
+  description: string;
+  assignedTo: string;
+  dueDate?: string; // ISO Date string
+  status: DrillActionStatus;
+}
+
+export interface MockDrill {
+  id: string;
+  drillName: string;
+  drillType: 'Evacuation' | 'Fire' | 'Medical' | 'Spill' | 'Security' | 'Tabletop' | 'Other';
+  linkedPlanId?: string; // ID of an EmergencyPlan
+  scheduledDate: string; // ISO Date string
+  actualDate?: string; // ISO Date string
+  scenario: string;
+  participants?: string; // e.g., "All staff, Warehouse B", "ERT Members"
+  observations?: string;
+  lessonsLearned?: string;
+  actionItems: DrillActionItem[];
+  status: 'Planned' | 'Completed' | 'Cancelled';
+}
+// --- End Emergency Preparedness Module Types ---
+
 
 // Incident Investigation Types (Retained as not explicitly marked for removal)
 export type InvestigationTechnique = 'FiveWhys' | 'FishboneIshikawa' | 'SCAT' | 'GenericRCA';
@@ -503,4 +545,3 @@ export type MedicalTestWithCertStatus = MedicalTestRecord & {
 };
 // Helper type for pre-filling MedicalTestForm
 export type MedicalTestPrefillData = Partial<Pick<MedicalTestRecord, 'employeeName' | 'segId' | 'linkedExposure' | 'testType'>>;
-
