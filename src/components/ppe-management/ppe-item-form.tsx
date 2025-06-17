@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { PpeItem, PpeItemStatus } from "@/lib/types";
-import { Save, XCircle, CalendarIcon, Package, Activity } from "lucide-react";
+import { Save, XCircle, CalendarIcon, Package, Activity, RefreshCw } from "lucide-react"; // Added RefreshCw
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { cn } from "@/lib/utils";
@@ -37,6 +37,7 @@ const ppeItemFormSchema = z.object({
   supplier: z.string().max(100).optional(),
   lastStocktakeDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid stocktake date" }),
   status: z.enum(ppeItemStatuses).default('Available').optional(),
+  inspectionIntervalDays: z.coerce.number().min(1, "Interval must be at least 1 day.").int().optional(),
 });
 
 export type PpeItemFormValues = z.infer<typeof ppeItemFormSchema>; // Export for use in pages
@@ -61,6 +62,7 @@ export function PpeItemForm({ initialData, onSave, onCancel }: PpeItemFormProps)
       supplier: initialData?.supplier || "",
       lastStocktakeDate: initialData?.lastStocktakeDate ? format(parseISO(initialData.lastStocktakeDate), 'yyyy-MM-dd') : undefined,
       status: initialData?.status || 'Available',
+      inspectionIntervalDays: initialData?.inspectionIntervalDays || 90, // Default to 90 days
     },
   });
 
@@ -114,6 +116,12 @@ export function PpeItemForm({ initialData, onSave, onCancel }: PpeItemFormProps)
                     </SelectContent>
                   </Select>
                   <FormDescription>Current operational status of the PPE item type.</FormDescription>
+                <FormMessage /></FormItem>
+              )}/>
+              <FormField control={form.control} name="inspectionIntervalDays" render={({ field }) => (
+                <FormItem><FormLabel className="flex items-center gap-1"><RefreshCw className="h-4 w-4"/>Default Inspection Interval (Days)</FormLabel>
+                <FormControl><Input type="number" placeholder="e.g., 90 for quarterly" {...field} /></FormControl>
+                <FormDescription>Used to auto-suggest next inspection date after a 'Pass'.</FormDescription>
                 <FormMessage /></FormItem>
               )}/>
               <FormField control={form.control} name="supplier" render={({ field }) => (

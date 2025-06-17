@@ -1,17 +1,17 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog"; 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, Package, CheckCheck, ClipboardList, Users, Settings2, AlertTriangle, ListFilter, Search, ShieldCheck, Activity } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, Eye, Package, CheckCheck, ClipboardList, Settings2, AlertTriangle, ListFilter, Search, ShieldCheck, Activity, CalendarClock, ClockIcon, AlertCircle } from "lucide-react";
 import type { PpeItem, PpeIssuanceRecord, PpeInspectionRecord, PpeItemStatus } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parseISO, isValid, differenceInDays, isBefore } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog,
@@ -26,11 +26,19 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PpeItemDetailsDialog } from '@/components/ppe-management/ppe-item-details-dialog';
 import { PpeIssuanceDetailsDialog } from '@/components/ppe-management/ppe-issuance-details-dialog';
-import { PpeInspectionDetailsDialog } from '@/components/ppe-management/ppe-inspection-details-dialog'; // New Dialog
+import { PpeInspectionDetailsDialog } from '@/components/ppe-management/ppe-inspection-details-dialog'; 
 
 const PPE_ITEMS_KEY = 'sheild-ppe-items-v1';
 const PPE_ISSUANCES_KEY = 'sheild-ppe-issuances-v1';
-const PPE_INSPECTIONS_KEY = 'sheild-ppe-inspections-v1'; // New key for inspections
+const PPE_INSPECTIONS_KEY = 'sheild-ppe-inspections-v1';
+const REMINDER_LEAD_DAYS = 7; // Days before due date to show "Due Soon"
+
+interface PpeItemWithInspectionInfo extends PpeItem {
+  latestInspection?: PpeInspectionRecord;
+  nextInspectionDueDate?: string; // ISO string
+  dueStatus?: 'Overdue' | 'Due Soon' | 'Scheduled' | 'OK';
+}
+
 
 export default function PpeManagementPage() {
   const router = useRouter();
@@ -44,7 +52,6 @@ export default function PpeManagementPage() {
   
   const [ppeInspections, setPpeInspections] = useState<PpeInspectionRecord[]>([]);
   const [viewingPpeInspection, setViewingPpeInspection] = useState<PpeInspectionRecord | null>(null);
-
 
   // --- Load & Save PPE Items ---
   useEffect(() => {
@@ -81,6 +88,73 @@ export default function PpeManagementPage() {
     try { localStorage.setItem(PPE_INSPECTIONS_KEY, JSON.stringify(ppeInspections)); }
     catch (e) { console.error("Error saving PPE inspections:", e); }
   }, [ppeInspections]);
+
+
+  const ppeItemsWithInspectionInfo = useMemo((): PpeItemWithInspectionInfo[] => {
+    return ppeItems.map(item => {
+      const itemInspections = ppeInspections
+        .filter(insp => insp.ppeItemId === item.id && insp.nextInspectionDate && isValid(parseISO(insp.nextInspectionDate)))
+        .sort((a, b) => parseISO(b.inspectionDate).getTime() - parseISO(a.inspectionDate).getTime()); // Sort by inspection date, recent first
+      
+      const latestRelevantInspection = itemInspections.find(insp => insp.nextInspectionDate); // Find latest with a next date
+
+      let dueStatus: PpeItemWithInspectionInfo['dueStatus'] = 'OK';
+      let nextDueDate: string | undefined = undefined;
+
+      if (latestRelevantInspection?.nextInspectionDate) {
+        nextDueDate = latestRelevantInspection.nextInspectionDate;
+        const dueDate = parseISO(nextDueDate);
+        const today = new Date();
+        today.setHours(0,0,0,0); // Compare dates only
+
+        if (isBefore(dueDate, today)) {
+          dueStatus = 'Overdue';
+        } else if (differenceInDays(dueDate, today) <= REMINDER_LEAD_DAYS) {
+          dueStatus = 'Due Soon';
+        } else {
+          dueStatus = 'Scheduled';
+        }
+      }
+      
+      // If item is not 'Available' or 'Under Inspection', its inspection schedule might be less relevant
+      if (item.status && !['Available', 'Under Inspection'].includes(item.status)) {
+         // No specific due status if item is not in active use cycle
+      }
+
+
+      return {
+        ...item,
+        latestInspection: latestRelevantInspection,
+        nextInspectionDueDate: nextDueDate,
+        dueStatus: (item.status && !['Available', 'Under Inspection'].includes(item.status)) ? undefined : dueStatus,
+      };
+    });
+  }, [ppeItems, ppeInspections]);
+
+  const upcomingOrOverdueInspections = useMemo(() => {
+    return ppeItemsWithInspectionInfo.filter(item => item.dueStatus === 'Overdue' || item.dueStatus === 'Due Soon');
+  }, [ppeItemsWithInspectionInfo]);
+
+  // Simulated Toast Reminders
+  useEffect(() => {
+    if (upcomingOrOverdueInspections.length > 0) {
+      const overdueCount = upcomingOrOverdueInspections.filter(item => item.dueStatus === 'Overdue').length;
+      const dueSoonCount = upcomingOrOverdueInspections.filter(item => item.dueStatus === 'Due Soon').length;
+      
+      let messages: string[] = [];
+      if (overdueCount > 0) messages.push(`${overdueCount} item(s) overdue`);
+      if (dueSoonCount > 0) messages.push(`${dueSoonCount} item(s) due soon`);
+
+      if (messages.length > 0) {
+        toast({
+          title: "PPE Inspection Reminders",
+          description: `${messages.join(', ')}. Check the 'Upcoming/Overdue Inspections' list.`,
+          variant: overdueCount > 0 ? "destructive" : "default", // Destructive if any are overdue
+          duration: 10000,
+        });
+      }
+    }
+  }, [upcomingOrOverdueInspections, toast]);
 
 
   // --- PPE Item Management Handlers ---
@@ -147,6 +221,16 @@ export default function PpeManagementPage() {
     }
   };
 
+  const getDueDateStatusColor = (dueStatus?: PpeItemWithInspectionInfo['dueStatus']) => {
+    if (!dueStatus) return 'text-muted-foreground';
+    switch (dueStatus) {
+      case 'Overdue': return 'text-red-500 font-bold';
+      case 'Due Soon': return 'text-yellow-600 font-semibold';
+      case 'Scheduled': return 'text-blue-500';
+      default: return 'text-muted-foreground';
+    }
+  };
+
 
   return (
     <div className="space-y-8">
@@ -168,29 +252,66 @@ export default function PpeManagementPage() {
         </div>
         <CardContent className="pt-6">
           <p className="text-muted-foreground">
-            This module helps manage all aspects of Personal Protective Equipment, including inventory, status, issuance, and inspections. Data is stored locally.
+            This module helps manage all aspects of Personal Protective Equipment, including inventory, status, issuance, and inspections (with scheduling reminders). Data is stored locally.
           </p>
         </CardContent>
       </Card>
+
+      {/* Upcoming/Overdue Inspections Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><CalendarClock className="h-6 w-6 text-orange-500"/>Upcoming/Overdue Inspections</CardTitle>
+          <CardDescription>PPE items requiring inspection soon or currently overdue.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {upcomingOrOverdueInspections.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">No PPE items currently due or overdue for inspection.</p>
+          ) : (
+            <ScrollArea className="max-h-[300px] pr-3">
+              <div className="space-y-3">
+                {upcomingOrOverdueInspections.map(item => (
+                  <Card key={`due-${item.id}`} className={`p-3 shadow-sm border-l-4 ${item.dueStatus === 'Overdue' ? 'border-red-500' : 'border-yellow-500'}`}>
+                    <div className="flex flex-col sm:flex-row justify-between items-start">
+                      <div className="mb-1 sm:mb-0">
+                        <h4 className="font-semibold text-md">{item.name} {item.latestInspection?.uniquePpeIdentifier ? `(ID: ${item.latestInspection.uniquePpeIdentifier})` : ''}</h4>
+                        <p className={`text-xs font-semibold ${getDueDateStatusColor(item.dueStatus)}`}>
+                          Status: {item.dueStatus}
+                          {item.nextInspectionDueDate && ` (Due: ${format(parseISO(item.nextInspectionDueDate), "PPP")})`}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Last Inspected: {item.latestInspection ? format(parseISO(item.latestInspection.inspectionDate), "PPP") : "N/A"}</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => router.push(`/ppe-management/inspections/new?ppeItemId=${item.id}`)}>
+                         Inspect Now
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
+      <Separator/>
+
 
       {/* PPE Inventory Management Section */}
       <Card>
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
             <CardTitle className="flex items-center gap-2"><Package className="h-6 w-6 text-primary" />PPE Inventory</CardTitle>
-            <CardDescription>View and manage all PPE items in your inventory, including types, stock levels, specifications, and current status.</CardDescription>
+            <CardDescription>View and manage all PPE items, their status, and next inspection due dates.</CardDescription>
           </div>
           <Button onClick={handleOpenNewPpeItemForm} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             <PlusCircle className="mr-2 h-4 w-4" /> Add PPE to Inventory
           </Button>
         </CardHeader>
         <CardContent>
-          {ppeItems.length === 0 ? (
+          {ppeItemsWithInspectionInfo.length === 0 ? (
             <p className="text-muted-foreground text-center py-4">No PPE items in inventory yet.</p>
           ) : (
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
-                {ppeItems.map(item => (
+                {ppeItemsWithInspectionInfo.map(item => (
                   <Card key={item.id} className="p-4 shadow-sm">
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
@@ -199,6 +320,13 @@ export default function PpeManagementPage() {
                           {item.currentStock < item.reorderLevel && <span className="ml-2 text-red-500 font-bold">(Low Stock!)</span>}
                         </p>
                          <p className={`text-xs font-semibold ${getPpeItemStatusColor(item.status)} flex items-center gap-1`}><Activity className="h-3 w-3"/>Status: {item.status || 'Available'}</p>
+                         {item.nextInspectionDueDate && ['Available', 'Under Inspection'].includes(item.status || '') && (
+                           <p className={`text-xs flex items-center gap-1 ${getDueDateStatusColor(item.dueStatus)}`}>
+                             <ClockIcon className="h-3 w-3"/>
+                             Next Inspection: {format(parseISO(item.nextInspectionDueDate), "PPP")}
+                             {item.dueStatus && ` (${item.dueStatus})`}
+                           </p>
+                         )}
                       </div>
                       <div className="flex gap-2 self-start sm:self-center shrink-0">
                         <Button variant="outline" size="sm" onClick={() => setViewingPpeItem(item)}><Eye className="mr-1 h-3 w-3" /> View</Button>
@@ -306,6 +434,9 @@ export default function PpeManagementPage() {
                         <h4 className="font-semibold text-lg">{getPpeItemName(inspection.ppeItemId)} {inspection.uniquePpeIdentifier ? `(ID: ${inspection.uniquePpeIdentifier})`: ''}</h4>
                         <p className="text-xs text-muted-foreground">Inspector: {inspection.inspectorName} | Date: {format(parseISO(inspection.inspectionDate), "PPP")}</p>
                         <p className={`text-sm font-semibold ${getPpeInspectionStatusColor(inspection.overallStatus)}`}>Status: {inspection.overallStatus}</p>
+                        {inspection.nextInspectionDate && isValid(parseISO(inspection.nextInspectionDate)) && (
+                             <p className="text-xs text-muted-foreground">Next Insp: {format(parseISO(inspection.nextInspectionDate), "PPP")}</p>
+                        )}
                       </div>
                       <div className="flex gap-2 self-start sm:self-center shrink-0">
                         <Button variant="outline" size="sm" onClick={() => setViewingPpeInspection(inspection)}><Eye className="mr-1 h-3 w-3" /> View</Button>
@@ -339,10 +470,9 @@ export default function PpeManagementPage() {
         <CardContent><p className="text-muted-foreground">Feature to define PPE requirements by job role will be implemented here.</p></CardContent>
       </Card>
        <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><ListFilter className="h-6 w-6 text-gray-400"/>Inspection Scheduling (Placeholder)</CardTitle></CardHeader>
-        <CardContent><p className="text-muted-foreground">Advanced scheduling and reminder features for PPE inspections will be here.</p></CardContent>
+        <CardHeader><CardTitle className="flex items-center gap-2"><ListFilter className="h-6 w-6 text-gray-400"/>Advanced Inspection Scheduling (Placeholder)</CardTitle></CardHeader>
+        <CardContent><p className="text-muted-foreground">More advanced features like rule-based scheduling and automated reminders (via backend) will be here.</p></CardContent>
       </Card>
-
 
     </div>
   );

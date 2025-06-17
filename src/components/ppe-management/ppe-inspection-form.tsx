@@ -2,7 +2,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,11 +26,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, ShieldCheck, Package, User, StickyNote, AlertCircle, Clock, ListChecks, CheckSquare, CircleOff, AlertTriangle as AlertTriangleIcon } from "lucide-react"; // Renamed AlertTriangle to avoid conflict
+import { CalendarIcon, Save, XCircle, ShieldCheck, Package, User, StickyNote, AlertCircle, Clock, ListChecks, CheckSquare, CircleOff, AlertTriangle as AlertTriangleIcon } from "lucide-react"; 
 import type { PpeItem, PpeInspectionRecord, PpeInspectionOverallStatus, PpeInspectionChecklistItemInstance, PpeInspectionChecklistItemResult } from "@/lib/types";
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parseISO, isValid, addDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useEffect } from "react";
 
 const ppeInspectionOverallStatuses: PpeInspectionOverallStatus[] = ['Pass', 'Requires Repair', 'To be Replaced', 'Action Pending'];
 const ppeChecklistItemResults: PpeInspectionChecklistItemResult[] = ['Pass', 'Fail', 'N/A', 'Pending'];
@@ -109,6 +110,22 @@ export function PpeInspectionForm({ ppeItems, initialData, onSave, onCancel }: P
     name: "checklistItems",
   });
 
+  const watchedPpeItemId = useWatch({ control: form.control, name: 'ppeItemId' });
+  const watchedOverallStatus = useWatch({ control: form.control, name: 'overallStatus' });
+  const watchedInspectionDate = useWatch({ control: form.control, name: 'inspectionDate' });
+
+  useEffect(() => {
+    if (watchedOverallStatus === 'Pass' && watchedPpeItemId && watchedInspectionDate && isValid(parseISO(watchedInspectionDate))) {
+      const selectedPpeItem = ppeItems.find(item => item.id === watchedPpeItemId);
+      if (selectedPpeItem?.inspectionIntervalDays) {
+        const inspectionDateObj = parseISO(watchedInspectionDate);
+        const nextDate = addDays(inspectionDateObj, selectedPpeItem.inspectionIntervalDays);
+        form.setValue('nextInspectionDate', format(nextDate, 'yyyy-MM-dd'));
+      }
+    }
+  }, [watchedPpeItemId, watchedOverallStatus, watchedInspectionDate, ppeItems, form]);
+
+
   const onSubmit = (data: PpeInspectionFormValues) => {
     onSave(data);
   };
@@ -116,7 +133,7 @@ export function PpeInspectionForm({ ppeItems, initialData, onSave, onCancel }: P
   const getChecklistItemStatusIcon = (status: PpeInspectionChecklistItemResult) => {
     switch (status) {
       case 'Pass': return <CheckSquare className="h-4 w-4 text-green-500" />;
-      case 'Fail': return <AlertTriangleIcon className="h-4 w-4 text-red-500" />; // Use renamed import
+      case 'Fail': return <AlertTriangleIcon className="h-4 w-4 text-red-500" />;
       case 'N/A': return <CircleOff className="h-4 w-4 text-muted-foreground" />;
       case 'Pending': return <Clock className="h-4 w-4 text-yellow-500" />;
       default: return null;
@@ -245,7 +262,10 @@ export function PpeInspectionForm({ ppeItems, initialData, onSave, onCancel }: P
                     {field.value ? format(parseISO(field.value), "PPP") : <span>Pick next inspection date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button></FormControl></PopoverTrigger>
                     <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")} /></PopoverContent>
-                </Popover><FormMessage /></FormItem>
+                </Popover>
+                <FormDescription>Auto-suggested if 'Pass' and item has an inspection interval. Can be overridden.</FormDescription>
+                <FormMessage />
+                </FormItem>
               )}/>
 
             </CardContent>

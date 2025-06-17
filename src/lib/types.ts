@@ -313,8 +313,9 @@ export interface PpeItem {
   currentStock: number;
   reorderLevel: number;
   supplier?: string;
-  lastStocktakeDate?: string;
-  status?: PpeItemStatus; // New status field
+  lastStocktakeDate?: string; // ISO date string
+  status?: PpeItemStatus;
+  inspectionIntervalDays?: number; // e.g., 30, 90, 180
 }
 
 export interface PpeIssuanceRecord {
