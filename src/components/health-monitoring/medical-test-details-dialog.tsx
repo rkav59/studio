@@ -13,38 +13,29 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import type { MedicalTestRecord } from "@/lib/types";
+import type { MedicalTestRecord, MedicalTestWithCertStatus } from "@/lib/types"; // Use MedicalTestWithCertStatus
 import { format, parseISO, isValid } from 'date-fns';
-import { ShieldCheck, User, CalendarDays, Activity, Info, CheckCircle2, AlertTriangle, Users, Tag, AlignLeft, Link2, Briefcase, CalendarClock } from "lucide-react";
+import { ShieldCheck, User, CalendarDays, Activity, Info, CheckCircle2, AlertTriangle, Users, Tag, AlignLeft, Link2, Briefcase, CalendarClock, ClockIcon } from "lucide-react";
 
 interface MedicalTestDetailsDialogProps {
-  record: MedicalTestRecord;
+  record: MedicalTestWithCertStatus; // Use the derived type
   segName?: string;
   onClose: () => void;
 }
 
 export function MedicalTestDetailsDialog({ record, segName, onClose }: MedicalTestDetailsDialogProps) {
 
-  const getCertificateStatus = () => {
-    if (!record.certificateExpiryDate || !isValid(parseISO(record.certificateExpiryDate))) {
-      return { text: "N/A", color: "text-muted-foreground", icon: <CalendarClock className="h-4 w-4 mr-1" /> };
+  const getCertStatusStyling = (status?: MedicalTestWithCertStatus['certificateStatus']) => {
+    if (!status || status === 'N/A') return { textClass: 'text-muted-foreground', icon: <CalendarClock className="h-4 w-4 mr-1" /> };
+    switch (status) {
+      case 'Expired': return { textClass: 'text-red-600 dark:text-red-400 font-bold', icon: <AlertTriangle className="h-4 w-4 mr-1 text-red-500" /> };
+      case 'Expiring Soon': return { textClass: 'text-yellow-600 dark:text-yellow-400 font-semibold', icon: <AlertTriangle className="h-4 w-4 mr-1 text-yellow-500" /> };
+      case 'Valid': return { textClass: 'text-green-600 dark:text-green-400 font-semibold', icon: <CheckCircle2 className="h-4 w-4 mr-1 text-green-500" /> };
+      default: return { textClass: 'text-muted-foreground', icon: <CalendarClock className="h-4 w-4 mr-1" /> };
     }
-    const expiry = parseISO(record.certificateExpiryDate);
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const thirtyDaysFromNow = new Date(today);
-    thirtyDaysFromNow.setDate(today.getDate() + 30);
-
-    if (expiry < today) {
-      return { text: "Expired", color: "text-red-500 font-semibold", icon: <AlertTriangle className="h-4 w-4 mr-1 text-red-500" /> };
-    }
-    if (expiry <= thirtyDaysFromNow) {
-      return { text: "Expiring Soon", color: "text-yellow-600 font-semibold", icon: <AlertTriangle className="h-4 w-4 mr-1 text-yellow-500" /> };
-    }
-    return { text: "Valid", color: "text-green-600 font-semibold", icon: <CheckCircle2 className="h-4 w-4 mr-1 text-green-500" /> };
   };
 
-  const certStatus = getCertificateStatus();
+  const certStatusDetails = getCertStatusStyling(record.certificateStatus);
 
 
   return (
@@ -95,15 +86,15 @@ export function MedicalTestDetailsDialog({ record, segName, onClose }: MedicalTe
                 )}
                  {record.certificateExpiryDate && isValid(parseISO(record.certificateExpiryDate)) && (
                   <div className="flex items-center">
-                    {certStatus.icon}
+                    {certStatusDetails.icon}
                     <strong>Certificate Expiry:</strong>
-                    <span className={`ml-1 ${certStatus.color}`}>{format(parseISO(record.certificateExpiryDate), "PPP")} ({certStatus.text})</span>
+                    <span className={`ml-1 ${certStatusDetails.textClass}`}>{format(parseISO(record.certificateExpiryDate), "PPP")} {record.certificateStatus !== 'N/A' ? `(${record.certificateStatus})` : ''}</span>
                   </div>
                 )}
-                {record.followUpRequired !== undefined && (
-                    <div className={`flex items-center ${record.followUpRequired ? 'text-yellow-600' : 'text-gray-600'}`}>
-                         {record.followUpRequired ? <AlertTriangle className="h-4 w-4 mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />}
-                        <strong>Follow-up Required:</strong> <span className="ml-1 font-semibold">{record.followUpRequired ? 'Yes' : 'No'}</span>
+                {record.followUpRequired && ( // Check if true, not just defined
+                    <div className="flex items-center text-yellow-600 dark:text-yellow-400">
+                         <AlertTriangle className="h-4 w-4 mr-2" />
+                        <strong>Follow-up Required:</strong> <span className="ml-1 font-semibold">Yes</span>
                     </div>
                 )}
                 

@@ -13,18 +13,30 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import type { IndustrialHygieneSample } from "@/lib/types";
+import type { IndustrialHygieneSample, MedicalTestPrefillData } from "@/lib/types";
 import { format, parseISO } from 'date-fns';
-import { Thermometer, CalendarDays, User, MapPin, Beaker, Package, Tag, Clock, FileText, Users, AlertTriangle, ShieldAlert } from "lucide-react";
+import { Thermometer, CalendarDays, User, MapPin, Beaker, Package, Tag, Clock, FileText, Users, AlertTriangle, ShieldAlert, ShieldCheck } from "lucide-react";
 
 interface IhSampleDetailsDialogProps {
   sample: IndustrialHygieneSample;
   segName?: string;
   onClose: () => void;
+  onLogMedicalTest?: (prefillData: MedicalTestPrefillData) => void;
 }
 
-export function IhSampleDetailsDialog({ sample, segName, onClose }: IhSampleDetailsDialogProps) {
+export function IhSampleDetailsDialog({ sample, segName, onClose, onLogMedicalTest }: IhSampleDetailsDialogProps) {
   const exceedsOel = sample.oel !== undefined && sample.exposureLevel > sample.oel;
+
+  const handleLogMedicalTestClick = () => {
+    if (onLogMedicalTest) {
+        const prefill: MedicalTestPrefillData = {
+            employeeName: sample.employeeName,
+            segId: sample.segId,
+            linkedExposure: `IH Sample ${sample.id}: ${sample.agent} (${sample.specificAgentName || 'N/A'}) at ${sample.exposureLevel} ${sample.units} on ${format(parseISO(sample.sampleDate), "PPP")}. OEL: ${sample.oel || 'N/A'} ${sample.oelUnits || sample.units}.`,
+        };
+        onLogMedicalTest(prefill);
+    }
+  };
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -55,7 +67,14 @@ export function IhSampleDetailsDialog({ sample, segName, onClose }: IhSampleDeta
                   </div>
                 )}
                 {exceedsOel && (
-                  <p className="text-red-500 font-semibold flex items-center gap-1"><ShieldAlert className="h-4 w-4" /> EXPOSURE EXCEEDS OEL!</p>
+                  <div className="p-2 my-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-md">
+                    <p className="text-red-600 dark:text-red-400 font-semibold flex items-center gap-1"><ShieldAlert className="h-4 w-4" /> EXPOSURE EXCEEDS OEL!</p>
+                    {onLogMedicalTest && (
+                         <Button size="sm" variant="destructive" onClick={handleLogMedicalTestClick} className="mt-2">
+                           <ShieldCheck className="mr-2 h-4 w-4"/> Log Related Medical Test
+                         </Button>
+                    )}
+                  </div>
                 )}
                 <div className="flex items-center"><Tag className="h-4 w-4 mr-2 text-muted-foreground" /><strong>Sample Type:</strong> <span className="ml-1">{sample.sampleType}</span></div>
                 <div className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-muted-foreground" /><strong>Location:</strong> <span className="ml-1">{sample.location}</span></div>

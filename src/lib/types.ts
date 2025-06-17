@@ -431,7 +431,7 @@ export interface MedicalTestRecord {
   resultSummary: string;
   referenceRange?: string; // E.g., "0.5 - 2.0 mg/L", "Negative"
   isFitForWork?: boolean;
-  certificateExpiryDate?: string; // ISO Date string
+  certificateExpiryDate?: string | null; // ISO Date string, allow null for "no expiry"
   followUpRequired?: boolean;
   notes?: string;
   segId?: string; // Optional link to SEG for group analysis
@@ -501,3 +501,6 @@ export interface AnalyzeAuditDataOutput {
 export type MedicalTestWithCertStatus = MedicalTestRecord & {
   certificateStatus?: 'Valid' | 'Expiring Soon' | 'Expired' | 'N/A';
 };
+// Helper type for pre-filling MedicalTestForm
+export type MedicalTestPrefillData = Partial<Pick<MedicalTestRecord, 'employeeName' | 'segId' | 'linkedExposure' | 'testType'>>;
+
