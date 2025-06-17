@@ -62,50 +62,73 @@ export default function PpeManagementPage() {
   const [editingJobRoleEntry, setEditingJobRoleEntry] = useState<PpeJobRoleMatrixEntry | null>(null);
   const [viewingJobRoleEntry, setViewingJobRoleEntry] = useState<PpeJobRoleMatrixEntry | null>(null);
 
-
-  // --- Load & Save PPE Items ---
-  useEffect(() => {
+  // Function to load all relevant data from localStorage
+  const loadAllPpeData = () => {
+    // Load PPE Items
     try {
-      const stored = localStorage.getItem(PPE_ITEMS_KEY);
-      if (stored) setPpeItems(JSON.parse(stored).map((item: PpeItem) => ({...item, status: item.status || 'Available'})));
-    } catch (e) { console.error("Error loading PPE items:", e); }
-  }, []);
+      const storedItems = localStorage.getItem(PPE_ITEMS_KEY);
+      if (storedItems) {
+        setPpeItems(JSON.parse(storedItems).map((item: PpeItem) => ({ ...item, status: item.status || 'Available' })));
+      } else {
+        setPpeItems([]);
+      }
+    } catch (e) { console.error("Error loading PPE items:", e); setPpeItems([]); }
+
+    // Load PPE Issuances
+    try {
+      const storedIssuances = localStorage.getItem(PPE_ISSUANCES_KEY);
+      if (storedIssuances) setPpeIssuances(JSON.parse(storedIssuances));
+      else setPpeIssuances([]);
+    } catch (e) { console.error("Error loading PPE issuances:", e); setPpeIssuances([]); }
+
+    // Load PPE Inspections
+    try {
+      const storedInspections = localStorage.getItem(PPE_INSPECTIONS_KEY);
+      if (storedInspections) setPpeInspections(JSON.parse(storedInspections));
+      else setPpeInspections([]);
+    } catch (e) { console.error("Error loading PPE inspections:", e); setPpeInspections([]); }
+    
+    // Load PPE Job Role Matrix
+    try {
+      const storedMatrix = localStorage.getItem(PPE_JOB_ROLE_MATRIX_KEY);
+      if (storedMatrix) setPpeJobRoleMatrix(JSON.parse(storedMatrix));
+      else setPpeJobRoleMatrix([]);
+    } catch (e) { console.error("Error loading PPE Job Role Matrix:", e); setPpeJobRoleMatrix([]); }
+  };
+
+  // Initial data load and load on window focus
+  useEffect(() => {
+    loadAllPpeData(); // Load on mount
+
+    const handleFocus = () => {
+      loadAllPpeData(); // Reload when window gains focus
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []); // This effect runs once to set up initial load and listener
+
+  // --- Save PPE Items ---
   useEffect(() => {
     try { localStorage.setItem(PPE_ITEMS_KEY, JSON.stringify(ppeItems)); }
     catch (e) { console.error("Error saving PPE items:", e); }
   }, [ppeItems]);
 
-  // --- Load & Save PPE Issuances ---
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(PPE_ISSUANCES_KEY);
-      if (stored) setPpeIssuances(JSON.parse(stored));
-    } catch (e) { console.error("Error loading PPE issuances:", e); }
-  }, []);
+  // --- Save PPE Issuances ---
   useEffect(() => {
     try { localStorage.setItem(PPE_ISSUANCES_KEY, JSON.stringify(ppeIssuances)); }
     catch (e) { console.error("Error saving PPE issuances:", e); }
   }, [ppeIssuances]);
 
-  // --- Load & Save PPE Inspections ---
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(PPE_INSPECTIONS_KEY);
-      if (stored) setPpeInspections(JSON.parse(stored));
-    } catch (e) { console.error("Error loading PPE inspections:", e); }
-  }, []);
+  // --- Save PPE Inspections ---
   useEffect(() => {
     try { localStorage.setItem(PPE_INSPECTIONS_KEY, JSON.stringify(ppeInspections)); }
     catch (e) { console.error("Error saving PPE inspections:", e); }
   }, [ppeInspections]);
 
-  // --- Load & Save PPE Job Role Matrix ---
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(PPE_JOB_ROLE_MATRIX_KEY);
-      if (stored) setPpeJobRoleMatrix(JSON.parse(stored));
-    } catch (e) { console.error("Error loading PPE Job Role Matrix:", e); }
-  }, []);
+  // --- Save PPE Job Role Matrix ---
   useEffect(() => {
     try { localStorage.setItem(PPE_JOB_ROLE_MATRIX_KEY, JSON.stringify(ppeJobRoleMatrix)); }
     catch (e) { console.error("Error saving PPE Job Role Matrix:", e); }
@@ -147,7 +170,7 @@ export default function PpeManagementPage() {
         ...item,
         latestInspection: latestRelevantInspection,
         nextInspectionDueDate: nextDueDate,
-        dueStatus: (item.status && !['Available', 'Under Inspection'].includes(item.status)) ? undefined : dueStatus,
+        dueStatus: (item.status && !['Available', 'Under Inspection'].includes(item.status || '')) ? undefined : dueStatus,
       };
     });
   }, [ppeItems, ppeInspections]);
@@ -174,7 +197,8 @@ export default function PpeManagementPage() {
         });
       }
     }
-  }, [upcomingOrOverdueInspections, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upcomingOrOverdueInspections, toast]); // Toast is stable, so this effectively runs when upcomingOrOverdueInspections changes
 
 
   const handleOpenNewPpeItemForm = () => router.push('/ppe-management/items/new');
