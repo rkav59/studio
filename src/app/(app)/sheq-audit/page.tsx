@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -12,16 +11,19 @@ import type { SheqAudit, AuditChecklistItem, ChecklistItemTemplate, NonConforman
 import { defaultChecklistTemplates } from '@/lib/checklist-templates';
 import { Separator } from '@/components/ui/separator';
 import { format, isValid, parseISO } from 'date-fns';
-import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2, LinkIcon, User, FileText, MessageSquare, ListPlus } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogClose, DialogFooter } from "@/components/ui/dialog";
+import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2, LinkIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeSheqAuditData } from '@/ai/flows/analyze-audit-data-flow';
 import { Alert, AlertTitle, AlertDescription as UIAlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/auth-context';
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, Timestamp, orderBy, writeBatch } from 'firebase/firestore';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-
-const LOCAL_STORAGE_KEY_AUDITS = 'sheild-sheq-audits-v6'; 
-const USER_TEMPLATES_STORAGE_KEY = 'sheild-user-checklist-templates-v1'; 
+const SHEQ_AUDITS_COLLECTION = 'sheqAudits';
+const USER_CHECKLIST_TEMPLATES_COLLECTION = 'userChecklistTemplates';
 
 const getDefaultNonConformance = (): NonConformance => ({
   id: crypto.randomUUID(),
@@ -46,7 +48,9 @@ const getDefaultObservationEntry = (): AuditObservationEntry => ({
 
 export default function SheqAuditPage() {
   const { toast } = useToast();
-  const [audits, setAudits] = useState<SheqAudit[]>([]);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
   const [currentAudit, setCurrentAudit] = useState<SheqAudit | null>(null);
   const [viewingAuditDetails, setViewingAuditDetails] = useState<SheqAudit | null>(null);
   
@@ -54,68 +58,41 @@ export default function SheqAuditPage() {
   const [aiInsights, setAiInsights] = useState<AnalyzeAuditDataOutput | null>(null);
   const [isAiInsightsModalOpen, setIsAiInsightsModalOpen] = useState(false);
 
-  const [userChecklistTemplates, setUserChecklistTemplates] = useState<ChecklistTemplate[]>([]);
+  // Fetch SHEQ Audits
+  const { data: audits = [], isLoading: isLoadingAudits, error: auditsError } = useQuery<SheqAudit[]>({
+    queryKey: [SHEQ_AUDITS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, SHEQ_AUDITS_COLLECTION), where("userId", "==", user.uid), orderBy("auditDate", "desc"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          ...data,
+          auditDate: (data.auditDate as Timestamp)?.toDate().toISOString(),
+          nonConformances: (data.nonConformances || []).map((nc: any) => ({
+            ...nc,
+            actionDueDate: (nc.actionDueDate as Timestamp)?.toDate().toISOString(),
+            actionCompletionDate: (nc.actionCompletionDate as Timestamp)?.toDate().toISOString(),
+          })),
+        } as SheqAudit;
+      });
+    },
+    enabled: !!user?.uid,
+  });
 
-  useEffect(() => {
-    try {
-      const storedUserTemplates = localStorage.getItem(USER_TEMPLATES_STORAGE_KEY);
-      if (storedUserTemplates) {
-        setUserChecklistTemplates(JSON.parse(storedUserTemplates));
-      }
-    } catch (error) {
-      console.error("Error loading user checklist templates from localStorage:", error);
-    }
-    
-    try {
-      const storedAudits = localStorage.getItem(LOCAL_STORAGE_KEY_AUDITS);
-      if (storedAudits) {
-        const parsedAudits: SheqAudit[] = JSON.parse(storedAudits);
-        const migratedAudits = parsedAudits.map(audit => ({
-          ...audit,
-          checklist: (audit.checklist || []).map(item => {
-            let newObservations: AuditObservationEntry[] = [];
-            if (Array.isArray(item.observations)) {
-                newObservations = item.observations.map(obs => typeof obs === 'string' ? {id: crypto.randomUUID(), text: obs} : {...obs, id: obs.id || crypto.randomUUID()});
-            } else if (typeof (item as any).observation === 'string' && (item as any).observation.trim() !== '') { // Migration from single observation string
-                newObservations = [{id: crypto.randomUUID(), text: (item as any).observation}];
-            }
-
-            return {
-              ...item,
-              responsiblePerson: item.responsiblePerson || '',
-              observations: newObservations,
-              comments: item.comments || '',
-            };
-          }),
-          nonConformances: (audit.nonConformances || []).map(nc => ({
-            ...getDefaultNonConformance(), 
-            ...nc, 
-            id: nc.id || crypto.randomUUID(), 
-          }))
-        }));
-        setAudits(migratedAudits);
-      } else {
-        // Clean up old versions if any
-        const oldKeys = ['sheild-sheq-audits-v1', 'sheild-sheq-audits-v2', 'sheild-sheq-audits-v3', 'sheild-sheq-audits-v4', 'sheild-sheq-audits-v5'];
-        oldKeys.forEach(key => {
-            if (localStorage.getItem(key)) {
-                console.warn(`SHEild: SHEQ Audit data from '${key}' was cleared due to structure update to '${LOCAL_STORAGE_KEY_AUDITS}'. Please re-enter if needed.`);
-                localStorage.removeItem(key);
-            }
-        });
-      }
-    } catch (error) {
-      console.error("Error loading SHEQ audits from localStorage:", error);
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY_AUDITS, JSON.stringify(audits));
-    } catch (error) {
-      console.error("Error saving SHEQ audits to localStorage:", error);
-    }
-  }, [audits]);
+  // Fetch User Checklist Templates
+  const { data: userChecklistTemplates = [], isLoading: isLoadingUserTemplates, error: userTemplatesError } = useQuery<ChecklistTemplate[]>({
+    queryKey: [USER_CHECKLIST_TEMPLATES_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, USER_CHECKLIST_TEMPLATES_COLLECTION), where("userId", "==", user.uid));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChecklistTemplate));
+    },
+    enabled: !!user?.uid,
+  });
 
   const allChecklistTemplatesForScheduler = useMemo(() => {
     const systemTemplates = defaultChecklistTemplates.map(t => ({ ...t, isSystemDefault: true }));
@@ -124,34 +101,73 @@ export default function SheqAuditPage() {
   }, [userChecklistTemplates]);
 
 
-  const handleScheduleAudit = (
-    newAuditData: Omit<SheqAudit, 'id' | 'status' | 'checklist' | 'nonConformances' | 'overallFindings' | 'recommendations'>,
-    initialChecklistItemsFromTemplate: ChecklistItemTemplate[]
-  ) => {
-    const newAudit: SheqAudit = {
-      id: crypto.randomUUID(), 
-      ...newAuditData,
-      status: "Planned",
-      checklist: initialChecklistItemsFromTemplate.map(templateItem => {
-        const initialObservations: AuditObservationEntry[] = [];
-        if (templateItem.observationPrompt) {
-          initialObservations.push({ id: crypto.randomUUID(), text: templateItem.observationPrompt });
-        }
-        return {
+  const addAuditMutation = useMutation({
+    mutationFn: async (auditToSchedule: { newAuditData: Omit<SheqAudit, 'id' | 'status' | 'checklist' | 'nonConformances' | 'overallFindings' | 'recommendations' | 'userId'>, initialChecklistItemsFromTemplate: ChecklistItemTemplate[] }) => {
+      if (!user?.uid) throw new Error("User not authenticated");
+      const { newAuditData, initialChecklistItemsFromTemplate } = auditToSchedule;
+      const newAuditForDb: Omit<SheqAudit, 'id'> = {
+        ...newAuditData,
+        userId: user.uid,
+        status: "Planned",
+        auditDate: Timestamp.fromDate(parseISO(newAuditData.auditDate as string)), // Convert to Timestamp
+        checklist: initialChecklistItemsFromTemplate.map(templateItem => ({
           id: crypto.randomUUID(), 
           text: templateItem.text,
           status: 'Pending',
           evidenceOrRemarks: '',
           responsiblePerson: templateItem.defaultResponsiblePerson || '',
-          observations: initialObservations,
+          observations: templateItem.observationPrompt ? [{id: crypto.randomUUID(), text: templateItem.observationPrompt}] : [],
           comments: templateItem.defaultComments || '',
-        };
-      }),
-      nonConformances: [], 
-      overallFindings: '',
-      recommendations: '',
-    };
-    setAudits(prev => [newAudit, ...prev]);
+        })),
+        nonConformances: [], 
+        overallFindings: '',
+        recommendations: '',
+      };
+      return addDoc(collection(db, SHEQ_AUDITS_COLLECTION), newAuditForDb);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SHEQ_AUDITS_COLLECTION, user?.uid] });
+      toast({ title: "Audit Scheduled", description: "The new audit has been added to the program." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error Scheduling Audit", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateAuditMutation = useMutation({
+    mutationFn: async (executedAudit: SheqAudit) => {
+      if (!user?.uid || !executedAudit.id) throw new Error("User or Audit ID missing");
+      const { id, ...dataToUpdate } = executedAudit;
+      const auditRef = doc(db, SHEQ_AUDITS_COLLECTION, id);
+      
+      // Convert dates back to Timestamps before updating
+      const dataForDb = {
+        ...dataToUpdate,
+        userId: user.uid, // Ensure userId is part of the update
+        auditDate: Timestamp.fromDate(parseISO(dataToUpdate.auditDate as string)),
+        nonConformances: (dataToUpdate.nonConformances || []).map(nc => ({
+          ...nc,
+          actionDueDate: nc.actionDueDate ? Timestamp.fromDate(parseISO(nc.actionDueDate)) : null,
+          actionCompletionDate: nc.actionCompletionDate ? Timestamp.fromDate(parseISO(nc.actionCompletionDate)) : null,
+        })),
+      };
+      await updateDoc(auditRef, dataForDb);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [SHEQ_AUDITS_COLLECTION, user?.uid] });
+      toast({ title: "Audit Updated", description: `Audit "${variables.auditName}" has been updated.` });
+      setCurrentAudit(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error Updating Audit", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleScheduleAudit = (
+    newAuditData: Omit<SheqAudit, 'id' | 'status' | 'checklist' | 'nonConformances' | 'overallFindings' | 'recommendations' | 'userId'>,
+    initialChecklistItemsFromTemplate: ChecklistItemTemplate[]
+  ) => {
+    addAuditMutation.mutate({ newAuditData, initialChecklistItemsFromTemplate });
   };
 
   const handleStartAudit = (auditId: string) => {
@@ -160,48 +176,50 @@ export default function SheqAuditPage() {
       setCurrentAudit({ 
         ...auditToStart, 
         status: 'In Progress',
+        // Ensure checklist items have default structures if missing
         checklist: (auditToStart.checklist || []).map(item => ({
             ...item,
+            id: item.id || crypto.randomUUID(),
             responsiblePerson: item.responsiblePerson || '',
-            observations: Array.isArray(item.observations) ? item.observations.map(obs => ({...obs, id: obs.id || crypto.randomUUID()})) : [],
+            observations: Array.isArray(item.observations) 
+                ? item.observations.map(obs => ({...obs, id: obs.id || crypto.randomUUID()})) 
+                : [],
             comments: item.comments || '',
         })),
         nonConformances: (auditToStart.nonConformances || []).map(nc => ({
             ...getDefaultNonConformance(),
             ...nc,
             id: nc.id || crypto.randomUUID(),
+            actionDueDate: nc.actionDueDate ? format(parseISO(nc.actionDueDate), 'yyyy-MM-dd') : undefined,
+            actionCompletionDate: nc.actionCompletionDate ? format(parseISO(nc.actionCompletionDate), 'yyyy-MM-dd') : undefined,
+
         }))
       });
     }
   };
 
   const handleSaveAuditExecution = (executedAudit: SheqAudit) => {
-    setAudits(prev =>
-      prev.map(a => (a.id === executedAudit.id ? executedAudit : a))
-    );
-    setCurrentAudit(null); 
+    updateAuditMutation.mutate(executedAudit);
   };
   
   const handleBackToScheduler = () => {
-    if (currentAudit && currentAudit.status === 'In Progress') {
-        // Optionally save progress if any changes were made but not formally completed
-    }
     setCurrentAudit(null);
   };
 
   const handleGenerateAiInsights = async () => {
     if (audits.length === 0) {
-      toast({
-        title: "No Audit Data",
-        description: "Please log some audits before generating AI insights.",
-        variant: "default"
-      });
+      toast({ title: "No Audit Data", description: "Please log some audits before generating AI insights.", variant: "default"});
       return;
     }
     setIsAiInsightsLoading(true);
     setAiInsights(null);
 
     const completedAuditsForInsight = audits.filter(a => a.status === 'Completed' || a.status === 'Closed');
+    if (completedAuditsForInsight.length === 0) {
+        toast({ title: "No Completed Audits", description: "AI insights require completed or closed audit data.", variant: "default"});
+        setIsAiInsightsLoading(false);
+        return;
+    }
 
     const nonConformanceDescriptions: string[] = [];
     const failedChecklistItemsText: string[] = [];
@@ -210,12 +228,14 @@ export default function SheqAuditPage() {
     const overallRecommendationsSummary: string[] = [];
 
     completedAuditsForInsight.forEach(audit => {
-      audit.nonConformances.forEach(nc => {
+      (audit.nonConformances || []).forEach(nc => {
         if(nc.description) nonConformanceDescriptions.push(nc.description);
-        const status = nc.actionStatus || 'Open';
-        capaStatusCounts[status.toLowerCase().replace(/\s+/g, '') as keyof typeof capaStatusCounts]++;
+        const statusKey = (nc.actionStatus || 'Open').toLowerCase().replace(/\s+/g, '') as keyof typeof capaStatusCounts;
+        if (capaStatusCounts.hasOwnProperty(statusKey)) {
+             capaStatusCounts[statusKey]++;
+        }
       });
-      audit.checklist.forEach(item => {
+      (audit.checklist || []).forEach(item => {
         if (item.status === 'Non-Compliant' && item.text) {
           failedChecklistItemsText.push(item.text);
         }
@@ -238,22 +258,14 @@ export default function SheqAuditPage() {
       const result = await analyzeSheqAuditData(input);
       setAiInsights(result);
       setIsAiInsightsModalOpen(true);
-      toast({
-        title: "AI Insights Generated",
-        description: "Review the AI-powered analysis of your audit data.",
-      });
+      toast({ title: "AI Insights Generated", description: "Review the AI-powered analysis of your audit data."});
     } catch (error) {
       console.error("Error generating AI audit insights:", error);
-      toast({
-        title: "AI Insights Error",
-        description: "Failed to generate insights. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "AI Insights Error", description: "Failed to generate insights. Please try again.", variant: "destructive"});
     } finally {
       setIsAiInsightsLoading(false);
     }
   };
-
 
   const getStatusColor = (status: SheqAudit['status'] | NonConformance['actionStatus']) => {
     switch (status) {
@@ -263,7 +275,6 @@ export default function SheqAuditPage() {
       case 'Awaiting Review': return 'text-orange-500 dark:text-orange-400';
       case 'Closed': return 'text-gray-500 dark:text-gray-400';
       case 'Open': return 'text-blue-500 dark:text-blue-400';
-      // 'In Progress' for CAPA shares with audit status
       case 'Overdue': return 'text-red-600 dark:text-red-400';
       default: return 'text-muted-foreground';
     }
@@ -281,6 +292,18 @@ export default function SheqAuditPage() {
   
   const completedAudits = audits.filter(a => a.status === 'Completed' || a.status === 'Closed');
 
+  if (isLoadingAudits || isLoadingUserTemplates) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="ml-3 text-lg text-muted-foreground">Loading SHEQ Audit data...</p>
+      </div>
+    );
+  }
+
+  if (auditsError || userTemplatesError) {
+    return <div className="text-red-500 text-center py-10">Error loading data: {(auditsError || userTemplatesError)?.message}</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -305,14 +328,13 @@ export default function SheqAuditPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute bottom-0 left-0 p-6">
                     <h2 className="text-2xl font-semibold text-white font-headline">Comprehensive Auditing</h2>
-                    <p className="text-sm text-neutral-300">Ensure compliance and drive continuous improvement across SHEQ.</p>
+                    <p className="text-sm text-neutral-300">Ensure compliance and drive continuous improvement across SHEQ. Data now in Firestore.</p>
                 </div>
             </div>
             <CardContent className="pt-6">
                 <p className="text-muted-foreground">
-                    This module facilitates the planning, execution, and tracking of Safety, Health, Environment, and Quality (SHEQ) audits. 
-                    Select from default or custom checklist templates (manage in "Checklist Templates" - can include default observation prompts, responsible persons, and comments). During execution, customize items, log responsible persons, multiple observations, and comments. Document non-conformances with proposed CAPA details and optional Incident ID links.
-                    Leverage AI insights to analyze trends from your audit data (current browser session).
+                    This module facilitates the planning, execution, and tracking of SHEQ audits, with all data stored in Firebase Firestore. 
+                    Select from default or custom checklist templates. During execution, customize items, log responsible persons, multiple observations, and comments. Document non-conformances with CAPA details.
                 </p>
             </CardContent>
           </Card>
@@ -328,7 +350,7 @@ export default function SheqAuditPage() {
             <Card className="shadow-lg mt-6">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><CheckSquare className="h-6 w-6 text-primary"/>Completed/Closed Audits</CardTitle>
-                <CardDescription>Review past audit records, including checklist items (responsible person, observations, comments), non-conformances, CAPA details, and linked Incident IDs.</CardDescription>
+                <CardDescription>Review past audit records.</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3">
@@ -337,7 +359,7 @@ export default function SheqAuditPage() {
                       <div className="flex-grow">
                         <p className="font-medium">{audit.auditName} <span className="text-xs text-muted-foreground">({audit.auditType})</span></p>
                         <p className="text-sm text-muted-foreground">Scope: {audit.scope}</p>
-                        <p className="text-xs text-muted-foreground">Date: {format(new Date(audit.auditDate), "PPP")} | Auditor: {audit.auditor}</p>
+                        <p className="text-xs text-muted-foreground">Date: {format(parseISO(audit.auditDate), "PPP")} | Auditor: {audit.auditor}</p>
                         <p className={`text-xs font-semibold ${getStatusColor(audit.status)}`}>Status: {audit.status}</p>
                       </div>
                        <Button variant="outline" size="sm" onClick={() => setViewingAuditDetails(audit)} className="mt-2 sm:mt-0 self-start sm:self-auto">
@@ -353,48 +375,6 @@ export default function SheqAuditPage() {
             </Card>
           )}
 
-          <Card className="mt-6 shadow-lg">
-            <CardHeader>
-                <CardTitle>Audit Management Features</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mt-2 mb-2">
-                Current prototype features:
-              </p>
-              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                <li>Audit scheduling with selection from system default and user-created checklist templates (manage custom ones in "Checklist Templates"). User templates can include initial observation prompts, default responsible persons, and default comments.</li>
-                <li>List view of planned, in-progress, and completed/closed audits.</li>
-                <li>Audit execution form allowing:
-                    <ul className="list-disc list-inside pl-6">
-                        <li>Editing text of individual checklist items.</li>
-                        <li>Adding new checklist items dynamically during execution.</li>
-                        <li>Removing checklist items.</li>
-                        <li>Updating status and old remarks/evidence for each checklist item.</li>
-                        <li>Input for 'Responsible Person', multiple 'Observations', and 'Comments' for each checklist item. Observations can be added/removed dynamically per item. Initial observation, responsible person, and comments may be pre-filled from template defaults.</li>
-                    </ul>
-                </li>
-                <li>Non-conformance logging with description, severity, optional link to checklist item, and an optional field for "Related Incident ID".</li>
-                <li>Detailed CAPA documentation for each Non-Conformance (Proposed Corrective/Preventive Actions, Assigned To, Due Date, Status, Completion Date, Verification Notes).</li>
-                <li>Recording overall audit findings and recommendations.</li>
-                <li>Viewing detailed information for completed/closed audits, including all checklist items with their details (responsible person, observations, comments), non-conformances, their CAPA details, and any linked Incident ID.</li>
-                <li>AI-powered insights generation based on the summary of audit data currently in the browser session.</li>
-                <li>Data persistence using browser's local storage for audits and custom templates.</li>
-              </ul>
-              <Separator className="my-4" />
-              <p className="text-sm text-muted-foreground mt-2 mb-2">
-                Future enhancements could include:
-              </p>
-              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                  <li>Full calendar view for audit program scheduling.</li>
-                  <li>Dedicated CAPA tracking module/page with advanced filtering, dashboards, and notifications for overdue actions.</li>
-                  <li>More advanced AI trend analysis over historical data (requires backend).</li>
-                  <li>Automated report generation (e.g., PDF) and distribution.</li>
-                  <li>User roles and permissions for audit management.</li>
-                  <li>True bi-directional linking between modules (e.g., clicking an Incident ID in an audit takes you to the Incident module).</li>
-              </ul>
-            </CardContent>
-          </Card>
-
         </>
       ) : (
         <Card className="shadow-lg">
@@ -406,9 +386,7 @@ export default function SheqAuditPage() {
                 </Button>
             </div>
             <CardDescription>
-              Complete the checklist, log non-conformances (including CAPA details), and record findings for the audit:
-              <span className="font-semibold"> {currentAudit.scope}</span>, scheduled for <span className="font-semibold">{format(new Date(currentAudit.auditDate), "PPP")}</span> by <span className="font-semibold">{currentAudit.auditor}</span>.
-              Checklist items can be edited, added, or removed. Each item supports multiple observations. Responsible person and comments can also be pre-filled from the template.
+              Complete the checklist for the audit of <span className="font-semibold"> {currentAudit.scope}</span>, scheduled for <span className="font-semibold">{format(parseISO(currentAudit.auditDate), "PPP")}</span> by <span className="font-semibold">{currentAudit.auditor}</span>.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -430,7 +408,7 @@ export default function SheqAuditPage() {
                     </DialogTitle>
                     <DialogDescription>
                         Type: {viewingAuditDetails.auditType} | Scope: {viewingAuditDetails.scope} <br />
-                        Date: {format(new Date(viewingAuditDetails.auditDate), "PPP")} | Auditor(s): {viewingAuditDetails.auditor} | Status: <span className={`font-semibold ${getStatusColor(viewingAuditDetails.status)}`}>{viewingAuditDetails.status}</span>
+                        Date: {format(parseISO(viewingAuditDetails.auditDate), "PPP")} | Auditor(s): {viewingAuditDetails.auditor} | Status: <span className={`font-semibold ${getStatusColor(viewingAuditDetails.status)}`}>{viewingAuditDetails.status}</span>
                     </DialogDescription>
                 </DialogHeader>
                 
@@ -468,7 +446,7 @@ export default function SheqAuditPage() {
                     
                     <section>
                         <h3 className="text-lg font-semibold mb-2 border-b pb-1 text-destructive">Non-Conformances & CAPA</h3>
-                        {viewingAuditDetails.nonConformances.length > 0 ? (
+                        {viewingAuditDetails.nonConformances && viewingAuditDetails.nonConformances.length > 0 ? (
                             <ul className="space-y-4">
                                 {viewingAuditDetails.nonConformances.map((nc, index) => (
                                     <li key={nc.id} className="p-4 border rounded-md bg-destructive/10 border-destructive/40">
@@ -487,7 +465,7 @@ export default function SheqAuditPage() {
                                                     className="h-auto p-0 text-xs text-blue-600 dark:text-blue-400 hover:underline"
                                                     onClick={() => toast({
                                                         title: "Feature: Navigate to Incident",
-                                                        description: `Navigating to Incident ID '${nc.relatedIncidentId}' is a planned feature. Full navigation will be implemented when incident data is globally accessible.`,
+                                                        description: `Navigating to Incident ID '${nc.relatedIncidentId}' is a planned feature.`,
                                                         variant: "default",
                                                         duration: 5000,
                                                     })}
@@ -549,7 +527,7 @@ export default function SheqAuditPage() {
                 <Sparkles className="h-6 w-6" /> AI-Powered Audit Insights
               </DialogTitle>
               <DialogDescription>
-                Analysis of audit data currently stored in your browser.
+                Analysis of audit data from Firestore.
               </DialogDescription>
             </DialogHeader>
             <ScrollArea className="flex-grow my-4 pr-3 space-y-4">
@@ -571,12 +549,11 @@ export default function SheqAuditPage() {
                   <pre className="whitespace-pre-wrap text-sm p-3 bg-secondary/50 rounded-md">{aiInsights.positiveObservations}</pre>
                 </div>
               )}
-              <Alert variant="info" className="mt-4">
+               <Alert variant="info" className="mt-4">
                 <BrainCircuit className="h-4 w-4" />
                 <AlertTitle>Note on AI Insights</AlertTitle>
                 <UIAlertDescription>
-                  These insights are generated by an AI based on a summary of the audit data currently available in your browser.
-                  For comprehensive trend analysis over time or across a larger dataset, a dedicated backend system and more sophisticated analytics would be beneficial.
+                  These insights are AI-generated based on a summary of audit data from Firestore.
                   Always use professional judgment when interpreting AI-generated information.
                 </UIAlertDescription>
               </Alert>
@@ -587,10 +564,8 @@ export default function SheqAuditPage() {
           </DialogContent>
         </Dialog>
       )}
-
     </div>
   );
 }
-
 
     

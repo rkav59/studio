@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Edit2, Trash2, Eye, Users, Thermometer, ShieldCheck, Award, BarChart, BellDot, UserPlus, FlaskConical, ClipboardPlus, Users2Icon, AlertTriangle, CalendarClock, ClockIcon, ShieldAlert, FilePlus } from "lucide-react";
+import { Edit2, Trash2, Eye, Users, Thermometer, ShieldCheck, Award, BarChart, BellDot, UserPlus, FlaskConical, ClipboardPlus, Users2Icon, AlertTriangle, CalendarClock, ClockIcon, ShieldAlert, FilePlus, Loader2 } from "lucide-react";
 import type { SimilarExposureGroup, IndustrialHygieneSample, MedicalTestRecord, WellnessProgram, MedicalTestWithCertStatus, MedicalTestPrefillData, IndustrialHygieneSampleAgent, MedicalTestRecordType } from "@/lib/types";
 import { SegForm } from "@/components/health-monitoring/seg-form";
 import { IhSampleForm } from "@/components/health-monitoring/ih-sample-form";
@@ -22,20 +22,21 @@ import { format, parseISO, isValid, differenceInDays, isBefore } from 'date-fns'
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { agentToMedicalTestMap } from '@/lib/health-config';
+import { useAuth } from '@/contexts/auth-context';
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-const SEGS_STORAGE_KEY = 'sheild-health-segs-v1';
-const IH_SAMPLES_STORAGE_KEY = 'sheild-health-ih-samples-v1';
-const MEDICAL_TESTS_STORAGE_KEY = 'sheild-health-medical-tests-v1';
-const WELLNESS_PROGRAMS_STORAGE_KEY = 'sheild-health-wellness-programs-v1';
+const SEGS_COLLECTION = 'similarExposureGroups';
+const IH_SAMPLES_COLLECTION = 'industrialHygieneSamples';
+const MEDICAL_TESTS_COLLECTION = 'medicalTestRecords';
+const WELLNESS_PROGRAMS_COLLECTION = 'wellnessPrograms';
 const CERT_EXPIRY_REMINDER_LEAD_DAYS = 30;
 
 export default function HealthMonitoringPage() {
   const { toast } = useToast();
-
-  const [segs, setSegs] = useState<SimilarExposureGroup[]>([]);
-  const [ihSamples, setIhSamples] = useState<IndustrialHygieneSample[]>([]);
-  const [medicalTests, setMedicalTests] = useState<MedicalTestRecord[]>([]);
-  const [wellnessPrograms, setWellnessPrograms] = useState<WellnessProgram[]>([]);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const [isSegFormOpen, setIsSegFormOpen] = useState(false);
   const [editingSeg, setEditingSeg] = useState<SimilarExposureGroup | null>(null);
@@ -47,117 +48,217 @@ export default function HealthMonitoringPage() {
 
   const [isMedicalTestFormOpen, setIsMedicalTestFormOpen] = useState(false);
   const [editingMedicalTest, setEditingMedicalTest] = useState<MedicalTestRecord | null>(null);
-  const [viewingMedicalTest, setViewingMedicalTest] = useState<MedicalTestRecord | null>(null);
+  const [viewingMedicalTest, setViewingMedicalTest] = useState<MedicalTestRecord | null>(null); // Was MedicalTestWithCertStatus, simplified for Firestore direct type
   const [medicalTestPrefillData, setMedicalTestPrefillData] = useState<MedicalTestPrefillData | null>(null);
-
 
   const [isWellnessProgramFormOpen, setIsWellnessProgramFormOpen] = useState(false);
   const [editingWellnessProgram, setEditingWellnessProgram] = useState<WellnessProgram | null>(null);
   const [viewingWellnessProgram, setViewingWellnessProgram] = useState<WellnessProgram | null>(null);
 
-  const loadAllHealthData = () => {
-    try {
-      const storedSegs = localStorage.getItem(SEGS_STORAGE_KEY);
-      setSegs(storedSegs ? JSON.parse(storedSegs) : []);
+  // Fetch SEGs
+  const { data: segs = [], isLoading: isLoadingSegs, error: segsError } = useQuery<SimilarExposureGroup[]>({
+    queryKey: [SEGS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, SEGS_COLLECTION), where("userId", "==", user.uid), orderBy("name"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SimilarExposureGroup));
+    },
+    enabled: !!user?.uid,
+  });
 
-      const storedIhSamples = localStorage.getItem(IH_SAMPLES_STORAGE_KEY);
-      setIhSamples(storedIhSamples ? JSON.parse(storedIhSamples) : []);
-
-      const storedMedicalTests = localStorage.getItem(MEDICAL_TESTS_STORAGE_KEY);
-      setMedicalTests(storedMedicalTests ? JSON.parse(storedMedicalTests) : []);
-
-      const storedWellnessPrograms = localStorage.getItem(WELLNESS_PROGRAMS_STORAGE_KEY);
-      setWellnessPrograms(storedWellnessPrograms ? JSON.parse(storedWellnessPrograms) : []);
-    } catch (error) {
-      console.error("Error loading health monitoring data:", error);
-      toast({ title: "Error", description: "Could not load health monitoring data.", variant: "destructive" });
-      setSegs([]); setIhSamples([]); setMedicalTests([]); setWellnessPrograms([]);
-    }
-  };
+  // Fetch IH Samples
+  const { data: ihSamples = [], isLoading: isLoadingIhSamples, error: ihSamplesError } = useQuery<IndustrialHygieneSample[]>({
+    queryKey: [IH_SAMPLES_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, IH_SAMPLES_COLLECTION), where("userId", "==", user.uid), orderBy("sampleDate", "desc"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { id: doc.id, ...data, sampleDate: (data.sampleDate as Timestamp)?.toDate().toISOString() } as IndustrialHygieneSample;
+      });
+    },
+    enabled: !!user?.uid,
+  });
   
-  useEffect(() => {
-    loadAllHealthData();
-    window.addEventListener('focus', loadAllHealthData);
-    return () => window.removeEventListener('focus', loadAllHealthData);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Fetch Medical Tests
+  const { data: medicalTests = [], isLoading: isLoadingMedicalTests, error: medicalTestsError } = useQuery<MedicalTestRecord[]>({
+    queryKey: [MEDICAL_TESTS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, MEDICAL_TESTS_COLLECTION), where("userId", "==", user.uid), orderBy("testDate", "desc"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, ...data, 
+          testDate: (data.testDate as Timestamp)?.toDate().toISOString(),
+          certificateExpiryDate: (data.certificateExpiryDate as Timestamp)?.toDate().toISOString() || null,
+        } as MedicalTestRecord;
+      });
+    },
+    enabled: !!user?.uid,
+  });
 
+  // Fetch Wellness Programs
+  const { data: wellnessPrograms = [], isLoading: isLoadingWellnessPrograms, error: wellnessProgramsError } = useQuery<WellnessProgram[]>({
+    queryKey: [WELLNESS_PROGRAMS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, WELLNESS_PROGRAMS_COLLECTION), where("userId", "==", user.uid), orderBy("startDate", "desc"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, ...data, 
+          startDate: (data.startDate as Timestamp)?.toDate().toISOString(),
+          endDate: (data.endDate as Timestamp)?.toDate().toISOString(),
+        } as WellnessProgram;
+      });
+    },
+    enabled: !!user?.uid,
+  });
 
-  // Save data
-  useEffect(() => { try { localStorage.setItem(SEGS_STORAGE_KEY, JSON.stringify(segs)); } catch (e) { console.error("Error saving SEGs"); } }, [segs]);
-  useEffect(() => { try { localStorage.setItem(IH_SAMPLES_STORAGE_KEY, JSON.stringify(ihSamples)); } catch (e) { console.error("Error saving IH Samples"); } }, [ihSamples]);
-  useEffect(() => { try { localStorage.setItem(MEDICAL_TESTS_STORAGE_KEY, JSON.stringify(medicalTests)); } catch (e) { console.error("Error saving Medical Tests"); } }, [medicalTests]);
-  useEffect(() => { try { localStorage.setItem(WELLNESS_PROGRAMS_STORAGE_KEY, JSON.stringify(wellnessPrograms)); } catch (e) { console.error("Error saving Wellness Programs"); } }, [wellnessPrograms]);
+  // SEG Mutations
+  const addSegMutation = useMutation({
+    mutationFn: (newSegData: Omit<SimilarExposureGroup, 'id' | 'userId'>) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      return addDoc(collection(db, SEGS_COLLECTION), { ...newSegData, userId: user.uid });
+    },
+    onSuccess: () => { queryClient.invalidateQueries({queryKey: [SEGS_COLLECTION, user?.uid]}); toast({title:"SEG Created"}); setIsSegFormOpen(false); setEditingSeg(null); },
+    onError: (e:Error) => toast({title:"Error Creating SEG", description: e.message, variant:"destructive"}),
+  });
+  const updateSegMutation = useMutation({
+    mutationFn: (segToUpdate: SimilarExposureGroup) => {
+      if (!user?.uid || !segToUpdate.id) throw new Error("Missing user or SEG ID.");
+      const { id, ...data } = segToUpdate;
+      return updateDoc(doc(db, SEGS_COLLECTION, id), {...data, userId: user.uid});
+    },
+    onSuccess: (_,vars) => { queryClient.invalidateQueries({queryKey: [SEGS_COLLECTION, user?.uid]}); toast({title:"SEG Updated", description:`SEG "${vars.name}" updated.`}); setIsSegFormOpen(false); setEditingSeg(null); },
+    onError: (e:Error) => toast({title:"Error Updating SEG", description: e.message, variant:"destructive"}),
+  });
+  const deleteSegMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      if (ihSamples.some(s => s.segId === id) || medicalTests.some(t => t.segId === id)) {
+        throw new Error("SEG linked to IH samples or medical tests. Reassign or delete them first.");
+      }
+      await deleteDoc(doc(db, SEGS_COLLECTION, id));
+    },
+    onSuccess: () => { queryClient.invalidateQueries({queryKey: [SEGS_COLLECTION, user?.uid]}); toast({title:"SEG Deleted"}); },
+    onError: (e:Error) => toast({title:"Error Deleting SEG", description: e.message, variant:"destructive", duration: 7000}),
+  });
 
-  // SEG Handlers
-  const handleSaveSeg = (data: Omit<SimilarExposureGroup, 'id'>) => {
-    const action = editingSeg ? "Updated" : "Created";
-    setSegs(prev => editingSeg ? prev.map(s => s.id === editingSeg.id ? { ...editingSeg, ...data } : s) : [{ id: crypto.randomUUID(), ...data }, ...prev]);
-    toast({ title: `SEG ${action}`, description: `Similar Exposure Group "${data.name}" ${action.toLowerCase()}.` });
-    setIsSegFormOpen(false); setEditingSeg(null);
-  };
-  const handleDeleteSeg = (id: string) => {
-    if (ihSamples.some(s => s.segId === id) || medicalTests.some(t => t.segId === id)) {
-      toast({ title: "Cannot Delete SEG", description: "This SEG is linked to IH samples or medical tests. Please reassign or delete them first.", variant: "destructive", duration: 7000 });
-      return;
-    }
-    setSegs(prev => prev.filter(s => s.id !== id));
-    toast({ title: "SEG Deleted" });
-  };
+  // IH Sample Mutations
+  const addIhSampleMutation = useMutation({
+    mutationFn: (newIhSampleData: Omit<IndustrialHygieneSample, 'id'|'userId'>) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      const dataForDb = { ...newIhSampleData, userId: user.uid, sampleDate: Timestamp.fromDate(parseISO(newIhSampleData.sampleDate as string)) };
+      return addDoc(collection(db, IH_SAMPLES_COLLECTION), dataForDb);
+    },
+    onSuccess: () => { queryClient.invalidateQueries({queryKey: [IH_SAMPLES_COLLECTION, user?.uid]}); toast({title:"IH Sample Logged"}); setIsIhSampleFormOpen(false); setEditingIhSample(null); },
+    onError: (e:Error) => toast({title:"Error Logging IH Sample", description: e.message, variant:"destructive"}),
+  });
+  const updateIhSampleMutation = useMutation({
+    mutationFn: (ihSampleToUpdate: IndustrialHygieneSample) => {
+      if (!user?.uid || !ihSampleToUpdate.id) throw new Error("Missing user or sample ID.");
+      const { id, ...data } = ihSampleToUpdate;
+      const dataForDb = { ...data, userId: user.uid, sampleDate: Timestamp.fromDate(parseISO(data.sampleDate as string)) };
+      return updateDoc(doc(db, IH_SAMPLES_COLLECTION, id), dataForDb);
+    },
+    onSuccess: (_,vars) => { queryClient.invalidateQueries({queryKey: [IH_SAMPLES_COLLECTION, user?.uid]}); toast({title:"IH Sample Updated", description:`Sample for "${vars.agent}" updated.`}); setIsIhSampleFormOpen(false); setEditingIhSample(null); },
+    onError: (e:Error) => toast({title:"Error Updating IH Sample", description: e.message, variant:"destructive"}),
+  });
+  const deleteIhSampleMutation = useMutation({
+    mutationFn: (id: string) => deleteDoc(doc(db, IH_SAMPLES_COLLECTION, id)),
+    onSuccess: () => { queryClient.invalidateQueries({queryKey: [IH_SAMPLES_COLLECTION, user?.uid]}); toast({title:"IH Sample Deleted"}); },
+    onError: (e:Error) => toast({title:"Error Deleting IH Sample", description: e.message, variant:"destructive"}),
+  });
 
-  // IH Sample Handlers
-  const handleSaveIhSample = (data: Omit<IndustrialHygieneSample, 'id'>) => {
-    const action = editingIhSample ? "Updated" : "Created";
-    setIhSamples(prev => editingIhSample ? prev.map(s => s.id === editingIhSample.id ? { ...editingIhSample, ...data } : s) : [{ id: crypto.randomUUID(), ...data }, ...prev]);
-    toast({ title: `IH Sample ${action}`, description: `Sample for "${data.agent}" ${action.toLowerCase()}.` });
-    setIsIhSampleFormOpen(false); setEditingIhSample(null);
-  };
-  const handleDeleteIhSample = (id: string) => { setIhSamples(prev => prev.filter(s => s.id !== id)); toast({ title: "IH Sample Deleted" }); };
+  // Medical Test Mutations
+  const addMedicalTestMutation = useMutation({
+    mutationFn: (newMedicalTestData: Omit<MedicalTestRecord, 'id'|'userId'>) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      const dataForDb = { ...newMedicalTestData, userId: user.uid, 
+        testDate: Timestamp.fromDate(parseISO(newMedicalTestData.testDate as string)),
+        certificateExpiryDate: newMedicalTestData.certificateExpiryDate ? Timestamp.fromDate(parseISO(newMedicalTestData.certificateExpiryDate as string)) : null,
+      };
+      return addDoc(collection(db, MEDICAL_TESTS_COLLECTION), dataForDb);
+    },
+    onSuccess: () => { queryClient.invalidateQueries({queryKey: [MEDICAL_TESTS_COLLECTION, user?.uid]}); toast({title:"Medical Test Logged"}); setIsMedicalTestFormOpen(false); setEditingMedicalTest(null); setMedicalTestPrefillData(null);},
+    onError: (e:Error) => toast({title:"Error Logging Medical Test", description: e.message, variant:"destructive"}),
+  });
+  const updateMedicalTestMutation = useMutation({
+    mutationFn: (medicalTestToUpdate: MedicalTestRecord) => {
+      if (!user?.uid || !medicalTestToUpdate.id) throw new Error("Missing user or test ID.");
+      const { id, ...data } = medicalTestToUpdate;
+      const dataForDb = { ...data, userId: user.uid, 
+        testDate: Timestamp.fromDate(parseISO(data.testDate as string)),
+        certificateExpiryDate: data.certificateExpiryDate ? Timestamp.fromDate(parseISO(data.certificateExpiryDate as string)) : null,
+      };
+      return updateDoc(doc(db, MEDICAL_TESTS_COLLECTION, id), dataForDb);
+    },
+    onSuccess: (_,vars) => { queryClient.invalidateQueries({queryKey: [MEDICAL_TESTS_COLLECTION, user?.uid]}); toast({title:"Medical Test Updated", description:`Test for "${vars.employeeName}" updated.`}); setIsMedicalTestFormOpen(false); setEditingMedicalTest(null); setMedicalTestPrefillData(null);},
+    onError: (e:Error) => toast({title:"Error Updating Medical Test", description: e.message, variant:"destructive"}),
+  });
+  const deleteMedicalTestMutation = useMutation({
+    mutationFn: (id: string) => deleteDoc(doc(db, MEDICAL_TESTS_COLLECTION, id)),
+    onSuccess: () => { queryClient.invalidateQueries({queryKey: [MEDICAL_TESTS_COLLECTION, user?.uid]}); toast({title:"Medical Test Deleted"});},
+    onError: (e:Error) => toast({title:"Error Deleting Medical Test", description: e.message, variant:"destructive"}),
+  });
 
-  // Medical Test Handlers
-  const handleSaveMedicalTest = (data: Omit<MedicalTestRecord, 'id'>) => {
-    const action = editingMedicalTest || medicalTestPrefillData ? "Updated" : "Created";
-    const idToUpdate = editingMedicalTest ? editingMedicalTest.id : medicalTestPrefillData ? crypto.randomUUID() : crypto.randomUUID();
-    
-    setMedicalTests(prev => {
-        const existingIndex = prev.findIndex(t => t.id === idToUpdate);
-        if (existingIndex > -1 && (editingMedicalTest || medicalTestPrefillData && !editingMedicalTest) ) { // Update existing or "create from prefill" if an ID matched (unlikely for prefill unless ID collision)
-            return prev.map(t => t.id === idToUpdate ? { ...t, ...data, id: idToUpdate } : t);
-        } else { // Create new
-             return [{ id: idToUpdate, ...data }, ...prev];
-        }
-    });
+  // Wellness Program Mutations
+  const addWellnessProgramMutation = useMutation({
+    mutationFn: (newProgramData: Omit<WellnessProgram, 'id'|'userId'>) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      const dataForDb = { ...newProgramData, userId: user.uid,
+        startDate: Timestamp.fromDate(parseISO(newProgramData.startDate as string)),
+        endDate: newProgramData.endDate ? Timestamp.fromDate(parseISO(newProgramData.endDate as string)) : null,
+      };
+      return addDoc(collection(db, WELLNESS_PROGRAMS_COLLECTION), dataForDb);
+    },
+    onSuccess: () => { queryClient.invalidateQueries({queryKey: [WELLNESS_PROGRAMS_COLLECTION, user?.uid]}); toast({title:"Wellness Program Added"}); setIsWellnessProgramFormOpen(false); setEditingWellnessProgram(null);},
+    onError: (e:Error) => toast({title:"Error Adding Wellness Program", description: e.message, variant:"destructive"}),
+  });
+  const updateWellnessProgramMutation = useMutation({
+    mutationFn: (programToUpdate: WellnessProgram) => {
+      if (!user?.uid || !programToUpdate.id) throw new Error("Missing user or program ID.");
+      const { id, ...data } = programToUpdate;
+      const dataForDb = { ...data, userId: user.uid,
+        startDate: Timestamp.fromDate(parseISO(data.startDate as string)),
+        endDate: data.endDate ? Timestamp.fromDate(parseISO(data.endDate as string)) : null,
+      };
+      return updateDoc(doc(db, WELLNESS_PROGRAMS_COLLECTION, id), dataForDb);
+    },
+    onSuccess: (_,vars) => { queryClient.invalidateQueries({queryKey: [WELLNESS_PROGRAMS_COLLECTION, user?.uid]}); toast({title:"Wellness Program Updated", description:`Program "${vars.programName}" updated.`}); setIsWellnessProgramFormOpen(false); setEditingWellnessProgram(null);},
+    onError: (e:Error) => toast({title:"Error Updating Wellness Program", description: e.message, variant:"destructive"}),
+  });
+  const deleteWellnessProgramMutation = useMutation({
+    mutationFn: (id: string) => deleteDoc(doc(db, WELLNESS_PROGRAMS_COLLECTION, id)),
+    onSuccess: () => { queryClient.invalidateQueries({queryKey: [WELLNESS_PROGRAMS_COLLECTION, user?.uid]}); toast({title:"Wellness Program Deleted"});},
+    onError: (e:Error) => toast({title:"Error Deleting Wellness Program", description: e.message, variant:"destructive"}),
+  });
 
-    toast({ title: `Medical Test ${action}`, description: `Test for "${data.employeeName}" (${data.testType}) ${action.toLowerCase()}.` });
-    setIsMedicalTestFormOpen(false); 
-    setEditingMedicalTest(null);
-    setMedicalTestPrefillData(null);
-  };
-  const handleDeleteMedicalTest = (id: string) => { setMedicalTests(prev => prev.filter(t => t.id !== id)); toast({ title: "Medical Test Deleted" }); };
+  // Handlers
+  const handleSaveSeg = (data: Omit<SimilarExposureGroup, 'id'|'userId'>) => editingSeg ? updateSegMutation.mutate({ ...editingSeg, ...data }) : addSegMutation.mutate(data);
+  const handleDeleteSeg = (id: string) => deleteSegMutation.mutate(id);
+  const handleSaveIhSample = (data: Omit<IndustrialHygieneSample, 'id'|'userId'>) => editingIhSample ? updateIhSampleMutation.mutate({ ...editingIhSample, ...data }) : addIhSampleMutation.mutate(data);
+  const handleDeleteIhSample = (id: string) => deleteIhSampleMutation.mutate(id);
+  const handleSaveMedicalTest = (data: Omit<MedicalTestRecord, 'id'|'userId'>) => editingMedicalTest ? updateMedicalTestMutation.mutate({ ...editingMedicalTest, ...data }) : addMedicalTestMutation.mutate(data);
+  const handleDeleteMedicalTest = (id: string) => deleteMedicalTestMutation.mutate(id);
+  const handleSaveWellnessProgram = (data: Omit<WellnessProgram, 'id'|'userId'>) => editingWellnessProgram ? updateWellnessProgramMutation.mutate({ ...editingWellnessProgram, ...data }) : addWellnessProgramMutation.mutate(data);
+  const handleDeleteWellnessProgram = (id: string) => deleteWellnessProgramMutation.mutate(id);
   
   const handleOpenMedicalTestFormWithPrefill = (sample: IndustrialHygieneSample) => {
-      const suggestedTestType = agentToMedicalTestMap[sample.agent] || undefined;
-      const prefill: MedicalTestPrefillData = {
-        employeeName: sample.employeeName,
-        segId: sample.segId,
-        linkedExposure: `From IH Sample ${sample.id}: ${sample.agent}${sample.specificAgentName ? ` (${sample.specificAgentName})` : ''} at ${sample.exposureLevel} ${sample.units} on ${format(parseISO(sample.sampleDate), "PPP")}. OEL: ${sample.oel ?? 'N/A'} ${sample.oelUnits || sample.units}.`,
-        testType: suggestedTestType,
-      };
-      setMedicalTestPrefillData(prefill);
-      setEditingMedicalTest(null); // Ensure we are creating a new record
-      setViewingIhSample(null); // Close IH Sample dialog
-      setIsMedicalTestFormOpen(true);
+    const suggestedTestType = agentToMedicalTestMap[sample.agent] || undefined;
+    const prefill: MedicalTestPrefillData = {
+      employeeName: sample.employeeName, segId: sample.segId,
+      linkedExposure: `From IH Sample ${sample.id}: ${sample.agent}${sample.specificAgentName ? ` (${sample.specificAgentName})` : ''} at ${sample.exposureLevel} ${sample.units} on ${format(parseISO(sample.sampleDate), "PPP")}. OEL: ${sample.oel ?? 'N/A'} ${sample.oelUnits || sample.units}.`,
+      testType: suggestedTestType,
+    };
+    setMedicalTestPrefillData(prefill); setEditingMedicalTest(null); setViewingIhSample(null); setIsMedicalTestFormOpen(true);
   };
-
-
-  // Wellness Program Handlers
-  const handleSaveWellnessProgram = (data: Omit<WellnessProgram, 'id'>) => {
-    const action = editingWellnessProgram ? "Updated" : "Created";
-    setWellnessPrograms(prev => editingWellnessProgram ? prev.map(p => p.id === editingWellnessProgram.id ? { ...editingWellnessProgram, ...data } : p) : [{ id: crypto.randomUUID(), ...data }, ...prev]);
-    toast({ title: `Wellness Program ${action}`, description: `Program "${data.programName}" ${action.toLowerCase()}.` });
-    setIsWellnessProgramFormOpen(false); setEditingWellnessProgram(null);
-  };
-  const handleDeleteWellnessProgram = (id: string) => { setWellnessPrograms(prev => prev.filter(p => p.id !== id)); toast({ title: "Wellness Program Deleted" }); };
   
   const getSegName = (segId?: string) => segs.find(s => s.id === segId)?.name || "N/A";
 
@@ -166,53 +267,23 @@ export default function HealthMonitoringPage() {
       let certificateStatus: MedicalTestWithCertStatus['certificateStatus'] = 'N/A';
       if (test.certificateExpiryDate && isValid(parseISO(test.certificateExpiryDate))) {
         const expiry = parseISO(test.certificateExpiryDate);
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        if (isBefore(expiry, today)) {
-          certificateStatus = 'Expired';
-        } else if (differenceInDays(expiry, today) <= CERT_EXPIRY_REMINDER_LEAD_DAYS) {
-          certificateStatus = 'Expiring Soon';
-        } else {
-          certificateStatus = 'Valid';
-        }
+        const today = new Date(); today.setHours(0,0,0,0);
+        if (isBefore(expiry, today)) certificateStatus = 'Expired';
+        else if (differenceInDays(expiry, today) <= CERT_EXPIRY_REMINDER_LEAD_DAYS) certificateStatus = 'Expiring Soon';
+        else certificateStatus = 'Valid';
       }
       return { ...test, certificateStatus };
-    }).sort((a,b) => { // Sort by status: Expired, Expiring Soon, then by date
+    }).sort((a,b) => {
         const statusOrder = { 'Expired': 1, 'Expiring Soon': 2, 'Valid': 3, 'N/A': 4};
         const aStatusVal = statusOrder[a.certificateStatus || 'N/A'] || 5;
         const bStatusVal = statusOrder[b.certificateStatus || 'N/A'] || 5;
         if(aStatusVal !== bStatusVal) return aStatusVal - bStatusVal;
         if(a.certificateExpiryDate && b.certificateExpiryDate) return parseISO(a.certificateExpiryDate).getTime() - parseISO(b.certificateExpiryDate).getTime();
-        if(a.certificateExpiryDate) return -1;
-        if(b.certificateExpiryDate) return 1;
-        return parseISO(b.testDate).getTime() - parseISO(a.testDate).getTime();
+        return a.certificateExpiryDate ? -1 : b.certificateExpiryDate ? 1 : parseISO(b.testDate).getTime() - parseISO(a.testDate).getTime();
     });
   }, [medicalTests]);
 
-  const upcomingOrOverdueCerts = useMemo(() => {
-    return medicalTestsWithCertStatus.filter(test => test.certificateStatus === 'Expired' || test.certificateStatus === 'Expiring Soon');
-  }, [medicalTestsWithCertStatus]);
-
-  useEffect(() => {
-    if (upcomingOrOverdueCerts.length > 0) {
-      const overdueCount = upcomingOrOverdueCerts.filter(item => item.certificateStatus === 'Expired').length;
-      const dueSoonCount = upcomingOrOverdueCerts.filter(item => item.certificateStatus === 'Expiring Soon').length;
-      
-      let messages: string[] = [];
-      if (overdueCount > 0) messages.push(`${overdueCount} certificate(s) expired`);
-      if (dueSoonCount > 0) messages.push(`${dueSoonCount} certificate(s) expiring soon`);
-
-      if (messages.length > 0) {
-        toast({
-          title: "Medical Certificate Reminders",
-          description: `${messages.join(', ')}. Check 'Upcoming/Overdue Certificate Expiries'.`,
-          variant: overdueCount > 0 ? "destructive" : "default", 
-          duration: 10000,
-        });
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [upcomingOrOverdueCerts]); // Removed toast from deps as it's stable
+  const upcomingOrOverdueCerts = useMemo(() => medicalTestsWithCertStatus.filter(test => test.certificateStatus === 'Expired' || test.certificateStatus === 'Expiring Soon'), [medicalTestsWithCertStatus]);
 
   const getCertStatusStyling = (status?: MedicalTestWithCertStatus['certificateStatus']) => {
     if (!status || status === 'N/A') return { textClass: 'text-muted-foreground', bgClass: 'bg-muted/50' };
@@ -223,257 +294,65 @@ export default function HealthMonitoringPage() {
       default: return { textClass: 'text-muted-foreground', bgClass: 'bg-muted/50' };
     }
   };
+  
+  const isLoading = isLoadingSegs || isLoadingIhSamples || isLoadingMedicalTests || isLoadingWellnessPrograms;
+  const anyError = segsError || ihSamplesError || medicalTestsError || wellnessProgramsError;
 
+  if (isLoading) return (<div className="flex justify-center items-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" /><p className="ml-3 text-lg text-muted-foreground">Loading health data...</p></div>);
+  if (anyError) return <div className="text-red-500 text-center py-10">Error loading data: {anyError.message}</div>;
 
   return (
     <div className="space-y-8">
       <Card className="shadow-lg overflow-hidden">
         <div className="relative h-60 w-full">
-            <Image 
-                src="https://placehold.co/1200x400.png" 
-                alt="Health data charts and graphs" 
-                layout="fill" 
-                objectFit="cover"
-                data-ai-hint="health dashboard"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-0 left-0 p-6">
-                <h1 className="text-3xl font-bold tracking-tight font-headline text-white">Proactive Health Management</h1>
-                <p className="text-sm text-neutral-300">Monitor occupational health, exposure data, medical screenings, and wellness initiatives.</p>
-            </div>
+            <Image src="https://placehold.co/1200x400.png" alt="Health data charts" layout="fill" objectFit="cover" data-ai-hint="health dashboard"/>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" /><div className="absolute bottom-0 left-0 p-6"><h1 className="text-3xl font-bold tracking-tight font-headline text-white">Proactive Health Management</h1><p className="text-sm text-neutral-300">Monitor occupational health, exposure data, medical screenings, and wellness. Data in Firestore.</p></div>
         </div>
-        <CardContent className="pt-6">
-            <p className="text-muted-foreground">
-                This module facilitates the management of Similar Exposure Groups (SEGs), industrial hygiene sampling data (including OEL tracking), comprehensive medical test/screening records (including purpose, fitness-to-work, certificate expiry, linked exposures, and auto-suggestions for follow-up), and employee wellness programs. 
-                All data is stored locally in your browser.
-            </p>
-        </CardContent>
+        <CardContent className="pt-6"><p className="text-muted-foreground">This module facilitates health monitoring including SEGs, IH sampling, medical tests, and wellness programs. Data is stored in Firebase Firestore.</p></CardContent>
       </Card>
       
-      {/* Upcoming/Overdue Certificate Expiries Card */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><CalendarClock className="h-6 w-6 text-orange-500"/>Upcoming/Overdue Certificate Expiries</CardTitle>
-          <CardDescription>Medical test certificates requiring attention. Records are sorted by urgency.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {upcomingOrOverdueCerts.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">No medical certificates currently due or overdue for renewal.</p>
-          ) : (
-            <ScrollArea className="max-h-[300px] pr-3">
-              <div className="space-y-3">
-                {upcomingOrOverdueCerts.map(test => {
-                  const { textClass } = getCertStatusStyling(test.certificateStatus);
-                  return (
-                  <Card key={`due-cert-${test.id}`} className={`p-3 shadow-sm border-l-4 ${test.certificateStatus === 'Expired' ? 'border-red-500' : 'border-yellow-500'}`}>
-                    <div className="flex flex-col sm:flex-row justify-between items-start">
-                      <div className="mb-1 sm:mb-0">
-                        <h4 className="font-semibold text-md">{test.employeeName} - {test.testType}</h4>
-                        <p className={`text-xs font-semibold ${textClass}`}>
-                          Status: {test.certificateStatus}
-                          {test.certificateExpiryDate && ` (Expires: ${format(parseISO(test.certificateExpiryDate), "PPP")})`}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Test Date: {format(parseISO(test.testDate), "PPP")}</p>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={() => { setViewingMedicalTest(test); }}>
-                         View Record
-                      </Button>
-                    </div>
-                  </Card>
-                )})}
-              </div>
-            </ScrollArea>
-          )}
-        </CardContent>
+        <CardHeader><CardTitle className="flex items-center gap-2"><CalendarClock className="h-6 w-6 text-orange-500"/>Upcoming/Overdue Certificate Expiries</CardTitle><CardDescription>Medical test certificates requiring attention.</CardDescription></CardHeader>
+        <CardContent>{upcomingOrOverdueCerts.length === 0 ? <p className="text-muted-foreground text-center py-4">No certificates currently due or overdue.</p> : (
+            <ScrollArea className="max-h-[300px] pr-3"><div className="space-y-3">{upcomingOrOverdueCerts.map(test => { const { textClass } = getCertStatusStyling(test.certificateStatus); return (
+              <Card key={`due-cert-${test.id}`} className={`p-3 shadow-sm border-l-4 ${test.certificateStatus === 'Expired' ? 'border-red-500' : 'border-yellow-500'}`}><div className="flex flex-col sm:flex-row justify-between items-start"><div className="mb-1 sm:mb-0"><h4 className="font-semibold text-md">{test.employeeName} - {test.testType}</h4><p className={`text-xs font-semibold ${textClass}`}>Status: {test.certificateStatus}{test.certificateExpiryDate && ` (Expires: ${format(parseISO(test.certificateExpiryDate), "PPP")})`}</p><p className="text-xs text-muted-foreground">Test Date: {format(parseISO(test.testDate), "PPP")}</p></div><Button variant="outline" size="sm" onClick={() => setViewingMedicalTest(test)}>View Record</Button></div></Card>
+            )})}</div></ScrollArea>
+        )}</CardContent>
       </Card>
       <Separator/>
 
-
-      {/* Similar Exposure Groups (SEGs) */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-primary"/>Similar Exposure Groups (SEGs)</CardTitle>
-            <CardDescription>Define and manage groups of employees with similar exposure profiles. Click 'Add New SEG' to start grouping employees by exposure.</CardDescription>
-          </div>
-          <Button onClick={() => { setEditingSeg(null); setIsSegFormOpen(true); }} className="bg-primary hover:bg-primary/90">
-            <UserPlus className="mr-2 h-4 w-4" /> Add New SEG
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {segs.length === 0 ? <p className="text-muted-foreground text-center py-4">No SEGs defined yet.</p> : (
-            <ScrollArea className="max-h-[300px] pr-3"><div className="space-y-3">
-              {segs.map(seg => (
-                <Card key={seg.id} className="p-3 shadow-sm"><div className="flex justify-between items-start">
-                  <div><h4 className="font-semibold">{seg.name}</h4><p className="text-xs text-muted-foreground truncate max-w-md">{seg.description || "No description"}</p></div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button variant="outline" size="sm" onClick={() => setViewingSeg(seg)}><Eye className="h-3 w-3"/></Button>
-                    <Button variant="secondary" size="sm" onClick={() => { setEditingSeg(seg); setIsSegFormOpen(true);}}><Edit2 className="h-3 w-3"/></Button>
-                    <AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger>
-                      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete SEG "{seg.name}"?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. Ensure this SEG is not linked to other records.</AlertDialogDescription></AlertDialogHeader>
-                      <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteSeg(seg.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                    </AlertDialog>
-                  </div></div></Card>
-              ))}
-            </div></ScrollArea>
-          )}
-        </CardContent>
+        <CardHeader className="flex flex-row items-center justify-between"><div><CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-primary"/>Similar Exposure Groups (SEGs)</CardTitle><CardDescription>Define and manage groups of employees with similar exposure profiles.</CardDescription></div><Button onClick={() => { setEditingSeg(null); setIsSegFormOpen(true); }} className="bg-primary hover:bg-primary/90" disabled={addSegMutation.isPending || updateSegMutation.isPending}><UserPlus className="mr-2 h-4 w-4" />Add SEG</Button></CardHeader>
+        <CardContent>{segs.length === 0 ? <p className="text-muted-foreground text-center py-4">No SEGs defined.</p> : (<ScrollArea className="max-h-[300px] pr-3"><div className="space-y-3">{segs.map(seg => (<Card key={seg.id} className="p-3 shadow-sm"><div className="flex justify-between items-start"><div><h4 className="font-semibold">{seg.name}</h4><p className="text-xs text-muted-foreground truncate max-w-md">{seg.description || "No description"}</p></div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingSeg(seg)}><Eye className="h-3 w-3"/></Button><Button variant="secondary" size="sm" onClick={() => { setEditingSeg(seg); setIsSegFormOpen(true);}} disabled={updateSegMutation.isPending}><Edit2 className="h-3 w-3"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteSegMutation.isPending}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete SEG?</AlertDialogTitle><AlertDialogDescription>Delete "{seg.name}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteSeg(seg.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>))}</div></ScrollArea>)}</CardContent>
       </Card>
       {isSegFormOpen && <Dialog open={isSegFormOpen} onOpenChange={setIsSegFormOpen}><SegForm initialData={editingSeg} onSave={handleSaveSeg} onCancel={() => setIsSegFormOpen(false)} /></Dialog>}
       {viewingSeg && <SegDetailsDialog seg={viewingSeg} onClose={() => setViewingSeg(null)} />}
-
       <Separator/>
 
-      {/* Industrial Hygiene (IH) Sampling Records */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2"><FlaskConical className="h-6 w-6 text-accent"/>Industrial Hygiene Sampling</CardTitle>
-            <CardDescription>Log and track exposure monitoring data, including OELs. Click 'Log New IH Sample' to record exposure data.</CardDescription>
-          </div>
-          <Button onClick={() => { setEditingIhSample(null); setIsIhSampleFormOpen(true); }} className="bg-accent hover:bg-accent/90">
-            <FilePlus className="mr-2 h-4 w-4" /> Log New IH Sample
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {ihSamples.length === 0 ? <p className="text-muted-foreground text-center py-4">No IH samples logged yet.</p> : (
-            <ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">
-              {ihSamples.map(sample => (
-                <Card key={sample.id} className={`p-3 shadow-sm ${sample.oel !== undefined && sample.exposureLevel > sample.oel ? 'border-l-4 border-red-500' : ''}`}><div className="flex justify-between items-start">
-                  <div><h4 className="font-semibold">{sample.agent}{sample.specificAgentName ? ` (${sample.specificAgentName})` : ''} - {format(parseISO(sample.sampleDate), "PPP")}</h4>
-                  <p className="text-xs text-muted-foreground">Level: {sample.exposureLevel} {sample.units} {sample.oel !== undefined && `(OEL: ${sample.oel} ${sample.oelUnits || sample.units})`} | Location: {sample.location} | SEG: {getSegName(sample.segId)}</p>
-                   {sample.oel !== undefined && sample.exposureLevel > sample.oel && <p className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertTriangle className="h-3 w-3"/>EXPOSURE EXCEEDS OEL!</p>}
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button variant="outline" size="sm" onClick={() => setViewingIhSample(sample)}><Eye className="h-3 w-3"/></Button>
-                    <Button variant="secondary" size="sm" onClick={() => { setEditingIhSample(sample); setIsIhSampleFormOpen(true);}}><Edit2 className="h-3 w-3"/></Button>
-                    <AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger>
-                      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete IH Sample?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                      <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteIhSample(sample.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                    </AlertDialog>
-                </div></div></Card>
-              ))}
-            </div></ScrollArea>
-          )}
-        </CardContent>
+        <CardHeader className="flex flex-row items-center justify-between"><div><CardTitle className="flex items-center gap-2"><FlaskConical className="h-6 w-6 text-accent"/>Industrial Hygiene Sampling</CardTitle><CardDescription>Log and track exposure monitoring data.</CardDescription></div><Button onClick={() => { setEditingIhSample(null); setIsIhSampleFormOpen(true); }} className="bg-accent hover:bg-accent/90" disabled={addIhSampleMutation.isPending || updateIhSampleMutation.isPending}><FilePlus className="mr-2 h-4 w-4" />Log IH Sample</Button></CardHeader>
+        <CardContent>{ihSamples.length === 0 ? <p className="text-muted-foreground text-center py-4">No IH samples logged.</p> : (<ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">{ihSamples.map(sample => (<Card key={sample.id} className={`p-3 shadow-sm ${sample.oel !== undefined && sample.exposureLevel > sample.oel ? 'border-l-4 border-red-500' : ''}`}><div className="flex justify-between items-start"><div><h4 className="font-semibold">{sample.agent}{sample.specificAgentName ? ` (${sample.specificAgentName})` : ''} - {format(parseISO(sample.sampleDate), "PPP")}</h4><p className="text-xs text-muted-foreground">Level: {sample.exposureLevel} {sample.units} {sample.oel !== undefined && `(OEL: ${sample.oel} ${sample.oelUnits || sample.units})`} | SEG: {getSegName(sample.segId)}</p>{sample.oel !== undefined && sample.exposureLevel > sample.oel && <p className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertTriangle className="h-3 w-3"/>EXPOSURE EXCEEDS OEL!</p>}</div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingIhSample(sample)}><Eye className="h-3 w-3"/></Button><Button variant="secondary" size="sm" onClick={() => { setEditingIhSample(sample); setIsIhSampleFormOpen(true);}} disabled={updateIhSampleMutation.isPending}><Edit2 className="h-3 w-3"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteIhSampleMutation.isPending}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete IH Sample?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteIhSample(sample.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>))}</div></ScrollArea>)}</CardContent>
       </Card>
       {isIhSampleFormOpen && <Dialog open={isIhSampleFormOpen} onOpenChange={setIsIhSampleFormOpen}><IhSampleForm segs={segs} initialData={editingIhSample} onSave={handleSaveIhSample} onCancel={() => setIsIhSampleFormOpen(false)} /></Dialog>}
       {viewingIhSample && <IhSampleDetailsDialog sample={viewingIhSample} segName={getSegName(viewingIhSample.segId)} onClose={() => setViewingIhSample(null)} onLogMedicalTest={handleOpenMedicalTestFormWithPrefill}/>}
-      
       <Separator/>
 
-      {/* Medical Test Records */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2"><ClipboardPlus className="h-6 w-6 text-teal-500"/>Medical Test & Screening Records</CardTitle>
-            <CardDescription>Track employee medical tests, screenings, fitness-to-work status, certificate expiries, and reference ranges. Click 'Log New Medical Record' to add.</CardDescription>
-          </div>
-          <Button onClick={() => { setEditingMedicalTest(null); setMedicalTestPrefillData(null); setIsMedicalTestFormOpen(true); }} className="bg-teal-500 hover:bg-teal-600 text-white">
-            <FilePlus className="mr-2 h-4 w-4" /> Log New Medical Record
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {medicalTestsWithCertStatus.length === 0 ? <p className="text-muted-foreground text-center py-4">No medical records logged yet.</p> : (
-            <ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">
-              {medicalTestsWithCertStatus.map(test => {
-                 const { textClass, bgClass } = getCertStatusStyling(test.certificateStatus);
-                 return (
-                <Card key={test.id} className={`p-3 shadow-sm ${test.certificateStatus === 'Expired' ? 'border-l-4 border-red-500' : test.certificateStatus === 'Expiring Soon' ? 'border-l-4 border-yellow-500' : '' }`}>
-                  <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-semibold">{test.employeeName} - {test.testType}{test.specificTestName ? ` (${test.specificTestName})` : ''}</h4>
-                    <p className="text-xs text-muted-foreground">Date: {format(parseISO(test.testDate), "PPP")} | Fit to Work: {test.isFitForWork === undefined ? 'N/A' : test.isFitForWork ? 'Yes' : 'No'}</p>
-                    {test.screeningPurpose && <p className="text-xs text-muted-foreground">Purpose: {test.screeningPurpose}</p>}
-                    {test.certificateExpiryDate && (<p className={`text-xs flex items-center gap-1 ${textClass}`}>
-                        <ClockIcon className="h-3 w-3"/>Cert. Expiry: {format(parseISO(test.certificateExpiryDate), "PPP")} {test.certificateStatus && test.certificateStatus !== 'N/A' && 
-                          <span className={`px-1.5 py-0.5 rounded-full text-xs ${bgClass}`}>{test.certificateStatus}</span>
-                        }
-                        </p>
-                    )}
-                    {test.followUpRequired && <p className="text-xs text-yellow-600 font-semibold flex items-center gap-1"><AlertTriangle className="h-3 w-3"/>Follow-up Required</p>}
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button variant="outline" size="sm" onClick={() => setViewingMedicalTest(test)}><Eye className="h-3 w-3"/></Button>
-                    <Button variant="secondary" size="sm" onClick={() => { setEditingMedicalTest(test); setMedicalTestPrefillData(null); setIsMedicalTestFormOpen(true);}}><Edit2 className="h-3 w-3"/></Button>
-                    <AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger>
-                      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Medical Test Record?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                      <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteMedicalTest(test.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                    </AlertDialog>
-                </div></div></Card>
-              )})}
-            </div></ScrollArea>
-          )}
-        </CardContent>
+        <CardHeader className="flex flex-row items-center justify-between"><div><CardTitle className="flex items-center gap-2"><ClipboardPlus className="h-6 w-6 text-teal-500"/>Medical Test & Screening Records</CardTitle><CardDescription>Track employee medical tests and certificate expiries.</CardDescription></div><Button onClick={() => { setEditingMedicalTest(null); setMedicalTestPrefillData(null); setIsMedicalTestFormOpen(true); }} className="bg-teal-500 hover:bg-teal-600 text-white" disabled={addMedicalTestMutation.isPending || updateMedicalTestMutation.isPending}><FilePlus className="mr-2 h-4 w-4" />Log Medical Record</Button></CardHeader>
+        <CardContent>{medicalTestsWithCertStatus.length === 0 ? <p className="text-muted-foreground text-center py-4">No medical records logged.</p> : (<ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">{medicalTestsWithCertStatus.map(test => { const { textClass, bgClass } = getCertStatusStyling(test.certificateStatus); return (<Card key={test.id} className={`p-3 shadow-sm ${test.certificateStatus === 'Expired' ? 'border-l-4 border-red-500' : test.certificateStatus === 'Expiring Soon' ? 'border-l-4 border-yellow-500' : '' }`}><div className="flex justify-between items-start"><div><h4 className="font-semibold">{test.employeeName} - {test.testType}{test.specificTestName ? ` (${test.specificTestName})` : ''}</h4><p className="text-xs text-muted-foreground">Date: {format(parseISO(test.testDate), "PPP")} | Fit: {test.isFitForWork === undefined ? 'N/A' : test.isFitForWork ? 'Yes' : 'No'}</p>{test.certificateExpiryDate && (<p className={`text-xs flex items-center gap-1 ${textClass}`}><ClockIcon className="h-3 w-3"/>Cert. Expiry: {format(parseISO(test.certificateExpiryDate), "PPP")} {test.certificateStatus && test.certificateStatus !== 'N/A' && <span className={`px-1.5 py-0.5 rounded-full text-xs ${bgClass}`}>{test.certificateStatus}</span>}</p>)}{test.followUpRequired && <p className="text-xs text-yellow-600 font-semibold flex items-center gap-1"><AlertTriangle className="h-3 w-3"/>Follow-up Required</p>}</div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingMedicalTest(test)}><Eye className="h-3 w-3"/></Button><Button variant="secondary" size="sm" onClick={() => { setEditingMedicalTest(test); setMedicalTestPrefillData(null); setIsMedicalTestFormOpen(true);}} disabled={updateMedicalTestMutation.isPending}><Edit2 className="h-3 w-3"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteMedicalTestMutation.isPending}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Medical Test Record?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteMedicalTest(test.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>)})}</div></ScrollArea>)}</CardContent>
       </Card>
       {isMedicalTestFormOpen && <Dialog open={isMedicalTestFormOpen} onOpenChange={(isOpen) => {if (!isOpen) { setIsMedicalTestFormOpen(false); setEditingMedicalTest(null); setMedicalTestPrefillData(null);}}}><MedicalTestForm segs={segs} initialData={editingMedicalTest || medicalTestPrefillData} isEditing={!!editingMedicalTest} onSave={handleSaveMedicalTest} onCancel={() => { setIsMedicalTestFormOpen(false); setEditingMedicalTest(null); setMedicalTestPrefillData(null);}} /></Dialog>}
       {viewingMedicalTest && <MedicalTestDetailsDialog record={viewingMedicalTest} segName={getSegName(viewingMedicalTest.segId)} onClose={() => setViewingMedicalTest(null)} />}
-      
       <Separator/>
 
-      {/* Wellness Programs */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2"><Users2Icon className="h-6 w-6 text-purple-500"/>Employee Wellness Programs</CardTitle>
-            <CardDescription>Manage and track participation in wellness initiatives and their engagement. Click 'Add Wellness Program' to create one.</CardDescription>
-          </div>
-          <Button onClick={() => { setEditingWellnessProgram(null); setIsWellnessProgramFormOpen(true); }} className="bg-purple-500 hover:bg-purple-600 text-white">
-            <Award className="mr-2 h-4 w-4" /> Add Wellness Program
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {wellnessPrograms.length === 0 ? <p className="text-muted-foreground text-center py-4">No wellness programs defined yet.</p> : (
-            <ScrollArea className="max-h-[300px] pr-3"><div className="space-y-3">
-              {wellnessPrograms.map(program => (
-                <Card key={program.id} className="p-3 shadow-sm"><div className="flex justify-between items-start">
-                  <div><h4 className="font-semibold">{program.programName}</h4><p className="text-xs text-muted-foreground">Status: {program.status} | Start: {format(parseISO(program.startDate), "PPP")}</p></div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button variant="outline" size="sm" onClick={() => setViewingWellnessProgram(program)}><Eye className="h-3 w-3"/></Button>
-                    <Button variant="secondary" size="sm" onClick={() => { setEditingWellnessProgram(program); setIsWellnessProgramFormOpen(true);}}><Edit2 className="h-3 w-3"/></Button>
-                    <AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger>
-                      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Wellness Program "{program.programName}"?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                      <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteWellnessProgram(program.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                    </AlertDialog>
-                </div></div></Card>
-              ))}
-            </div></ScrollArea>
-          )}
-        </CardContent>
+        <CardHeader className="flex flex-row items-center justify-between"><div><CardTitle className="flex items-center gap-2"><Users2Icon className="h-6 w-6 text-purple-500"/>Employee Wellness Programs</CardTitle><CardDescription>Manage and track wellness initiatives.</CardDescription></div><Button onClick={() => { setEditingWellnessProgram(null); setIsWellnessProgramFormOpen(true); }} className="bg-purple-500 hover:bg-purple-600 text-white" disabled={addWellnessProgramMutation.isPending || updateWellnessProgramMutation.isPending}><Award className="mr-2 h-4 w-4" />Add Program</Button></CardHeader>
+        <CardContent>{wellnessPrograms.length === 0 ? <p className="text-muted-foreground text-center py-4">No wellness programs defined.</p> : (<ScrollArea className="max-h-[300px] pr-3"><div className="space-y-3">{wellnessPrograms.map(program => (<Card key={program.id} className="p-3 shadow-sm"><div className="flex justify-between items-start"><div><h4 className="font-semibold">{program.programName}</h4><p className="text-xs text-muted-foreground">Status: {program.status} | Start: {format(parseISO(program.startDate), "PPP")}</p></div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingWellnessProgram(program)}><Eye className="h-3 w-3"/></Button><Button variant="secondary" size="sm" onClick={() => { setEditingWellnessProgram(program); setIsWellnessProgramFormOpen(true);}} disabled={updateWellnessProgramMutation.isPending}><Edit2 className="h-3 w-3"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteWellnessProgramMutation.isPending}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Wellness Program?</AlertDialogTitle><AlertDialogDescription>Delete "{program.programName}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteWellnessProgram(program.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>))}</div></ScrollArea>)}</CardContent>
       </Card>
       {isWellnessProgramFormOpen && <Dialog open={isWellnessProgramFormOpen} onOpenChange={setIsWellnessProgramFormOpen}><WellnessProgramForm initialData={editingWellnessProgram} onSave={handleSaveWellnessProgram} onCancel={() => setIsWellnessProgramFormOpen(false)} /></Dialog>}
       {viewingWellnessProgram && <WellnessProgramDetailsDialog program={viewingWellnessProgram} onClose={() => setViewingWellnessProgram(null)} />}
-
-      <Separator/>
-      {/* Placeholders for future features */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><BarChart className="h-6 w-6 text-gray-500"/>Health Trend Analysis</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Future: Visualize trends in exposure data, medical test results across SEGs, and identify potential health risks.
-            </p>
-            <div className="mt-4 h-40 bg-muted rounded-md flex items-center justify-center text-sm text-muted-foreground" data-ai-hint="health data graph">
-              (Trend Chart Placeholder)
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><BellDot className="h-6 w-6 text-gray-500"/>Automated Alerts & Notifications</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Future: Set up alerts for exceeding exposure limits, abnormal health results, or upcoming medical surveillance. (Requires backend integration)
-            </p>
-            <div className="mt-4 h-40 bg-muted rounded-md flex items-center justify-center text-sm text-muted-foreground" data-ai-hint="alert notification bell">
-              (Alerts System Placeholder)
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
+
+    

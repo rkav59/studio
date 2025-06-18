@@ -4,26 +4,30 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, BookOpen, UserCheck, CalendarClock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, BookOpen, UserCheck, CalendarClock, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import type { TrainingCourse, TrainingRecord, TrainingRecordStatus } from "@/lib/types";
 import { CourseForm } from "@/components/training-competence/course-form";
 import { TrainingRecordForm } from "@/components/training-competence/training-record-form";
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, differenceInDays, isValid } from 'date-fns';
+import { format, parseISO, differenceInDays, isValid, isBefore } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
+import { useAuth } from '@/contexts/auth-context';
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-const COURSES_STORAGE_KEY = 'sheild-training-courses-v1';
-const RECORDS_STORAGE_KEY = 'sheild-training-records-v1';
+const COURSES_COLLECTION = 'trainingCourses';
+const RECORDS_COLLECTION = 'trainingRecords';
 const RENEWAL_WARNING_DAYS = 30;
 
 
 export default function TrainingCompetencePage() {
   const { toast } = useToast();
-  const [courses, setCourses] = useState<TrainingCourse[]>([]);
-  const [trainingRecords, setTrainingRecords] = useState<TrainingRecord[]>([]);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const [isCourseFormOpen, setIsCourseFormOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<TrainingCourse | null>(null);
@@ -31,124 +35,177 @@ export default function TrainingCompetencePage() {
   const [isRecordFormOpen, setIsRecordFormOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<TrainingRecord | null>(null);
 
-  // Load data from localStorage
-  useEffect(() => {
-    try {
-      const storedCourses = localStorage.getItem(COURSES_STORAGE_KEY);
-      if (storedCourses) setCourses(JSON.parse(storedCourses));
+  // Fetch Courses
+  const { data: courses = [], isLoading: isLoadingCourses, error: coursesError } = useQuery<TrainingCourse[]>({
+    queryKey: [COURSES_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, COURSES_COLLECTION), where("userId", "==", user.uid), orderBy("name"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainingCourse));
+    },
+    enabled: !!user?.uid,
+  });
 
-      const storedRecords = localStorage.getItem(RECORDS_STORAGE_KEY);
-      if (storedRecords) setTrainingRecords(JSON.parse(storedRecords));
-    } catch (error) {
-      console.error("Error loading training data from localStorage:", error);
-      toast({ title: "Error", description: "Could not load training data.", variant: "destructive" });
-    }
-  }, [toast]);
+  // Fetch Training Records
+  const { data: trainingRecords = [], isLoading: isLoadingRecords, error: recordsError } = useQuery<TrainingRecord[]>({
+    queryKey: [RECORDS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, RECORDS_COLLECTION), where("userId", "==", user.uid), orderBy("trainingDate", "desc"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          trainingDate: (data.trainingDate as Timestamp)?.toDate().toISOString(),
+          expiryDate: (data.expiryDate as Timestamp)?.toDate().toISOString() || null,
+        } as TrainingRecord;
+      });
+    },
+    enabled: !!user?.uid,
+  });
 
-  // Save courses to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(COURSES_STORAGE_KEY, JSON.stringify(courses));
-    } catch (error) {
-      console.error("Error saving courses to localStorage:", error);
-    }
-  }, [courses]);
+  // Course Mutations
+  const addCourseMutation = useMutation({
+    mutationFn: (newCourseData: Omit<TrainingCourse, 'id' | 'userId'>) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      return addDoc(collection(db, COURSES_COLLECTION), { ...newCourseData, userId: user.uid });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [COURSES_COLLECTION, user?.uid] });
+      toast({ title: "Course Created" });
+      setIsCourseFormOpen(false); setEditingCourse(null);
+    },
+    onError: (e: Error) => toast({ title: "Error Creating Course", description: e.message, variant: "destructive" }),
+  });
 
-  // Save training records to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(trainingRecords));
-    } catch (error) {
-      console.error("Error saving training records to localStorage:", error);
-    }
-  }, [trainingRecords]);
+  const updateCourseMutation = useMutation({
+    mutationFn: (courseToUpdate: TrainingCourse) => {
+      if (!user?.uid || !courseToUpdate.id) throw new Error("Missing user or course ID.");
+      const { id, ...data } = courseToUpdate;
+      return updateDoc(doc(db, COURSES_COLLECTION, id), { ...data, userId: user.uid });
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: [COURSES_COLLECTION, user?.uid] });
+      toast({ title: "Course Updated", description: `Course "${vars.name}" updated.` });
+      setIsCourseFormOpen(false); setEditingCourse(null);
+    },
+    onError: (e: Error) => toast({ title: "Error Updating Course", description: e.message, variant: "destructive" }),
+  });
+  
+  const deleteCourseMutation = useMutation({
+    mutationFn: async (courseId: string) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      if (trainingRecords.some(record => record.courseId === courseId)) {
+        throw new Error("This course is linked to training records. Delete records first.");
+      }
+      await deleteDoc(doc(db, COURSES_COLLECTION, courseId));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [COURSES_COLLECTION, user?.uid] });
+      toast({ title: "Course Deleted" });
+    },
+    onError: (e: Error) => toast({ title: "Error Deleting Course", description: e.message, variant: "destructive" }),
+  });
+
+  // Training Record Mutations
+  const addRecordMutation = useMutation({
+    mutationFn: (newRecordData: Omit<TrainingRecord, 'id' | 'userId'>) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      const dataForDb = {
+        ...newRecordData,
+        userId: user.uid,
+        trainingDate: Timestamp.fromDate(parseISO(newRecordData.trainingDate as string)),
+        expiryDate: newRecordData.expiryDate ? Timestamp.fromDate(parseISO(newRecordData.expiryDate as string)) : null,
+      };
+      return addDoc(collection(db, RECORDS_COLLECTION), dataForDb);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [RECORDS_COLLECTION, user?.uid] });
+      toast({ title: "Training Record Created" });
+      setIsRecordFormOpen(false); setEditingRecord(null);
+    },
+    onError: (e: Error) => toast({ title: "Error Creating Record", description: e.message, variant: "destructive" }),
+  });
+
+  const updateRecordMutation = useMutation({
+    mutationFn: (recordToUpdate: TrainingRecord) => {
+      if (!user?.uid || !recordToUpdate.id) throw new Error("Missing user or record ID.");
+      const { id, ...data } = recordToUpdate;
+      const dataForDb = {
+        ...data,
+        userId: user.uid,
+        trainingDate: Timestamp.fromDate(parseISO(data.trainingDate as string)),
+        expiryDate: data.expiryDate ? Timestamp.fromDate(parseISO(data.expiryDate as string)) : null,
+      };
+      return updateDoc(doc(db, RECORDS_COLLECTION, id), dataForDb);
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: [RECORDS_COLLECTION, user?.uid] });
+      toast({ title: "Record Updated", description: `Record for ${vars.employeeName} updated.` });
+      setIsRecordFormOpen(false); setEditingRecord(null);
+    },
+    onError: (e: Error) => toast({ title: "Error Updating Record", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteRecordMutation = useMutation({
+    mutationFn: (recordId: string) => deleteDoc(doc(db, RECORDS_COLLECTION, recordId)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [RECORDS_COLLECTION, user?.uid] });
+      toast({ title: "Training Record Deleted" });
+    },
+    onError: (e: Error) => toast({ title: "Error Deleting Record", description: e.message, variant: "destructive" }),
+  });
+
 
   // Course Management
-  const handleOpenNewCourseForm = () => {
-    setEditingCourse(null);
-    setIsCourseFormOpen(true);
-  };
-
-  const handleEditCourse = (course: TrainingCourse) => {
-    setEditingCourse(course);
-    setIsCourseFormOpen(true);
-  };
-
-  const handleDeleteCourse = (courseId: string) => {
-    if (trainingRecords.some(record => record.courseId === courseId)) {
-      toast({
-        title: "Cannot Delete Course",
-        description: "This course is linked to existing training records. Please remove those records first.",
-        variant: "destructive",
-        duration: 5000,
-      });
-      return;
-    }
-    setCourses(prev => prev.filter(c => c.id !== courseId));
-    toast({ title: "Course Deleted", description: "The training course has been deleted." });
-  };
-
-  const handleSaveCourse = (data: Omit<TrainingCourse, 'id'>) => {
+  const handleOpenNewCourseForm = () => { setEditingCourse(null); setIsCourseFormOpen(true); };
+  const handleEditCourse = (course: TrainingCourse) => { setEditingCourse(course); setIsCourseFormOpen(true); };
+  const handleDeleteCourse = (courseId: string) => deleteCourseMutation.mutate(courseId);
+  const handleSaveCourse = (data: Omit<TrainingCourse, 'id' | 'userId'>) => { // Ensure it matches mutation
     if (editingCourse) {
-      setCourses(prev => prev.map(c => c.id === editingCourse.id ? { ...editingCourse, ...data } : c));
-      toast({ title: "Course Updated", description: `Course "${data.name}" has been updated.` });
+      updateCourseMutation.mutate({ ...editingCourse, ...data });
     } else {
-      const newCourse: TrainingCourse = { id: crypto.randomUUID(), ...data };
-      setCourses(prev => [newCourse, ...prev]);
-      toast({ title: "Course Created", description: `New course "${data.name}" has been created.` });
+      addCourseMutation.mutate(data);
     }
-    setIsCourseFormOpen(false);
-    setEditingCourse(null);
   };
 
   // Training Record Management
   const handleOpenNewRecordForm = () => {
+    if (courses.length === 0) {
+        toast({ title: "No Courses", description: "Please add a course to the catalog first.", variant: "destructive"});
+        return;
+    }
     setEditingRecord(null);
     setIsRecordFormOpen(true);
   };
-
-  const handleEditRecord = (record: TrainingRecord) => {
-    setEditingRecord(record);
-    setIsRecordFormOpen(true);
-  };
-
-  const handleDeleteRecord = (recordId: string) => {
-    setTrainingRecords(prev => prev.filter(r => r.id !== recordId));
-    toast({ title: "Training Record Deleted", description: "The training record has been deleted." });
-  };
-
-  const handleSaveRecord = (data: Omit<TrainingRecord, 'id' | 'status'>, currentStatus: TrainingRecordStatus) => {
-     // Retain the user-set status ('Planned' or 'Completed')
-     // 'Expired' and 'Requires Renewal' are derived for display only
+  const handleEditRecord = (record: TrainingRecord) => { setEditingRecord(record); setIsRecordFormOpen(true); };
+  const handleDeleteRecord = (recordId: string) => deleteRecordMutation.mutate(recordId);
+  const handleSaveRecord = (data: Omit<TrainingRecord, 'id' | 'userId' | 'status'>, currentStatus: TrainingRecordStatus) => {
     const baseStatus = currentStatus === 'Expired' || currentStatus === 'Requires Renewal' 
-        ? 'Completed' // If it was derived as expired, its base must have been Completed
+        ? 'Completed' 
         : currentStatus;
-
+    const recordDataWithStatus = {...data, status: baseStatus };
 
     if (editingRecord) {
-      setTrainingRecords(prev => prev.map(r => r.id === editingRecord.id ? { ...editingRecord, ...data, status: baseStatus } : r));
-      toast({ title: "Record Updated", description: "Training record has been updated." });
+      updateRecordMutation.mutate({ ...editingRecord, ...recordDataWithStatus });
     } else {
-      const newRecord: TrainingRecord = { id: crypto.randomUUID(), ...data, status: baseStatus };
-      setTrainingRecords(prev => [newRecord, ...prev]);
-      toast({ title: "Record Created", description: "New training record has been created." });
+      addRecordMutation.mutate(recordDataWithStatus);
     }
-    setIsRecordFormOpen(false);
-    setEditingRecord(null);
   };
   
   const getCourseName = (courseId: string) => courses.find(c => c.id === courseId)?.name || "Unknown Course";
-
   const getDerivedStatus = (record: TrainingRecord): TrainingRecordStatus => {
     if (record.status === 'Planned') return 'Planned';
-    if (!record.expiryDate || !isValid(parseISO(record.expiryDate))) return 'Completed'; // No expiry or invalid date means completed indefinitely
+    if (!record.expiryDate || !isValid(parseISO(record.expiryDate))) return 'Completed';
 
-    const today = new Date();
+    const today = new Date(); today.setHours(0,0,0,0);
     const expiry = parseISO(record.expiryDate);
-    const daysUntilExpiry = differenceInDays(expiry, today);
-
-    if (daysUntilExpiry < 0) return 'Expired';
-    if (daysUntilExpiry <= RENEWAL_WARNING_DAYS) return 'Requires Renewal';
+    
+    if (isBefore(expiry, today)) return 'Expired';
+    if (differenceInDays(expiry, today) <= RENEWAL_WARNING_DAYS) return 'Requires Renewal';
     return 'Completed';
   };
 
@@ -172,6 +229,17 @@ export default function TrainingCompetencePage() {
     }
   };
 
+  if (isLoadingCourses || isLoadingRecords) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="ml-3 text-lg text-muted-foreground">Loading training data...</p>
+      </div>
+    );
+  }
+  if (coursesError || recordsError) {
+    return <div className="text-red-500 text-center py-10">Error loading data: {(coursesError || recordsError)?.message}</div>;
+  }
 
   return (
     <div className="space-y-8">
@@ -187,32 +255,31 @@ export default function TrainingCompetencePage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-0 left-0 p-6">
                 <h1 className="text-3xl font-bold tracking-tight font-headline text-white">Training &amp; Competence</h1>
-                <p className="text-sm text-neutral-300">Manage courses and track employee training records effectively.</p>
+                <p className="text-sm text-neutral-300">Manage courses and track employee training records effectively. Data stored in Firestore.</p>
             </div>
         </div>
         <CardContent className="pt-6">
             <p className="text-muted-foreground">
                 This module allows you to build a course catalog and maintain training records for employees. 
                 Track completion dates, expiry dates, and overall training status to ensure workforce competence.
-                All data is stored locally in your browser.
+                All data is now stored securely in Firebase Firestore.
             </p>
         </CardContent>
       </Card>
 
-      {/* Course Catalog Management */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2"><BookOpen className="h-6 w-6 text-primary"/>Course Catalog</CardTitle>
             <CardDescription>Define and manage your organization's training courses.</CardDescription>
           </div>
-          <Button onClick={handleOpenNewCourseForm} className="bg-primary hover:bg-primary/90">
+          <Button onClick={handleOpenNewCourseForm} className="bg-primary hover:bg-primary/90" disabled={addCourseMutation.isPending || updateCourseMutation.isPending}>
             <PlusCircle className="mr-2 h-4 w-4" /> Add New Course
           </Button>
         </CardHeader>
         <CardContent>
           {courses.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">No courses defined yet. Click "Add New Course" to start.</p>
+            <p className="text-muted-foreground text-center py-4">No courses defined yet.</p>
           ) : (
             <ScrollArea className="max-h-[300px] pr-3">
               <ul className="space-y-3">
@@ -224,11 +291,11 @@ export default function TrainingCompetencePage() {
                       <p className="text-sm text-muted-foreground mt-1 truncate max-w-md">{course.description || "No description."}</p>
                     </div>
                     <div className="flex gap-2 shrink-0 ml-4">
-                      <Button variant="outline" size="sm" onClick={() => handleEditCourse(course)}>
+                      <Button variant="outline" size="sm" onClick={() => handleEditCourse(course)} disabled={updateCourseMutation.isPending}>
                         <Edit2 className="mr-1 h-3 w-3" /> Edit
                       </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteCourse(course.id)}>
-                        <Trash2 className="mr-1 h-3 w-3" /> Delete
+                      <Button variant="destructive" size="sm" onClick={() => handleDeleteCourse(course.id)} disabled={deleteCourseMutation.isPending}>
+                         {deleteCourseMutation.isPending && deleteCourseMutation.variables === course.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin"/> : <Trash2 className="mr-1 h-3 w-3" />} Delete
                       </Button>
                     </div>
                   </li>
@@ -241,31 +308,28 @@ export default function TrainingCompetencePage() {
       
       {isCourseFormOpen && (
         <Dialog open={isCourseFormOpen} onOpenChange={(isOpen) => { if(!isOpen) { setIsCourseFormOpen(false); setEditingCourse(null); }}}>
-          <CourseForm
-            initialData={editingCourse}
-            onSave={handleSaveCourse}
-            onCancel={() => { setIsCourseFormOpen(false); setEditingCourse(null); }}
-          />
+          <CourseForm initialData={editingCourse} onSave={handleSaveCourse} onCancel={() => { setIsCourseFormOpen(false); setEditingCourse(null); }} />
         </Dialog>
       )}
 
       <Separator />
 
-      {/* Training Records Management */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2"><UserCheck className="h-6 w-6 text-accent"/>Training Records</CardTitle>
             <CardDescription>Log and track employee training. Status is automatically updated based on expiry dates.</CardDescription>
           </div>
-          <Button onClick={handleOpenNewRecordForm} className="bg-accent hover:bg-accent/90">
+          <Button onClick={handleOpenNewRecordForm} className="bg-accent hover:bg-accent/90" disabled={courses.length === 0 || addRecordMutation.isPending || updateRecordMutation.isPending}>
             <PlusCircle className="mr-2 h-4 w-4" /> Add New Record
           </Button>
         </CardHeader>
         <CardContent>
-          {trainingRecords.length === 0 ? (
+          {courses.length === 0 && <p className="text-center text-muted-foreground py-4">Please add courses to the catalog first to log training records.</p>}
+          {trainingRecords.length === 0 && courses.length > 0 && (
             <p className="text-muted-foreground text-center py-4">No training records logged yet.</p>
-          ) : (
+          )}
+          {trainingRecords.length > 0 && (
             <ScrollArea className="max-h-[500px] pr-3">
               <div className="space-y-3">
                 {trainingRecords.map(record => {
@@ -278,11 +342,11 @@ export default function TrainingCompetencePage() {
                           <p className="text-sm text-primary">{getCourseName(record.courseId)}</p>
                         </div>
                         <div className="flex gap-2 self-start sm:self-center shrink-0">
-                          <Button variant="outline" size="sm" onClick={() => handleEditRecord(record)}>
+                          <Button variant="outline" size="sm" onClick={() => handleEditRecord(record)} disabled={updateRecordMutation.isPending}>
                             <Edit2 className="mr-1 h-3 w-3" /> Edit
                           </Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleDeleteRecord(record.id)}>
-                            <Trash2 className="mr-1 h-3 w-3" /> Delete
+                          <Button variant="destructive" size="sm" onClick={() => handleDeleteRecord(record.id)} disabled={deleteRecordMutation.isPending}>
+                            {deleteRecordMutation.isPending && deleteRecordMutation.variables === record.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin"/> : <Trash2 className="mr-1 h-3 w-3" />} Delete
                           </Button>
                         </div>
                       </div>
@@ -332,33 +396,11 @@ export default function TrainingCompetencePage() {
 
       {isRecordFormOpen && (
         <Dialog open={isRecordFormOpen} onOpenChange={(isOpen) => { if(!isOpen) { setIsRecordFormOpen(false); setEditingRecord(null); }}}>
-          <TrainingRecordForm
-            courses={courses}
-            initialData={editingRecord}
-            onSave={handleSaveRecord}
-            onCancel={() => { setIsRecordFormOpen(false); setEditingRecord(null); }}
-          />
+          <TrainingRecordForm courses={courses} initialData={editingRecord} onSave={handleSaveRecord} onCancel={() => { setIsRecordFormOpen(false); setEditingRecord(null); }} />
         </Dialog>
       )}
-
-      <Card className="mt-8 shadow-lg">
-        <CardHeader>
-            <CardTitle>Future Enhancements Considered</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <p className="text-sm text-muted-foreground">
-                While this module provides core training record management, future enhancements could include features like:
-            </p>
-            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-                <li>Training needs analysis and skills gap identification.</li>
-                <li>Direct certificate/document uploads.</li>
-                <li>Automated email reminders for training expiry.</li>
-                <li>Detailed competency assessment frameworks and tracking.</li>
-                <li>Advanced reporting and analytics on training compliance and effectiveness.</li>
-                <li>Integration with e-learning platforms.</li>
-            </ul>
-        </CardContent>
-      </Card>
     </div>
   );
 }
+
+    
