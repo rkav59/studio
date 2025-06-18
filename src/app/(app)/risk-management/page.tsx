@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { HazardIdentificationForm } from "@/components/risk-management/hazard-identification-form";
 import { RiskAssessmentSuggestionForm } from "@/components/risk-management/risk-assessment-suggestion-form";
-import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldX } from "lucide-react";
+import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldX, ShieldCheck } from "lucide-react"; // Added ShieldCheck
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
@@ -45,7 +46,7 @@ export default function RiskManagementPage() {
       if (!user?.uid) return [];
       const q = query(collection(db, MANUAL_HAZARDS_COLLECTION), where("userId", "==", user.uid), orderBy("dateIdentified", "desc"));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ManualHazard));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), dateIdentified: (doc.data().dateIdentified as Timestamp)?.toDate().toISOString() } as ManualHazard));
     },
     enabled: !!user?.uid,
   });
@@ -57,7 +58,7 @@ export default function RiskManagementPage() {
       if (!user?.uid) return [];
       const q = query(collection(db, MANUAL_RISK_ASSESSMENTS_COLLECTION), where("userId", "==", user.uid), orderBy("assessmentDate", "desc"));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ManualRiskAssessment));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), assessmentDate: (doc.data().assessmentDate as Timestamp)?.toDate().toISOString() } as ManualRiskAssessment));
     },
     enabled: !!user?.uid,
   });
@@ -257,3 +258,4 @@ export default function RiskManagementPage() {
     </div>
   );
 }
+
