@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -15,15 +14,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { PermitToWork } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
-import { FileText, User, MapPin, Clock, AlertTriangle, CheckCircle2, ShieldCheck, UserCheck, CalendarX2 } from "lucide-react";
+import { FileText, User, MapPin, Clock, AlertTriangle, CheckCircle2, ShieldCheck, UserCheck, CalendarX2, Search } from "lucide-react"; // Added Search
 
 interface PtwDetailsDialogProps {
   ptw: PermitToWork;
   contractorName: string;
   onClose: () => void;
+  supervisionRecordsCount: number;
+  onNavigateToSupervision: () => void;
 }
 
-export function PtwDetailsDialog({ ptw, contractorName, onClose }: PtwDetailsDialogProps) {
+export function PtwDetailsDialog({ ptw, contractorName, onClose, supervisionRecordsCount, onNavigateToSupervision }: PtwDetailsDialogProps) {
 
   const getPtwStatusIcon = (status: PermitToWork['status']) => {
     switch (status) {
@@ -121,6 +122,21 @@ export function PtwDetailsDialog({ ptw, contractorName, onClose }: PtwDetailsDia
                         </div>
                     </section>
                 )}
+
+                <Separator />
+                {/* Supervision Records Summary */}
+                <section>
+                    <h3 className="text-lg font-semibold mb-2 border-b pb-1">On-Site Supervision</h3>
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm text-muted-foreground">
+                            {supervisionRecordsCount > 0 ? `${supervisionRecordsCount} supervision record(s) found.` : "No supervision records yet for this PTW."}
+                        </p>
+                        <Button variant="outline" size="sm" onClick={onNavigateToSupervision}>
+                            <Search className="mr-2 h-4 w-4" />
+                            {supervisionRecordsCount > 0 ? "View/Manage Supervision" : "Conduct Supervision"}
+                        </Button>
+                    </div>
+                </section>
             </div>
         </ScrollArea>
 
@@ -133,4 +149,3 @@ export function PtwDetailsDialog({ ptw, contractorName, onClose }: PtwDetailsDia
     </Dialog>
   );
 }
-

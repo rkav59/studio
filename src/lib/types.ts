@@ -1,4 +1,3 @@
-
 export interface Incident {
   id: string;
   type: 'Incident' | 'Near Miss' | 'Hazard';
@@ -359,6 +358,32 @@ export interface PermitToWork {
   supervisorOnSite?: string;
 }
 
+// --- PTW Supervision Types ---
+export type SupervisionChecklistItemResult = 'Satisfactory' | 'Needs Improvement' | 'Unsatisfactory' | 'N/A';
+
+export interface SupervisionChecklistItemInstance {
+  id: string;
+  questionText: string;
+  result: SupervisionChecklistItemResult;
+  observations?: string;
+}
+
+export type PtwPerformanceRating = 'Excellent' | 'Good' | 'Fair' | 'Poor';
+
+export interface PtwSupervisionRecord {
+  id: string;
+  userId?: string;
+  ptwId: string; // Link to the PermitToWork
+  ptwNumber: string; // For display convenience
+  supervisionDate: string; // ISO Date string
+  supervisorName: string;
+  checklistItems: SupervisionChecklistItemInstance[];
+  overallPerformanceRating: PtwPerformanceRating;
+  summaryNotes?: string;
+  actionItemsRequired?: string; // Textual description of follow-up actions
+}
+// --- End PTW Supervision Types ---
+
 
 // PPE Management Types
 export type PpeItemStatus = 'Available' | 'Under Inspection' | 'Awaiting Repair' | 'Awaiting Replacement' | 'Discarded';
@@ -571,4 +596,3 @@ export type MedicalTestWithCertStatus = MedicalTestRecord & {
 };
 // Helper type for pre-filling MedicalTestForm
 export type MedicalTestPrefillData = Partial<Pick<MedicalTestRecord, 'employeeName' | 'segId' | 'linkedExposure' | 'testType'>>;
-
