@@ -20,12 +20,12 @@ if (!firebaseApiKey) {
 }
 
 const firebaseConfig = {
-  apiKey: firebaseApiKey, // Using the variable checked above
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyB_HdshgnYruTYAVPiAWHP5vAKTO4AALak",
+  authDomain: "sheild-xt9s1.firebaseapp.com",
+  projectId: "sheild-xt9s1",
+  storageBucket: "sheild-xt9s1.firebasestorage.app",
+  messagingSenderId: "862879666585",
+  appId: "1:862879666585:web:a242c2bd5db582f5064308"
 };
 
 let app: FirebaseApp;
