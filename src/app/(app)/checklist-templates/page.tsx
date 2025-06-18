@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Edit2, Trash2, Copy, Eye, Library, Lock } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, Copy, Eye, Library, Lock, Loader2 } from "lucide-react";
 import type { ChecklistTemplate, ChecklistItemTemplate } from "@/lib/types";
 import { TemplateForm } from "@/components/checklist-templates/template-form";
 import { defaultChecklistTemplates } from '@/lib/checklist-templates';
@@ -22,37 +22,87 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/contexts/auth-context';
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-const USER_TEMPLATES_STORAGE_KEY = 'sheild-user-checklist-templates-v1';
+const USER_TEMPLATES_COLLECTION = 'userChecklistTemplates';
 
 export default function ChecklistTemplatesPage() {
   const { toast } = useToast();
-  const [userTemplates, setUserTemplates] = useState<ChecklistTemplate[]>([]);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
   const [editingTemplate, setEditingTemplate] = useState<ChecklistTemplate | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [templateToCopy, setTemplateToCopy] = useState<ChecklistTemplate | null>(null);
   const [viewingTemplate, setViewingTemplate] = useState<ChecklistTemplate | null>(null);
 
-  useEffect(() => {
-    try {
-      const storedUserTemplates = localStorage.getItem(USER_TEMPLATES_STORAGE_KEY);
-      if (storedUserTemplates) {
-        setUserTemplates(JSON.parse(storedUserTemplates));
-      }
-    } catch (error) {
-        console.error("Error loading user checklist templates from localStorage:", error);
-        toast({ title: "Error", description: "Could not load custom templates.", variant: "destructive" });
-    }
-  }, [toast]);
+  const { data: userTemplates = [], isLoading: isLoadingTemplates, error: templatesError } = useQuery<ChecklistTemplate[]>({
+    queryKey: [USER_TEMPLATES_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, USER_TEMPLATES_COLLECTION), where("userId", "==", user.uid));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChecklistTemplate));
+    },
+    enabled: !!user?.uid,
+  });
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(USER_TEMPLATES_STORAGE_KEY, JSON.stringify(userTemplates));
-    } catch (error) {
-        console.error("Error saving user checklist templates to localStorage:", error);
-        toast({ title: "Error", description: "Could not save custom templates.", variant: "destructive" });
-    }
-  }, [userTemplates, toast]);
+  const addTemplateMutation = useMutation({
+    mutationFn: async (newTemplateData: Omit<ChecklistTemplate, 'id' | 'userId'>) => {
+      if (!user?.uid) throw new Error("User not authenticated");
+      return addDoc(collection(db, USER_TEMPLATES_COLLECTION), { ...newTemplateData, userId: user.uid });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [USER_TEMPLATES_COLLECTION, user?.uid] });
+      toast({ title: "Template Created", description: "New template has been created." });
+      setIsFormOpen(false);
+      setEditingTemplate(null);
+      setTemplateToCopy(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error Creating Template", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateTemplateMutation = useMutation({
+    mutationFn: async (templateToUpdate: ChecklistTemplate) => {
+      if (!user?.uid || !templateToUpdate.id) throw new Error("User not authenticated or template ID missing");
+      const { id, ...dataToUpdate } = templateToUpdate;
+      const templateRef = doc(db, USER_TEMPLATES_COLLECTION, id);
+      // Ensure userId is part of the data to prevent accidental updates by other users if rules are loose
+      await updateDoc(templateRef, { ...dataToUpdate, userId: user.uid });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [USER_TEMPLATES_COLLECTION, user?.uid] });
+      toast({ title: "Template Updated", description: `Template "${variables.name}" has been updated.` });
+      setIsFormOpen(false);
+      setEditingTemplate(null);
+      setTemplateToCopy(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error Updating Template", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (templateId: string) => {
+      if (!user?.uid) throw new Error("User not authenticated");
+      const templateRef = doc(db, USER_TEMPLATES_COLLECTION, templateId);
+      // Add check here: query the doc first to ensure it belongs to the user before deleting, if rules are not strict enough
+      await deleteDoc(templateRef);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [USER_TEMPLATES_COLLECTION, user?.uid] });
+      toast({ title: "Template Deleted", description: "The custom checklist template has been deleted." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error Deleting Template", description: error.message, variant: "destructive" });
+    },
+  });
+
 
   const allTemplates = useMemo(() => {
     const systemTemplates = defaultChecklistTemplates.map(t => ({ ...t, isSystemDefault: true }));
@@ -79,8 +129,8 @@ export default function ChecklistTemplatesPage() {
   const handleCopy = (template: ChecklistTemplate) => {
     setTemplateToCopy({
       ...template,
-      name: `${template.name} (Copy)`, // Pre-fill name for copy
-      id: '', // ID will be generated on save
+      name: `${template.name} (Copy)`,
+      id: '', 
       isSystemDefault: false,
     });
     setEditingTemplate(null);
@@ -88,31 +138,25 @@ export default function ChecklistTemplatesPage() {
   };
 
   const handleDelete = (templateId: string) => {
-    setUserTemplates(prev => prev.filter(t => t.id !== templateId));
-    toast({ title: "Template Deleted", description: "The custom checklist template has been deleted." });
+    deleteTemplateMutation.mutate(templateId);
   };
 
   const handleSaveTemplate = (data: { name: string; items: ChecklistItemTemplate[] }) => {
-    if (editingTemplate && !editingTemplate.isSystemDefault) {
-      // Editing existing user template
-      setUserTemplates(prev => prev.map(t => 
-        t.id === editingTemplate.id ? { ...t, name: data.name, items: data.items.map(item => ({...item, id: item.id || crypto.randomUUID()})) } : t
-      ));
-      toast({ title: "Template Updated", description: `Template "${data.name}" has been updated.` });
-    } else {
-      // Creating new template (either from scratch or from copy)
-      const newTemplate: ChecklistTemplate = {
-        id: crypto.randomUUID(),
+    if (editingTemplate && !editingTemplate.isSystemDefault && editingTemplate.id) {
+      updateTemplateMutation.mutate({
+        ...editingTemplate,
         name: data.name,
         items: data.items.map(item => ({...item, id: item.id || crypto.randomUUID()})),
-        isSystemDefault: false,
+      });
+    } else {
+      const newTemplateData = {
+        name: data.name,
+        items: data.items.map(item => ({...item, id: item.id || crypto.randomUUID()})),
+        isSystemDefault: false, 
+        // userId will be added by the mutation
       };
-      setUserTemplates(prev => [newTemplate, ...prev]);
-      toast({ title: "Template Created", description: `New template "${data.name}" has been created.` });
+      addTemplateMutation.mutate(newTemplateData);
     }
-    setIsFormOpen(false);
-    setEditingTemplate(null);
-    setTemplateToCopy(null);
   };
 
   const handleCancelForm = () => {
@@ -125,6 +169,22 @@ export default function ChecklistTemplatesPage() {
     setViewingTemplate(template);
   };
 
+  if (isLoadingTemplates) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2 text-muted-foreground">Loading templates...</p>
+      </div>
+    );
+  }
+
+  if (templatesError) {
+    return (
+      <div className="text-red-500 text-center py-8">
+        Error loading templates: {templatesError.message}
+      </div>
+    );
+  }
 
   if (isFormOpen) {
     return (
@@ -145,7 +205,7 @@ export default function ChecklistTemplatesPage() {
             <Library className="h-8 w-8" /> Checklist Template Library
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage your reusable checklist templates. System templates can be copied to create custom versions.
+            Manage your reusable checklist templates. System templates can be copied. Custom templates are stored in Firestore.
           </p>
         </div>
         <Button onClick={handleCreateNew} className="bg-primary hover:bg-primary/90">
@@ -192,8 +252,8 @@ export default function ChecklistTemplatesPage() {
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm">
-                          <Trash2 className="mr-1 h-3 w-3" /> Delete
+                        <Button variant="destructive" size="sm" disabled={deleteTemplateMutation.isPending}>
+                          {deleteTemplateMutation.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin"/> : <Trash2 className="mr-1 h-3 w-3" />} Delete
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>

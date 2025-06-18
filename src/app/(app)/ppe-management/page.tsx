@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog"; 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, Package, CheckCheck, ClipboardList, Settings2, AlertTriangle, ListFilter, Search, ShieldCheck, Activity, CalendarClock, ClockIcon, AlertCircle, Users } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, Eye, Package, CheckCheck, ClipboardList, Settings2, AlertTriangle, ListFilter, Search, ShieldCheck, Activity, CalendarClock, ClockIcon, AlertCircle, Users, Loader2 } from "lucide-react";
 import type { PpeItem, PpeIssuanceRecord, PpeInspectionRecord, PpeItemStatus, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid, differenceInDays, isBefore } from 'date-fns';
@@ -29,12 +29,15 @@ import { PpeIssuanceDetailsDialog } from '@/components/ppe-management/ppe-issuan
 import { PpeInspectionDetailsDialog } from '@/components/ppe-management/ppe-inspection-details-dialog'; 
 import { PpeJobRoleMatrixForm } from '@/components/ppe-management/ppe-job-role-matrix-form';
 import { PpeJobRoleMatrixDetailsDialog } from '@/components/ppe-management/ppe-job-role-matrix-details-dialog';
+import { useAuth } from '@/contexts/auth-context';
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-
-const PPE_ITEMS_KEY = 'sheild-ppe-items-v1';
-const PPE_ISSUANCES_KEY = 'sheild-ppe-issuances-v1';
-const PPE_INSPECTIONS_KEY = 'sheild-ppe-inspections-v1';
-const PPE_JOB_ROLE_MATRIX_KEY = 'sheild-ppe-job-role-matrix-v1';
+const PPE_ITEMS_COLLECTION = 'ppeItems';
+const PPE_ISSUANCES_COLLECTION = 'ppeIssuances';
+const PPE_INSPECTIONS_COLLECTION = 'ppeInspections';
+const PPE_JOB_ROLE_MATRIX_COLLECTION = 'ppeJobRoleMatrix';
 const REMINDER_LEAD_DAYS = 7; 
 
 interface PpeItemWithInspectionInfo extends PpeItem {
@@ -43,96 +46,138 @@ interface PpeItemWithInspectionInfo extends PpeItem {
   dueStatus?: 'Overdue' | 'Due Soon' | 'Scheduled' | 'OK';
 }
 
-
 export default function PpeManagementPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  const [ppeItems, setPpeItems] = useState<PpeItem[]>([]);
   const [viewingPpeItem, setViewingPpeItem] = useState<PpeItem | null>(null);
-
-  const [ppeIssuances, setPpeIssuances] = useState<PpeIssuanceRecord[]>([]);
   const [viewingPpeIssuance, setViewingPpeIssuance] = useState<PpeIssuanceRecord | null>(null);
-  
-  const [ppeInspections, setPpeInspections] = useState<PpeInspectionRecord[]>([]);
   const [viewingPpeInspection, setViewingPpeInspection] = useState<PpeInspectionRecord | null>(null);
-
-  const [ppeJobRoleMatrix, setPpeJobRoleMatrix] = useState<PpeJobRoleMatrixEntry[]>([]);
   const [isJobRoleFormOpen, setIsJobRoleFormOpen] = useState(false);
   const [editingJobRoleEntry, setEditingJobRoleEntry] = useState<PpeJobRoleMatrixEntry | null>(null);
   const [viewingJobRoleEntry, setViewingJobRoleEntry] = useState<PpeJobRoleMatrixEntry | null>(null);
 
-  // Function to load all relevant data from localStorage
-  const loadAllPpeData = () => {
-    // Load PPE Items
-    try {
-      const storedItems = localStorage.getItem(PPE_ITEMS_KEY);
-      if (storedItems) {
-        setPpeItems(JSON.parse(storedItems).map((item: PpeItem) => ({ ...item, status: item.status || 'Available' })));
-      } else {
-        setPpeItems([]);
+  // Fetch PPE Items
+  const { data: ppeItems = [], isLoading: isLoadingPpeItems, error: ppeItemsError } = useQuery<PpeItem[]>({
+    queryKey: [PPE_ITEMS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, PPE_ITEMS_COLLECTION), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), status: doc.data().status || 'Available' } as PpeItem));
+    },
+    enabled: !!user?.uid,
+  });
+
+  // Fetch PPE Issuances
+  const { data: ppeIssuances = [], isLoading: isLoadingPpeIssuances, error: ppeIssuancesError } = useQuery<PpeIssuanceRecord[]>({
+    queryKey: [PPE_ISSUANCES_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, PPE_ISSUANCES_COLLECTION), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PpeIssuanceRecord));
+    },
+    enabled: !!user?.uid,
+  });
+  
+  // Fetch PPE Inspections
+  const { data: ppeInspections = [], isLoading: isLoadingPpeInspections, error: ppeInspectionsError } = useQuery<PpeInspectionRecord[]>({
+    queryKey: [PPE_INSPECTIONS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, PPE_INSPECTIONS_COLLECTION), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PpeInspectionRecord));
+    },
+    enabled: !!user?.uid,
+  });
+
+  // Fetch PPE Job Role Matrix
+  const { data: ppeJobRoleMatrix = [], isLoading: isLoadingJobRoleMatrix, error: jobRoleMatrixError } = useQuery<PpeJobRoleMatrixEntry[]>({
+    queryKey: [PPE_JOB_ROLE_MATRIX_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, PPE_JOB_ROLE_MATRIX_COLLECTION), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PpeJobRoleMatrixEntry));
+    },
+    enabled: !!user?.uid,
+  });
+
+  // Mutations (example for PPE Item delete, others would follow similar pattern)
+  const deletePpeItemMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      if (ppeIssuances.some(issuance => issuance.ppeItemId === itemId) || 
+          ppeInspections.some(insp => insp.ppeItemId === itemId) ||
+          ppeJobRoleMatrix.some(matrix => matrix.requiredPpeItemIds.includes(itemId)) ) {
+        throw new Error("This PPE item is linked to issuance, inspection, or job role matrix records.");
       }
-    } catch (e) { console.error("Error loading PPE items:", e); setPpeItems([]); }
+      await deleteDoc(doc(db, PPE_ITEMS_COLLECTION, itemId));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PPE_ITEMS_COLLECTION, user?.uid] });
+      toast({ title: "PPE Item Deleted" });
+    },
+    onError: (e: Error) => toast({ title: "Error Deleting PPE Item", description: e.message, variant: "destructive" }),
+  });
 
-    // Load PPE Issuances
-    try {
-      const storedIssuances = localStorage.getItem(PPE_ISSUANCES_KEY);
-      if (storedIssuances) setPpeIssuances(JSON.parse(storedIssuances));
-      else setPpeIssuances([]);
-    } catch (e) { console.error("Error loading PPE issuances:", e); setPpeIssuances([]); }
+  const deletePpeIssuanceMutation = useMutation({
+    mutationFn: (issuanceId: string) => deleteDoc(doc(db, PPE_ISSUANCES_COLLECTION, issuanceId)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PPE_ISSUANCES_COLLECTION, user?.uid] });
+      toast({ title: "PPE Issuance Record Deleted" });
+    },
+    onError: (e: Error) => toast({ title: "Error Deleting Issuance", description: e.message, variant: "destructive" }),
+  });
 
-    // Load PPE Inspections
-    try {
-      const storedInspections = localStorage.getItem(PPE_INSPECTIONS_KEY);
-      if (storedInspections) setPpeInspections(JSON.parse(storedInspections));
-      else setPpeInspections([]);
-    } catch (e) { console.error("Error loading PPE inspections:", e); setPpeInspections([]); }
-    
-    // Load PPE Job Role Matrix
-    try {
-      const storedMatrix = localStorage.getItem(PPE_JOB_ROLE_MATRIX_KEY);
-      if (storedMatrix) setPpeJobRoleMatrix(JSON.parse(storedMatrix));
-      else setPpeJobRoleMatrix([]);
-    } catch (e) { console.error("Error loading PPE Job Role Matrix:", e); setPpeJobRoleMatrix([]); }
-  };
+  const deletePpeInspectionMutation = useMutation({
+    mutationFn: (inspectionId: string) => deleteDoc(doc(db, PPE_INSPECTIONS_COLLECTION, inspectionId)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PPE_INSPECTIONS_COLLECTION, user?.uid] });
+      toast({ title: "PPE Inspection Record Deleted" });
+    },
+    onError: (e: Error) => toast({ title: "Error Deleting Inspection", description: e.message, variant: "destructive" }),
+  });
+  
+  const addJobRoleEntryMutation = useMutation({
+    mutationFn: (newEntryData: Omit<PpeJobRoleMatrixEntry, 'id' | 'userId'>) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      return addDoc(collection(db, PPE_JOB_ROLE_MATRIX_COLLECTION), { ...newEntryData, userId: user.uid });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PPE_JOB_ROLE_MATRIX_COLLECTION, user?.uid] });
+      toast({ title: "Job Role PPE Defined" });
+      setIsJobRoleFormOpen(false); setEditingJobRoleEntry(null);
+    },
+    onError: (e:Error) => toast({title: "Error Defining Job Role PPE", description: e.message, variant: "destructive"}),
+  });
 
-  // Initial data load and load on window focus
-  useEffect(() => {
-    loadAllPpeData(); // Load on mount
-
-    const handleFocus = () => {
-      loadAllPpeData(); // Reload when window gains focus
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, []); // This effect runs once to set up initial load and listener
-
-  // --- Save PPE Items ---
-  useEffect(() => {
-    try { localStorage.setItem(PPE_ITEMS_KEY, JSON.stringify(ppeItems)); }
-    catch (e) { console.error("Error saving PPE items:", e); }
-  }, [ppeItems]);
-
-  // --- Save PPE Issuances ---
-  useEffect(() => {
-    try { localStorage.setItem(PPE_ISSUANCES_KEY, JSON.stringify(ppeIssuances)); }
-    catch (e) { console.error("Error saving PPE issuances:", e); }
-  }, [ppeIssuances]);
-
-  // --- Save PPE Inspections ---
-  useEffect(() => {
-    try { localStorage.setItem(PPE_INSPECTIONS_KEY, JSON.stringify(ppeInspections)); }
-    catch (e) { console.error("Error saving PPE inspections:", e); }
-  }, [ppeInspections]);
-
-  // --- Save PPE Job Role Matrix ---
-  useEffect(() => {
-    try { localStorage.setItem(PPE_JOB_ROLE_MATRIX_KEY, JSON.stringify(ppeJobRoleMatrix)); }
-    catch (e) { console.error("Error saving PPE Job Role Matrix:", e); }
-  }, [ppeJobRoleMatrix]);
+  const updateJobRoleEntryMutation = useMutation({
+     mutationFn: (entryToUpdate: PpeJobRoleMatrixEntry) => {
+      if (!user?.uid || !entryToUpdate.id) throw new Error("Missing user or entry ID.");
+      const { id, ...data } = entryToUpdate;
+      return updateDoc(doc(db, PPE_JOB_ROLE_MATRIX_COLLECTION, id), { ...data, userId: user.uid });
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: [PPE_JOB_ROLE_MATRIX_COLLECTION, user?.uid] });
+      toast({ title: "Job Role Matrix Updated", description: `Requirements for "${vars.jobRole}" updated.` });
+      setIsJobRoleFormOpen(false); setEditingJobRoleEntry(null);
+    },
+    onError: (e:Error) => toast({title: "Error Updating Job Role Matrix", description: e.message, variant: "destructive"}),
+  });
+  
+  const deleteJobRoleEntryMutation = useMutation({
+    mutationFn: (entryId: string) => deleteDoc(doc(db, PPE_JOB_ROLE_MATRIX_COLLECTION, entryId)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PPE_JOB_ROLE_MATRIX_COLLECTION, user?.uid] });
+      toast({ title: "Job Role Matrix Entry Deleted" });
+    },
+    onError: (e:Error) => toast({title: "Error Deleting Job Role Entry", description: e.message, variant: "destructive"}),
+  });
 
 
   const ppeItemsWithInspectionInfo = useMemo((): PpeItemWithInspectionInfo[] => {
@@ -160,12 +205,6 @@ export default function PpeManagementPage() {
           dueStatus = 'Scheduled';
         }
       }
-      
-      if (item.status && !['Available', 'Under Inspection'].includes(item.status)) {
-         
-      }
-
-
       return {
         ...item,
         latestInspection: latestRelevantInspection,
@@ -183,36 +222,22 @@ export default function PpeManagementPage() {
     if (upcomingOrOverdueInspections.length > 0) {
       const overdueCount = upcomingOrOverdueInspections.filter(item => item.dueStatus === 'Overdue').length;
       const dueSoonCount = upcomingOrOverdueInspections.filter(item => item.dueStatus === 'Due Soon').length;
-      
-      let messages: string[] = [];
-      if (overdueCount > 0) messages.push(`${overdueCount} item(s) overdue`);
-      if (dueSoonCount > 0) messages.push(`${dueSoonCount} item(s) due soon`);
-
-      if (messages.length > 0) {
+      if (overdueCount > 0 || dueSoonCount > 0) {
         toast({
           title: "PPE Inspection Reminders",
-          description: `${messages.join(', ')}. Check the 'Upcoming/Overdue Inspections' list.`,
+          description: `${overdueCount} item(s) overdue, ${dueSoonCount} item(s) due soon. Check 'Upcoming/Overdue Inspections'.`,
           variant: overdueCount > 0 ? "destructive" : "default", 
           duration: 10000,
         });
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [upcomingOrOverdueInspections, toast]); // Toast is stable, so this effectively runs when upcomingOrOverdueInspections changes
+  }, [upcomingOrOverdueInspections]);
 
 
   const handleOpenNewPpeItemForm = () => router.push('/ppe-management/items/new');
   const handleEditPpeItem = (item: PpeItem) => router.push(`/ppe-management/items/edit/${item.id}`);
-  const handleDeletePpeItem = (itemId: string) => {
-    if (ppeIssuances.some(issuance => issuance.ppeItemId === itemId) || 
-        ppeInspections.some(insp => insp.ppeItemId === itemId) ||
-        ppeJobRoleMatrix.some(matrix => matrix.requiredPpeItemIds.includes(itemId)) ) {
-      toast({ title: "Cannot Delete", description: "This PPE item is linked to issuance, inspection, or job role matrix records.", variant: "destructive" });
-      return;
-    }
-    setPpeItems(prev => prev.filter(item => item.id !== itemId));
-    toast({ title: "PPE Item Deleted" });
-  };
+  const handleDeletePpeItem = (itemId: string) => deletePpeItemMutation.mutate(itemId);
   
   const handleOpenNewPpeIssuanceForm = () => {
     if (ppeItems.filter(item => (item.status || 'Available') === 'Available').length === 0) {
@@ -222,10 +247,7 @@ export default function PpeManagementPage() {
     router.push('/ppe-management/issuances/new');
   };
   const handleEditPpeIssuance = (issuance: PpeIssuanceRecord) => router.push(`/ppe-management/issuances/edit/${issuance.id}`);
-  const handleDeletePpeIssuance = (issuanceId: string) => {
-    setPpeIssuances(prev => prev.filter(item => item.id !== issuanceId));
-    toast({ title: "PPE Issuance Record Deleted" });
-  };
+  const handleDeletePpeIssuance = (issuanceId: string) => deletePpeIssuanceMutation.mutate(issuanceId);
 
   const handleOpenNewPpeInspectionForm = () => {
      if (ppeItems.length === 0) {
@@ -235,12 +257,8 @@ export default function PpeManagementPage() {
     router.push('/ppe-management/inspections/new');
   }
   const handleEditPpeInspection = (inspection: PpeInspectionRecord) => router.push(`/ppe-management/inspections/edit/${inspection.id}`);
-  const handleDeletePpeInspection = (inspectionId: string) => {
-    setPpeInspections(prev => prev.filter(insp => insp.id !== inspectionId));
-    toast({ title: "PPE Inspection Record Deleted" });
-  };
+  const handleDeletePpeInspection = (inspectionId: string) => deletePpeInspectionMutation.mutate(inspectionId);
 
-  // --- PPE Job Role Matrix Handlers ---
   const handleOpenNewJobRoleForm = () => {
     if (ppeItems.length === 0) {
         toast({title: "No PPE Items", description: "Please add PPE items to inventory first to define job role requirements.", variant: "destructive"});
@@ -253,23 +271,14 @@ export default function PpeManagementPage() {
     setEditingJobRoleEntry(entry);
     setIsJobRoleFormOpen(true);
   };
-  const handleDeleteJobRoleEntry = (entryId: string) => {
-    setPpeJobRoleMatrix(prev => prev.filter(entry => entry.id !== entryId));
-    toast({ title: "Job Role Matrix Entry Deleted" });
-  };
+  const handleDeleteJobRoleEntry = (entryId: string) => deleteJobRoleEntryMutation.mutate(entryId);
   const handleSaveJobRoleEntry = (data: Omit<PpeJobRoleMatrixEntry, 'id'>) => {
     if (editingJobRoleEntry) {
-      setPpeJobRoleMatrix(prev => prev.map(entry => entry.id === editingJobRoleEntry.id ? { ...editingJobRoleEntry, ...data } : entry));
-      toast({ title: "Job Role Matrix Updated", description: `Requirements for "${data.jobRole}" updated.` });
+      updateJobRoleEntryMutation.mutate({ ...editingJobRoleEntry, ...data });
     } else {
-      const newEntry: PpeJobRoleMatrixEntry = { id: crypto.randomUUID(), ...data };
-      setPpeJobRoleMatrix(prev => [newEntry, ...prev]);
-      toast({ title: "Job Role Matrix Entry Created", description: `Requirements for "${data.jobRole}" defined.` });
+      addJobRoleEntryMutation.mutate(data);
     }
-    setIsJobRoleFormOpen(false);
-    setEditingJobRoleEntry(null);
   };
-
 
   const getPpeItemName = (itemId: string) => ppeItems.find(item => item.id === itemId)?.name || "Unknown PPE";
   
@@ -304,6 +313,21 @@ export default function PpeManagementPage() {
     }
   };
 
+  const isLoading = isLoadingPpeItems || isLoadingPpeIssuances || isLoadingPpeInspections || isLoadingJobRoleMatrix;
+  const anyError = ppeItemsError || ppeIssuancesError || ppeInspectionsError || jobRoleMatrixError;
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="ml-3 text-lg text-muted-foreground">Loading PPE data...</p>
+      </div>
+    );
+  }
+
+  if (anyError) {
+    return <div className="text-red-500 text-center py-10">Error loading PPE data: {anyError.message}</div>;
+  }
 
   return (
     <div className="space-y-8">
@@ -320,12 +344,12 @@ export default function PpeManagementPage() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           <div className="absolute bottom-0 left-0 p-6">
             <h1 className="text-3xl font-bold tracking-tight font-headline text-white">PPE Management</h1>
-            <p className="text-sm text-neutral-300">Track inventory, issuance, inspections, and compliance for Personal Protective Equipment.</p>
+            <p className="text-sm text-neutral-300">Track inventory, issuance, inspections, and compliance for Personal Protective Equipment. Data stored in Firestore.</p>
           </div>
         </div>
         <CardContent className="pt-6">
           <p className="text-muted-foreground">
-            This module helps manage all aspects of Personal Protective Equipment, including inventory, status, issuance, inspections (with scheduling reminders), and a job role PPE matrix. Data is stored locally.
+            This module helps manage all aspects of Personal Protective Equipment. Data is stored securely in Firebase Firestore.
           </p>
         </CardContent>
       </Card>
@@ -402,7 +426,7 @@ export default function PpeManagementPage() {
                         <Button variant="outline" size="sm" onClick={() => setViewingPpeItem(item)}><Eye className="mr-1 h-3 w-3" /> View</Button>
                         <Button variant="secondary" size="sm" onClick={() => handleEditPpeItem(item)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
+                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deletePpeItemMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Delete PPE Item?</AlertDialogTitle><AlertDialogDescription>Delete "{item.name}"? This action cannot be undone. Ensure it's not linked to active records.</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePpeItem(item.id)}>Delete</AlertDialogAction></AlertDialogFooter>
@@ -457,7 +481,7 @@ export default function PpeManagementPage() {
                         <Button variant="outline" size="sm" onClick={() => setViewingPpeIssuance(issuance)}><Eye className="mr-1 h-3 w-3" /> View</Button>
                         <Button variant="secondary" size="sm" onClick={() => handleEditPpeIssuance(issuance)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
+                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deletePpeIssuanceMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Delete Issuance Record?</AlertDialogTitle><AlertDialogDescription>Delete this record? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePpeIssuance(issuance.id)}>Delete</AlertDialogAction></AlertDialogFooter>
@@ -510,7 +534,7 @@ export default function PpeManagementPage() {
                         <Button variant="outline" size="sm" onClick={() => setViewingPpeInspection(inspection)}><Eye className="mr-1 h-3 w-3" /> View</Button>
                         <Button variant="secondary" size="sm" onClick={() => handleEditPpeInspection(inspection)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
+                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deletePpeInspectionMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Delete Inspection Record?</AlertDialogTitle><AlertDialogDescription>Delete this inspection record? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePpeInspection(inspection.id)}>Delete</AlertDialogAction></AlertDialogFooter>
@@ -539,7 +563,7 @@ export default function PpeManagementPage() {
             <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-indigo-600" />PPE Job Role Matrix</CardTitle>
             <CardDescription>Define standard PPE requirements for different job roles.</CardDescription>
           </div>
-          <Button onClick={handleOpenNewJobRoleForm} className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={ppeItems.length === 0}>
+          <Button onClick={handleOpenNewJobRoleForm} className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={ppeItems.length === 0 || addJobRoleEntryMutation.isPending || updateJobRoleEntryMutation.isPending}>
             <PlusCircle className="mr-2 h-4 w-4" /> Define New Job Role PPE
           </Button>
         </CardHeader>
@@ -561,9 +585,9 @@ export default function PpeManagementPage() {
                       </div>
                       <div className="flex gap-2 self-start sm:self-center shrink-0">
                         <Button variant="outline" size="sm" onClick={() => setViewingJobRoleEntry(entry)}><Eye className="mr-1 h-3 w-3" /> View</Button>
-                        <Button variant="secondary" size="sm" onClick={() => handleEditJobRoleEntry(entry)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
+                        <Button variant="secondary" size="sm" onClick={() => handleEditJobRoleEntry(entry)} disabled={updateJobRoleEntryMutation.isPending}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
+                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteJobRoleEntryMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Delete Job Role Entry?</AlertDialogTitle><AlertDialogDescription>Delete requirements for "{entry.jobRole}"? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteJobRoleEntry(entry.id)}>Delete</AlertDialogAction></AlertDialogFooter>
@@ -591,14 +615,12 @@ export default function PpeManagementPage() {
       )}
       {viewingJobRoleEntry && <PpeJobRoleMatrixDetailsDialog entry={viewingJobRoleEntry} ppeItems={ppeItems} onClose={() => setViewingJobRoleEntry(null)} />}
 
-
       <Separator />
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><ListFilter className="h-6 w-6 text-gray-400"/>Advanced Inspection Scheduling (Placeholder)</CardTitle></CardHeader>
-        <CardContent><p className="text-muted-foreground">More advanced features like rule-based scheduling and automated reminders (via backend) will be here.</p></CardContent>
+        <CardHeader><CardTitle className="flex items-center gap-2"><ListFilter className="h-6 w-6 text-gray-400"/>Advanced Functionality (Future)</CardTitle></CardHeader>
+        <CardContent><p className="text-muted-foreground">Future enhancements include rule-based inspection scheduling, automated reminders (via backend), and integration with inventory for stock level alerts.</p></CardContent>
       </Card>
 
     </div>
   );
 }
-    

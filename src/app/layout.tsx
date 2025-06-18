@@ -1,8 +1,7 @@
 
 import type {Metadata} from 'next';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from '@/contexts/auth-context'; // Import AuthProvider
+import { Providers } from '@/components/layout/providers'; // Import the new Providers component
 
 export const metadata: Metadata = {
   title: 'SHEild - Safety, Health & Environment',
@@ -22,10 +21,9 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <AuthProvider> {/* Wrap children with AuthProvider */}
+        <Providers> {/* Use the Providers component */}
           {children}
-        </AuthProvider>
-        <Toaster />
+        </Providers>
       </body>
     </html>
   );

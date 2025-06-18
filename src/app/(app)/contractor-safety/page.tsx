@@ -5,9 +5,9 @@ import { useState, useEffect, useMemo } from 'react';
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Dialog } from "@/components/ui/dialog"; // Dialog will be used by forms
+import { Dialog } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, ClipboardList, FileText, CheckSquare, ShieldAlert } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, Eye, ClipboardList, FileText, CheckSquare, ShieldAlert, Loader2 } from "lucide-react";
 import type { Contractor, PermitToWork, ContractorVettingStatus, PtwStatus } from "@/lib/types";
 import { ContractorForm } from "@/components/contractor-safety/contractor-form";
 import { PermitToWorkForm } from "@/components/contractor-safety/permit-to-work-form";
@@ -28,14 +28,18 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertTitle } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/auth-context';
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-const CONTRACTORS_STORAGE_KEY = 'sheild-contractors-v1';
-const PTWS_STORAGE_KEY = 'sheild-ptws-v1';
+const CONTRACTORS_COLLECTION = 'contractors';
+const PTWS_COLLECTION = 'permitsToWork';
 
 export default function ContractorSafetyPage() {
   const { toast } = useToast();
-  const [contractors, setContractors] = useState<Contractor[]>([]);
-  const [ptws, setPtws] = useState<PermitToWork[]>([]);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const [isContractorFormOpen, setIsContractorFormOpen] = useState(false);
   const [editingContractor, setEditingContractor] = useState<Contractor | null>(null);
@@ -45,45 +49,112 @@ export default function ContractorSafetyPage() {
   const [editingPtw, setEditingPtw] = useState<PermitToWork | null>(null);
   const [viewingPtw, setViewingPtw] = useState<PermitToWork | null>(null);
 
-  // Load contractors
-  useEffect(() => {
-    try {
-      const storedContractors = localStorage.getItem(CONTRACTORS_STORAGE_KEY);
-      if (storedContractors) setContractors(JSON.parse(storedContractors));
-    } catch (error) {
-      console.error("Error loading contractors:", error);
-      toast({ title: "Error", description: "Could not load contractor data.", variant: "destructive" });
-    }
-  }, [toast]);
+  // Fetch Contractors
+  const { data: contractors = [], isLoading: isLoadingContractors, error: contractorsError } = useQuery<Contractor[]>({
+    queryKey: [CONTRACTORS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, CONTRACTORS_COLLECTION), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Contractor));
+    },
+    enabled: !!user?.uid,
+  });
 
-  // Save contractors
-  useEffect(() => {
-    try {
-      localStorage.setItem(CONTRACTORS_STORAGE_KEY, JSON.stringify(contractors));
-    } catch (error) {
-      console.error("Error saving contractors:", error);
-    }
-  }, [contractors]);
+  // Fetch PTWs
+  const { data: ptws = [], isLoading: isLoadingPtws, error: ptwsError } = useQuery<PermitToWork[]>({
+    queryKey: [PTWS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, PTWS_COLLECTION), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PermitToWork));
+    },
+    enabled: !!user?.uid,
+  });
 
-  // Load PTWs
-  useEffect(() => {
-    try {
-      const storedPtws = localStorage.getItem(PTWS_STORAGE_KEY);
-      if (storedPtws) setPtws(JSON.parse(storedPtws));
-    } catch (error) {
-      console.error("Error loading PTWs:", error);
-      toast({ title: "Error", description: "Could not load PTW data.", variant: "destructive" });
-    }
-  }, [toast]);
+  // Contractor Mutations
+  const addContractorMutation = useMutation({
+    mutationFn: (newContractorData: Omit<Contractor, 'id' | 'userId'>) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      return addDoc(collection(db, CONTRACTORS_COLLECTION), { ...newContractorData, userId: user.uid });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CONTRACTORS_COLLECTION, user?.uid] });
+      toast({ title: "Contractor Added" });
+      setIsContractorFormOpen(false); setEditingContractor(null);
+    },
+    onError: (e: Error) => toast({ title: "Error Adding Contractor", description: e.message, variant: "destructive" }),
+  });
 
-  // Save PTWs
-  useEffect(() => {
-    try {
-      localStorage.setItem(PTWS_STORAGE_KEY, JSON.stringify(ptws));
-    } catch (error) {
-      console.error("Error saving PTWs:", error);
-    }
-  }, [ptws]);
+  const updateContractorMutation = useMutation({
+    mutationFn: (contractorToUpdate: Contractor) => {
+      if (!user?.uid || !contractorToUpdate.id) throw new Error("Missing user or contractor ID.");
+      const { id, ...data } = contractorToUpdate;
+      return updateDoc(doc(db, CONTRACTORS_COLLECTION, id), { ...data, userId: user.uid });
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: [CONTRACTORS_COLLECTION, user?.uid] });
+      toast({ title: "Contractor Updated", description: `Details for ${vars.companyName} updated.` });
+      setIsContractorFormOpen(false); setEditingContractor(null);
+    },
+    onError: (e: Error) => toast({ title: "Error Updating Contractor", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteContractorMutation = useMutation({
+    mutationFn: async (contractorId: string) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      if (ptws.some(ptw => ptw.contractorId === contractorId)) {
+        throw new Error("Contractor is associated with PTWs. Delete PTWs first.");
+      }
+      await deleteDoc(doc(db, CONTRACTORS_COLLECTION, contractorId));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CONTRACTORS_COLLECTION, user?.uid] });
+      toast({ title: "Contractor Deleted" });
+    },
+    onError: (e: Error) => toast({ title: "Error Deleting Contractor", description: e.message, variant: "destructive" }),
+  });
+
+  // PTW Mutations
+  const addPtwMutation = useMutation({
+    mutationFn: (newPtwData: Omit<PermitToWork, 'id' | 'userId'>) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      return addDoc(collection(db, PTWS_COLLECTION), { ...newPtwData, userId: user.uid });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PTWS_COLLECTION, user?.uid] });
+      toast({ title: "Permit Created" });
+      setIsPtwFormOpen(false); setEditingPtw(null);
+    },
+    onError: (e: Error) => toast({ title: "Error Creating PTW", description: e.message, variant: "destructive" }),
+  });
+
+  const updatePtwMutation = useMutation({
+    mutationFn: (ptwToUpdate: PermitToWork) => {
+      if (!user?.uid || !ptwToUpdate.id) throw new Error("Missing user or PTW ID.");
+      const { id, ...data } = ptwToUpdate;
+      return updateDoc(doc(db, PTWS_COLLECTION, id), { ...data, userId: user.uid });
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: [PTWS_COLLECTION, user?.uid] });
+      toast({ title: "Permit Updated", description: `Permit ${vars.ptwNumber} updated.` });
+      setIsPtwFormOpen(false); setEditingPtw(null);
+    },
+    onError: (e: Error) => toast({ title: "Error Updating PTW", description: e.message, variant: "destructive" }),
+  });
+
+  const deletePtwMutation = useMutation({
+    mutationFn: (ptwId: string) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      return deleteDoc(doc(db, PTWS_COLLECTION, ptwId));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [PTWS_COLLECTION, user?.uid] });
+      toast({ title: "Permit Deleted" });
+    },
+    onError: (e: Error) => toast({ title: "Error Deleting PTW", description: e.message, variant: "destructive" }),
+  });
 
 
   // Contractor Management
@@ -98,31 +169,15 @@ export default function ContractorSafetyPage() {
   };
 
   const handleDeleteContractor = (contractorId: string) => {
-    // Optional: Check if contractor is linked to any PTWs before deleting
-    if (ptws.some(ptw => ptw.contractorId === contractorId)) {
-      toast({
-        title: "Cannot Delete Contractor",
-        description: "This contractor is associated with active or past Permits to Work. Please reassign or delete those PTWs first.",
-        variant: "destructive",
-        duration: 7000,
-      });
-      return;
-    }
-    setContractors(prev => prev.filter(c => c.id !== contractorId));
-    toast({ title: "Contractor Deleted", description: "The contractor has been deleted." });
+    deleteContractorMutation.mutate(contractorId);
   };
 
   const handleSaveContractor = (data: Omit<Contractor, 'id'>) => {
     if (editingContractor) {
-      setContractors(prev => prev.map(c => c.id === editingContractor.id ? { ...editingContractor, ...data } : c));
-      toast({ title: "Contractor Updated", description: `Details for ${data.companyName} updated.` });
+      updateContractorMutation.mutate({ ...editingContractor, ...data });
     } else {
-      const newContractor: Contractor = { id: crypto.randomUUID(), ...data };
-      setContractors(prev => [newContractor, ...prev]);
-      toast({ title: "Contractor Added", description: `${data.companyName} has been added.` });
+      addContractorMutation.mutate(data);
     }
-    setIsContractorFormOpen(false);
-    setEditingContractor(null);
   };
 
   // PTW Management
@@ -141,21 +196,15 @@ export default function ContractorSafetyPage() {
   };
 
   const handleDeletePtw = (ptwId: string) => {
-    setPtws(prev => prev.filter(p => p.id !== ptwId));
-    toast({ title: "Permit Deleted", description: "The Permit to Work has been deleted." });
+    deletePtwMutation.mutate(ptwId);
   };
 
   const handleSavePtw = (data: Omit<PermitToWork, 'id'>) => {
     if (editingPtw) {
-      setPtws(prev => prev.map(p => p.id === editingPtw.id ? { ...editingPtw, ...data } : p));
-      toast({ title: "Permit Updated", description: `Permit ${data.ptwNumber} updated.` });
+      updatePtwMutation.mutate({ ...editingPtw, ...data });
     } else {
-      const newPtw: PermitToWork = { id: crypto.randomUUID(), ...data };
-      setPtws(prev => [newPtw, ...prev]);
-      toast({ title: "Permit Created", description: `Permit ${data.ptwNumber} has been created.` });
+      addPtwMutation.mutate(data);
     }
-    setIsPtwFormOpen(false);
-    setEditingPtw(null);
   };
   
   const getContractorName = (contractorId: string) => contractors.find(c => c.id === contractorId)?.companyName || "Unknown Contractor";
@@ -181,6 +230,18 @@ export default function ContractorSafetyPage() {
     }
   };
 
+  if (isLoadingContractors || isLoadingPtws) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="ml-3 text-lg text-muted-foreground">Loading contractor safety data...</p>
+      </div>
+    );
+  }
+  if (contractorsError || ptwsError) {
+    return <div className="text-red-500 text-center py-10">Error loading data: {(contractorsError || ptwsError)?.message}</div>;
+  }
+
 
   return (
     <div className="space-y-8">
@@ -196,20 +257,20 @@ export default function ContractorSafetyPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-0 left-0 p-6">
                 <h1 className="text-3xl font-bold tracking-tight font-headline text-white">Contractor Safety</h1>
-                <p className="text-sm text-neutral-300">Oversee contractor safety from vetting to on-site work.</p>
+                <p className="text-sm text-neutral-300">Oversee contractor safety from vetting to on-site work. Data stored in Firestore.</p>
             </div>
         </div>
         <CardContent className="pt-6">
             <p className="text-muted-foreground">
-                This module facilitates the management of contractor safety, including pre-qualification/vetting (with simulated document tracking), 
-                induction status, and a Permit-to-Work (PTW) system. All data is stored locally in your browser.
+                This module facilitates the management of contractor safety, including pre-qualification/vetting, 
+                induction status, and a Permit-to-Work (PTW) system. All data is now stored securely in Firebase Firestore.
             </p>
              <Alert variant="info" className="mt-4">
                 <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>Backend Required for Full Functionality</AlertTitle>
+                <AlertTitle>Real-time & Secure Data</AlertTitle>
                 <div className="text-xs text-muted-foreground">
-                    Features like actual document uploads, shared real-time data, automated notifications for PTW expiry or document renewals, and AI-assisted vetting require a backend system. 
-                    The current implementation uses local browser storage for demonstration.
+                    With Firestore integration, your data is persistent and can be accessed across sessions. 
+                    Actual document uploads, shared real-time data, and automated notifications would require further backend development (e.g., Cloud Functions for Firebase).
                 </div>
             </Alert>
         </CardContent>
@@ -222,7 +283,7 @@ export default function ContractorSafetyPage() {
                 <CardTitle className="flex items-center gap-2"><ClipboardList className="h-6 w-6 text-primary"/>Contractor Register</CardTitle>
                 <CardDescription>Manage contractor information, vetting status, and inductions.</CardDescription>
             </div>
-            <Button onClick={handleOpenNewContractorForm} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Button onClick={handleOpenNewContractorForm} className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={addContractorMutation.isPending || updateContractorMutation.isPending}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New Contractor
             </Button>
         </CardHeader>
@@ -242,10 +303,10 @@ export default function ContractorSafetyPage() {
                                     </div>
                                     <div className="flex gap-2 self-start sm:self-center shrink-0">
                                         <Button variant="outline" size="sm" onClick={() => setViewingContractor(contractor)}><Eye className="mr-1 h-3 w-3" /> View</Button>
-                                        <Button variant="secondary" size="sm" onClick={() => handleEditContractor(contractor)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
+                                        <Button variant="secondary" size="sm" onClick={() => handleEditContractor(contractor)} disabled={updateContractorMutation.isPending}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                <Button variant="destructive" size="sm"><Trash2 className="mr-1 h-3 w-3" /> Delete</Button>
+                                                <Button variant="destructive" size="sm" disabled={deleteContractorMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button>
                                             </AlertDialogTrigger>
                                             <AlertDialogContent>
                                                 <AlertDialogHeader><AlertDialogTitle>Delete Contractor?</AlertDialogTitle>
@@ -286,7 +347,7 @@ export default function ContractorSafetyPage() {
                 <CardTitle className="flex items-center gap-2"><FileText className="h-6 w-6 text-accent"/>Permit to Work (PTW) Log</CardTitle>
                 <CardDescription>Manage and track Permits to Work issued to contractors.</CardDescription>
             </div>
-            <Button onClick={handleOpenNewPtwForm} className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={contractors.length === 0}>
+            <Button onClick={handleOpenNewPtwForm} className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={contractors.length === 0 || addPtwMutation.isPending || updatePtwMutation.isPending}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Create New PTW
             </Button>
         </CardHeader>
@@ -308,10 +369,10 @@ export default function ContractorSafetyPage() {
                                     </div>
                                      <div className="flex gap-2 self-start sm:self-center shrink-0">
                                         <Button variant="outline" size="sm" onClick={() => setViewingPtw(ptw)}><Eye className="mr-1 h-3 w-3" /> View</Button>
-                                        <Button variant="secondary" size="sm" onClick={() => handleEditPtw(ptw)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
+                                        <Button variant="secondary" size="sm" onClick={() => handleEditPtw(ptw)} disabled={updatePtwMutation.isPending}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                <Button variant="destructive" size="sm"><Trash2 className="mr-1 h-3 w-3" /> Delete</Button>
+                                                <Button variant="destructive" size="sm" disabled={deletePtwMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button>
                                             </AlertDialogTrigger>
                                             <AlertDialogContent>
                                                 <AlertDialogHeader><AlertDialogTitle>Delete PTW?</AlertDialogTitle>
@@ -346,18 +407,18 @@ export default function ContractorSafetyPage() {
 
       <Card className="mt-8">
         <CardHeader>
-            <CardTitle>Further Enhancements (Require Backend)</CardTitle>
+            <CardTitle>Further Enhancements (Require Backend/Cloud Functions)</CardTitle>
         </CardHeader>
         <CardContent>
              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-                    <li>Actual document uploads and secure storage (insurance, certifications).</li>
+                    <li>Actual document uploads and secure storage (Firebase Storage).</li>
                     <li>Online safety induction training module with content and completion tracking.</li>
-                    <li>Automated notifications for PTW expiry or document renewals.</li>
-                    <li>Workflow for PTW approvals.</li>
+                    <li>Automated notifications (Cloud Functions) for PTW expiry or document renewals.</li>
+                    <li>Workflow for PTW approvals (Cloud Functions and Firestore status updates).</li>
                     <li>On-site supervision checklists and performance monitoring tools integrated with PTWs.</li>
                     <li>Linkage to incident logging for incidents involving contractors.</li>
                     <li>Contractor performance reviews and scoring based on historical data.</li>
-                    <li>AI-assisted vetting using historical safety performance data.</li>
+                    <li>AI-assisted vetting using historical safety performance data (Genkit/Cloud AI).</li>
                 </ul>
         </CardContent>
       </Card>
