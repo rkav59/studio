@@ -12,6 +12,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription, // Added missing import
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,7 +31,7 @@ import { CalendarIcon, Save, XCircle } from "lucide-react";
 import type { EmergencyPlan } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { ScrollArea } from "../ui/scroll-area";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription as UiCardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 
 const planTypes = ['Evacuation', 'Fire Response', 'Medical Emergency', 'Spill Response', 'Other'] as const;
@@ -88,9 +89,9 @@ export function EmergencyPlanForm({ initialData, onSave, onCancel, isSubmitting 
   return (
     <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
         <CardHeader>
-             <CardDescription>
+             <UiCardDescription>
                 {initialData ? "Update the details of this emergency plan." : "Fill in the details to create a new emergency plan."}
-            </CardDescription>
+            </UiCardDescription>
         </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
