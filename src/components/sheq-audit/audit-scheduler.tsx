@@ -92,7 +92,7 @@ export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onSched
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Audit Program</CardTitle>
-          <CardDescription>Schedule new audits and manage upcoming ones. Select a checklist template to start.</CardDescription>
+          <CardDescription className="p-10 m-10">Schedule new audits and manage upcoming ones. Select a checklist template to start.</CardDescription>
         </div>
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
@@ -196,3 +196,5 @@ export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onSched
     </Card>
   );
 }
+
+    
