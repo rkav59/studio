@@ -77,7 +77,7 @@ export default function SheqAuditPage() {
           id: doc.id, 
           ...data,
           auditDate: (data.auditDate as Timestamp)?.toDate().toISOString(),
-          checklist: (data.checklist || []).map((item: any) => ({ // Ensure checklist items are mapped correctly
+          checklist: (data.checklist || []).map((item: any) => ({ 
             ...item,
             id: item.id || crypto.randomUUID(),
             observations: (item.observations || []).map((obs: any) => ({...obs, id: obs.id || crypto.randomUUID()})),
@@ -124,12 +124,12 @@ export default function SheqAuditPage() {
         auditDate: Timestamp.fromDate(parseISO(newAuditData.auditDate as string)),
         checklist: initialChecklistItemsFromTemplate.map(templateItem => ({
           id: crypto.randomUUID(), 
-          templateItemId: templateItem.id, // Store original template item ID
+          templateItemId: templateItem.id, 
           text: templateItem.text,
           status: 'Pending',
-          auditCriteriaReference: templateItem.auditCriteriaReference || '', // Copy from template
-          evidenceGatheringPrompt: templateItem.evidenceGatheringPrompt || '', // Copy from template
-          evidenceNotes: '', // Initialize as empty for auditor to fill
+          auditCriteriaReference: templateItem.auditCriteriaReference || '', 
+          evidenceGatheringPrompt: templateItem.evidenceGatheringPrompt || '', 
+          evidenceNotes: '', 
           responsiblePerson: templateItem.defaultResponsiblePerson || '',
           observations: templateItem.observationPrompt ? [{id: crypto.randomUUID(), text: templateItem.observationPrompt}] : [],
           comments: templateItem.defaultComments || '',
@@ -159,7 +159,7 @@ export default function SheqAuditPage() {
         ...dataToUpdate,
         userId: user.uid,
         auditDate: Timestamp.fromDate(parseISO(dataToUpdate.auditDate as string)),
-        checklist: dataToUpdate.checklist.map(item => ({ // Ensure all fields are preserved
+        checklist: dataToUpdate.checklist.map(item => ({ 
             ...item,
             id: item.id || crypto.randomUUID(),
             observations: (item.observations || []).map(obs => ({...obs, id: obs.id || crypto.randomUUID()})),
@@ -199,9 +199,9 @@ export default function SheqAuditPage() {
         checklist: (auditToStart.checklist || []).map(item => ({
             ...item,
             id: item.id || crypto.randomUUID(),
-            templateItemId: item.templateItemId || '', // Ensure it's carried over
-            auditCriteriaReference: item.auditCriteriaReference || '', // Ensure it's carried over
-            evidenceGatheringPrompt: item.evidenceGatheringPrompt || '', // Ensure it's carried over
+            templateItemId: item.templateItemId || '', 
+            auditCriteriaReference: item.auditCriteriaReference || '', 
+            evidenceGatheringPrompt: item.evidenceGatheringPrompt || '', 
             evidenceNotes: item.evidenceNotes || '',
             responsiblePerson: item.responsiblePerson || '',
             observations: Array.isArray(item.observations) 
