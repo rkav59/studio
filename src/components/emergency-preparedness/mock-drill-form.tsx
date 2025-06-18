@@ -24,14 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
+// Removed Dialog imports
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Save, XCircle, Activity, PlusCircle, Trash2, ClipboardCheck, AlertTriangle, CheckCircle, ListChecksIcon, Sparkles, Loader2 } from "lucide-react";
 import type { MockDrill, DrillActionItem, EmergencyPlan, DrillActionStatus } from "@/lib/types";
@@ -77,8 +70,9 @@ type MockDrillFormValues = z.infer<typeof mockDrillFormSchema>;
 interface MockDrillFormProps {
   plans: EmergencyPlan[];
   initialData?: MockDrill | null;
-  onSave: (data: Omit<MockDrill, 'id'>) => void;
+  onSave: (data: Omit<MockDrill, 'id' | 'userId'>) => void; // Matches page expectation
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
 const newActionItemDefault = (): DrillActionItem => ({
@@ -89,7 +83,7 @@ const newActionItemDefault = (): DrillActionItem => ({
   status: "Open",
 });
 
-export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDrillFormProps) {
+export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitting }: MockDrillFormProps) {
   const { toast } = useToast();
   const [isScenarioLoading, setIsScenarioLoading] = React.useState(false);
 
@@ -105,7 +99,7 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDril
       participants: initialData?.participants || "",
       observations: initialData?.observations || "",
       lessonsLearned: initialData?.lessonsLearned || "",
-      actionItems: initialData?.actionItems || [],
+      actionItems: initialData?.actionItems?.map(ai => ({...ai, dueDate: ai.dueDate ? format(parseISO(ai.dueDate), 'yyyy-MM-dd') : undefined})) || [],
       status: initialData?.status || 'Planned',
     },
   });
@@ -116,12 +110,12 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDril
   });
 
   const onSubmit = (data: MockDrillFormValues) => {
-    const drillToSave = {
+    const drillToSave: Omit<MockDrill, 'id' | 'userId'> = { // Ensure type matches onSave prop
       ...data,
       linkedPlanId: data.linkedPlanId === NO_PLAN_VALUE ? undefined : data.linkedPlanId,
       scheduledDate: parseISO(data.scheduledDate).toISOString(),
       actualDate: data.actualDate ? parseISO(data.actualDate).toISOString() : undefined,
-      actionItems: data.actionItems || [],
+      actionItems: (data.actionItems || []).map(ai => ({...ai, dueDate: ai.dueDate ? parseISO(ai.dueDate).toISOString() : undefined })),
     };
     onSave(drillToSave);
   };
@@ -180,26 +174,22 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDril
 
 
   return (
-    <DialogContent className="sm:max-w-2xl">
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-            <Activity className="h-6 w-6 text-teal-500" />
-            {initialData ? "Edit Mock Drill Record" : "Schedule/Log New Mock Drill"}
-        </DialogTitle>
-        <DialogDescription>
-          {initialData ? "Update the details of this mock drill." : "Enter details for scheduling or logging a mock drill."}
-        </DialogDescription>
-      </DialogHeader>
+    <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+        <UiCardHeader>
+            <UiCardDescription>
+              {initialData ? "Update the details of this mock drill." : "Enter details for scheduling or logging a mock drill."}
+            </UiCardDescription>
+        </UiCardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="py-4">
-            <ScrollArea className="max-h-[70vh] pr-6 space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+            <ScrollArea className="flex-1 p-6 space-y-4">
               <FormField control={form.control} name="drillName" render={({ field }) => (
                 <FormItem><FormLabel>Drill Name/Title</FormLabel><FormControl><Input placeholder="e.g., Q3 Fire Evacuation Drill - Main Office" {...field} /></FormControl><FormMessage /></FormItem>
               )}/>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="drillType" render={({ field }) => (
                     <FormItem><FormLabel>Drill Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select drill type" /></SelectTrigger></FormControl>
                         <SelectContent>{drillTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
                     </Select><FormMessage /></FormItem>
@@ -237,7 +227,7 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDril
               </div>
               <FormField control={form.control} name="status" render={({ field }) => (
                 <FormItem><FormLabel>Drill Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || undefined}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
                     <SelectContent>{drillStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent>
                     </Select><FormMessage /></FormItem>
@@ -316,7 +306,7 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDril
                             </div>
                             <FormField control={form.control} name={`actionItems.${index}.status`} render={({ field }) => (
                                 <FormItem><FormLabel className="text-xs">Status</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value || undefined}>
                                     <FormControl><SelectTrigger className="text-xs"><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
                                     <SelectContent>{actionItemStatuses.map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}</SelectContent>
                                 </Select><FormMessage /></FormItem>
@@ -329,13 +319,13 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel }: MockDril
             </Card>
 
             </ScrollArea>
-            <DialogFooter className="pt-6 border-t mt-4">
-                <DialogClose asChild><Button type="button" variant="outline" onClick={onCancel}><XCircle className="mr-2 h-4 w-4" /> Cancel</Button></DialogClose>
-                <Button type="submit" className="bg-teal-500 hover:bg-teal-600 text-white"><Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Save Drill"}</Button>
-            </DialogFooter>
+            <div className="p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
+                <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}><XCircle className="mr-2 h-4 w-4" /> Cancel</Button>
+                <Button type="submit" className="bg-teal-500 hover:bg-teal-600 text-white" disabled={isSubmitting}><Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Save Drill"}</Button>
+            </div>
         </form>
       </Form>
-    </DialogContent>
+    </Card>
   );
 }
 

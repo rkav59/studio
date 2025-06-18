@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -25,19 +24,14 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
+// Removed Dialog imports
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Save, XCircle } from "lucide-react";
 import type { EmergencyPlan } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { ScrollArea } from "../ui/scroll-area";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
 
 const planTypes = ['Evacuation', 'Fire Response', 'Medical Emergency', 'Spill Response', 'Other'] as const;
 
@@ -59,11 +53,12 @@ type EmergencyPlanFormValues = z.infer<typeof emergencyPlanFormSchema>;
 
 interface EmergencyPlanFormProps {
   initialData?: EmergencyPlan | null;
-  onSave: (data: Omit<EmergencyPlan, 'id'>) => void;
+  onSave: (data: Omit<EmergencyPlan, 'id' | 'userId'>) => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
-export function EmergencyPlanForm({ initialData, onSave, onCancel }: EmergencyPlanFormProps) {
+export function EmergencyPlanForm({ initialData, onSave, onCancel, isSubmitting }: EmergencyPlanFormProps) {
   const form = useForm<EmergencyPlanFormValues>({
     resolver: zodResolver(emergencyPlanFormSchema),
     defaultValues: {
@@ -82,7 +77,7 @@ export function EmergencyPlanForm({ initialData, onSave, onCancel }: EmergencyPl
   });
 
   const onSubmit = (data: EmergencyPlanFormValues) => {
-    const planToSave = {
+    const planToSave: Omit<EmergencyPlan, 'id' | 'userId'> = { // Explicitly type to match onSave prop
         ...data,
         lastReviewedDate: data.lastReviewedDate ? data.lastReviewedDate.toISOString() : undefined,
         nextReviewDate: data.nextReviewDate ? data.nextReviewDate.toISOString() : undefined,
@@ -91,16 +86,15 @@ export function EmergencyPlanForm({ initialData, onSave, onCancel }: EmergencyPl
   };
 
   return (
-    <DialogContent className="sm:max-w-2xl">
-      <DialogHeader>
-        <DialogTitle>{initialData ? "Edit Emergency Plan" : "Create New Emergency Plan"}</DialogTitle>
-        <DialogDescription>
-          {initialData ? "Update the details of this emergency plan." : "Fill in the details to create a new emergency plan."}
-        </DialogDescription>
-      </DialogHeader>
+    <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+        <CardHeader>
+             <CardDescription>
+                {initialData ? "Update the details of this emergency plan." : "Fill in the details to create a new emergency plan."}
+            </CardDescription>
+        </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="py-4">
-            <ScrollArea className="max-h-[70vh] pr-6 space-y-5">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+            <ScrollArea className="flex-1 p-6 space-y-5">
               <FormField
                 control={form.control}
                 name="planName"
@@ -122,7 +116,7 @@ export function EmergencyPlanForm({ initialData, onSave, onCancel }: EmergencyPl
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Plan Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder="Select plan type" />
@@ -293,18 +287,17 @@ export function EmergencyPlanForm({ initialData, onSave, onCancel }: EmergencyPl
                 />
             </div>
             </ScrollArea>
-            <DialogFooter className="pt-6 border-t">
-                <DialogClose asChild>
-                <Button type="button" variant="outline" onClick={onCancel}>
+            <div className="p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
+                <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
                     <XCircle className="mr-2 h-4 w-4" /> Cancel
                 </Button>
-                </DialogClose>
-                <Button type="submit" className="bg-primary hover:bg-primary/90">
+                <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isSubmitting}>
                 <Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Create Plan"}
                 </Button>
-            </DialogFooter>
+            </div>
         </form>
       </Form>
-    </DialogContent>
+    </Card>
   );
 }
+
