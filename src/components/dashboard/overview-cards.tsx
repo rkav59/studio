@@ -35,7 +35,7 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
       </CardHeader>
       <CardContent className="flex flex-col items-center pt-4 text-center">
         {pieData && pieData.length > 0 && chartConfig && ( // Conditionally render pie chart
-          <div className="h-[80px] w-[80px]">
+          <div className="h-[50px] w-[50px]"> {/* Reduced height and width */}
             <ChartContainer config={chartConfig} className="w-full h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
@@ -45,8 +45,8 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    innerRadius={isDonut ? 20 : 0}
-                    outerRadius={35}
+                    innerRadius={isDonut ? 12 : 0} // Adjusted innerRadius
+                    outerRadius={23} // Adjusted outerRadius
                     paddingAngle={isDonut ? 2 : 0}
                     labelLine={false}
                     strokeWidth={pieData.length === 1 && pieData[0].value === 100 ? 0 : 1}
@@ -60,7 +60,7 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
             </ChartContainer>
           </div>
         )}
-        <div className={`text-2xl font-bold ${pieData && pieData.length > 0 ? 'mt-3' : 'mt-2 mb-2'}`}>{value}{valueSuffix}</div>
+        <div className={`text-2xl font-bold ${pieData && pieData.length > 0 ? 'mt-2' : 'mt-2 mb-2'}`}>{value}{valueSuffix}</div>
         {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
       </CardContent>
     </Card>
@@ -195,3 +195,4 @@ export function IncidentTypeChart() {
     </Card>
   );
 }
+

@@ -23,7 +23,7 @@ export default function DashboardPage() {
             <CardDescription>A chart showing incident distribution will be here.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[250px] w-full flex items-center justify-center text-muted-foreground bg-muted/30 rounded-md">
+            <div className="h-[150px] w-full flex items-center justify-center text-muted-foreground bg-muted/30 rounded-md">
               (Incident Type Chart Placeholder)
             </div>
           </CardContent>
@@ -91,3 +91,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

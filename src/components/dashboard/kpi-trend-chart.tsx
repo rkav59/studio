@@ -36,7 +36,7 @@ export function KpiTrendChart() {
         <CardDescription>Total incidents and near misses over the last 6 months.</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[250px] w-full">
+        <ChartContainer config={chartConfig} className="h-[150px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={MOCK_MONTHLY_TREND_DATA}
@@ -53,11 +53,13 @@ export function KpiTrendChart() {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
+                fontSize={12}
               />
               <YAxis
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
+                fontSize={12}
               />
               <ChartTooltip
                 cursor={false}
@@ -87,3 +89,4 @@ export function KpiTrendChart() {
     </Card>
   );
 }
+
