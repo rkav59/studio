@@ -39,7 +39,8 @@ import { cn } from "@/lib/utils";
 import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, FileText, UploadCloud } from "lucide-react";
 import type { Contractor, ContractorDocument, ContractorVettingStatus } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
-import React, { useState } from "react"; // Added useState
+import React, { useState } from "react";
+import { Separator } from "@/components/ui/separator"; // Added import
 
 // Refined Zod schema for ContractorDocument for form validation
 const contractorDocumentSchema = z.object({
