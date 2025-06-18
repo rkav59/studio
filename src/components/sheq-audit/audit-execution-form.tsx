@@ -89,9 +89,9 @@ const getDefaultNonConformanceValues = (): NonConformance => ({
     correctiveActionsProposed: "",
     preventiveActionsProposed: "",
     actionAssignedTo: "",
-    actionDueDate: "",
+    actionDueDate: undefined, // Keep as undefined for form compatibility with date picker
     actionStatus: "Open",
-    actionCompletionDate: "",
+    actionCompletionDate: undefined, // Keep as undefined
     actionVerificationNotes: ""
 });
 
@@ -109,11 +109,21 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
     defaultValues: {
       checklist: audit.checklist?.map(item => ({
         ...item,
+        id: item.id || crypto.randomUUID(),
         responsiblePerson: item.responsiblePerson || "",
-        observations: item.observations && item.observations.length > 0 ? item.observations.map(obs => ({...obs})) : [],
+        observations: item.observations && item.observations.length > 0 
+            ? item.observations.map(obs => ({...obs, id: obs.id || crypto.randomUUID()})) 
+            : [],
         comments: item.comments || "",
       })) || [],
-      nonConformances: audit.nonConformances?.map(nc => ({...getDefaultNonConformanceValues(), ...nc})) || [],
+      nonConformances: audit.nonConformances?.map(nc => ({
+        ...getDefaultNonConformanceValues(),
+        ...nc,
+        id: nc.id || crypto.randomUUID(),
+        // Ensure dates received as ISO strings from audit object are formatted to 'yyyy-MM-dd' for form
+        actionDueDate: nc.actionDueDate && isValid(parseISO(nc.actionDueDate)) ? format(parseISO(nc.actionDueDate), 'yyyy-MM-dd') : undefined,
+        actionCompletionDate: nc.actionCompletionDate && isValid(parseISO(nc.actionCompletionDate)) ? format(parseISO(nc.actionCompletionDate), 'yyyy-MM-dd') : undefined,
+      })) || [],
       overallFindings: audit.overallFindings || "",
       recommendations: audit.recommendations || "",
     },
@@ -130,15 +140,20 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
   });
 
   async function onSubmit(data: AuditExecutionFormValues) {
-    const updatedAudit: SheqAudit = {
+    const updatedAuditData: SheqAudit = {
       ...audit,
-      checklist: data.checklist,
-      nonConformances: data.nonConformances,
+      checklist: data.checklist.map(item => ({...item})), // Ensure plain objects
+      nonConformances: data.nonConformances.map(nc => ({
+        ...nc,
+        // Convert 'yyyy-MM-dd' strings back to ISO strings for saving if they exist
+        actionDueDate: nc.actionDueDate && isValid(parseISO(nc.actionDueDate)) ? parseISO(nc.actionDueDate).toISOString() : undefined,
+        actionCompletionDate: nc.actionCompletionDate && isValid(parseISO(nc.actionCompletionDate)) ? parseISO(nc.actionCompletionDate).toISOString() : undefined,
+      })),
       overallFindings: data.overallFindings,
       recommendations: data.recommendations,
       status: "Completed", 
     };
-    onSaveAudit(updatedAudit);
+    onSaveAudit(updatedAuditData);
     toast({
       title: "Audit Data Saved",
       description: `Audit findings for "${audit.auditName}" have been recorded.`,
@@ -158,7 +173,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
   };
 
   const handleAddNewNc = () => {
-    appendNc(getDefaultNonConformanceValues());
+    appendNc(getDefaultNonConformanceValues()); // Uses undefined for dates
   }
 
   return (

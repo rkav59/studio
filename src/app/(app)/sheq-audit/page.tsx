@@ -11,7 +11,7 @@ import type { SheqAudit, AuditChecklistItem, ChecklistItemTemplate, NonConforman
 import { defaultChecklistTemplates } from '@/lib/checklist-templates';
 import { Separator } from '@/components/ui/separator';
 import { format, isValid, parseISO } from 'date-fns';
-import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2, LinkIcon } from "lucide-react";
+import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2, LinkIcon, Filter } from "lucide-react"; // Added Filter
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -21,9 +21,13 @@ import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, doc, updateDoc, Timestamp, orderBy, writeBatch } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Added Select
 
 const SHEQ_AUDITS_COLLECTION = 'sheqAudits';
 const USER_CHECKLIST_TEMPLATES_COLLECTION = 'userChecklistTemplates';
+
+const auditTypesForFilter: Array<SheqAudit['auditType'] | 'All'> = ['All', 'Safety', 'Health', 'Environment', 'Quality', 'Integrated'];
+
 
 const getDefaultNonConformance = (): NonConformance => ({
   id: crypto.randomUUID(),
@@ -57,6 +61,8 @@ export default function SheqAuditPage() {
   const [isAiInsightsLoading, setIsAiInsightsLoading] = useState(false);
   const [aiInsights, setAiInsights] = useState<AnalyzeAuditDataOutput | null>(null);
   const [isAiInsightsModalOpen, setIsAiInsightsModalOpen] = useState(false);
+  const [completedAuditFilterType, setCompletedAuditFilterType] = useState<SheqAudit['auditType'] | 'All'>('All');
+
 
   // Fetch SHEQ Audits
   const { data: audits = [], isLoading: isLoadingAudits, error: auditsError } = useQuery<SheqAudit[]>({
@@ -73,8 +79,8 @@ export default function SheqAuditPage() {
           auditDate: (data.auditDate as Timestamp)?.toDate().toISOString(),
           nonConformances: (data.nonConformances || []).map((nc: any) => ({
             ...nc,
-            actionDueDate: (nc.actionDueDate as Timestamp)?.toDate().toISOString(),
-            actionCompletionDate: (nc.actionCompletionDate as Timestamp)?.toDate().toISOString(),
+            actionDueDate: nc.actionDueDate && (nc.actionDueDate as Timestamp).toDate ? (nc.actionDueDate as Timestamp).toDate().toISOString() : undefined,
+            actionCompletionDate: nc.actionCompletionDate && (nc.actionCompletionDate as Timestamp).toDate ? (nc.actionCompletionDate as Timestamp).toDate().toISOString() : undefined,
           })),
         } as SheqAudit;
       });
@@ -140,15 +146,14 @@ export default function SheqAuditPage() {
       const { id, ...dataToUpdate } = executedAudit;
       const auditRef = doc(db, SHEQ_AUDITS_COLLECTION, id);
       
-      // Convert dates back to Timestamps before updating
       const dataForDb = {
         ...dataToUpdate,
-        userId: user.uid, // Ensure userId is part of the update
+        userId: user.uid,
         auditDate: Timestamp.fromDate(parseISO(dataToUpdate.auditDate as string)),
         nonConformances: (dataToUpdate.nonConformances || []).map(nc => ({
           ...nc,
-          actionDueDate: nc.actionDueDate ? Timestamp.fromDate(parseISO(nc.actionDueDate)) : null,
-          actionCompletionDate: nc.actionCompletionDate ? Timestamp.fromDate(parseISO(nc.actionCompletionDate)) : null,
+          actionDueDate: nc.actionDueDate && isValid(parseISO(nc.actionDueDate)) ? Timestamp.fromDate(parseISO(nc.actionDueDate)) : null,
+          actionCompletionDate: nc.actionCompletionDate && isValid(parseISO(nc.actionCompletionDate)) ? Timestamp.fromDate(parseISO(nc.actionCompletionDate)) : null,
         })),
       };
       await updateDoc(auditRef, dataForDb);
@@ -176,7 +181,6 @@ export default function SheqAuditPage() {
       setCurrentAudit({ 
         ...auditToStart, 
         status: 'In Progress',
-        // Ensure checklist items have default structures if missing
         checklist: (auditToStart.checklist || []).map(item => ({
             ...item,
             id: item.id || crypto.randomUUID(),
@@ -190,9 +194,8 @@ export default function SheqAuditPage() {
             ...getDefaultNonConformance(),
             ...nc,
             id: nc.id || crypto.randomUUID(),
-            actionDueDate: nc.actionDueDate ? format(parseISO(nc.actionDueDate), 'yyyy-MM-dd') : undefined,
-            actionCompletionDate: nc.actionCompletionDate ? format(parseISO(nc.actionCompletionDate), 'yyyy-MM-dd') : undefined,
-
+            actionDueDate: nc.actionDueDate && isValid(parseISO(nc.actionDueDate)) ? format(parseISO(nc.actionDueDate), 'yyyy-MM-dd') : undefined,
+            actionCompletionDate: nc.actionCompletionDate && isValid(parseISO(nc.actionCompletionDate)) ? format(parseISO(nc.actionCompletionDate), 'yyyy-MM-dd') : undefined,
         }))
       });
     }
@@ -290,7 +293,11 @@ export default function SheqAuditPage() {
     }
   };
   
-  const completedAudits = audits.filter(a => a.status === 'Completed' || a.status === 'Closed');
+  const completedAudits = useMemo(() => {
+    return audits.filter(a => (a.status === 'Completed' || a.status === 'Closed') && 
+                         (completedAuditFilterType === 'All' || a.auditType === completedAuditFilterType));
+  }, [audits, completedAuditFilterType]);
+
 
   if (isLoadingAudits || isLoadingUserTemplates) {
     return (
@@ -346,15 +353,39 @@ export default function SheqAuditPage() {
             onStartAudit={handleStartAudit}
           />
           
-          {completedAudits.length > 0 && (
+          
             <Card className="shadow-lg mt-6">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><CheckSquare className="h-6 w-6 text-primary"/>Completed/Closed Audits</CardTitle>
-                <CardDescription>Review past audit records.</CardDescription>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div>
+                        <CardTitle className="flex items-center gap-2"><CheckSquare className="h-6 w-6 text-primary"/>Completed/Closed Audits</CardTitle>
+                        <CardDescription>Review past audit records. Filter by audit type.</CardDescription>
+                    </div>
+                    <div className="w-full sm:w-auto min-w-[200px]">
+                        <Select value={completedAuditFilterType} onValueChange={(value) => setCompletedAuditFilterType(value as SheqAudit['auditType'] | 'All')}>
+                            <SelectTrigger className="w-full">
+                                <div className="flex items-center gap-2">
+                                 <Filter className="h-4 w-4 text-muted-foreground"/>
+                                 <SelectValue placeholder="Filter by type..." />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                                {auditTypesForFilter.map(type => (
+                                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
               </CardHeader>
               <CardContent>
+                {completedAudits.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-4">
+                        {completedAuditFilterType === 'All' ? "No audits completed or closed yet." : `No ${completedAuditFilterType} audits completed or closed.`}
+                    </p>
+                ) : (
                 <ul className="space-y-3">
-                  {completedAudits.slice(0, 5).map(audit => (
+                  {completedAudits.slice(0, 10).map(audit => ( // Show up to 10, can add pagination later
                     <li key={audit.id} className="p-3 border rounded-md bg-secondary/30 flex flex-col sm:flex-row justify-between items-start sm:items-center">
                       <div className="flex-grow">
                         <p className="font-medium">{audit.auditName} <span className="text-xs text-muted-foreground">({audit.auditType})</span></p>
@@ -368,12 +399,13 @@ export default function SheqAuditPage() {
                     </li>
                   ))}
                 </ul>
-                {completedAudits.length > 5 && (
-                    <p className="text-xs text-muted-foreground mt-3 text-center">And {completedAudits.length - 5} more...</p>
+                )}
+                {completedAudits.length > 10 && (
+                    <p className="text-xs text-muted-foreground mt-3 text-center">And {completedAudits.length - 10} more...</p>
                 )}
               </CardContent>
             </Card>
-          )}
+          
 
         </>
       ) : (
@@ -435,7 +467,7 @@ export default function SheqAuditPage() {
                                         )}
                                         
                                         {item.comments && <p className="text-xs whitespace-pre-wrap"><strong className="text-muted-foreground">Comments:</strong> {item.comments}</p>}
-                                        {item.evidenceOrRemarks && <p className="text-xs text-muted-foreground mt-1">Old Remarks/Evidence: {item.evidenceOrRemarks}</p>}
+                                        {item.evidenceOrRemarks && <p className="text-xs text-muted-foreground mt-1">Evidence/Old Remarks: {item.evidenceOrRemarks}</p>}
                                     </li>
                                 ))}
                             </ul>
