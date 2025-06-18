@@ -26,28 +26,20 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription as UiCardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, FileText, UploadCloud } from "lucide-react";
 import type { Contractor, ContractorDocument, ContractorVettingStatus } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import React, { useState } from "react";
-import { Separator } from "@/components/ui/separator"; // Added import
+import { Separator } from "@/components/ui/separator";
 
 // Refined Zod schema for ContractorDocument for form validation
 const contractorDocumentSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Document name is required.").max(150),
   documentType: z.enum(['Insurance', 'Certification', 'Method Statement', 'Risk Assessment', 'Other']),
-  // fileUrl, filePath, fileName, fileType, fileSize will be handled by the mutation, not directly in form values
   fileUrl: z.string().optional(),
   filePath: z.string().optional(),
   fileName: z.string().optional(),
@@ -73,31 +65,29 @@ const contractorFormSchema = z.object({
 
 export type ContractorFormValues = z.infer<typeof contractorFormSchema>;
 
-// This type will be passed to onSave, including the File objects
 export type ContractorFormDataWithFiles = ContractorFormValues & {
-  documentFiles?: Map<string, File>; // Map document ID to File object
-  documentsToRemove?: string[]; // Array of filePaths to remove from storage
+  documentFiles?: Map<string, File>;
+  documentsToRemove?: string[];
 };
 
 interface ContractorFormProps {
   initialData?: Contractor | null;
   onSave: (data: ContractorFormDataWithFiles) => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
 const newDocumentDefault = (): ContractorDocument => ({
     id: crypto.randomUUID(),
     name: "",
     documentType: "Other",
-    uploadedDate: new Date().toISOString(), // Default to now, will be formatted for form
+    uploadedDate: new Date().toISOString(),
     expiryDate: undefined,
-    // fileUrl, filePath etc., will be populated after upload
 });
 
-export function ContractorForm({ initialData, onSave, onCancel }: ContractorFormProps) {
+export function ContractorForm({ initialData, onSave, onCancel, isSubmitting }: ContractorFormProps) {
   const [documentFiles, setDocumentFiles] = useState<Map<string, File>>(new Map());
   const [documentsToRemove, setDocumentsToRemove] = useState<string[]>([]);
-
 
   const form = useForm<ContractorFormValues>({
     resolver: zodResolver(contractorFormSchema),
@@ -112,7 +102,7 @@ export function ContractorForm({ initialData, onSave, onCancel }: ContractorForm
       inductionCompleted: initialData?.inductionCompleted || false,
       inductionDate: initialData?.inductionDate ? format(parseISO(initialData.inductionDate), 'yyyy-MM-dd') : undefined,
       documents: initialData?.documents?.map(doc => ({
-        ...doc, // Spread existing doc data (like fileUrl, filePath, fileName if present)
+        ...doc,
         expiryDate: doc.expiryDate ? format(parseISO(doc.expiryDate), 'yyyy-MM-dd') : undefined,
         uploadedDate: doc.uploadedDate ? format(parseISO(doc.uploadedDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       })) || [],
@@ -129,7 +119,6 @@ export function ContractorForm({ initialData, onSave, onCancel }: ContractorForm
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
       setDocumentFiles(prev => new Map(prev).set(documentId, file));
-      // Update the form value for fileName to show user feedback
       const docIndex = form.getValues("documents").findIndex(d => d.id === documentId);
       if (docIndex !== -1) {
         form.setValue(`documents.${docIndex}.fileName`, file.name);
@@ -139,7 +128,7 @@ export function ContractorForm({ initialData, onSave, onCancel }: ContractorForm
   
   const handleRemoveDocument = (index: number) => {
     const docToRemove = form.getValues(`documents.${index}`);
-    if (docToRemove && docToRemove.filePath) { // If it's an existing doc with a file in storage
+    if (docToRemove && docToRemove.filePath) {
         setDocumentsToRemove(prev => [...prev, docToRemove.filePath!]);
     }
     removeDocument(index);
@@ -152,13 +141,12 @@ export function ContractorForm({ initialData, onSave, onCancel }: ContractorForm
     }
   };
 
-
   const onSubmit = (data: ContractorFormValues) => {
     const contractorToSave: ContractorFormDataWithFiles = {
       ...data,
       inductionDate: data.inductionDate ? parseISO(data.inductionDate).toISOString() : undefined,
       documents: data.documents?.map(doc => ({
-        ...doc, // includes existing fileUrl, filePath, fileName if not changed
+        ...doc,
         expiryDate: doc.expiryDate ? parseISO(doc.expiryDate).toISOString() : undefined,
         uploadedDate: parseISO(doc.uploadedDate).toISOString(),
       })) || [],
@@ -169,16 +157,16 @@ export function ContractorForm({ initialData, onSave, onCancel }: ContractorForm
   };
 
   return (
-    <DialogContent className="sm:max-w-2xl">
-      <DialogHeader>
-        <DialogTitle>{initialData ? "Edit Contractor" : "Add New Contractor"}</DialogTitle>
-        <DialogDescription>
-          {initialData ? "Update the contractor's details." : "Enter details for the new contractor."}
-        </DialogDescription>
-      </DialogHeader>
+    <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+      <CardHeader>
+        <UiCardDescription> {/* Using aliased CardDescription */}
+          {initialData ? "Update the contractor's details below." : "Enter details for the new contractor."}
+        </UiCardDescription>
+      </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="py-4">
-          <ScrollArea className="max-h-[70vh] pr-6 space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+          <ScrollArea className="flex-1">
+            <CardContent className="space-y-6 p-4 md:p-6">
             {/* Basic Info */}
             <div className="space-y-4">
               <FormField control={form.control} name="companyName" render={({ field }) => (
@@ -307,21 +295,21 @@ export function ContractorForm({ initialData, onSave, onCancel }: ContractorForm
                     <FormItem><FormLabel className="sr-only">Performance Notes</FormLabel><FormControl><Textarea placeholder="Observations on safety performance, quality of work, etc." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
             </div>
-
-
+            </CardContent>
           </ScrollArea>
-          <DialogFooter className="pt-6 border-t">
-            <DialogClose asChild>
-              <Button type="button" variant="outline" onClick={onCancel}>
-                <XCircle className="mr-2 h-4 w-4" /> Cancel
-              </Button>
-            </DialogClose>
-            <Button type="submit" className="bg-primary hover:bg-primary/90">
+          <div className="p-4 md:p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+              <XCircle className="mr-2 h-4 w-4" /> Cancel
+            </Button>
+            <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isSubmitting}>
               <Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Add Contractor"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </Form>
-    </DialogContent>
+    </Card>
   );
 }
+
+
+    

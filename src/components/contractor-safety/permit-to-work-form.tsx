@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -25,19 +24,13 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription as UiCardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Save, XCircle, Workflow } from "lucide-react";
 import type { PermitToWork, Contractor, PtwStatus } from "@/lib/types";
 import { format, parseISO, isValid, set } from 'date-fns';
+import { Separator } from "@/components/ui/separator";
 
 const ptwFormSchema = z.object({
   ptwNumber: z.string().min(1, "PTW Number is required.").max(50),
@@ -64,11 +57,12 @@ type PtwFormValues = z.infer<typeof ptwFormSchema>;
 interface PermitToWorkFormProps {
   contractors: Contractor[];
   initialData?: PermitToWork | null;
-  onSave: (data: Omit<PermitToWork, 'id'>) => void;
+  onSave: (data: Omit<PermitToWork, 'id' | 'userId'>) => void; // Matching what edit/new pages will pass
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
-export function PermitToWorkForm({ contractors, initialData, onSave, onCancel }: PermitToWorkFormProps) {
+export function PermitToWorkForm({ contractors, initialData, onSave, onCancel, isSubmitting }: PermitToWorkFormProps) {
   const form = useForm<PtwFormValues>({
     resolver: zodResolver(ptwFormSchema),
     defaultValues: {
@@ -131,18 +125,17 @@ export function PermitToWorkForm({ contractors, initialData, onSave, onCancel }:
     </Popover>
   );
 
-
   return (
-    <DialogContent className="sm:max-w-2xl">
-      <DialogHeader>
-        <DialogTitle>{initialData ? "Edit Permit to Work" : "Create New Permit to Work"}</DialogTitle>
-        <DialogDescription>
-          {initialData ? "Update the details of this PTW." : "Fill in the details for the new PTW."}
-        </DialogDescription>
-      </DialogHeader>
+    <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+      <CardHeader>
+        <UiCardDescription>
+          {initialData ? "Update the details of this PTW below." : "Fill in the details for the new PTW."}
+        </UiCardDescription>
+      </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="py-4">
-          <ScrollArea className="max-h-[70vh] pr-6 space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+          <ScrollArea className="flex-1">
+            <CardContent className="space-y-6 p-4 md:p-6">
             {/* PTW Info */}
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -224,21 +217,20 @@ export function PermitToWorkForm({ contractors, initialData, onSave, onCancel }:
                     </div>
                  )}
             </div>
-
+            </CardContent>
           </ScrollArea>
-          <DialogFooter className="pt-6 border-t">
-            <DialogClose asChild>
-              <Button type="button" variant="outline" onClick={onCancel}>
-                <XCircle className="mr-2 h-4 w-4" /> Cancel
-              </Button>
-            </DialogClose>
-            <Button type="submit" className="bg-accent hover:bg-accent/90">
+          <div className="p-4 md:p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+              <XCircle className="mr-2 h-4 w-4" /> Cancel
+            </Button>
+            <Button type="submit" className="bg-accent hover:bg-accent/90" disabled={isSubmitting}>
               <Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Create PTW"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </Form>
-    </DialogContent>
+    </Card>
   );
 }
 
+    
