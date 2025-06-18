@@ -1,5 +1,5 @@
 
-import type { RiskAssessmentMethod, Likelihood, Severity, RiskLevel } from "./types";
+import type { RiskAssessmentMethod, Likelihood, Severity, RiskLevel, RiskRegisterStatus } from "./types";
 
 export interface DescriptiveRiskAssessmentMethod {
   name: RiskAssessmentMethod;
@@ -134,3 +134,10 @@ export const controlActionStatuses: Array<Required<RiskAssessmentControl>['statu
 export const riskAssessmentStatuses: Array<Required<ManualRiskAssessment>['status']> = ['Open', 'Under Review', 'Closed', 'Superseded'];
 // --- End Manual Risk Assessment Config ---
 
+// --- Risk Register Config ---
+export const riskRegisterStatuses: RiskRegisterStatus[] = ['Open', 'In Progress', 'Mitigated', 'Closed', 'Accepted'];
+export const riskCategories: string[] = ['Safety', 'Health', 'Environmental', 'Operational', 'Financial', 'Reputational', 'Legal/Compliance', 'Other'];
+export const riskSources: string[] = ['Audit Finding', 'Inspection Finding', 'Incident Investigation', 'Hazard Report', 'Risk Assessment', 'Management Review', 'External Source', 'Other'];
+// --- End Risk Register Config ---
+
+```

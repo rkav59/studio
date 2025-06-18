@@ -28,6 +28,7 @@ export interface Inspection {
 export type Likelihood = 'Very Unlikely' | 'Unlikely' | 'Possible' | 'Likely' | 'Very Likely';
 export type Severity = 'Insignificant' | 'Minor' | 'Moderate' | 'Serious' | 'Catastrophic';
 export type RiskLevel = 'Low' | 'Medium' | 'High' | 'Extreme';
+export type RiskRegisterStatus = 'Open' | 'In Progress' | 'Mitigated' | 'Closed' | 'Accepted';
 
 export interface ManualHazard {
   id: string;
@@ -74,6 +75,34 @@ export interface ManualRiskAssessment {
   reviewDate?: string; // ISO Date string
   status: 'Open' | 'Under Review' | 'Closed' | 'Superseded';
   overallComments?: string;
+}
+
+export interface RiskRegisterEntry {
+  id: string;
+  userId?: string;
+  riskTitle: string;
+  riskDescription: string;
+  dateIdentified: string; // ISO
+  identifiedBy: string;
+  category?: string; // e.g., Operational, Financial, Safety, Environmental, Reputation
+  source?: string; // e.g., Audit, Inspection, Hazard Report, Assessment-[ID], Management Review
+  
+  initialLikelihood: Likelihood;
+  initialSeverity: Severity;
+  initialRiskLevel: RiskLevel;
+  
+  treatmentPlan: string; // Description of actions to mitigate the risk
+  riskOwner: string; // Person or department responsible for managing the risk
+  treatmentDueDate?: string; // ISO
+  status: RiskRegisterStatus;
+  
+  residualLikelihood?: Likelihood;
+  residualSeverity?: Severity;
+  residualRiskLevel?: RiskLevel;
+  
+  lastReviewedDate?: string; // ISO
+  nextReviewDate?: string; // ISO
+  notes?: string;
 }
 
 
@@ -656,3 +685,5 @@ export type MedicalTestWithCertStatus = MedicalTestRecord & {
 };
 // Helper type for pre-filling MedicalTestForm
 export type MedicalTestPrefillData = Partial<Pick<MedicalTestRecord, 'employeeName' | 'segId' | 'linkedExposure' | 'testType'>>;
+
+```

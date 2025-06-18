@@ -9,12 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { HazardIdentificationForm } from "@/components/risk-management/hazard-identification-form";
 import { RiskAssessmentSuggestionForm } from "@/components/risk-management/risk-assessment-suggestion-form";
-import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon } from "lucide-react";
+import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen } from "lucide-react";
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ManualHazard, ManualRiskAssessment, RiskLevel, RiskAssessmentControl } from "@/lib/types";
+import type { ManualHazard, ManualRiskAssessment, RiskLevel, RiskAssessmentControl, RiskRegisterEntry, RiskRegisterStatus } from "@/lib/types";
 import { format, parseISO, isBefore, differenceInDays, isValid } from 'date-fns';
 import {
   AlertDialog,
@@ -33,7 +33,9 @@ import { riskMatrix, controlActionStatuses } from "@/lib/risk-assessment-config"
 
 const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
 const MANUAL_RISK_ASSESSMENTS_COLLECTION = 'manualRiskAssessments';
+const RISK_REGISTER_ENTRIES_COLLECTION = 'riskRegisterEntries';
 const CONTROL_REMINDER_LEAD_DAYS = 7;
+const RISK_REVIEW_REMINDER_LEAD_DAYS = 30;
 
 
 interface ActiveControlAction extends RiskAssessmentControl {
@@ -82,6 +84,28 @@ export default function RiskManagementPage() {
     },
     enabled: !!user?.uid,
   });
+
+  // Fetch Risk Register Entries
+  const { data: riskRegisterEntries = [], isLoading: isLoadingRiskRegister, error: riskRegisterError } = useQuery<RiskRegisterEntry[]>({
+    queryKey: [RISK_REGISTER_ENTRIES_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, RISK_REGISTER_ENTRIES_COLLECTION), where("userId", "==", user.uid), orderBy("dateIdentified", "desc"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          ...data,
+          dateIdentified: (data.dateIdentified as Timestamp)?.toDate().toISOString(),
+          treatmentDueDate: data.treatmentDueDate ? (data.treatmentDueDate as Timestamp).toDate().toISOString() : undefined,
+          lastReviewedDate: data.lastReviewedDate ? (data.lastReviewedDate as Timestamp).toDate().toISOString() : undefined,
+          nextReviewDate: data.nextReviewDate ? (data.nextReviewDate as Timestamp).toDate().toISOString() : undefined,
+        } as RiskRegisterEntry;
+      });
+    },
+    enabled: !!user?.uid,
+  });
   
   // Deletion Mutations
   const deleteHazardMutation = useMutation({
@@ -98,7 +122,24 @@ export default function RiskManagementPage() {
     onError: (e:Error) => alert(`Error deleting assessment: ${e.message}`),
   });
 
-  const getRiskLevelColor = (level: RiskLevel) => riskMatrix[level]?.color || 'bg-gray-200 text-gray-700';
+  const deleteRiskRegisterEntryMutation = useMutation({
+    mutationFn: (entryId: string) => deleteDoc(doc(db, RISK_REGISTER_ENTRIES_COLLECTION, entryId)),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [RISK_REGISTER_ENTRIES_COLLECTION, user?.uid] }),
+    onError: (e: Error) => alert(`Error deleting risk register entry: ${e.message}`),
+  });
+
+
+  const getRiskLevelColor = (level: RiskLevel | undefined) => level ? riskMatrix[level]?.color : 'bg-gray-200 text-gray-700';
+  const getRiskRegisterStatusColor = (status: RiskRegisterStatus) => {
+    switch (status) {
+      case 'Open': return 'text-blue-600';
+      case 'In Progress': return 'text-yellow-600';
+      case 'Mitigated': return 'text-green-600';
+      case 'Closed': return 'text-gray-500';
+      case 'Accepted': return 'text-purple-600';
+      default: return 'text-muted-foreground';
+    }
+  };
 
   const activeControlActions = useMemo((): ActiveControlAction[] => {
     const controls: ActiveControlAction[] = [];
@@ -114,25 +155,16 @@ export default function RiskManagementPage() {
         }
       });
     });
-    // Sort: Overdue first, then by due date (soonest first), then by assessment activity
     return controls.sort((a, b) => {
         const aIsOverdue = a.dueDate && isBefore(parseISO(a.dueDate), new Date());
         const bIsOverdue = b.dueDate && isBefore(parseISO(b.dueDate), new Date());
-
         if (aIsOverdue && !bIsOverdue) return -1;
         if (!aIsOverdue && bIsOverdue) return 1;
-
         if (a.dueDate && b.dueDate) {
-            const aDate = parseISO(a.dueDate);
-            const bDate = parseISO(b.dueDate);
-            if (aDate.getTime() !== bDate.getTime()) {
-                return aDate.getTime() - bDate.getTime();
-            }
-        } else if (a.dueDate) { // a has due date, b does not
-            return -1;
-        } else if (b.dueDate) { // b has due date, a does not
-            return 1;
-        }
+            const aDate = parseISO(a.dueDate); const bDate = parseISO(b.dueDate);
+            if (aDate.getTime() !== bDate.getTime()) return aDate.getTime() - bDate.getTime();
+        } else if (a.dueDate) return -1;
+        else if (b.dueDate) return 1;
         return a.assessmentActivity.localeCompare(b.assessmentActivity);
     });
   }, [manualRiskAssessments]);
@@ -143,7 +175,6 @@ export default function RiskManagementPage() {
     const today = new Date(); today.setHours(0,0,0,0);
     const formattedDate = format(date, "PPP");
     let isOverdue = false;
-
     if (isBefore(date, today)) {
         isOverdue = true;
         return { textClass: 'text-red-600 font-semibold', icon: <AlertTriangle className="h-3 w-3 mr-1" />, displayText: `${formattedDate} (Overdue)`, isOverdue };
@@ -154,6 +185,24 @@ export default function RiskManagementPage() {
     }
     return { textClass: 'text-muted-foreground', icon: <ClockIcon className="h-3 w-3 mr-1" />, displayText: formattedDate, isOverdue };
   };
+  
+  const getReviewDateStatusInfo = (dateString?: string): { textClass: string; icon?: JSX.Element; displayText: string; isOverdue: boolean } | null => {
+    if (!dateString || !isValid(parseISO(dateString))) return null;
+    const date = parseISO(dateString);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const formattedDate = format(date, "PPP");
+    let isOverdue = false;
+    if (isBefore(date, today)) {
+        isOverdue = true;
+        return { textClass: 'text-red-600 font-semibold', icon: <AlertTriangle className="h-3 w-3 mr-1" />, displayText: `${formattedDate} (Overdue)`, isOverdue };
+    }
+    const daysDiff = differenceInDays(date, today);
+    if (daysDiff <= RISK_REVIEW_REMINDER_LEAD_DAYS) {
+        return { textClass: 'text-yellow-600 font-semibold', icon: <ClockIcon className="h-3 w-3 mr-1" />, displayText: `${formattedDate} (Upcoming)`, isOverdue };
+    }
+    return { textClass: 'text-muted-foreground', icon: <ClockIcon className="h-3 w-3 mr-1" />, displayText: formattedDate, isOverdue };
+  };
+
 
   const getControlStatusColor = (status?: Required<RiskAssessmentControl>['status']) => {
     switch (status) {
@@ -167,7 +216,7 @@ export default function RiskManagementPage() {
   };
 
 
-  if (isLoadingHazards || isLoadingAssessments) {
+  if (isLoadingHazards || isLoadingAssessments || isLoadingRiskRegister) {
     return (
         <div className="flex justify-center items-center h-screen">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -175,8 +224,8 @@ export default function RiskManagementPage() {
         </div>
     );
   }
-  if (hazardsError || assessmentsError) {
-    return <div className="text-red-500 text-center py-10">Error loading data: {(hazardsError || assessmentsError)?.message}</div>;
+  if (hazardsError || assessmentsError || riskRegisterError) {
+    return <div className="text-red-500 text-center py-10">Error loading data: {(hazardsError || assessmentsError || riskRegisterError)?.message}</div>;
   }
 
 
@@ -204,6 +253,58 @@ export default function RiskManagementPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Risk Register Section */}
+      <Card className="shadow-md">
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+            <div>
+                <CardTitle className="flex items-center gap-2"><BookOpen className="h-6 w-6 text-green-600"/>Risk Register</CardTitle>
+                <CardDescription>Log, track, and manage individual organizational risks.</CardDescription>
+            </div>
+            <Button onClick={() => router.push('/risk-management/risk-register/new')} className="bg-green-600 hover:bg-green-700 text-white">
+                <PlusCircle className="mr-2 h-4 w-4" /> Add New Risk to Register
+            </Button>
+        </CardHeader>
+        <CardContent>
+            {riskRegisterEntries.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">No risks logged in the register yet.</p>
+            ) : (
+                <ScrollArea className="max-h-[400px] pr-3">
+                    <div className="space-y-3">
+                        {riskRegisterEntries.map(entry => {
+                            const displayRiskLevel = entry.residualRiskLevel || entry.initialRiskLevel;
+                            const reviewDateStatus = getReviewDateStatusInfo(entry.nextReviewDate);
+                            return (
+                                <Card key={entry.id} className="p-3 shadow-sm">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h4 className="font-semibold">{entry.riskTitle}</h4>
+                                            <p className="text-xs text-muted-foreground">Category: {entry.category || "N/A"} | Owner: {entry.riskOwner || "N/A"}</p>
+                                            <p className="text-xs">Risk Level: <span className={`px-1.5 py-0.5 rounded-full text-xs ${getRiskLevelColor(displayRiskLevel)}`}>{displayRiskLevel}</span></p>
+                                            <p className={`text-xs font-semibold ${getRiskRegisterStatusColor(entry.status)}`}>Status: {entry.status}</p>
+                                            {reviewDateStatus && <p className={`text-xs flex items-center ${reviewDateStatus.textClass}`}>{reviewDateStatus.icon}{reviewDateStatus.displayText}</p>}
+                                        </div>
+                                        <div className="flex gap-1 shrink-0">
+                                            <Button variant="outline" size="sm" onClick={() => router.push(`/risk-management/risk-register/edit/${entry.id}`)}><Edit2 className="mr-1 h-3 w-3"/>Edit</Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="mr-1 h-3 w-3"/>Delete</Button></AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader><AlertDialogTitle>Delete Risk Entry?</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete "{entry.riskTitle}"?</AlertDialogDescription></AlertDialogHeader>
+                                                    <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteRiskRegisterEntryMutation.mutate(entry.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
+                                    </div>
+                                </Card>
+                            );
+                        })}
+                    </div>
+                </ScrollArea>
+            )}
+        </CardContent>
+      </Card>
+
+      <Separator />
 
       {/* Manual Hazard Log Section */}
       <Card className="shadow-md">
@@ -304,7 +405,7 @@ export default function RiskManagementPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="h-6 w-6 text-green-500" />
-            Active Risk Control Actions
+            Active Risk Control Actions (From Assessments)
           </CardTitle>
           <CardDescription>
             Monitor and manage outstanding control measures from risk assessments.
@@ -367,15 +468,14 @@ export default function RiskManagementPage() {
         </CardHeader>
         <CardContent>
              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-                    <li>Full CRUD for risk registers (more structured than just hazard log).</li>
+                    <li>Direct editing of control action status from the 'Active Controls' list for assessments.</li>
                     <li>Integration with Checklist Templates for risk-based auditing.</li>
-                    <li>AI-powered root cause analysis suggestions for high-risk events.</li>
+                    <li>AI-powered root cause analysis suggestions for high-risk events/risks.</li>
                     <li>Customizable risk matrices and reporting dashboards.</li>
-                    <li>Direct editing of control action status from the 'Active Controls' list.</li>
+                    <li>More granular action tracking within Risk Register entries.</li>
                 </ul>
         </CardContent>
       </Card>
     </div>
   );
 }
-
