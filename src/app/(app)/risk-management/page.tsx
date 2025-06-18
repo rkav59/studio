@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { HazardIdentificationForm } from "@/components/risk-management/hazard-identification-form";
 import { RiskAssessmentSuggestionForm } from "@/components/risk-management/risk-assessment-suggestion-form";
-import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldX, ShieldCheck } from "lucide-react"; // Added ShieldCheck
+import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon } from "lucide-react";
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ManualHazard, ManualRiskAssessment, RiskLevel } from "@/lib/types";
-import { format, parseISO } from 'date-fns';
+import type { ManualHazard, ManualRiskAssessment, RiskLevel, RiskAssessmentControl } from "@/lib/types";
+import { format, parseISO, isBefore, differenceInDays, isValid } from 'date-fns';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,11 +28,19 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
-import { riskMatrix } from "@/lib/risk-assessment-config";
+import { riskMatrix, controlActionStatuses } from "@/lib/risk-assessment-config";
 
 
 const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
 const MANUAL_RISK_ASSESSMENTS_COLLECTION = 'manualRiskAssessments';
+const CONTROL_REMINDER_LEAD_DAYS = 7;
+
+
+interface ActiveControlAction extends RiskAssessmentControl {
+  assessmentId: string;
+  assessmentActivity: string;
+  assessmentStatus: ManualRiskAssessment['status'];
+}
 
 export default function RiskManagementPage() {
   const router = useRouter();
@@ -58,7 +66,19 @@ export default function RiskManagementPage() {
       if (!user?.uid) return [];
       const q = query(collection(db, MANUAL_RISK_ASSESSMENTS_COLLECTION), where("userId", "==", user.uid), orderBy("assessmentDate", "desc"));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), assessmentDate: (doc.data().assessmentDate as Timestamp)?.toDate().toISOString() } as ManualRiskAssessment));
+      return snapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        return { 
+            id: docSnap.id, 
+            ...data, 
+            assessmentDate: (data.assessmentDate as Timestamp)?.toDate().toISOString(),
+            reviewDate: data.reviewDate ? (data.reviewDate as Timestamp).toDate().toISOString() : undefined,
+            additionalControls: (data.additionalControls || []).map((control: any) => ({
+                ...control,
+                dueDate: control.dueDate ? (control.dueDate as Timestamp).toDate().toISOString() : undefined,
+            })),
+        } as ManualRiskAssessment;
+      });
     },
     enabled: !!user?.uid,
   });
@@ -68,8 +88,6 @@ export default function RiskManagementPage() {
     mutationFn: (hazardId: string) => deleteDoc(doc(db, MANUAL_HAZARDS_COLLECTION, hazardId)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [MANUAL_HAZARDS_COLLECTION, user?.uid] });
-      // Potentially invalidate linked risk assessments if a hazard is deleted.
-      // queryClient.invalidateQueries({ queryKey: [MANUAL_RISK_ASSESSMENTS_COLLECTION, user?.uid] });
     },
     onError: (e:Error) => alert(`Error deleting hazard: ${e.message}`),
   });
@@ -81,6 +99,72 @@ export default function RiskManagementPage() {
   });
 
   const getRiskLevelColor = (level: RiskLevel) => riskMatrix[level]?.color || 'bg-gray-200 text-gray-700';
+
+  const activeControlActions = useMemo((): ActiveControlAction[] => {
+    const controls: ActiveControlAction[] = [];
+    manualRiskAssessments.forEach(assessment => {
+      assessment.additionalControls.forEach(control => {
+        if (control.status && !['Completed', 'Cancelled'].includes(control.status)) {
+          controls.push({
+            ...control,
+            assessmentId: assessment.id,
+            assessmentActivity: assessment.activityOrProcess,
+            assessmentStatus: assessment.status,
+          });
+        }
+      });
+    });
+    // Sort: Overdue first, then by due date (soonest first), then by assessment activity
+    return controls.sort((a, b) => {
+        const aIsOverdue = a.dueDate && isBefore(parseISO(a.dueDate), new Date());
+        const bIsOverdue = b.dueDate && isBefore(parseISO(b.dueDate), new Date());
+
+        if (aIsOverdue && !bIsOverdue) return -1;
+        if (!aIsOverdue && bIsOverdue) return 1;
+
+        if (a.dueDate && b.dueDate) {
+            const aDate = parseISO(a.dueDate);
+            const bDate = parseISO(b.dueDate);
+            if (aDate.getTime() !== bDate.getTime()) {
+                return aDate.getTime() - bDate.getTime();
+            }
+        } else if (a.dueDate) { // a has due date, b does not
+            return -1;
+        } else if (b.dueDate) { // b has due date, a does not
+            return 1;
+        }
+        return a.assessmentActivity.localeCompare(b.assessmentActivity);
+    });
+  }, [manualRiskAssessments]);
+
+  const getControlDateStatusInfo = (dateString?: string): { textClass: string; icon?: JSX.Element; displayText: string; isOverdue: boolean } | null => {
+    if (!dateString || !isValid(parseISO(dateString))) return null;
+    const date = parseISO(dateString);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const formattedDate = format(date, "PPP");
+    let isOverdue = false;
+
+    if (isBefore(date, today)) {
+        isOverdue = true;
+        return { textClass: 'text-red-600 font-semibold', icon: <AlertTriangle className="h-3 w-3 mr-1" />, displayText: `${formattedDate} (Overdue)`, isOverdue };
+    }
+    const daysDiff = differenceInDays(date, today);
+    if (daysDiff <= CONTROL_REMINDER_LEAD_DAYS) {
+        return { textClass: 'text-yellow-600 font-semibold', icon: <ClockIcon className="h-3 w-3 mr-1" />, displayText: `${formattedDate} (Upcoming)`, isOverdue };
+    }
+    return { textClass: 'text-muted-foreground', icon: <ClockIcon className="h-3 w-3 mr-1" />, displayText: formattedDate, isOverdue };
+  };
+
+  const getControlStatusColor = (status?: Required<RiskAssessmentControl>['status']) => {
+    switch (status) {
+        case 'Open': return 'text-blue-600';
+        case 'In Progress': return 'text-yellow-600';
+        case 'Completed': return 'text-green-600';
+        case 'Overdue': return 'text-red-600 font-bold';
+        case 'Cancelled': return 'text-gray-500 line-through';
+        default: return 'text-muted-foreground';
+    }
+  };
 
 
   if (isLoadingHazards || isLoadingAssessments) {
@@ -116,7 +200,7 @@ export default function RiskManagementPage() {
         <CardContent className="pt-6">
           <p className="text-muted-foreground">
             This module provides tools to support your risk management lifecycle, from identifying hazards to monitoring controls. 
-            Leverage AI for assistance or use manual tools for detailed recording and assessment.
+            Leverage AI for assistance or use manual tools for detailed recording and assessment. All data is stored in Firestore.
           </p>
         </CardContent>
       </Card>
@@ -215,33 +299,68 @@ export default function RiskManagementPage() {
       
       <Separator />
       
+      {/* Active Risk Control Actions Section */}
+      <Card className="shadow-md">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-6 w-6 text-green-500" />
+            Active Risk Control Actions
+          </CardTitle>
+          <CardDescription>
+            Monitor and manage outstanding control measures from risk assessments.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {activeControlActions.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">No pending control actions found from risk assessments.</p>
+          ) : (
+            <ScrollArea className="max-h-[400px] pr-3">
+              <div className="space-y-3">
+                {activeControlActions.map(control => {
+                  const dateStatus = getControlDateStatusInfo(control.dueDate);
+                  const statusColor = getControlStatusColor(control.status);
+                  return (
+                    <Card key={control.id} className={`p-3 shadow-sm border-l-4 ${dateStatus?.isOverdue && control.status !== 'Completed' ? 'border-red-500' : 'border-transparent'}`}>
+                      <div className="flex flex-col sm:flex-row justify-between items-start">
+                        <div className="mb-2 sm:mb-0 flex-grow">
+                          <p className="font-semibold text-md leading-tight">{control.description}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            From Assessment: 
+                            <Button variant="link" size="sm" className="h-auto p-0 ml-1 text-xs text-blue-600 hover:underline" onClick={() => router.push(`/risk-management/assessments/edit/${control.assessmentId}`)}>
+                                <LinkIcon className="h-3 w-3 mr-1"/>{control.assessmentActivity}
+                            </Button>
+                             (Status: {control.assessmentStatus})
+                          </p>
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs mt-1">
+                            {control.responsiblePerson && <p className="flex items-center gap-1"><UserCircleIcon className="h-3 w-3 text-muted-foreground"/>Resp: {control.responsiblePerson}</p>}
+                            {dateStatus && <p className={`flex items-center gap-1 ${dateStatus.textClass}`}>{dateStatus.icon}Due: {dateStatus.displayText}</p>}
+                            <p className={`flex items-center gap-1 ${statusColor}`}>Status: {control.status}</p>
+                          </div>
+                        </div>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-2 sm:mt-0 shrink-0"
+                            onClick={() => router.push(`/risk-management/assessments/edit/${control.assessmentId}`)}
+                        >
+                          Manage in Assessment
+                        </Button>
+                      </div>
+                    </Card>
+                  )
+                })}
+              </div>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
+      
+      <Separator />
+
       {/* AI Assisted Tools */}
       <HazardIdentificationForm />
       <RiskAssessmentSuggestionForm />
       
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-6 w-6 text-green-500" /> {/* Changed icon */}
-            Risk Control & Monitoring (Future Development)
-          </CardTitle>
-          <CardDescription>
-            Track the implementation and effectiveness of risk control measures.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            Planned features include:
-          </p>
-          <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-            <li>Documenting and assigning ownership for risk control actions (linked from Manual Risk Assessments).</li>
-            <li>Monitoring the status and effectiveness of implemented controls.</li>
-            <li>Setting up review cycles for control measures.</li>
-            <li>Integrating with other modules for verification (e.g., inspections, audits).</li>
-          </ul>
-        </CardContent>
-      </Card>
-
        <Card className="mt-8">
         <CardHeader>
             <CardTitle className="flex items-center gap-2"><Settings className="h-6 w-6 text-muted-foreground" />Module Configuration & Expansion</CardTitle>
@@ -252,6 +371,7 @@ export default function RiskManagementPage() {
                     <li>Integration with Checklist Templates for risk-based auditing.</li>
                     <li>AI-powered root cause analysis suggestions for high-risk events.</li>
                     <li>Customizable risk matrices and reporting dashboards.</li>
+                    <li>Direct editing of control action status from the 'Active Controls' list.</li>
                 </ul>
         </CardContent>
       </Card>
