@@ -15,6 +15,7 @@ import {
   HardHat, // PPE Management
   HeartPulse, // Health Monitoring (now covers Medical Screening)
   Library, // For Checklist Templates
+  AlertTriangle, // For Risk Management
 } from 'lucide-react';
 import {
   SidebarMenu,
@@ -25,13 +26,14 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/risk-management', label: 'Risk Management', icon: AlertTriangle },
   { href: '/sheq-audit', label: 'SHEQ Audit', icon: FileCheck2 },
   { href: '/checklist-templates', label: 'Checklist Templates', icon: Library },
   { href: '/training-competence', label: 'Training & Competence', icon: BookUser },
   { href: '/emergency-preparedness', label: 'Emergency Preparedness', icon: Siren },
   { href: '/ppe-management', label: 'PPE Management', icon: HardHat },
   { href: '/contractor-safety', label: 'Contractor Safety', icon: ListChecks },
-  { href: '/health-monitoring', label: 'Health Monitoring', icon: HeartPulse }, // Medical Screening merged here
+  { href: '/health-monitoring', label: 'Health Monitoring', icon: HeartPulse },
   { href: '/data-visualization', label: 'Data Visualization', icon: BarChartHorizontalBig },
   { href: '/ai-recommendations', label: 'AI Safety Assist', icon: Sparkles },
 ];
