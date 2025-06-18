@@ -16,13 +16,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Save, Trash2, XCircle, MessageSquare, User, FileText } from "lucide-react";
+import { PlusCircle, Save, Trash2, XCircle, MessageSquare, User, FileText, BookCheck, SearchCheck } from "lucide-react";
 import type { ChecklistTemplate, ChecklistItemTemplate } from "@/lib/types";
 import { ScrollArea } from "../ui/scroll-area";
 
 const checklistItemTemplateSchema = z.object({
   id: z.string(),
   text: z.string().min(1, "Item text cannot be empty.").max(500, "Item text is too long."),
+  auditCriteriaReference: z.string().max(250, "Audit criteria reference is too long.").optional(),
+  evidenceGatheringPrompt: z.string().max(500, "Evidence gathering prompt is too long.").optional(),
   observationPrompt: z.string().max(500, "Observation prompt is too long.").optional(),
   defaultResponsiblePerson: z.string().max(100, "Responsible person name is too long.").optional(),
   defaultComments: z.string().max(1000, "Comments are too long.").optional(),
@@ -48,11 +50,21 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
     defaultValues: {
       name: initialData?.name || "",
       items: initialData?.items?.map(item => ({ 
-        ...item, 
+        ...item,
+        auditCriteriaReference: item.auditCriteriaReference || "",
+        evidenceGatheringPrompt: item.evidenceGatheringPrompt || "",
         observationPrompt: item.observationPrompt || "",
         defaultResponsiblePerson: item.defaultResponsiblePerson || "",
         defaultComments: item.defaultComments || "",
-      })) || [{ id: crypto.randomUUID(), text: "", observationPrompt: "", defaultResponsiblePerson: "", defaultComments: "" }],
+      })) || [{ 
+          id: crypto.randomUUID(), 
+          text: "", 
+          auditCriteriaReference: "",
+          evidenceGatheringPrompt: "",
+          observationPrompt: "", 
+          defaultResponsiblePerson: "", 
+          defaultComments: "" 
+      }],
     },
   });
 
@@ -72,7 +84,7 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
           <CardHeader>
             <CardTitle>{isEditing ? "Edit Checklist Template" : "Create New Checklist Template"}</CardTitle>
             <CardDescription>
-              {isEditing ? "Modify the template name and its checklist items below." : "Define a name and add items for your new reusable checklist template. You can add optional default observation prompts, responsible persons, and comments for each item."}
+              {isEditing ? "Modify the template name and its checklist items below." : "Define a name and add items for your new reusable checklist template. You can add optional audit criteria, evidence prompts, observation prompts, responsible persons, and comments for each item."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -83,7 +95,7 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
                 <FormItem>
                   <FormLabel>Template Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Monthly Workshop Inspection" {...field} />
+                    <Input placeholder="e.g., Monthly Workshop Inspection (ISO 19011 Aligned)" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -102,10 +114,10 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
                         name={`items.${index}.text`}
                         render={({ field }) => (
                           <FormItem className="flex-grow">
-                            <FormLabel className="text-sm font-medium">Item {index + 1} Text</FormLabel>
+                            <FormLabel className="text-sm font-medium">Item {index + 1} Text / Question</FormLabel>
                             <FormControl>
                               <Textarea
-                                placeholder={`Enter text for item ${index + 1}`}
+                                placeholder={`Enter question or check for item ${index + 1}`}
                                 {...field}
                                 rows={2}
                                 className="bg-background"
@@ -126,6 +138,48 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
                         <span className="sr-only">Remove Item</span>
                       </Button>
                     </div>
+
+                    <FormField
+                        control={form.control}
+                        name={`items.${index}.auditCriteriaReference`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                                <BookCheck className="h-3 w-3"/>
+                                Optional Audit Criteria Reference
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="e.g., ISO 9001 Cl. 7.2, Procedure XYZ Rev.2"
+                                {...field}
+                                className="bg-background text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.evidenceGatheringPrompt`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                                <SearchCheck className="h-3 w-3"/>
+                                Optional Evidence Gathering Prompt
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="e.g., Review training records; Observe process; Interview staff"
+                                {...field}
+                                rows={1}
+                                className="bg-background text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                      <FormField
                         control={form.control}
                         name={`items.${index}.observationPrompt`}
@@ -196,7 +250,15 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => append({ id: crypto.randomUUID(), text: "", observationPrompt: "", defaultResponsiblePerson: "", defaultComments: "" })}
+                onClick={() => append({ 
+                    id: crypto.randomUUID(), 
+                    text: "", 
+                    auditCriteriaReference: "", 
+                    evidenceGatheringPrompt: "", 
+                    observationPrompt: "", 
+                    defaultResponsiblePerson: "", 
+                    defaultComments: "" 
+                })}
               >
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Item
               </Button>
@@ -217,3 +279,5 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
     </Form>
   );
 }
+
+    

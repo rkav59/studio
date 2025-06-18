@@ -11,7 +11,7 @@ import type { SheqAudit, AuditChecklistItem, ChecklistItemTemplate, NonConforman
 import { defaultChecklistTemplates } from '@/lib/checklist-templates';
 import { Separator } from '@/components/ui/separator';
 import { format, isValid, parseISO } from 'date-fns';
-import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2, LinkIcon, Filter } from "lucide-react"; // Added Filter
+import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2, LinkIcon, Filter, BookCheck, SearchCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -21,7 +21,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, doc, updateDoc, Timestamp, orderBy, writeBatch } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Added Select
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const SHEQ_AUDITS_COLLECTION = 'sheqAudits';
 const USER_CHECKLIST_TEMPLATES_COLLECTION = 'userChecklistTemplates';
@@ -77,10 +77,16 @@ export default function SheqAuditPage() {
           id: doc.id, 
           ...data,
           auditDate: (data.auditDate as Timestamp)?.toDate().toISOString(),
+          checklist: (data.checklist || []).map((item: any) => ({ // Ensure checklist items are mapped correctly
+            ...item,
+            id: item.id || crypto.randomUUID(),
+            observations: (item.observations || []).map((obs: any) => ({...obs, id: obs.id || crypto.randomUUID()})),
+          })),
           nonConformances: (data.nonConformances || []).map((nc: any) => ({
             ...nc,
-            actionDueDate: nc.actionDueDate && (nc.actionDueDate as Timestamp).toDate ? (nc.actionDueDate as Timestamp).toDate().toISOString() : undefined,
-            actionCompletionDate: nc.actionCompletionDate && (nc.actionCompletionDate as Timestamp).toDate ? (nc.actionCompletionDate as Timestamp).toDate().toISOString() : undefined,
+            id: nc.id || crypto.randomUUID(),
+            actionDueDate: nc.actionDueDate && (nc.actionDueDate as Timestamp)?.toDate ? (nc.actionDueDate as Timestamp).toDate().toISOString() : undefined,
+            actionCompletionDate: nc.actionCompletionDate && (nc.actionCompletionDate as Timestamp)?.toDate ? (nc.actionCompletionDate as Timestamp).toDate().toISOString() : undefined,
           })),
         } as SheqAudit;
       });
@@ -115,12 +121,15 @@ export default function SheqAuditPage() {
         ...newAuditData,
         userId: user.uid,
         status: "Planned",
-        auditDate: Timestamp.fromDate(parseISO(newAuditData.auditDate as string)), // Convert to Timestamp
+        auditDate: Timestamp.fromDate(parseISO(newAuditData.auditDate as string)),
         checklist: initialChecklistItemsFromTemplate.map(templateItem => ({
           id: crypto.randomUUID(), 
+          templateItemId: templateItem.id, // Store original template item ID
           text: templateItem.text,
           status: 'Pending',
-          evidenceOrRemarks: '',
+          auditCriteriaReference: templateItem.auditCriteriaReference || '', // Copy from template
+          evidenceGatheringPrompt: templateItem.evidenceGatheringPrompt || '', // Copy from template
+          evidenceNotes: '', // Initialize as empty for auditor to fill
           responsiblePerson: templateItem.defaultResponsiblePerson || '',
           observations: templateItem.observationPrompt ? [{id: crypto.randomUUID(), text: templateItem.observationPrompt}] : [],
           comments: templateItem.defaultComments || '',
@@ -150,8 +159,14 @@ export default function SheqAuditPage() {
         ...dataToUpdate,
         userId: user.uid,
         auditDate: Timestamp.fromDate(parseISO(dataToUpdate.auditDate as string)),
+        checklist: dataToUpdate.checklist.map(item => ({ // Ensure all fields are preserved
+            ...item,
+            id: item.id || crypto.randomUUID(),
+            observations: (item.observations || []).map(obs => ({...obs, id: obs.id || crypto.randomUUID()})),
+        })),
         nonConformances: (dataToUpdate.nonConformances || []).map(nc => ({
           ...nc,
+          id: nc.id || crypto.randomUUID(),
           actionDueDate: nc.actionDueDate && isValid(parseISO(nc.actionDueDate)) ? Timestamp.fromDate(parseISO(nc.actionDueDate)) : null,
           actionCompletionDate: nc.actionCompletionDate && isValid(parseISO(nc.actionCompletionDate)) ? Timestamp.fromDate(parseISO(nc.actionCompletionDate)) : null,
         })),
@@ -184,6 +199,10 @@ export default function SheqAuditPage() {
         checklist: (auditToStart.checklist || []).map(item => ({
             ...item,
             id: item.id || crypto.randomUUID(),
+            templateItemId: item.templateItemId || '', // Ensure it's carried over
+            auditCriteriaReference: item.auditCriteriaReference || '', // Ensure it's carried over
+            evidenceGatheringPrompt: item.evidenceGatheringPrompt || '', // Ensure it's carried over
+            evidenceNotes: item.evidenceNotes || '',
             responsiblePerson: item.responsiblePerson || '',
             observations: Array.isArray(item.observations) 
                 ? item.observations.map(obs => ({...obs, id: obs.id || crypto.randomUUID()})) 
@@ -342,6 +361,7 @@ export default function SheqAuditPage() {
                 <p className="text-muted-foreground">
                     This module facilitates the planning, execution, and tracking of SHEQ audits, with all data stored in Firebase Firestore. 
                     Select from default or custom checklist templates. During execution, customize items, log responsible persons, multiple observations, and comments. Document non-conformances with CAPA details.
+                    Checklist items now include fields for audit criteria and evidence gathering to align with ISO 19011 principles.
                 </p>
             </CardContent>
           </Card>
@@ -453,6 +473,8 @@ export default function SheqAuditPage() {
                                     <li key={item.id} className="p-3 border rounded-md bg-muted/30 text-sm space-y-1">
                                         <p className="font-medium">Item {index + 1}: {item.text}</p>
                                         <p>Status: <span className={`font-semibold ${getChecklistItemStatusColor(item.status)}`}>{item.status}</span></p>
+                                        {item.auditCriteriaReference && <p className="text-xs"><strong className="text-muted-foreground flex items-center gap-1"><BookCheck className="h-3 w-3"/>Criteria Ref:</strong> {item.auditCriteriaReference}</p>}
+                                        {item.evidenceNotes && <p className="text-xs whitespace-pre-wrap"><strong className="text-muted-foreground flex items-center gap-1"><SearchCheck className="h-3 w-3"/>Evidence Notes:</strong> {item.evidenceNotes}</p>}
                                         {item.responsiblePerson && <p className="text-xs"><strong className="text-muted-foreground">Responsible:</strong> {item.responsiblePerson}</p>}
                                         
                                         {item.observations && item.observations.length > 0 && (
@@ -467,7 +489,6 @@ export default function SheqAuditPage() {
                                         )}
                                         
                                         {item.comments && <p className="text-xs whitespace-pre-wrap"><strong className="text-muted-foreground">Comments:</strong> {item.comments}</p>}
-                                        {item.evidenceOrRemarks && <p className="text-xs text-muted-foreground mt-1">Evidence/Old Remarks: {item.evidenceOrRemarks}</p>}
                                     </li>
                                 ))}
                             </ul>

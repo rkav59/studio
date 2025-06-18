@@ -83,9 +83,12 @@ export interface AuditObservationEntry {
 
 export interface AuditChecklistItem {
   id: string; // Unique ID for the instance of this item in an audit
+  templateItemId?: string; // ID of the original template item
   text: string;
   status: 'Compliant' | 'Non-Compliant' | 'Not Applicable' | 'Pending';
-  evidenceOrRemarks?: string;
+  auditCriteriaReference?: string;    // Criteria being audited against (e.g., ISO clause, procedure ref) - Copied from template
+  evidenceGatheringPrompt?: string; // Hint for the auditor on what evidence to look for (from template) - Copied from template
+  evidenceNotes?: string;           // Auditor's notes on evidence found - Filled during audit
   responsiblePerson?: string;
   observations: AuditObservationEntry[];
   comments?: string;
@@ -109,6 +112,8 @@ export interface NonConformance {
 export interface ChecklistItemTemplate {
   id: string; // Unique ID for the template item
   text: string;
+  auditCriteriaReference?: string;    // Added - e.g., "ISO 9001:2015 cl. 7.2"
+  evidenceGatheringPrompt?: string; // Added - e.g., "Review training records, interview staff"
   observationPrompt?: string;
   defaultResponsiblePerson?: string;
   defaultComments?: string;
@@ -124,6 +129,7 @@ export interface ChecklistTemplate {
 
 export interface SheqAudit {
   id: string;
+  userId?: string; // Ensure userId is part of the type
   auditName: string;
   auditType: 'Safety' | 'Health' | 'Environment' | 'Quality' | 'Integrated';
   scope: string;
@@ -141,6 +147,7 @@ export interface SheqAudit {
 // Training & Competence Types
 export interface TrainingCourse {
   id: string;
+  userId?: string;
   name: string;
   description?: string;
   category?: string;
@@ -150,6 +157,7 @@ export type TrainingRecordStatus = 'Planned' | 'Completed' | 'Requires Renewal' 
 
 export interface TrainingRecord {
   id: string;
+  userId?: string;
   employeeName: string;
   courseId: string; // Links to TrainingCourse.id
   trainingDate: string; // ISO date string
@@ -164,6 +172,7 @@ export interface TrainingRecord {
 // --- Emergency Preparedness Module Types ---
 export interface EmergencyPlan {
   id: string;
+  userId?: string;
   planName: string;
   planType: 'Evacuation' | 'Fire Response' | 'Medical Emergency' | 'Spill Response' | 'Other';
   scope: string;
@@ -182,6 +191,7 @@ export type EmergencyResourceStatus = 'Operational' | 'Requires Maintenance' | '
 
 export interface EmergencyResource {
   id: string;
+  userId?: string;
   name: string;
   type: EmergencyResourceType;
   location: string;
@@ -203,6 +213,7 @@ export interface DrillActionItem {
 
 export interface MockDrill {
   id: string;
+  userId?: string;
   drillName: string;
   drillType: 'Evacuation' | 'Fire' | 'Medical' | 'Spill' | 'Security' | 'Tabletop' | 'Other';
   linkedPlanId?: string; // ID of an EmergencyPlan
@@ -310,6 +321,7 @@ export interface ContractorDocument {
 
 export interface Contractor {
   id: string;
+  userId?: string;
   companyName: string;
   contactPerson: string;
   contactEmail?: string;
@@ -325,6 +337,7 @@ export interface Contractor {
 
 export interface PermitToWork {
   id: string;
+  userId?: string;
   ptwNumber: string;
   contractorId: string;
   workDescription: string;
@@ -347,6 +360,7 @@ export type PpeItemStatus = 'Available' | 'Under Inspection' | 'Awaiting Repair'
 
 export interface PpeItem {
   id: string;
+  userId?: string;
   name: string;
   type: string;
   category: string;
@@ -361,6 +375,7 @@ export interface PpeItem {
 
 export interface PpeIssuanceRecord {
   id: string;
+  userId?: string;
   ppeItemId: string;
   employeeName: string;
   jobRole?: string;
@@ -386,6 +401,7 @@ export interface PpeInspectionChecklistItemInstance {
 
 export interface PpeInspectionRecord {
   id: string;
+  userId?: string;
   ppeItemId: string; // ID of the PpeItem being inspected
   uniquePpeIdentifier?: string; // Optional: For serialized/uniquely tracked PPE items
   inspectionDate: string; // ISO Date string
@@ -402,6 +418,7 @@ export interface PpeInspectionRecord {
 // --- PPE Job Role Matrix Specific Types ---
 export interface PpeJobRoleMatrixEntry {
   id: string;
+  userId?: string;
   jobRole: string;
   requiredPpeItemIds: string[]; // Array of PpeItem IDs
   riskAssessmentReference?: string; // Optional reference to a RA document/ID
@@ -431,6 +448,7 @@ export interface PpeComplianceAudit {
 // --- Health Monitoring Module Types ---
 export interface SimilarExposureGroup {
   id: string;
+  userId?: string;
   name: string; // e.g., "Welders - Workshop A", "Office Admin Staff - Building C"
   description?: string; // Brief description of the group
   riskProfileNotes?: string; // Notes on typical exposures or health risks
@@ -440,6 +458,7 @@ export type IndustrialHygieneSampleAgent = 'Noise' | 'Dust (Respirable)' | 'Dust
 
 export interface IndustrialHygieneSample {
   id: string;
+  userId?: string;
   segId?: string; // Optional link to SimilarExposureGroup
   employeeName?: string; // If personal sample not linked to SEG
   sampleDate: string; // ISO Date string
@@ -463,6 +482,7 @@ export type MedicalScreeningPurpose = 'Pre-employment' | 'Periodic' | 'Exit' | '
 
 export interface MedicalTestRecord {
   id: string;
+  userId?: string;
   employeeName: string;
   employeeId?: string; // Optional employee ID
   testType: MedicalTestRecordType;
@@ -483,6 +503,7 @@ export type WellnessProgramStatus = 'Planned' | 'Active' | 'Completed' | 'On Hol
 
 export interface WellnessProgram {
   id: string;
+  userId?: string;
   programName: string;
   description?: string;
   startDate: string; // ISO Date string
@@ -545,3 +566,5 @@ export type MedicalTestWithCertStatus = MedicalTestRecord & {
 };
 // Helper type for pre-filling MedicalTestForm
 export type MedicalTestPrefillData = Partial<Pick<MedicalTestRecord, 'employeeName' | 'segId' | 'linkedExposure' | 'testType'>>;
+
+    

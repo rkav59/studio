@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,7 +28,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { PlusCircle, Trash2, AlertTriangle, Save, CheckCircle, XCircle, Edit3, CalendarIcon, User, FileText, MessageSquare, ListPlus } from "lucide-react";
+import { PlusCircle, Trash2, AlertTriangle, Save, CheckCircle, XCircle, Edit3, CalendarIcon, User, FileText, MessageSquare, ListPlus, BookCheck, SearchCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { SheqAudit, AuditChecklistItem, NonConformance, AuditObservationEntry } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -43,9 +42,12 @@ const auditObservationEntrySchema = z.object({
 
 const auditChecklistItemSchema = z.object({
   id: z.string(),
+  templateItemId: z.string().optional(),
   text: z.string().min(1, "Checklist item text cannot be empty.").max(1000, "Text too long"),
   status: z.enum(['Compliant', 'Non-Compliant', 'Not Applicable', 'Pending']),
-  evidenceOrRemarks: z.string().max(1000, "Remarks too long.").optional(),
+  auditCriteriaReference: z.string().max(250).optional(),
+  evidenceGatheringPrompt: z.string().max(500).optional(),
+  evidenceNotes: z.string().max(2000, "Evidence notes too long.").optional(),
   responsiblePerson: z.string().max(100, "Responsible person name too long.").optional(),
   observations: z.array(auditObservationEntrySchema),
   comments: z.string().max(2000, "Comments text too long.").optional(),
@@ -89,9 +91,9 @@ const getDefaultNonConformanceValues = (): NonConformance => ({
     correctiveActionsProposed: "",
     preventiveActionsProposed: "",
     actionAssignedTo: "",
-    actionDueDate: undefined, // Keep as undefined for form compatibility with date picker
+    actionDueDate: undefined, 
     actionStatus: "Open",
-    actionCompletionDate: undefined, // Keep as undefined
+    actionCompletionDate: undefined, 
     actionVerificationNotes: ""
 });
 
@@ -110,6 +112,10 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
       checklist: audit.checklist?.map(item => ({
         ...item,
         id: item.id || crypto.randomUUID(),
+        templateItemId: item.templateItemId || '',
+        auditCriteriaReference: item.auditCriteriaReference || '',
+        evidenceGatheringPrompt: item.evidenceGatheringPrompt || '',
+        evidenceNotes: item.evidenceNotes || '',
         responsiblePerson: item.responsiblePerson || "",
         observations: item.observations && item.observations.length > 0 
             ? item.observations.map(obs => ({...obs, id: obs.id || crypto.randomUUID()})) 
@@ -120,7 +126,6 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
         ...getDefaultNonConformanceValues(),
         ...nc,
         id: nc.id || crypto.randomUUID(),
-        // Ensure dates received as ISO strings from audit object are formatted to 'yyyy-MM-dd' for form
         actionDueDate: nc.actionDueDate && isValid(parseISO(nc.actionDueDate)) ? format(parseISO(nc.actionDueDate), 'yyyy-MM-dd') : undefined,
         actionCompletionDate: nc.actionCompletionDate && isValid(parseISO(nc.actionCompletionDate)) ? format(parseISO(nc.actionCompletionDate), 'yyyy-MM-dd') : undefined,
       })) || [],
@@ -142,10 +147,9 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
   async function onSubmit(data: AuditExecutionFormValues) {
     const updatedAuditData: SheqAudit = {
       ...audit,
-      checklist: data.checklist.map(item => ({...item})), // Ensure plain objects
+      checklist: data.checklist.map(item => ({...item})), 
       nonConformances: data.nonConformances.map(nc => ({
         ...nc,
-        // Convert 'yyyy-MM-dd' strings back to ISO strings for saving if they exist
         actionDueDate: nc.actionDueDate && isValid(parseISO(nc.actionDueDate)) ? parseISO(nc.actionDueDate).toISOString() : undefined,
         actionCompletionDate: nc.actionCompletionDate && isValid(parseISO(nc.actionCompletionDate)) ? parseISO(nc.actionCompletionDate).toISOString() : undefined,
       })),
@@ -163,9 +167,11 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
   const handleAddNewChecklistItem = () => {
     appendChecklistItem({
       id: crypto.randomUUID(),
-      text: "New checklist item (edit me)",
+      text: "New custom checklist item (edit me)",
       status: 'Pending',
-      evidenceOrRemarks: '',
+      auditCriteriaReference: 'N/A - Custom Item',
+      evidenceGatheringPrompt: 'Describe evidence to be gathered for this custom item.',
+      evidenceNotes: '',
       responsiblePerson: '',
       observations: [],
       comments: '',
@@ -173,7 +179,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
   };
 
   const handleAddNewNc = () => {
-    appendNc(getDefaultNonConformanceValues()); // Uses undefined for dates
+    appendNc(getDefaultNonConformanceValues());
   }
 
   return (
@@ -183,7 +189,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
         <Card>
           <CardHeader>
             <CardTitle>Audit Checklist</CardTitle>
-            <CardDescription>Go through each item, edit as needed, update status, and add remarks, responsible person, observations, and comments.</CardDescription>
+            <CardDescription>Go through each item, edit as needed, update status, and add relevant notes and observations.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {checklistFields.map((item, checklistIndex) => {
@@ -227,6 +233,13 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
                     </Button>
                 </div>
                 
+                {item.auditCriteriaReference && (
+                    <p className="text-xs text-muted-foreground italic flex items-center gap-1">
+                        <BookCheck className="h-3 w-3"/> 
+                        <strong>Criteria:</strong> {item.auditCriteriaReference}
+                    </p>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -265,8 +278,22 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
                     )}
                   />
                 </div>
+                
+                <FormField
+                  control={form.control}
+                  name={`checklist.${checklistIndex}.evidenceNotes`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1"><SearchCheck className="h-4 w-4 text-muted-foreground"/>Evidence Notes</FormLabel>
+                      {item.evidenceGatheringPrompt && <FormDescription className="text-xs italic mb-1">{item.evidenceGatheringPrompt}</FormDescription>}
+                      <FormControl>
+                        <Textarea placeholder="Record objective evidence found..." rows={2} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                {/* Multiple Observations Section */}
                 <div className="space-y-2">
                   <FormLabel className="flex items-center gap-1"><FileText className="h-4 w-4 text-muted-foreground"/>Observations</FormLabel>
                   {observationFields.map((observationItem, observationIndex) => (
@@ -317,19 +344,6 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
                       <FormLabel className="flex items-center gap-1"><MessageSquare className="h-4 w-4 text-muted-foreground"/>Comments</FormLabel>
                       <FormControl>
                         <Textarea placeholder="Additional comments or context..." rows={2} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <FormField
-                  control={form.control}
-                  name={`checklist.${checklistIndex}.evidenceOrRemarks`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Evidence/Old Remarks (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Note observations, evidence, or general remarks..." rows={1} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -662,3 +676,4 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
   );
 }
 
+    
