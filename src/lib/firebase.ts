@@ -1,9 +1,10 @@
-
+// src/lib/firebase.ts
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 
 const firebaseApiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
 
+// More prominent check and error message
 if (!firebaseApiKey) {
   const errorMessage =
     "FATAL ERROR: Firebase API Key is missing or undefined. " +
