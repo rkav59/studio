@@ -27,20 +27,13 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Save, XCircle, ShieldCheck, Users, AlignLeft, Activity, Link2, Briefcase, AlertTriangle } from "lucide-react";
 import type { MedicalTestRecord, MedicalTestRecordType, SimilarExposureGroup, MedicalScreeningPurpose, MedicalTestPrefillData } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { followUpKeywords } from "@/lib/health-config";
+import { Card, CardContent, CardDescription as UiCardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Added Card imports
 
 
 const medicalTestTypes: MedicalTestRecordType[] = ['Audiometry', 'Spirometry (Lung Function)', 'Vision Test', 'Blood Test', 'Urine Test', 'Biological Monitoring', 'X-Ray', 'Musculoskeletal Assessment', 'Fitness to Work Assessment', 'Other'];
@@ -67,18 +60,19 @@ export type MedicalTestFormValues = z.infer<typeof medicalTestFormSchema>;
 
 interface MedicalTestFormProps {
   segs: SimilarExposureGroup[];
-  initialData?: MedicalTestRecord | MedicalTestPrefillData | null; // Can accept full record or prefill data
+  initialData?: MedicalTestRecord | MedicalTestPrefillData | null; 
   onSave: (data: MedicalTestFormValues) => void;
   onCancel: () => void;
-  isEditing: boolean; // Explicitly pass if we are editing or creating new (even if prefilled)
+  isEditing: boolean;
+  isSubmitting?: boolean; // Added for button state
 }
 
-export function MedicalTestForm({ segs, initialData, onSave, onCancel, isEditing }: MedicalTestFormProps) {
+export function MedicalTestForm({ segs, initialData, onSave, onCancel, isEditing, isSubmitting }: MedicalTestFormProps) {
   const form = useForm<MedicalTestFormValues>({
     resolver: zodResolver(medicalTestFormSchema),
     defaultValues: {
       employeeName: initialData?.employeeName || "",
-      employeeId: (initialData as MedicalTestRecord)?.employeeId || "", // Only from full record
+      employeeId: (initialData as MedicalTestRecord)?.employeeId || "",
       testType: initialData?.testType || undefined,
       specificTestName: (initialData as MedicalTestRecord)?.specificTestName || "",
       testDate: (initialData as MedicalTestRecord)?.testDate ? format(parseISO((initialData as MedicalTestRecord).testDate as string), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
@@ -103,7 +97,6 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel, isEditing
       const requiresFollowUp = followUpKeywords.some(keyword => summaryLowerCase.includes(keyword));
       if (requiresFollowUp && !form.getValues("followUpRequired")) {
         form.setValue("followUpRequired", true);
-        // Optionally, notify user: toast({ title: "Follow-up Suggested", description: "Keywords in result summary suggest follow-up may be needed."});
       }
     }
   }, [watchedResultSummary, form]);
@@ -119,19 +112,9 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel, isEditing
   };
 
   return (
-    <DialogContent className="sm:max-w-xl">
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-6 w-6 text-teal-500" />
-            {isEditing ? "Edit Medical Test/Screening Record" : "Log New Medical Test/Screening Record"}
-        </DialogTitle>
-        <DialogDescription>
-          {isEditing ? "Update the medical test/screening details." : "Enter details for a new medical test or screening record."}
-        </DialogDescription>
-      </DialogHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="py-4">
-          <ScrollArea className="max-h-[65vh] pr-4 space-y-4">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+          <ScrollArea className="flex-1 p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="employeeName" render={({ field }) => (
                     <FormItem><FormLabel>Employee Name</FormLabel><FormControl><Input placeholder="Full name of employee" {...field} /></FormControl><FormMessage /></FormItem>
@@ -232,18 +215,15 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel, isEditing
                 <FormItem><FormLabel>Additional Notes (Optional)</FormLabel><FormControl><Textarea placeholder="Any other relevant information, recommendations, or context." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
           </ScrollArea>
-          <DialogFooter className="pt-6 border-t mt-4">
-            <DialogClose asChild>
-              <Button type="button" variant="outline" onClick={onCancel}>
-                <XCircle className="mr-2 h-4 w-4" /> Cancel
-              </Button>
-            </DialogClose>
-            <Button type="submit" className="bg-teal-500 hover:bg-teal-600 text-white">
+          <div className="p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+              <XCircle className="mr-2 h-4 w-4" /> Cancel
+            </Button>
+            <Button type="submit" className="bg-teal-500 hover:bg-teal-600 text-white" disabled={isSubmitting}>
               <Save className="mr-2 h-4 w-4" /> {isEditing ? "Save Changes" : "Log Test Record"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </Form>
-    </DialogContent>
+    </Form>
   );
 }

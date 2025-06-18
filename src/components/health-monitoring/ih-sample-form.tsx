@@ -25,19 +25,12 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Save, XCircle, Thermometer, Users, AlertTriangle } from "lucide-react";
 import type { IndustrialHygieneSample, IndustrialHygieneSampleAgent, SimilarExposureGroup } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
+import { Card, CardContent, CardDescription as UiCardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Added Card imports
 
 const ihSampleAgents: IndustrialHygieneSampleAgent[] = ['Noise', 'Dust (Respirable)', 'Dust (Inhalable)', 'Silica', 'Asbestos', 'VOCs', 'Lead', 'Welding Fumes', 'Specific Chemical', 'Ergonomic Strain', 'Other'];
 
@@ -72,9 +65,10 @@ interface IhSampleFormProps {
   initialData?: IndustrialHygieneSample | null;
   onSave: (data: IhSampleFormValues) => void;
   onCancel: () => void;
+  isSubmitting?: boolean; // Added for button state
 }
 
-export function IhSampleForm({ segs, initialData, onSave, onCancel }: IhSampleFormProps) {
+export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting }: IhSampleFormProps) {
   const form = useForm<IhSampleFormValues>({
     resolver: zodResolver(ihSampleFormSchema),
     defaultValues: {
@@ -108,19 +102,9 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel }: IhSampleFo
   };
 
   return (
-    <DialogContent className="sm:max-w-xl">
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-            <Thermometer className="h-6 w-6 text-accent" />
-            {initialData ? "Edit IH Sample Record" : "Log New IH Sample"}
-        </DialogTitle>
-        <DialogDescription>
-          {initialData ? "Update the industrial hygiene sample details." : "Enter details for a new industrial hygiene sample."}
-        </DialogDescription>
-      </DialogHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="py-4">
-          <ScrollArea className="max-h-[65vh] pr-4 space-y-4">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+        <ScrollArea className="flex-1 p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
@@ -204,20 +188,16 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel }: IhSampleFo
             <FormField control={form.control} name="notes" render={({ field }) => (
                 <FormItem><FormLabel>Notes (Optional)</FormLabel><FormControl><Textarea placeholder="Any relevant details about the sampling conditions, equipment used, etc." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
-
-          </ScrollArea>
-          <DialogFooter className="pt-6 border-t mt-4">
-            <DialogClose asChild>
-              <Button type="button" variant="outline" onClick={onCancel}>
-                <XCircle className="mr-2 h-4 w-4" /> Cancel
-              </Button>
-            </DialogClose>
-            <Button type="submit" className="bg-accent hover:bg-accent/90">
+        </ScrollArea>
+        <div className="p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+              <XCircle className="mr-2 h-4 w-4" /> Cancel
+            </Button>
+            <Button type="submit" className="bg-accent hover:bg-accent/90" disabled={isSubmitting}>
               <Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Log Sample"}
             </Button>
-          </DialogFooter>
-        </form>
-      </Form>
-    </DialogContent>
+        </div>
+      </form>
+    </Form>
   );
 }

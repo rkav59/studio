@@ -25,19 +25,12 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Save, XCircle, Award, Users } from "lucide-react";
 import type { WellnessProgram, WellnessProgramStatus } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
+import { Card, CardContent, CardDescription as UiCardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Added Card imports
 
 const wellnessProgramStatuses: WellnessProgramStatus[] = ['Planned', 'Active', 'Completed', 'On Hold'];
 
@@ -62,9 +55,10 @@ interface WellnessProgramFormProps {
   initialData?: WellnessProgram | null;
   onSave: (data: WellnessProgramFormValues) => void;
   onCancel: () => void;
+  isSubmitting?: boolean; // Added for button state
 }
 
-export function WellnessProgramForm({ initialData, onSave, onCancel }: WellnessProgramFormProps) {
+export function WellnessProgramForm({ initialData, onSave, onCancel, isSubmitting }: WellnessProgramFormProps) {
   const form = useForm<WellnessProgramFormValues>({
     resolver: zodResolver(wellnessProgramFormSchema),
     defaultValues: {
@@ -85,19 +79,9 @@ export function WellnessProgramForm({ initialData, onSave, onCancel }: WellnessP
   };
 
   return (
-    <DialogContent className="sm:max-w-lg">
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-            <Award className="h-6 w-6 text-purple-500" />
-            {initialData ? "Edit Wellness Program" : "Add New Wellness Program"}
-        </DialogTitle>
-        <DialogDescription>
-          {initialData ? "Update the wellness program details." : "Define a new employee wellness program."}
-        </DialogDescription>
-      </DialogHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="py-4">
-          <ScrollArea className="max-h-[65vh] pr-4 space-y-4">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+          <ScrollArea className="flex-1 p-6 space-y-4">
             <FormField control={form.control} name="programName" render={({ field }) => (
                 <FormItem><FormLabel>Program Name</FormLabel><FormControl><Input placeholder="e.g., Healthy Eating Challenge, Mental Wellness Workshops" {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
@@ -146,18 +130,15 @@ export function WellnessProgramForm({ initialData, onSave, onCancel }: WellnessP
                 <FormItem><FormLabel>Participation Notes (Optional)</FormLabel><FormControl><Textarea placeholder="General notes about participation numbers, engagement, feedback, etc." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
           </ScrollArea>
-          <DialogFooter className="pt-6 border-t mt-4">
-            <DialogClose asChild>
-              <Button type="button" variant="outline" onClick={onCancel}>
-                <XCircle className="mr-2 h-4 w-4" /> Cancel
-              </Button>
-            </DialogClose>
-            <Button type="submit" className="bg-purple-500 hover:bg-purple-600 text-white">
+          <div className="p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+              <XCircle className="mr-2 h-4 w-4" /> Cancel
+            </Button>
+            <Button type="submit" className="bg-purple-500 hover:bg-purple-600 text-white" disabled={isSubmitting}>
               <Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Add Program"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
-      </Form>
-    </DialogContent>
+    </Form>
   );
 }

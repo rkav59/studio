@@ -15,17 +15,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Save, XCircle, Users } from "lucide-react";
 import type { SimilarExposureGroup } from "@/lib/types";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Added Card imports
 
 const segFormSchema = z.object({
   name: z.string().min(2, "SEG name must be at least 2 characters.").max(150),
@@ -39,9 +32,10 @@ interface SegFormProps {
   initialData?: SimilarExposureGroup | null;
   onSave: (data: SegFormValues) => void;
   onCancel: () => void;
+  isSubmitting?: boolean; // Added for button state
 }
 
-export function SegForm({ initialData, onSave, onCancel }: SegFormProps) {
+export function SegForm({ initialData, onSave, onCancel, isSubmitting }: SegFormProps) {
   const form = useForm<SegFormValues>({
     resolver: zodResolver(segFormSchema),
     defaultValues: {
@@ -56,19 +50,9 @@ export function SegForm({ initialData, onSave, onCancel }: SegFormProps) {
   };
 
   return (
-    <DialogContent className="sm:max-w-lg">
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-            <Users className="h-6 w-6 text-primary" />
-            {initialData ? "Edit Similar Exposure Group" : "Add New Similar Exposure Group"}
-        </DialogTitle>
-        <DialogDescription>
-          {initialData ? "Update the SEG details." : "Define a new SEG for grouping employees with similar health exposures."}
-        </DialogDescription>
-      </DialogHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="py-4">
-          <ScrollArea className="max-h-[60vh] pr-4 space-y-4">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+        <ScrollArea className="flex-1 p-6 space-y-6">
             <FormField
               control={form.control}
               name="name"
@@ -108,19 +92,16 @@ export function SegForm({ initialData, onSave, onCancel }: SegFormProps) {
                 </FormItem>
               )}
             />
-          </ScrollArea>
-          <DialogFooter className="pt-6 border-t mt-4">
-            <DialogClose asChild>
-              <Button type="button" variant="outline" onClick={onCancel}>
-                <XCircle className="mr-2 h-4 w-4" /> Cancel
-              </Button>
-            </DialogClose>
-            <Button type="submit" className="bg-primary hover:bg-primary/90">
+        </ScrollArea>
+        <div className="p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+              <XCircle className="mr-2 h-4 w-4" /> Cancel
+            </Button>
+            <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isSubmitting}>
               <Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Add SEG"}
             </Button>
-          </DialogFooter>
-        </form>
-      </Form>
-    </DialogContent>
+        </div>
+      </form>
+    </Form>
   );
 }
