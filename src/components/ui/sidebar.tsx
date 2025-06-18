@@ -374,32 +374,40 @@ const SidebarFooter = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & { children: React.ReactNode }
 >(({ className, children, ...props }, ref) => {
-  const { isMobile, state } = useSidebar(); // Get state for tooltip logic
+  const { isMobile, state } = useSidebar();
 
-  // Ensure children is a single element for Tooltip, or handle array appropriately
-  // For simplicity, assuming children is the Button component setup
-  const buttonChild = React.Children.only(children) as React.ReactElement<
-    React.ComponentProps<typeof Button> & { "data-slot"?: string }
+  const buttonElement = React.Children.only(children) as React.ReactElement<
+    React.ComponentProps<typeof Button>
   >;
   
-  const profileButton = React.cloneElement(buttonChild, {
+  let tooltipText = "User Action"; // Default tooltip text
+  // Attempt to derive tooltip text from the button's content
+  if (buttonElement && buttonElement.props && buttonElement.props.children) {
+    const buttonChildrenArray = React.Children.toArray(buttonElement.props.children);
+    // Assuming the text is in a span as the second child of the Button, after an icon
+    if (buttonChildrenArray.length > 1 && React.isValidElement(buttonChildrenArray[1])) {
+      const textSpanCandidate = buttonChildrenArray[1] as React.ReactElement;
+      // Check if the child of the span is a string (the actual text)
+      if (textSpanCandidate.props && typeof textSpanCandidate.props.children === 'string') {
+        tooltipText = textSpanCandidate.props.children;
+      }
+    } else if (buttonChildrenArray.length === 1 && typeof buttonChildrenArray[0] === 'string') {
+      // Fallback for buttons that might only contain text directly (less common with icons)
+      tooltipText = buttonChildrenArray[0] as string;
+    }
+  }
+  
+  // Clone the button to apply specific footer styling for collapsed state, if needed,
+  // or just use the buttonElement directly if its classes already handle collapse.
+  // The original button already has `group-data-[collapsible=icon]:hidden` on its text span.
+  // We ensure the button itself adapts to icon-only size when collapsed.
+  const styledFooterButton = React.cloneElement(buttonElement, {
     className: cn(
-      buttonChild.props.className, // Keep existing classes
-      "w-full justify-start gap-2",
-      "group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center"
-    ),
-    children: (
-      <>
-        {/* Render icon directly from children or assume it's the first child */}
-        {React.Children.toArray(buttonChild.props.children)[0]} 
-        <span className="group-data-[collapsible=icon]:hidden">
-          {/* Render text label directly from children or assume it's the second child */}
-          {React.Children.toArray(buttonChild.props.children)[1]}
-        </span>
-      </>
+      buttonElement.props.className,
+      // These ensure the button in the footer takes icon form when sidebar is collapsed
+      "group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2" 
     ),
   });
-
 
   return (
     <div
@@ -409,14 +417,14 @@ const SidebarFooter = React.forwardRef<
       {...props}
     >
       <Tooltip>
-        <TooltipTrigger asChild>{profileButton}</TooltipTrigger>
+        <TooltipTrigger asChild>{styledFooterButton}</TooltipTrigger>
         <TooltipContent side="right" align="center" hidden={state !== "collapsed" || isMobile}>
-          Profile {/* Assuming the text is "Profile" */}
+          {tooltipText}
         </TooltipContent>
       </Tooltip>
     </div>
-  )
-})
+  );
+});
 SidebarFooter.displayName = "SidebarFooter"
 
 
