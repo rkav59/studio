@@ -86,9 +86,9 @@ export interface AuditChecklistItem {
   templateItemId?: string; // ID of the original template item
   text: string;
   status: 'Compliant' | 'Non-Compliant' | 'Not Applicable' | 'Pending';
-  auditCriteriaReference?: string;    // Criteria being audited against (e.g., ISO clause, procedure ref) - Copied from template
-  evidenceGatheringPrompt?: string; // Hint for the auditor on what evidence to look for (from template) - Copied from template
-  evidenceNotes?: string;           // Auditor's notes on evidence found - Filled during audit
+  auditCriteriaReference?: string;
+  evidenceGatheringPrompt?: string;
+  evidenceNotes?: string;
   responsiblePerson?: string;
   observations: AuditObservationEntry[];
   comments?: string;
@@ -112,8 +112,8 @@ export interface NonConformance {
 export interface ChecklistItemTemplate {
   id: string; // Unique ID for the template item
   text: string;
-  auditCriteriaReference?: string;    // Added - e.g., "ISO 9001:2015 cl. 7.2"
-  evidenceGatheringPrompt?: string; // Added - e.g., "Review training records, interview staff"
+  auditCriteriaReference?: string;
+  evidenceGatheringPrompt?: string;
   observationPrompt?: string;
   defaultResponsiblePerson?: string;
   defaultComments?: string;
@@ -289,11 +289,11 @@ export interface IncidentInvestigation {
   fishboneCategories?: FishboneCategory[];
   scatDetails?: ScatDetails;
   genericRcaDetails?: GenericRcaDetails;
-  summaryOfFindings: string;
-  evidenceSummary?: string;
-  witnessStatementsSummary?: string;
   correctiveActions: CorrectiveAction[];
   status: 'Open' | 'In Progress' | 'Review' | 'Closed';
+  summaryOfFindings: string; // Added from user content
+  evidenceSummary?: string; // Added from user content
+  witnessStatementsSummary?: string; // Added from user content
 }
 
 export interface SuggestRootCauseInput {
@@ -311,13 +311,18 @@ export type ContractorVettingStatus = 'Pending' | 'Approved' | 'Rejected' | 'Req
 export type PtwStatus = 'Requested' | 'Approved' | 'Active' | 'Closed' | 'Cancelled' | 'Expired';
 
 export interface ContractorDocument {
-  id: string;
-  name: string;
+  id: string; // UUID for the document entry
+  name: string; // User-defined name for the document
   documentType: 'Insurance' | 'Certification' | 'Method Statement' | 'Risk Assessment' | 'Other';
-  fileUrlPlaceholder?: string;
-  expiryDate?: string;
-  uploadedDate: string;
+  fileUrl?: string;      // Actual download URL from Firebase Storage
+  filePath?: string;     // Path in Firebase Storage (e.g., contractor_documents/userId/contractorId/docId/fileName.pdf)
+  fileName?: string;     // Original name of the uploaded file
+  fileType?: string;     // MIME type of the file
+  fileSize?: number;     // Size in bytes
+  expiryDate?: string;   // ISO date string
+  uploadedDate: string; // ISO date string (represents when the record was created or file (re-)uploaded)
 }
+
 
 export interface Contractor {
   id: string;
@@ -407,7 +412,7 @@ export interface PpeInspectionRecord {
   inspectionDate: string; // ISO Date string
   inspectorName: string;
   overallStatus: PpeInspectionOverallStatus;
-  checklistItems: PpeInspectionChecklistItemInstance[]; 
+  checklistItems: PpeInspectionChecklistItemInstance[];
   notes?: string;
   followUpAction?: string;
   nextInspectionDate?: string; // ISO Date string (optional)
@@ -520,7 +525,7 @@ export interface WellnessProgram {
 // Old MedicalScreeningRecord type - now superseded by enhanced MedicalTestRecord
 // export interface MedicalScreeningRecord {
 //   id: string;
-//   employeeId: string; 
+//   employeeId: string;
 //   screeningDate: string;
 //   screeningType: string;
 //   resultsSummary: string;
@@ -567,4 +572,3 @@ export type MedicalTestWithCertStatus = MedicalTestRecord & {
 // Helper type for pre-filling MedicalTestForm
 export type MedicalTestPrefillData = Partial<Pick<MedicalTestRecord, 'employeeName' | 'segId' | 'linkedExposure' | 'testType'>>;
 
-    

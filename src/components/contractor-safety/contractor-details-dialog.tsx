@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { Contractor, ContractorDocument } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
-import { Building, User, Mail, Phone, Wrench, CheckCircle2, XCircle, AlertTriangle, FileText, CalendarDays, ShieldQuestion } from "lucide-react";
+import { Building, User, Mail, Phone, Wrench, CheckCircle2, XCircle, AlertTriangle, FileText, CalendarDays, ShieldQuestion, Download } from "lucide-react";
 
 interface ContractorDetailsDialogProps {
   contractor: Contractor;
@@ -35,12 +35,19 @@ export function ContractorDetailsDialog({ contractor, onClose }: ContractorDetai
   };
   
   const getDocumentTypeIcon = (type: ContractorDocument['documentType']) => {
-     // Simple icon mapping, can be expanded
     switch(type) {
         case 'Insurance': return <FileText className="h-4 w-4 text-blue-500"/>;
         case 'Certification': return <CheckSquare className="h-4 w-4 text-green-500"/>;
         default: return <FileText className="h-4 w-4 text-gray-500"/>;
     }
+  };
+
+  const formatFileSize = (bytes?: number) => {
+    if (bytes === undefined || bytes === 0) return 'N/A';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
 
@@ -105,20 +112,32 @@ export function ContractorDetailsDialog({ contractor, onClose }: ContractorDetai
 
                 {/* Documents */}
                 <section>
-                    <h3 className="text-lg font-semibold mb-2 border-b pb-1">Associated Documents (Simulated)</h3>
+                    <h3 className="text-lg font-semibold mb-2 border-b pb-1">Associated Documents</h3>
                     {contractor.documents && contractor.documents.length > 0 ? (
-                        <ul className="space-y-2">
+                        <ul className="space-y-3">
                             {contractor.documents.map(doc => (
-                                <li key={doc.id} className="p-2 border rounded-md bg-muted/50 text-sm">
-                                    <p className="font-medium flex items-center gap-2">{getDocumentTypeIcon(doc.documentType)} {doc.name} ({doc.documentType})</p>
-                                    {doc.fileUrlPlaceholder && <p className="text-xs text-muted-foreground">File Ref: {doc.fileUrlPlaceholder}</p>}
-                                    <p className="text-xs text-muted-foreground">Uploaded: {format(parseISO(doc.uploadedDate), "PPP")}</p>
-                                    {doc.expiryDate && isValid(parseISO(doc.expiryDate)) && (
-                                        <p className={`text-xs ${new Date(doc.expiryDate) < new Date() ? 'text-red-500 font-semibold' : 'text-muted-foreground'}`}>
-                                            Expires: {format(parseISO(doc.expiryDate), "PPP")}
-                                            {new Date(doc.expiryDate) < new Date() && " (Expired)"}
-                                        </p>
-                                    )}
+                                <li key={doc.id} className="p-3 border rounded-md bg-muted/50 text-sm">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="font-medium flex items-center gap-2">{getDocumentTypeIcon(doc.documentType)} {doc.name} ({doc.documentType})</p>
+                                            {doc.fileName && <p className="text-xs text-muted-foreground">Original Filename: {doc.fileName}</p>}
+                                            {doc.fileSize !== undefined && <p className="text-xs text-muted-foreground">Size: {formatFileSize(doc.fileSize)}</p>}
+                                            <p className="text-xs text-muted-foreground">Uploaded: {format(parseISO(doc.uploadedDate), "PPP")}</p>
+                                            {doc.expiryDate && isValid(parseISO(doc.expiryDate)) && (
+                                                <p className={`text-xs ${new Date(doc.expiryDate) < new Date() ? 'text-red-500 font-semibold' : 'text-muted-foreground'}`}>
+                                                    Expires: {format(parseISO(doc.expiryDate), "PPP")}
+                                                    {new Date(doc.expiryDate) < new Date() && " (Expired)"}
+                                                </p>
+                                            )}
+                                        </div>
+                                        {doc.fileUrl && (
+                                            <Button asChild variant="outline" size="sm" className="shrink-0">
+                                                <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
+                                                    <Download className="mr-1 h-3 w-3" /> Download
+                                                </a>
+                                            </Button>
+                                        )}
+                                    </div>
                                 </li>
                             ))}
                         </ul>
@@ -146,4 +165,3 @@ export function ContractorDetailsDialog({ contractor, onClose }: ContractorDetai
     </Dialog>
   );
 }
-

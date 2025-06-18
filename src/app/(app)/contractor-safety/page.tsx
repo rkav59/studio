@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, ClipboardList, FileText, CheckSquare, ShieldAlert, Loader2 } from "lucide-react";
-import type { Contractor, PermitToWork, ContractorVettingStatus, PtwStatus } from "@/lib/types";
-import { ContractorForm } from "@/components/contractor-safety/contractor-form";
+import { PlusCircle, Edit2, Trash2, Eye, ClipboardList, FileText, CheckSquare, ShieldAlert, Loader2, Download } from "lucide-react";
+import type { Contractor, PermitToWork, ContractorVettingStatus, PtwStatus, ContractorDocument } from "@/lib/types";
+import { ContractorForm, type ContractorFormDataWithFiles } from "@/components/contractor-safety/contractor-form";
 import { PermitToWorkForm } from "@/components/contractor-safety/permit-to-work-form";
 import { ContractorDetailsDialog } from "@/components/contractor-safety/contractor-details-dialog";
 import { PtwDetailsDialog } from "@/components/contractor-safety/ptw-details-dialog";
@@ -29,12 +29,35 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { db, storage } from '@/lib/firebase'; // Import storage
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp, writeBatch } from 'firebase/firestore';
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"; // Storage functions
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const CONTRACTORS_COLLECTION = 'contractors';
 const PTWS_COLLECTION = 'permitsToWork';
+
+async function uploadContractorDocument(file: File, userId: string, contractorId: string, documentId: string): Promise<{ url: string, path: string, name: string, type: string, size: number }> {
+  const filePath = `contractor_documents/${userId}/${contractorId}/${documentId}/${file.name}`;
+  const fileStorageRef = storageRef(storage, filePath);
+  const snapshot = await uploadBytes(fileStorageRef, file);
+  const url = await getDownloadURL(snapshot.ref);
+  return { url, path: filePath, name: file.name, type: file.type, size: file.size };
+}
+
+async function deleteContractorDocument(filePath: string) {
+  if (!filePath) return;
+  const fileRef = storageRef(storage, filePath);
+  try {
+    await deleteObject(fileRef);
+  } catch (error: any) {
+    if (error.code !== 'storage/object-not-found') { // Ignore if file not found (already deleted)
+      console.error("Error deleting file from storage:", error);
+      // Optionally re-throw or handle more gracefully
+    }
+  }
+}
+
 
 export default function ContractorSafetyPage() {
   const { toast } = useToast();
@@ -56,28 +79,78 @@ export default function ContractorSafetyPage() {
       if (!user?.uid) return [];
       const q = query(collection(db, CONTRACTORS_COLLECTION), where("userId", "==", user.uid));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Contractor));
+      return snapshot.docs.map(docSnap => {
+          const data = docSnap.data();
+          return { 
+              id: docSnap.id, ...data, 
+              inductionDate: data.inductionDate instanceof Timestamp ? data.inductionDate.toDate().toISOString() : data.inductionDate,
+              documents: (data.documents || []).map((d: any) => ({
+                  ...d,
+                  uploadedDate: d.uploadedDate instanceof Timestamp ? d.uploadedDate.toDate().toISOString() : d.uploadedDate,
+                  expiryDate: d.expiryDate instanceof Timestamp ? d.expiryDate.toDate().toISOString() : d.expiryDate,
+              }))
+          } as Contractor;
+      });
     },
     enabled: !!user?.uid,
   });
 
-  // Fetch PTWs
+  // Fetch PTWs (existing query)
   const { data: ptws = [], isLoading: isLoadingPtws, error: ptwsError } = useQuery<PermitToWork[]>({
     queryKey: [PTWS_COLLECTION, user?.uid],
     queryFn: async () => {
       if (!user?.uid) return [];
       const q = query(collection(db, PTWS_COLLECTION), where("userId", "==", user.uid));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PermitToWork));
+      return snapshot.docs.map(docSnap => {
+          const data = docSnap.data();
+          return { 
+              id: docSnap.id, ...data,
+              startDate: data.startDate instanceof Timestamp ? data.startDate.toDate().toISOString() : data.startDate,
+              endDate: data.endDate instanceof Timestamp ? data.endDate.toDate().toISOString() : data.endDate,
+              authorizationDate: data.authorizationDate instanceof Timestamp ? data.authorizationDate.toDate().toISOString() : data.authorizationDate,
+              closureDate: data.closureDate instanceof Timestamp ? data.closureDate.toDate().toISOString() : data.closureDate,
+          } as PermitToWork;
+      });
     },
     enabled: !!user?.uid,
   });
 
+
   // Contractor Mutations
   const addContractorMutation = useMutation({
-    mutationFn: (newContractorData: Omit<Contractor, 'id' | 'userId'>) => {
+    mutationFn: async (formData: ContractorFormDataWithFiles) => {
       if (!user?.uid) throw new Error("User not authenticated.");
-      return addDoc(collection(db, CONTRACTORS_COLLECTION), { ...newContractorData, userId: user.uid });
+      
+      const { documentFiles, documentsToRemove, ...contractorData } = formData; // documentsToRemove not used in add
+      const contractorDocRef = doc(collection(db, CONTRACTORS_COLLECTION)); // Get ref for ID
+
+      const processedDocuments: ContractorDocument[] = await Promise.all(
+        (contractorData.documents || []).map(async (docData) => {
+          const fileToUpload = documentFiles?.get(docData.id);
+          if (fileToUpload) {
+            const { url, path, name, type, size } = await uploadContractorDocument(fileToUpload, user.uid, contractorDocRef.id, docData.id);
+            return { ...docData, fileUrl: url, filePath: path, fileName: name, fileType: type, fileSize: size };
+          }
+          return docData; // No new file for this existing doc entry (though unlikely for brand new contractor)
+        })
+      );
+
+      const dataToSave = { 
+        ...contractorData, 
+        userId: user.uid,
+        documents: processedDocuments,
+        inductionDate: contractorData.inductionDate ? Timestamp.fromDate(parseISO(contractorData.inductionDate)) : null,
+      };
+      // Remove fileUrl, filePath etc., from non-file documents for cleaner Firestore data
+      dataToSave.documents = dataToSave.documents.map(d => {
+        const { fileUrl, filePath, fileName, fileSize, fileType, ...rest } = d;
+        if (d.fileUrl) return d; // If it has a fileUrl, keep all relevant fields
+        return rest; // Otherwise, only keep core fields
+      });
+
+      await updateDoc(contractorDocRef, dataToSave); // Use updateDoc since we used doc() to get an ID
+      return contractorDocRef.id;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CONTRACTORS_COLLECTION, user?.uid] });
@@ -88,25 +161,85 @@ export default function ContractorSafetyPage() {
   });
 
   const updateContractorMutation = useMutation({
-    mutationFn: (contractorToUpdate: Contractor) => {
-      if (!user?.uid || !contractorToUpdate.id) throw new Error("Missing user or contractor ID.");
-      const { id, ...data } = contractorToUpdate;
-      return updateDoc(doc(db, CONTRACTORS_COLLECTION, id), { ...data, userId: user.uid });
+    mutationFn: async (formData: ContractorFormDataWithFiles) => {
+      if (!user?.uid || !editingContractor?.id) throw new Error("Missing user or contractor ID.");
+      const contractorId = editingContractor.id;
+      const { documentFiles, documentsToRemove, ...contractorData } = formData;
+
+      // 1. Delete files marked for removal (from form UI deletions)
+      if (documentsToRemove && documentsToRemove.length > 0) {
+        await Promise.all(documentsToRemove.map(path => deleteContractorDocument(path)));
+      }
+      
+      // 2. Identify files for documents that were fully removed (not just file replaced)
+      const initialDocIds = editingContractor.documents.map(d => d.id);
+      const finalDocIds = contractorData.documents?.map(d => d.id) || [];
+      const removedDocEntries = editingContractor.documents.filter(
+        initialDoc => !finalDocIds.includes(initialDoc.id) && initialDoc.filePath
+      );
+      await Promise.all(removedDocEntries.map(doc => deleteContractorDocument(doc.filePath!)));
+
+
+      const processedDocuments: ContractorDocument[] = await Promise.all(
+        (contractorData.documents || []).map(async (docData) => {
+          const fileToUpload = documentFiles?.get(docData.id);
+          const existingDoc = editingContractor.documents.find(d => d.id === docData.id);
+
+          if (fileToUpload) { // New file selected for this doc entry
+            if (existingDoc?.filePath) { // If there was an old file, delete it
+              await deleteContractorDocument(existingDoc.filePath);
+            }
+            const { url, path, name, type, size } = await uploadContractorDocument(fileToUpload, user.uid, contractorId, docData.id);
+            return { ...docData, fileUrl: url, filePath: path, fileName: name, fileType: type, fileSize: size };
+          } else if (existingDoc) { // No new file, keep existing file info if present
+            return { ...docData, fileUrl: existingDoc.fileUrl, filePath: existingDoc.filePath, fileName: existingDoc.fileName, fileType: existingDoc.fileType, fileSize: existingDoc.fileSize };
+          }
+          return docData; // New doc entry without a file, or some other case
+        })
+      );
+      
+      const dataToSave = { 
+        ...contractorData, 
+        userId: user.uid,
+        documents: processedDocuments,
+        inductionDate: contractorData.inductionDate ? Timestamp.fromDate(parseISO(contractorData.inductionDate)) : null,
+      };
+       dataToSave.documents = dataToSave.documents.map(d => {
+        const { fileUrl, filePath, fileName, fileSize, fileType, ...rest } = d;
+        if (d.fileUrl) return d;
+        return rest;
+      });
+
+      await updateDoc(doc(db, CONTRACTORS_COLLECTION, contractorId), dataToSave);
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: [CONTRACTORS_COLLECTION, user?.uid] });
-      toast({ title: "Contractor Updated", description: `Details for ${vars.companyName} updated.` });
+      toast({ title: "Contractor Updated", description: `Details updated.` });
       setIsContractorFormOpen(false); setEditingContractor(null);
     },
     onError: (e: Error) => toast({ title: "Error Updating Contractor", description: e.message, variant: "destructive" }),
   });
 
-  const deleteContractorMutation = useMutation({
+ const deleteContractorMutation = useMutation({
     mutationFn: async (contractorId: string) => {
       if (!user?.uid) throw new Error("User not authenticated.");
+      
+      const contractorToDelete = contractors.find(c => c.id === contractorId);
+      if (!contractorToDelete) throw new Error("Contractor not found.");
+
       if (ptws.some(ptw => ptw.contractorId === contractorId)) {
-        throw new Error("Contractor is associated with PTWs. Delete PTWs first.");
+        throw new Error("Contractor is associated with PTWs. Delete PTWs first or reassign them.");
       }
+
+      // Delete associated documents from Firebase Storage
+      if (contractorToDelete.documents && contractorToDelete.documents.length > 0) {
+        const deletePromises = contractorToDelete.documents
+          .filter(doc => doc.filePath)
+          .map(doc => deleteContractorDocument(doc.filePath!));
+        await Promise.all(deletePromises);
+      }
+      
+      // Delete contractor document from Firestore
       await deleteDoc(doc(db, CONTRACTORS_COLLECTION, contractorId));
     },
     onSuccess: () => {
@@ -116,11 +249,20 @@ export default function ContractorSafetyPage() {
     onError: (e: Error) => toast({ title: "Error Deleting Contractor", description: e.message, variant: "destructive" }),
   });
 
+
   // PTW Mutations
   const addPtwMutation = useMutation({
     mutationFn: (newPtwData: Omit<PermitToWork, 'id' | 'userId'>) => {
       if (!user?.uid) throw new Error("User not authenticated.");
-      return addDoc(collection(db, PTWS_COLLECTION), { ...newPtwData, userId: user.uid });
+      const dataForDb = {
+        ...newPtwData,
+        userId: user.uid,
+        startDate: Timestamp.fromDate(parseISO(newPtwData.startDate)),
+        endDate: Timestamp.fromDate(parseISO(newPtwData.endDate)),
+        authorizationDate: newPtwData.authorizationDate ? Timestamp.fromDate(parseISO(newPtwData.authorizationDate)) : null,
+        closureDate: newPtwData.closureDate ? Timestamp.fromDate(parseISO(newPtwData.closureDate)) : null,
+      };
+      return addDoc(collection(db, PTWS_COLLECTION), dataForDb);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [PTWS_COLLECTION, user?.uid] });
@@ -134,7 +276,15 @@ export default function ContractorSafetyPage() {
     mutationFn: (ptwToUpdate: PermitToWork) => {
       if (!user?.uid || !ptwToUpdate.id) throw new Error("Missing user or PTW ID.");
       const { id, ...data } = ptwToUpdate;
-      return updateDoc(doc(db, PTWS_COLLECTION, id), { ...data, userId: user.uid });
+      const dataForDb = {
+        ...data,
+        userId: user.uid,
+        startDate: Timestamp.fromDate(parseISO(data.startDate)),
+        endDate: Timestamp.fromDate(parseISO(data.endDate)),
+        authorizationDate: data.authorizationDate ? Timestamp.fromDate(parseISO(data.authorizationDate)) : null,
+        closureDate: data.closureDate ? Timestamp.fromDate(parseISO(data.closureDate)) : null,
+      };
+      return updateDoc(doc(db, PTWS_COLLECTION, id), dataForDb);
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: [PTWS_COLLECTION, user?.uid] });
@@ -172,9 +322,9 @@ export default function ContractorSafetyPage() {
     deleteContractorMutation.mutate(contractorId);
   };
 
-  const handleSaveContractor = (data: Omit<Contractor, 'id'>) => {
+  const handleSaveContractor = (data: ContractorFormDataWithFiles) => {
     if (editingContractor) {
-      updateContractorMutation.mutate({ ...editingContractor, ...data });
+      updateContractorMutation.mutate(data);
     } else {
       addContractorMutation.mutate(data);
     }
@@ -199,7 +349,7 @@ export default function ContractorSafetyPage() {
     deletePtwMutation.mutate(ptwId);
   };
 
-  const handleSavePtw = (data: Omit<PermitToWork, 'id'>) => {
+  const handleSavePtw = (data: Omit<PermitToWork, 'id'|'userId'>) => { // Adjusted this type
     if (editingPtw) {
       updatePtwMutation.mutate({ ...editingPtw, ...data });
     } else {
@@ -257,20 +407,19 @@ export default function ContractorSafetyPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-0 left-0 p-6">
                 <h1 className="text-3xl font-bold tracking-tight font-headline text-white">Contractor Safety</h1>
-                <p className="text-sm text-neutral-300">Oversee contractor safety from vetting to on-site work. Data stored in Firestore.</p>
+                <p className="text-sm text-neutral-300">Oversee contractor safety from vetting to on-site work. Data stored in Firestore, documents in Firebase Storage.</p>
             </div>
         </div>
         <CardContent className="pt-6">
             <p className="text-muted-foreground">
-                This module facilitates the management of contractor safety, including pre-qualification/vetting, 
-                induction status, and a Permit-to-Work (PTW) system. All data is now stored securely in Firebase Firestore.
+                Manage contractor vetting, inductions, documents (now uploaded to Firebase Storage), and Permits-to-Work (PTW).
             </p>
              <Alert variant="info" className="mt-4">
                 <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>Real-time & Secure Data</AlertTitle>
+                <AlertTitle>Data Storage & Security</AlertTitle>
                 <div className="text-xs text-muted-foreground">
-                    With Firestore integration, your data is persistent and can be accessed across sessions. 
-                    Actual document uploads, shared real-time data, and automated notifications would require further backend development (e.g., Cloud Functions for Firebase).
+                    Contractor metadata is stored in Firestore. Documents are uploaded to Firebase Storage.
+                    Ensure you have appropriate Firebase Storage security rules in place.
                 </div>
             </Alert>
         </CardContent>
@@ -303,14 +452,14 @@ export default function ContractorSafetyPage() {
                                     </div>
                                     <div className="flex gap-2 self-start sm:self-center shrink-0">
                                         <Button variant="outline" size="sm" onClick={() => setViewingContractor(contractor)}><Eye className="mr-1 h-3 w-3" /> View</Button>
-                                        <Button variant="secondary" size="sm" onClick={() => handleEditContractor(contractor)} disabled={updateContractorMutation.isPending}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
+                                        <Button variant="secondary" size="sm" onClick={() => handleEditContractor(contractor)} disabled={updateContractorMutation.isPending || addContractorMutation.isPending && editingContractor?.id === contractor.id}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                 <Button variant="destructive" size="sm" disabled={deleteContractorMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button>
                                             </AlertDialogTrigger>
                                             <AlertDialogContent>
                                                 <AlertDialogHeader><AlertDialogTitle>Delete Contractor?</AlertDialogTitle>
-                                                <AlertDialogDescription>Are you sure you want to delete {contractor.companyName}? This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+                                                <AlertDialogDescription>Are you sure you want to delete {contractor.companyName}? This will also delete associated documents from storage. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
                                                 <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteContractor(contractor.id)}>Delete</AlertDialogAction></AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>
@@ -320,6 +469,7 @@ export default function ContractorSafetyPage() {
                                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
                                     <p>Vetting: <span className={`font-semibold ${getVettingStatusColor(contractor.vettingStatus)}`}>{contractor.vettingStatus}</span></p>
                                     <p>Induction: <span className={contractor.inductionCompleted ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>{contractor.inductionCompleted ? "Completed" : "Pending"}</span></p>
+                                    <p>Documents: <span className="font-semibold">{(contractor.documents || []).length}</span></p>
                                 </div>
                             </Card>
                         ))}
@@ -369,7 +519,7 @@ export default function ContractorSafetyPage() {
                                     </div>
                                      <div className="flex gap-2 self-start sm:self-center shrink-0">
                                         <Button variant="outline" size="sm" onClick={() => setViewingPtw(ptw)}><Eye className="mr-1 h-3 w-3" /> View</Button>
-                                        <Button variant="secondary" size="sm" onClick={() => handleEditPtw(ptw)} disabled={updatePtwMutation.isPending}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
+                                        <Button variant="secondary" size="sm" onClick={() => handleEditPtw(ptw)} disabled={updatePtwMutation.isPending && editingPtw?.id === ptw.id}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                 <Button variant="destructive" size="sm" disabled={deletePtwMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button>
@@ -411,7 +561,7 @@ export default function ContractorSafetyPage() {
         </CardHeader>
         <CardContent>
              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-                    <li>Actual document uploads and secure storage (Firebase Storage).</li>
+                    <li>Upload progress indicators.</li>
                     <li>Online safety induction training module with content and completion tracking.</li>
                     <li>Automated notifications (Cloud Functions) for PTW expiry or document renewals.</li>
                     <li>Workflow for PTW approvals (Cloud Functions and Firestore status updates).</li>

@@ -39,12 +39,19 @@ import { cn } from "@/lib/utils";
 import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, FileText, UploadCloud } from "lucide-react";
 import type { Contractor, ContractorDocument, ContractorVettingStatus } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
+import React, { useState } from "react"; // Added useState
 
+// Refined Zod schema for ContractorDocument for form validation
 const contractorDocumentSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Document name is required.").max(150),
   documentType: z.enum(['Insurance', 'Certification', 'Method Statement', 'Risk Assessment', 'Other']),
-  fileUrlPlaceholder: z.string().max(255).optional().describe("Simulated: Name of the file or a note."),
+  // fileUrl, filePath, fileName, fileType, fileSize will be handled by the mutation, not directly in form values
+  fileUrl: z.string().optional(),
+  filePath: z.string().optional(),
+  fileName: z.string().optional(),
+  fileType: z.string().optional(),
+  fileSize: z.number().optional(),
   expiryDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid expiry date" }),
   uploadedDate: z.string().refine(val => isValid(parseISO(val)), { message: "Invalid upload date" }),
 });
@@ -63,11 +70,17 @@ const contractorFormSchema = z.object({
   performanceNotes: z.string().max(2000).optional(),
 });
 
-type ContractorFormValues = z.infer<typeof contractorFormSchema>;
+export type ContractorFormValues = z.infer<typeof contractorFormSchema>;
+
+// This type will be passed to onSave, including the File objects
+export type ContractorFormDataWithFiles = ContractorFormValues & {
+  documentFiles?: Map<string, File>; // Map document ID to File object
+  documentsToRemove?: string[]; // Array of filePaths to remove from storage
+};
 
 interface ContractorFormProps {
   initialData?: Contractor | null;
-  onSave: (data: Omit<Contractor, 'id'>) => void;
+  onSave: (data: ContractorFormDataWithFiles) => void;
   onCancel: () => void;
 }
 
@@ -75,12 +88,16 @@ const newDocumentDefault = (): ContractorDocument => ({
     id: crypto.randomUUID(),
     name: "",
     documentType: "Other",
-    uploadedDate: new Date().toISOString(),
+    uploadedDate: new Date().toISOString(), // Default to now, will be formatted for form
     expiryDate: undefined,
-    fileUrlPlaceholder: ""
+    // fileUrl, filePath etc., will be populated after upload
 });
 
 export function ContractorForm({ initialData, onSave, onCancel }: ContractorFormProps) {
+  const [documentFiles, setDocumentFiles] = useState<Map<string, File>>(new Map());
+  const [documentsToRemove, setDocumentsToRemove] = useState<string[]>([]);
+
+
   const form = useForm<ContractorFormValues>({
     resolver: zodResolver(contractorFormSchema),
     defaultValues: {
@@ -94,7 +111,7 @@ export function ContractorForm({ initialData, onSave, onCancel }: ContractorForm
       inductionCompleted: initialData?.inductionCompleted || false,
       inductionDate: initialData?.inductionDate ? format(parseISO(initialData.inductionDate), 'yyyy-MM-dd') : undefined,
       documents: initialData?.documents?.map(doc => ({
-        ...doc,
+        ...doc, // Spread existing doc data (like fileUrl, filePath, fileName if present)
         expiryDate: doc.expiryDate ? format(parseISO(doc.expiryDate), 'yyyy-MM-dd') : undefined,
         uploadedDate: doc.uploadedDate ? format(parseISO(doc.uploadedDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       })) || [],
@@ -107,15 +124,45 @@ export function ContractorForm({ initialData, onSave, onCancel }: ContractorForm
     name: "documents",
   });
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, documentId: string) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      setDocumentFiles(prev => new Map(prev).set(documentId, file));
+      // Update the form value for fileName to show user feedback
+      const docIndex = form.getValues("documents").findIndex(d => d.id === documentId);
+      if (docIndex !== -1) {
+        form.setValue(`documents.${docIndex}.fileName`, file.name);
+      }
+    }
+  };
+  
+  const handleRemoveDocument = (index: number) => {
+    const docToRemove = form.getValues(`documents.${index}`);
+    if (docToRemove && docToRemove.filePath) { // If it's an existing doc with a file in storage
+        setDocumentsToRemove(prev => [...prev, docToRemove.filePath!]);
+    }
+    removeDocument(index);
+    if (docToRemove) {
+      setDocumentFiles(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(docToRemove.id);
+        return newMap;
+      });
+    }
+  };
+
+
   const onSubmit = (data: ContractorFormValues) => {
-    const contractorToSave = {
+    const contractorToSave: ContractorFormDataWithFiles = {
       ...data,
       inductionDate: data.inductionDate ? parseISO(data.inductionDate).toISOString() : undefined,
       documents: data.documents?.map(doc => ({
-        ...doc,
+        ...doc, // includes existing fileUrl, filePath, fileName if not changed
         expiryDate: doc.expiryDate ? parseISO(doc.expiryDate).toISOString() : undefined,
         uploadedDate: parseISO(doc.uploadedDate).toISOString(),
       })) || [],
+      documentFiles,
+      documentsToRemove,
     };
     onSave(contractorToSave);
   };
@@ -194,15 +241,14 @@ export function ContractorForm({ initialData, onSave, onCancel }: ContractorForm
             
             <Separator className="my-6" />
 
-            {/* Document Management (Simulated) */}
+            {/* Document Management */}
             <div className="space-y-4">
-                <h3 className="text-lg font-medium">Document Management (Simulated)</h3>
-                <FormDescription>Track key documents. Actual file uploads require backend integration.</FormDescription>
+                <h3 className="text-lg font-medium">Document Management</h3>
                 {documentFields.map((docItem, index) => (
                     <Card key={docItem.id} className="p-3 bg-muted/50 space-y-3">
                         <div className="flex justify-between items-center">
                             <FormLabel className="text-sm font-medium">Document #{index + 1}</FormLabel>
-                            <Button type="button" variant="ghost" size="icon" onClick={() => removeDocument(index)} className="text-destructive h-6 w-6"><Trash2 className="h-4 w-4"/></Button>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveDocument(index)} className="text-destructive h-6 w-6"><Trash2 className="h-4 w-4"/></Button>
                         </div>
                         <FormField control={form.control} name={`documents.${index}.name`} render={({ field }) => (
                              <FormItem><FormLabel className="text-xs">Document Name/Title</FormLabel><FormControl><Input placeholder="e.g., Public Liability Insurance" {...field} /></FormControl><FormMessage /></FormItem>
@@ -225,14 +271,25 @@ export function ContractorForm({ initialData, onSave, onCancel }: ContractorForm
                                 </Popover><FormMessage /></FormItem>
                             )}/>
                         </div>
-                        <FormField control={form.control} name={`documents.${index}.fileUrlPlaceholder`} render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-xs flex items-center gap-1"><UploadCloud className="h-3 w-3"/>File Reference (Simulated)</FormLabel>
-                                <FormControl><Input placeholder="e.g., insurance_policy.pdf, cert_xyz.jpg" {...field} /></FormControl>
-                                <FormDescription className="text-xs">Enter filename or note. Actual upload needs backend.</FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
+                        <FormItem>
+                            <FormLabel htmlFor={`file-upload-${docItem.id}`} className="text-xs flex items-center gap-1"><UploadCloud className="h-3 w-3"/>Upload File (Optional)</FormLabel>
+                            <Input id={`file-upload-${docItem.id}`} type="file" onChange={(e) => handleFileChange(e, docItem.id)} className="text-xs" />
+                            { (form.getValues(`documents.${index}.fileName`) || (initialData?.documents && initialData.documents[index]?.fileName)) && (
+                                <FormDescription className="text-xs text-primary/80">
+                                    Current file: {form.getValues(`documents.${index}.fileName`) || initialData?.documents?.[index]?.fileName}
+                                    {initialData?.documents?.[index]?.fileUrl && !documentFiles.has(docItem.id) && 
+                                      " (Will keep existing if no new file chosen)"}
+                                    {documentFiles.has(docItem.id) && " (New file selected)"}
+                                </FormDescription>
+                            )}
+                             {initialData?.documents?.[index]?.fileUrl && !documentFiles.has(docItem.id) && (
+                                 <FormDescription className="text-xs">
+                                   <a href={initialData.documents[index].fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                     View current uploaded file
+                                   </a>
+                                 </FormDescription>
+                             )}
+                        </FormItem>
                         <FormField control={form.control} name={`documents.${index}.uploadedDate`} render={({ field }) => ( <FormItem className="hidden"><FormControl><Input type="hidden" {...field} /></FormControl></FormItem> )}/>
                     </Card>
                 ))}
