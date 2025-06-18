@@ -23,7 +23,61 @@ export interface Inspection {
   location: string; // Added location for consistency
 }
 
-// Risk Assessment Types - Retained as they are not explicitly marked for removal yet
+// --- Risk Management Module Types ---
+
+export type Likelihood = 'Very Unlikely' | 'Unlikely' | 'Possible' | 'Likely' | 'Very Likely';
+export type Severity = 'Insignificant' | 'Minor' | 'Moderate' | 'Serious' | 'Catastrophic';
+export type RiskLevel = 'Low' | 'Medium' | 'High' | 'Extreme';
+
+export interface ManualHazard {
+  id: string;
+  userId?: string;
+  activityDescription: string;
+  hazardDescription: string;
+  dateIdentified: string; // ISO Date string
+  identifiedBy: string;
+  location?: string;
+  potentialConsequences?: string;
+}
+
+export interface RiskAssessmentControl {
+  id: string; // Unique ID for the control instance
+  description: string;
+  responsiblePerson?: string;
+  dueDate?: string; // ISO Date string
+  status?: 'Open' | 'In Progress' | 'Completed' | 'Overdue' | 'Cancelled';
+}
+
+export interface ManualRiskAssessment {
+  id: string;
+  userId?: string;
+  activityOrProcess: string;
+  assessmentDate: string; // ISO Date string
+  assessedBy: string;
+  teamMembers?: string; // Comma-separated or array
+  scope: string;
+  linkedHazardIds?: string[]; // Optional: Array of ManualHazard IDs
+  potentialHazardsIdentified: string; // Text area for listing hazards if not linking
+  
+  existingControls: string; // Text area for listing existing controls
+
+  initialLikelihood: Likelihood;
+  initialSeverity: Severity;
+  initialRiskLevel: RiskLevel;
+
+  additionalControls: RiskAssessmentControl[];
+  
+  residualLikelihood: Likelihood;
+  residualSeverity: Severity;
+  residualRiskLevel: RiskLevel;
+  
+  reviewDate?: string; // ISO Date string
+  status: 'Open' | 'Under Review' | 'Closed' | 'Superseded';
+  overallComments?: string;
+}
+
+
+// Old Risk Assessment Types - Retained as they are not explicitly marked for removal yet
 export interface RiskControlItem {
   id?: string;
   value?: string;
@@ -42,6 +96,7 @@ export interface HazardEntry {
   assessedRisks: RiskEntry[];
   residualRiskLevel?: 'Low' | 'Medium' | 'High';
 }
+// End Old Risk Assessment Types
 
 export type RiskAssessmentMethod =
   | "Job Safety Analysis (JSA)"
@@ -53,6 +108,9 @@ export type RiskAssessmentMethod =
   | "What-If Analysis"
   | "Preliminary Hazard Analysis (PHA)";
 
+// This RiskAssessment type seems to be for a more structured, older system.
+// The new ManualRiskAssessment is for user-driven manual entries.
+// Kept for now if it's used elsewhere or if the AI suggestion tool is based on it.
 export interface RiskAssessment {
   id: string;
   activity: string;
@@ -73,6 +131,8 @@ export interface RiskAssessmentSuggestionOutput {
   };
   suggestedMethod: string;
 }
+// --- End Risk Management Module Types ---
+
 
 // SHEQ Audit Types
 export interface AuditObservationEntry {

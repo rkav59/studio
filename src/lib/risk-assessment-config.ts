@@ -1,5 +1,5 @@
 
-import type { RiskAssessmentMethod } from "./types";
+import type { RiskAssessmentMethod, Likelihood, Severity, RiskLevel } from "./types";
 
 export interface DescriptiveRiskAssessmentMethod {
   name: RiskAssessmentMethod;
@@ -96,3 +96,41 @@ export const methodSpecificGuidance: Partial<Record<RiskAssessmentMethod, {
     controlMeasures: "For PHA: Suggest broad control measures, design criteria, or operational considerations to mitigate the identified hazards. These are often high-level at this stage."
   }
 };
+
+
+// --- Manual Risk Assessment Config ---
+export const likelihoodLevels: Record<Likelihood, number> = {
+  "Very Unlikely": 1,
+  "Unlikely": 2,
+  "Possible": 3,
+  "Likely": 4,
+  "Very Likely": 5,
+};
+
+export const severityLevels: Record<Severity, number> = {
+  "Insignificant": 1,
+  "Minor": 2,
+  "Moderate": 3,
+  "Serious": 4,
+  "Catastrophic": 5,
+};
+
+export const getRiskLevel = (likelihoodValue: number, severityValue: number): RiskLevel => {
+  const riskScore = likelihoodValue * severityValue;
+  if (riskScore <= 4) return 'Low';
+  if (riskScore <= 9) return 'Medium';
+  if (riskScore <= 15) return 'High'; // Adjusted threshold for High
+  return 'Extreme'; // Adjusted for scores > 15
+};
+
+export const riskMatrix: Record<RiskLevel, { color: string; description: string }> = {
+  Low: { color: "bg-green-500 text-white", description: "Acceptable, manage with routine procedures." },
+  Medium: { color: "bg-yellow-500 text-black", description: "Tolerable, implement controls to reduce risk where possible." },
+  High: { color: "bg-orange-500 text-white", description: "Undesirable, implement significant controls to reduce risk. Activity may require specific authorization." },
+  Extreme: { color: "bg-red-600 text-white", description: "Intolerable, activity should not proceed without substantial risk reduction. Immediate action required." },
+};
+
+export const controlActionStatuses: Array<Required<RiskAssessmentControl>['status']> = ['Open', 'In Progress', 'Completed', 'Overdue', 'Cancelled'];
+export const riskAssessmentStatuses: Array<Required<ManualRiskAssessment>['status']> = ['Open', 'Under Review', 'Closed', 'Superseded'];
+// --- End Manual Risk Assessment Config ---
+
