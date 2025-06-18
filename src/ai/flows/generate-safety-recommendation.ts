@@ -19,9 +19,12 @@ const SafetyRecommendationInputSchema = z.object({
   inspectionData: z
     .string()
     .describe('A summary of recent inspection data, including checklists and findings.'),
-  region: z
+  country: z
     .string()
-    .describe('The region or location where the safety recommendations will be applied.'),
+    .describe('The country where the safety recommendations will be applied.'),
+  siteLocation: z
+    .string()
+    .describe('The specific site or location within the country for which recommendations are sought.'),
 });
 
 export type SafetyRecommendationInput = z.infer<typeof SafetyRecommendationInputSchema>;
@@ -29,7 +32,7 @@ export type SafetyRecommendationInput = z.infer<typeof SafetyRecommendationInput
 const SafetyRecommendationOutputSchema = z.object({
   recommendations: z
     .string()
-    .describe('A list of safety recommendations based on the incident logs, inspection data, and region.'),
+    .describe('A list of safety recommendations based on the incident logs, inspection data, country, and site/location.'),
 });
 
 export type SafetyRecommendationOutput = z.infer<typeof SafetyRecommendationOutputSchema>;
@@ -44,11 +47,12 @@ const prompt = ai.definePrompt({
   name: 'safetyRecommendationPrompt',
   input: {schema: SafetyRecommendationInputSchema},
   output: {schema: SafetyRecommendationOutputSchema},
-  prompt: `You are an expert safety officer. Based on the following incident logs, inspection data, and region, provide a list of safety recommendations.
+  prompt: `You are an expert safety officer. Based on the following incident logs, inspection data, country, and specific site/location, provide a list of targeted safety recommendations.
 
 Incident Logs: {{{incidentLogs}}}
 Inspection Data: {{{inspectionData}}}
-Region: {{{region}}}
+Country: {{{country}}}
+Site/Location: {{{siteLocation}}}
 
 Recommendations:`,
 });

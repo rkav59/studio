@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,9 +30,12 @@ const recommendationFormSchema = z.object({
   inspectionData: z.string().min(20, {
     message: "Inspection data summary must be at least 20 characters.",
   }).max(5000, { message: "Inspection data summary must be less than 5000 characters."}),
-  region: z.string().min(2, {
-    message: "Region must be at least 2 characters.",
-  }).max(100, { message: "Region must be less than 100 characters."}),
+  country: z.string().min(2, {
+    message: "Country must be at least 2 characters.",
+  }).max(100, { message: "Country must be less than 100 characters."}),
+  siteLocation: z.string().min(2, {
+    message: "Site/Location must be at least 2 characters.",
+  }).max(100, { message: "Site/Location must be less than 100 characters."}),
 });
 
 type RecommendationFormValues = z.infer<typeof recommendationFormSchema>;
@@ -46,7 +50,8 @@ export function RecommendationGenerator() {
     defaultValues: {
       incidentLogs: "",
       inspectionData: "",
-      region: "",
+      country: "",
+      siteLocation: "",
     },
   });
 
@@ -57,7 +62,8 @@ export function RecommendationGenerator() {
       const input: SafetyRecommendationInput = {
         incidentLogs: data.incidentLogs,
         inspectionData: data.inspectionData,
-        region: data.region,
+        country: data.country,
+        siteLocation: data.siteLocation,
       };
       const result: SafetyRecommendationOutput = await generateSafetyRecommendation(input);
       setRecommendations(result.recommendations);
@@ -123,22 +129,40 @@ export function RecommendationGenerator() {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="region"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Region/Site Focus</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., North America, Manufacturing Plant X, Corporate Office" {...field} />
-                </FormControl>
-                <FormDescription>
-                  Specify the operational region or site for tailored advice.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="country"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Country</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., United States, Germany" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Specify the country for region-specific advice.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="siteLocation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Site/Location</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Manufacturing Plant X, North Sector Mine" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Provide the specific site or operational location.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           
           <Button type="submit" disabled={isLoading} className="bg-accent hover:bg-accent/90 text-accent-foreground">
             {isLoading ? (
@@ -159,7 +183,7 @@ export function RecommendationGenerator() {
               AI-Powered Safety Recommendations
             </CardTitle>
             <CardDescription>
-              Based on the provided data, here are some suggested safety improvements for the {form.getValues("region")} region.
+              Based on the provided data, here are some suggested safety improvements for {form.getValues("siteLocation")} in {form.getValues("country")}.
             </CardDescription>
           </CardHeader>
           <CardContent>
