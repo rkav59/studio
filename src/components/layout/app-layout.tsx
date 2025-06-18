@@ -1,4 +1,7 @@
 
+// Renamed from AppLayout to AppLayoutInternal to avoid conflict in ProtectedAppLayout
+"use client";
+
 import type { ReactNode } from 'react';
 import {
   SidebarProvider,
@@ -12,14 +15,35 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { NavLinks, AppLogo } from './nav-links';
-import { UserCircle } from 'lucide-react';
-import { GenerateReportButton } from './generate-report-button'; // Import the new client component
+import { UserCircle, LogOut } from 'lucide-react';
+import { GenerateReportButton } from './generate-report-button';
+import { useAuth } from '@/contexts/auth-context';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
-interface AppLayoutProps {
+
+interface AppLayoutInternalProps { // Changed name
   children: ReactNode;
 }
 
-export default function AppLayout({ children }: AppLayoutProps) {
+export default function AppLayoutInternal({ children }: AppLayoutInternalProps) { // Changed name
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      toast({ title: "Signed Out", description: "You have been successfully signed out." });
+      router.push('/sign-in');
+    } catch (error: any) {
+      toast({ title: "Sign Out Failed", description: error.message, variant: "destructive" });
+    }
+  };
+
+
   return (
     <SidebarProvider defaultOpen={false}>
       <Sidebar variant="sidebar" collapsible="icon" side="left">
@@ -30,17 +54,31 @@ export default function AppLayout({ children }: AppLayoutProps) {
           <NavLinks />
         </SidebarContent>
         <SidebarFooter>
-          <Button variant="ghost" className="w-full justify-start gap-2">
-            <UserCircle className="h-5 w-5" />
-            <span className="group-data-[collapsible=icon]:hidden">Profile</span>
-          </Button>
+          {user ? (
+             <Button variant="ghost" onClick={handleSignOut} className="w-full justify-start gap-2">
+              <LogOut className="h-5 w-5" />
+              <span className="group-data-[collapsible=icon]:hidden">Sign Out</span>
+            </Button>
+          ) : (
+            <Button variant="ghost" className="w-full justify-start gap-2" onClick={() => router.push('/sign-in')}>
+              <UserCircle className="h-5 w-5" />
+              <span className="group-data-[collapsible=icon]:hidden">Sign In</span>
+            </Button>
+          )}
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:justify-end">
           <SidebarTrigger className="md:hidden" />
-          <GenerateReportButton /> {/* Use the new client component */}
+          <div className="flex items-center gap-4">
+            {user && (
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                    Welcome, {user.displayName || user.email}
+                </span>
+            )}
+            <GenerateReportButton />
+          </div>
         </header>
         <main className="flex-1 p-4 md:p-6 lg:p-8">
           {children}
