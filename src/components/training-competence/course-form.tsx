@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,16 +14,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
+// Removed Dialog imports
 import type { TrainingCourse } from "@/lib/types";
 import { Save, XCircle } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area"; // Added ScrollArea
 
 const courseFormSchema = z.object({
   name: z.string().min(3, "Course name must be at least 3 characters.").max(150, "Course name is too long."),
@@ -38,9 +31,10 @@ interface CourseFormProps {
   initialData?: TrainingCourse | null;
   onSave: (data: CourseFormValues) => void;
   onCancel: () => void;
+  isSubmitting?: boolean; // Added for button state
 }
 
-export function CourseForm({ initialData, onSave, onCancel }: CourseFormProps) {
+export function CourseForm({ initialData, onSave, onCancel, isSubmitting }: CourseFormProps) {
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseFormSchema),
     defaultValues: {
@@ -55,15 +49,11 @@ export function CourseForm({ initialData, onSave, onCancel }: CourseFormProps) {
   };
 
   return (
-    <DialogContent className="sm:max-w-lg">
-      <DialogHeader>
-        <DialogTitle>{initialData ? "Edit Course" : "Add New Course"}</DialogTitle>
-        <DialogDescription>
-          {initialData ? "Update the details of this training course." : "Enter the details for the new training course."}
-        </DialogDescription>
-      </DialogHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+    // Removed DialogContent wrapper
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+        {/* Removed DialogHeader */}
+        <ScrollArea className="flex-1 p-6 space-y-6"> {/* Added ScrollArea and padding */}
           <FormField
             control={form.control}
             name="name"
@@ -103,18 +93,17 @@ export function CourseForm({ initialData, onSave, onCancel }: CourseFormProps) {
               </FormItem>
             )}
           />
-          <DialogFooter className="pt-4">
-            <DialogClose asChild>
-              <Button type="button" variant="outline" onClick={onCancel}>
-                <XCircle className="mr-2 h-4 w-4" /> Cancel
-              </Button>
-            </DialogClose>
-            <Button type="submit" className="bg-primary hover:bg-primary/90">
-              <Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Create Course"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </Form>
-    </DialogContent>
+        </ScrollArea>
+        <div className="p-6 border-t flex justify-end gap-2 bg-background"> {/* Replaced DialogFooter */}
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+            <XCircle className="mr-2 h-4 w-4" /> Cancel
+          </Button>
+          <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+            <Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Create Course"}
+          </Button>
+        </div>
+      </form>
+    </Form>
+    // Removed DialogContent closing tag
   );
 }

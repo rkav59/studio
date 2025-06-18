@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,18 +24,12 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
+// Removed Dialog imports
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Save, XCircle } from "lucide-react";
 import type { TrainingCourse, TrainingRecord, TrainingRecordStatus } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
+import { ScrollArea } from "@/components/ui/scroll-area"; // Added ScrollArea
 
 const trainingRecordFormSchema = z.object({
   employeeName: z.string().min(2, "Employee name is required.").max(150),
@@ -56,9 +49,10 @@ interface TrainingRecordFormProps {
   initialData?: TrainingRecord | null;
   onSave: (data: Omit<TrainingRecord, 'id' | 'status'>, currentStatus: TrainingRecordStatus) => void;
   onCancel: () => void;
+  isSubmitting?: boolean; // Added for button state
 }
 
-export function TrainingRecordForm({ courses, initialData, onSave, onCancel }: TrainingRecordFormProps) {
+export function TrainingRecordForm({ courses, initialData, onSave, onCancel, isSubmitting }: TrainingRecordFormProps) {
   const form = useForm<TrainingRecordFormValues>({
     resolver: zodResolver(trainingRecordFormSchema),
     defaultValues: {
@@ -87,15 +81,11 @@ export function TrainingRecordForm({ courses, initialData, onSave, onCancel }: T
   };
 
   return (
-    <DialogContent className="sm:max-w-2xl">
-      <DialogHeader>
-        <DialogTitle>{initialData ? "Edit Training Record" : "Add New Training Record"}</DialogTitle>
-        <DialogDescription>
-          {initialData ? "Update the details of this training record." : "Enter the details for the new training record."}
-        </DialogDescription>
-      </DialogHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 py-4 max-h-[70vh] overflow-y-auto pr-2">
+    // Removed DialogContent wrapper
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+        {/* Removed DialogHeader */}
+        <ScrollArea className="flex-1 p-6 space-y-5"> {/* Added ScrollArea and padding */}
           <FormField
             control={form.control}
             name="employeeName"
@@ -116,10 +106,10 @@ export function TrainingRecordForm({ courses, initialData, onSave, onCancel }: T
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Course</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={courses.length === 0}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a training course" />
+                      <SelectValue placeholder={courses.length === 0 ? "No courses available" : "Select a training course"} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -251,19 +241,17 @@ export function TrainingRecordForm({ courses, initialData, onSave, onCancel }: T
               </FormItem>
             )}
           />
-
-          <DialogFooter className="pt-4 border-t">
-            <DialogClose asChild>
-              <Button type="button" variant="outline" onClick={onCancel}>
-                <XCircle className="mr-2 h-4 w-4" /> Cancel
-              </Button>
-            </DialogClose>
-            <Button type="submit" className="bg-accent hover:bg-accent/90">
-              <Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Create Record"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </Form>
-    </DialogContent>
+        </ScrollArea>
+        <div className="p-6 border-t flex justify-end gap-2 bg-background"> {/* Replaced DialogFooter */}
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+            <XCircle className="mr-2 h-4 w-4" /> Cancel
+          </Button>
+          <Button type="submit" className="bg-accent hover:bg-accent/90" disabled={isSubmitting}>
+            <Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Create Record"}
+          </Button>
+        </div>
+      </form>
+    </Form>
+    // Removed DialogContent closing tag
   );
 }
