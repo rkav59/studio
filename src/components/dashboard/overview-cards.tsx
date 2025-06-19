@@ -2,15 +2,15 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, AlertTriangle, CheckCircle2, ListChecks, Activity, BedDouble, Percent, CalendarCheck, Skull } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar } from 'recharts';
+import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks } from "lucide-react"; // Updated icons
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 
-// Reusable Pie Card Component - Renamed and pieData made optional
+// Reusable KpiCard Component
 interface KpiCardProps {
   title: string;
-  value: number;
-  pieData?: Array<{ name: string; value: number; fill: string }>; // Made optional
+  value: string | number; // Value can be string or number
+  pieData?: Array<{ name: string; value: number; fill: string }>;
   icon: React.ElementType;
   description?: string;
   valueSuffix?: string;
@@ -24,7 +24,6 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
       return acc;
     }, {} as ChartConfig);
   }
-
   const isDonut = pieData && pieData.length > 1;
 
   return (
@@ -34,8 +33,8 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
         <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent className="flex flex-col items-center pt-4 text-center">
-        {pieData && pieData.length > 0 && chartConfig && ( // Conditionally render pie chart
-          <div className="h-[50px] w-[50px]"> {/* Reduced height and width */}
+        {pieData && pieData.length > 0 && chartConfig && (
+          <div className="h-[50px] w-[50px]">
             <ChartContainer config={chartConfig} className="w-full h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
@@ -45,8 +44,8 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    innerRadius={isDonut ? 12 : 0} // Adjusted innerRadius
-                    outerRadius={23} // Adjusted outerRadius
+                    innerRadius={isDonut ? 12 : 0}
+                    outerRadius={23}
                     paddingAngle={isDonut ? 2 : 0}
                     labelLine={false}
                     strokeWidth={pieData.length === 1 && pieData[0].value === 100 ? 0 : 1}
@@ -67,132 +66,100 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
   );
 }
 
-
-const MOCK_INCIDENTS_BY_TYPE_DATA = [
-  { type: 'Incident', count: 5, fill: "hsl(var(--primary))" },
-  { type: 'Near Miss', count: 12, fill: "hsl(var(--accent))" },
-  { type: 'Hazard', count: 8, fill: "hsl(var(--destructive))" },
-];
-
-// This incidentTypeChartConfig is for the BarChart, not the KpiCards directly
-const incidentTypeChartConfig = {
-  incidents: {
-    label: "Incidents",
-    color: "hsl(var(--primary))",
-  },
-  nearMisses: {
-    label: "Near Misses",
-    color: "hsl(var(--accent))",
-  },
-  hazards: {
-    label: "Hazards",
-    color: "hsl(var(--destructive))",
-  },
-} satisfies ChartConfig;
-
-
 export function OverviewCards() {
-  const totalIncidents = 25;
-  const openHazards = 8;
-  const inspectionsCompleted = 42;
-  const complianceRate = 95;
-  const injurySeverityRate = 2.5;
-  const lostTimeInjury = 3;
-  const ltifr = 1.8;
-  const accidentFreeDays = 150;
-  const fatalities = 0;
+  // Mock data for new KPIs
+  const trir = 2.1;
+  const nmfr = 5.5;
+  const severityRate = 15.2;
+  const firstAidCases = 18;
+  const unsafeActConditionReports = 35;
+  const incidentClosureRate = 85;
+  const toolboxTalkAttendance = 92;
+  const correctiveActionClosureRate = 78;
 
-  // Data for Pie Charts where applicable
-  const complianceRateData = [
-    { name: 'Compliant', value: complianceRate, fill: 'hsl(var(--chart-1))' },
-    { name: 'Non-Compliant', value: 100 - complianceRate, fill: 'hsl(var(--muted))' }
+  const incidentClosureRateData = [
+    { name: 'Closed', value: incidentClosureRate, fill: 'hsl(var(--chart-1))' },
+    { name: 'Open', value: 100 - incidentClosureRate, fill: 'hsl(var(--muted))' }
   ];
-  const injurySeverityRateData = [
-    { name: 'ISR', value: injurySeverityRate, fill: 'hsl(var(--chart-4))' },
-    { name: 'Remainder', value: Math.max(0, 5 - injurySeverityRate), fill: 'hsl(var(--muted))' } // Assuming max ISR target of 5 for viz
+  const toolboxTalkAttendanceData = [
+    { name: 'Attended', value: toolboxTalkAttendance, fill: 'hsl(var(--chart-2))' },
+    { name: 'Absent', value: 100 - toolboxTalkAttendance, fill: 'hsl(var(--muted))' }
   ];
-  const ltifrData = [
-    { name: 'LTIFR', value: ltifr, fill: 'hsl(var(--chart-5))' },
-    { name: 'Remainder', value: Math.max(0, 3 - ltifr), fill: 'hsl(var(--muted))' } // Assuming max LTIFR target of 3 for viz
+  const correctiveActionClosureRateData = [
+    { name: 'Closed On Time', value: correctiveActionClosureRate, fill: 'hsl(var(--chart-3))' },
+    { name: 'Pending/Overdue', value: 100 - correctiveActionClosureRate, fill: 'hsl(var(--muted))' }
   ];
-
 
   return (
-    <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3">
-      {/* Cards with Pie Charts - Top Row */}
+    <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
       <KpiCard
-        title="Compliance Rate"
-        value={complianceRate}
-        pieData={complianceRateData} // Kept for donut chart
+        title="TRIR"
+        value={trir.toFixed(1)}
+        icon={Activity}
+        description="per 200,000 hours worked"
+      />
+      <KpiCard
+        title="Near Miss Frequency Rate"
+        value={nmfr.toFixed(1)}
+        icon={TrendingUp}
+        description="per 100 workers/month"
+      />
+      <KpiCard
+        title="Severity Rate"
+        value={severityRate.toFixed(1)}
+        icon={BedDouble}
+        description="Lost days per 200k hours"
+      />
+      <KpiCard
+        title="First Aid Cases"
+        value={firstAidCases}
+        icon={HeartPulse}
+        description="Total this month"
+      />
+      <KpiCard
+        title="Unsafe Act/Condition Reports"
+        value={unsafeActConditionReports}
+        icon={AlertTriangle}
+        description="Reports this month"
+      />
+      <KpiCard
+        title="Incident Closure Rate"
+        value={incidentClosureRate}
+        pieData={incidentClosureRateData}
         icon={CheckCircle2}
         valueSuffix="%"
-        description="Target: 98%"
+        description="Closed within target time"
       />
       <KpiCard
-        title="Injury Severity Rate"
-        value={injurySeverityRate}
-        pieData={injurySeverityRateData} // Kept for pie chart
-        icon={Activity}
-        description="Days lost per 200k hrs"
+        title="Toolbox Talk Attendance"
+        value={toolboxTalkAttendance}
+        pieData={toolboxTalkAttendanceData}
+        icon={Users}
+        valueSuffix="%"
+        description="Average attendance"
       />
       <KpiCard
-        title="LTIFR"
-        value={ltifr}
-        pieData={ltifrData} // Kept for pie chart
-        icon={Percent}
-        description="LTIs per million hrs"
-      />
-
-      {/* Cards without Pie Charts - Subsequent Rows */}
-      <KpiCard
-        title="Total Incidents"
-        value={totalIncidents}
-        icon={TrendingUp}
-        description="+5 this month"
-      />
-      <KpiCard
-        title="Open Hazards"
-        value={openHazards}
-        icon={AlertTriangle}
-        description="2 critical"
-      />
-      <KpiCard
-        title="Inspections Done"
-        value={inspectionsCompleted}
+        title="Corrective Action Closure Rate"
+        value={correctiveActionClosureRate}
+        pieData={correctiveActionClosureRateData}
         icon={ListChecks}
-        description="+10 this month"
-      />
-      <KpiCard
-        title="Lost Time Injuries"
-        value={lostTimeInjury}
-        icon={BedDouble}
-        description="This year"
-      />
-      <KpiCard
-        title="Accident Free Days"
-        value={accidentFreeDays}
-        icon={CalendarCheck}
-        description="Continuous record"
-      />
-      <KpiCard
-        title="Fatalities"
-        value={fatalities}
-        icon={Skull}
-        description="This year"
+        valueSuffix="%"
+        description="Closed by due date"
       />
     </div>
   );
 }
 
-// IncidentTypeChart now only has a header
+// IncidentTypeChart (if it was a separate component, it would be here or removed if not used)
+// For this update, it's assumed to be part of the main dashboard page or not directly related to OverviewCards.
+// If IncidentTypeChart was previously part of OverviewCards.tsx and needs to be removed, it's done by not including it.
 export function IncidentTypeChart() {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Incidents by Type</CardTitle>
       </CardHeader>
-      {/* CardContent containing the chart has been removed */}
+      {/* Content for the chart would go here if it were being rendered from this file */}
     </Card>
   );
 }
-
