@@ -261,7 +261,7 @@ export default function RiskManagementPage() {
                 <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
                     <div>
                         <CardTitle className="text-lg flex items-center gap-2"><Target className="h-5 w-5 text-red-500"/>Manual Hazard Log</CardTitle>
-                        <CardDescription className="text-xs">Document specific hazards identified in your workplace. This is the first step in systematic hazard identification as per ISO 31000.</CardDescription>
+                        <CardDescription className="text-xs">Use this to quickly log hazards observed on site or reported. These can later be linked to detailed risk assessments.</CardDescription>
                     </div>
                     <Button onClick={() => router.push('/risk-management/hazards/new')} className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1.5">
                         <PlusCircle className="mr-2 h-3 w-3" /> Log New Hazard
@@ -273,7 +273,7 @@ export default function RiskManagementPage() {
                     ) : (
                         <ScrollArea className="max-h-[200px] pr-2">
                             <div className="space-y-2">
-                                {manualHazards.slice(0,3).map(hazard => ( // Show a few, can expand later
+                                {manualHazards.slice(0,3).map(hazard => ( 
                                     <Card key={hazard.id} className="p-2 shadow-sm text-xs">
                                         <div className="flex justify-between items-start">
                                             <div>
@@ -298,7 +298,7 @@ export default function RiskManagementPage() {
                 <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
                     <div>
                         <CardTitle className="text-lg flex items-center gap-2"><FileSignature className="h-5 w-5 text-purple-600"/>Manual Risk Assessments</CardTitle>
-                        <CardDescription className="text-xs">Conduct detailed risk analysis and evaluation for identified hazards or activities to determine risk levels and inform treatment decisions.</CardDescription>
+                        <CardDescription className="text-xs">Perform systematic risk assessments using the defined matrix. Document controls, calculate residual risk, and track actions.</CardDescription>
                     </div>
                     <Button onClick={() => router.push('/risk-management/assessments/new')} className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5">
                         <PlusCircle className="mr-2 h-3 w-3" /> New Assessment
@@ -337,7 +337,7 @@ export default function RiskManagementPage() {
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
                 <CardTitle className="flex items-center gap-2"><BookOpen className="h-6 w-6 text-green-600"/>Risk Register (Centralized Risk Recording)</CardTitle>
-                <CardDescription>Maintain a comprehensive register of identified risks, their analysis, evaluation, and treatment status, supporting ISO 31000's recording and reporting requirements.</CardDescription>
+                <CardDescription>A central log of significant organizational risks, their owners, treatment plans, and review status. Provides an overview of the risk landscape.</CardDescription>
             </div>
             <Button onClick={() => router.push('/risk-management/risk-register/new')} className="bg-green-600 hover:bg-green-700 text-white">
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New Risk to Register
@@ -391,7 +391,7 @@ export default function RiskManagementPage() {
             Risk Treatment & Control Monitoring
           </CardTitle>
           <CardDescription>
-            Monitor the implementation and effectiveness of planned risk treatments (controls) as outlined in ISO 31000. This section lists active control actions from your Manual Risk Assessments.
+            Track the progress and effectiveness of control actions identified in risk assessments. Ensure treatments are implemented and risks are managed.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -445,12 +445,12 @@ export default function RiskManagementPage() {
       <Card className="shadow-md">
         <CardHeader>
             <CardTitle className="flex items-center gap-2"><Brain className="h-6 w-6 text-indigo-500"/>AI-Assisted Risk Management Tools</CardTitle>
-            <CardDescription>Leverage AI to support various stages of the risk management process, including hazard identification, suggesting assessment approaches and controls, and root cause analysis.</CardDescription>
+            <CardDescription>Utilize AI to assist with hazard identification, risk assessment methodology suggestions, and brainstorming potential root causes for incidents or high-risk events.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <HazardIdentificationForm />
             <RiskAssessmentSuggestionForm />
-            <div className="lg:col-span-2"> {/* Make Root Cause form span full width on large screens */}
+            <div className="lg:col-span-2"> 
                 <SuggestRootCauseForm />
             </div>
         </CardContent>
@@ -459,7 +459,7 @@ export default function RiskManagementPage() {
       <Card className="shadow-md mt-6">
         <CardHeader>
             <CardTitle className="flex items-center gap-2"><LayoutDashboard className="h-6 w-6 text-muted-foreground" />Risk Reporting & Performance Monitoring (Future Development)</CardTitle>
-            <CardDescription>Future: Customizable dashboards and reports for monitoring risk levels, treatment effectiveness, and overall risk management performance, aligning with ISO 31000's monitoring, review, and reporting clauses.</CardDescription>
+            <CardDescription>Future: Generate reports on risk profiles, control effectiveness, and monitor key risk indicators (KRIs) through customizable dashboards.</CardDescription>
         </CardHeader>
       </Card>
 
@@ -469,7 +469,7 @@ export default function RiskManagementPage() {
         </CardHeader>
         <CardContent>
              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-                    <li>Future: Tools for defining risk criteria, context, communication plans, and integrating with other SHEQ modules to support ISO 31000's principles of integration and continual improvement.</li>
+                    <li>Future: Customize risk matrices, define risk appetite, and integrate with other modules for a holistic approach to continuous improvement.</li>
                     <li>Direct editing of control action status from the 'Active Controls' list for assessments.</li>
                     <li>Customizable risk matrices (current matrix is hardcoded in `risk-assessment-config.ts`).</li>
                     <li>More granular action tracking within Risk Register entries.</li>
