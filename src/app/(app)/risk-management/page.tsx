@@ -10,12 +10,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { HazardIdentificationForm } from "@/components/risk-management/hazard-identification-form";
 import { RiskAssessmentSuggestionForm } from "@/components/risk-management/risk-assessment-suggestion-form";
 import { SuggestRootCauseForm } from "@/components/risk-management/suggest-root-cause-form"; // Added this import
-import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen } from "lucide-react";
+import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen, LayoutDashboard } from "lucide-react";
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ManualHazard, ManualRiskAssessment, RiskLevel, RiskAssessmentControl, RiskRegisterEntry, RiskRegisterStatus } from "@/lib/types";
+import type { ManualHazard, ManualRiskAssessment, RiskLevel, RiskAssessmentControl, RiskRegisterEntry, RiskRegisterStatus, SheqAudit } from "@/lib/types";
 import { format, parseISO, isBefore, differenceInDays, isValid } from 'date-fns';
 import {
   AlertDialog,
@@ -29,7 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
-import { riskMatrix, controlActionStatuses } from "@/lib/risk-assessment-config";
+import { riskMatrix, controlActionStatuses, riskAssessmentStatuses } from "@/lib/risk-assessment-config";
 
 
 const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
@@ -467,6 +467,18 @@ export default function RiskManagementPage() {
       </div>
       <SuggestRootCauseForm />
       
+      <Card className="shadow-md mt-6">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><LayoutDashboard className="h-6 w-6 text-muted-foreground" />Risk Reporting Dashboard (Future Development)</CardTitle>
+            <CardDescription>This section will provide customizable reports and visualizations for risk data.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <p className="text-muted-foreground">
+                Future enhancements will include a dashboard to view key risk indicators, trends, heatmaps, and generate summary reports for management.
+            </p>
+        </CardContent>
+      </Card>
+
        <Card className="mt-8">
         <CardHeader>
             <CardTitle className="flex items-center gap-2"><Settings className="h-6 w-6 text-muted-foreground" />Module Configuration & Expansion</CardTitle>
@@ -475,8 +487,7 @@ export default function RiskManagementPage() {
              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
                     <li>Direct editing of control action status from the 'Active Controls' list for assessments.</li>
                     <li>Integration with Checklist Templates for risk-based auditing.</li>
-                    <li>AI-powered root cause analysis suggestions for high-risk events/risks.</li>
-                    <li>Customizable risk matrices and reporting dashboards.</li>
+                    <li>Customizable risk matrices (current matrix is hardcoded in `risk-assessment-config.ts`).</li>
                     <li>More granular action tracking within Risk Register entries.</li>
                 </ul>
         </CardContent>
@@ -484,3 +495,4 @@ export default function RiskManagementPage() {
     </div>
   );
 }
+
