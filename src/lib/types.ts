@@ -6,6 +6,12 @@ export interface Incident {
   location: string;
   timestamp: string; // Using string for easier form handling, can be Date object
   region: string;
+
+  // New fields for KPIs
+  isRecordable?: boolean;         // For TRIR
+  lostWorkDays?: number;          // For Severity Rate & Man Hours Lost (Injury)
+  classification?: 'First Aid' | 'Recordable' | 'Lost Time' | 'Fatality MVA' | 'Non-Fatality MVA' | 'Property Damage MVA'; // Combines First Aid, MVA, and supports severity
+  isFatality?: boolean;           // For Man Hours Lost (Fatality) - can be derived from classification or explicit
 }
 
 export interface InspectionChecklistItem {
@@ -747,3 +753,4 @@ export interface KpiSuggestion {
   status: 'New' | 'Reviewed' | 'Implemented' | 'Rejected';
 }
 // --- End KPI Suggestion Type ---
+
