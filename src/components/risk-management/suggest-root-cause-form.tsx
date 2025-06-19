@@ -34,7 +34,11 @@ const suggestRootCauseFormSchema = z.object({
 
 type SuggestRootCauseFormValues = z.infer<typeof suggestRootCauseFormSchema>;
 
-export function SuggestRootCauseForm() {
+interface SuggestRootCauseFormProps {
+  onSuggestionsGenerated?: (suggestions: string) => void; // Made optional for now, but will be used by parent page
+}
+
+export function SuggestRootCauseForm({ onSuggestionsGenerated }: SuggestRootCauseFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [rootCauseSuggestions, setRootCauseSuggestions] = useState<string | null>(null);
@@ -57,6 +61,9 @@ export function SuggestRootCauseForm() {
       };
       const result: SuggestRootCauseOutput = await suggestRootCause(input);
       setRootCauseSuggestions(result.suggestedRootCauses);
+      if (onSuggestionsGenerated) {
+        onSuggestionsGenerated(result.suggestedRootCauses);
+      }
       toast({
         title: "Root Cause Suggestions Generated",
         description: "AI has provided potential root causes based on your input.",
@@ -68,6 +75,9 @@ export function SuggestRootCauseForm() {
         description: "Failed to generate root cause suggestions. Please try again.",
         variant: "destructive",
       });
+      if (onSuggestionsGenerated) {
+        onSuggestionsGenerated(""); // Clear suggestions in parent on error
+      }
     } finally {
       setIsLoading(false);
     }
@@ -76,13 +86,7 @@ export function SuggestRootCauseForm() {
   return (
     <Card className="shadow-md">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Brain className="h-6 w-6 text-purple-500" />
-          AI-Assisted Root Cause Analysis
-        </CardTitle>
-        <CardDescription>
-          Describe an incident or a high-risk event and provide a summary of findings to get AI-powered suggestions for potential root causes.
-        </CardDescription>
+        {/* Title and Description will be handled by parent page if needed */}
       </CardHeader>
       <CardContent>
         <Form {...form}>

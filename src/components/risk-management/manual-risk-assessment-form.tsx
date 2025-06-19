@@ -66,7 +66,7 @@ const manualRiskAssessmentFormSchema = z.object({
 
   reviewDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid review date" }),
   status: z.enum(riskAssessmentStatuses, { required_error: "Assessment status is required." }),
-  overallComments: z.string().max(2000).optional(),
+  overallComments: z.string().max(5000).optional(), // Increased max length for root cause suggestions
 });
 
 export type ManualRiskAssessmentFormValues = z.infer<typeof manualRiskAssessmentFormSchema>;
@@ -91,6 +91,7 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
   const [isHazardsAiPrefilled, setIsHazardsAiPrefilled] = useState(false);
   const [isPotentialRisksAiPrefilled, setIsPotentialRisksAiPrefilled] = useState(false);
   const [isControlsAiPrefilled, setIsControlsAiPrefilled] = useState(false);
+  const [isRootCausesAiPrefilled, setIsRootCausesAiPrefilled] = useState(false);
 
 
   const form = useForm<ManualRiskAssessmentFormValues>({
@@ -139,7 +140,6 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
 
     const storedPotentialRisks = localStorage.getItem('aiPotentialRisksForRiskAssessment');
     if (storedPotentialRisks) {
-      // Append if hazards already prefilled, otherwise set
       const currentHazards = form.getValues('potentialHazardsIdentified');
       form.setValue('potentialHazardsIdentified', currentHazards ? `${currentHazards}\n\nAI Suggested Potential Risks:\n${storedPotentialRisks}` : storedPotentialRisks);
       setIsPotentialRisksAiPrefilled(true);
@@ -149,11 +149,19 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
     const storedRecommendedControls = localStorage.getItem('aiRecommendedControlsForRiskAssessment');
     if (storedRecommendedControls) {
       form.setValue('existingControls', storedRecommendedControls);
-      setIsControlsAiPrefilled(true); // Use a new state for this
+      setIsControlsAiPrefilled(true);
       localStorage.removeItem('aiRecommendedControlsForRiskAssessment');
     }
+
+    const storedRootCauses = localStorage.getItem('aiRootCausesForRiskAssessment');
+    if (storedRootCauses) {
+      const currentComments = form.getValues('overallComments') || "";
+      form.setValue('overallComments', `${currentComments}\n\nAI Suggested Potential Root Causes:\n${storedRootCauses}`);
+      setIsRootCausesAiPrefilled(true);
+      localStorage.removeItem('aiRootCausesForRiskAssessment');
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run once on mount
+  }, []); 
 
   useEffect(() => {
     if (watchedInitialLikelihood && watchedInitialSeverity) {
@@ -168,6 +176,8 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
       const lValue = likelihoodLevels[watchedResidualLikelihood];
       const sValue = severityLevels[watchedResidualSeverity];
       form.setValue("residualRiskLevel", getRiskLevel(lValue, sValue));
+    } else if (!watchedResidualLikelihood && !watchedResidualSeverity) {
+        form.setValue("residualRiskLevel", undefined); 
     }
   }, [watchedResidualLikelihood, watchedResidualSeverity, form]);
 
@@ -346,7 +356,16 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
                         )}/>
                      </div>
                      <FormField control={form.control} name="overallComments" render={({ field }) => (
-                        <FormItem className="mt-4"><FormLabel>Overall Comments / Approval Notes (Optional)</FormLabel><FormControl><Textarea placeholder="Any final comments, approval notes, or context for the assessment." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem className="mt-4">
+                            <FormLabel>Overall Comments / Approval Notes (Optional)</FormLabel>
+                            <FormControl><Textarea placeholder="Any final comments, approval notes, or context for the assessment." rows={3} {...field} /></FormControl>
+                             {isRootCausesAiPrefilled && (
+                                <FormDescription className="text-xs text-blue-600 flex items-center gap-1">
+                                    <Lightbulb className="h-3 w-3" /> AI root cause suggestions have been appended. Please review and integrate as appropriate.
+                                </FormDescription>
+                            )}
+                            <FormMessage />
+                        </FormItem>
                     )}/>
                 </Card>
             </CardContent>
@@ -363,4 +382,3 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
     </Form>
   );
 }
-
