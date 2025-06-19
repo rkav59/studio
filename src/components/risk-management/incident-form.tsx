@@ -179,7 +179,7 @@ export function IncidentForm({ initialData, onSave, onCancel, isSubmitting }: In
                     <Select onValueChange={field.onChange} value={field.value || ""}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select severity level" /></SelectTrigger></FormControl>
                         <SelectContent>
-                             <SelectItem value="">N/A</SelectItem>
+                             {/* <SelectItem value="">N/A</SelectItem>  Removed this line to fix the error */}
                              {Object.keys(severityLevels).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                         </SelectContent>
                     </Select><FormMessage /></FormItem>
