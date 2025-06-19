@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,10 +20,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, Activity, AlertTriangle, User, MapPin } from "lucide-react";
+import { CalendarIcon, Save, XCircle, Activity, AlertTriangle, User, MapPin, Lightbulb } from "lucide-react";
 import type { ManualHazard } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { Card, CardContent } from "@/components/ui/card";
+import { useEffect, useState } from "react"; // Added useEffect and useState
 
 const manualHazardFormSchema = z.object({
   activityDescription: z.string().min(5, "Activity description is required.").max(500),
@@ -43,6 +45,8 @@ interface ManualHazardFormProps {
 }
 
 export function ManualHazardForm({ initialData, onSave, onCancel, isSubmitting }: ManualHazardFormProps) {
+  const [isAiPrefilled, setIsAiPrefilled] = useState(false);
+
   const form = useForm<ManualHazardFormValues>({
     resolver: zodResolver(manualHazardFormSchema),
     defaultValues: {
@@ -54,6 +58,16 @@ export function ManualHazardForm({ initialData, onSave, onCancel, isSubmitting }
       identifiedBy: initialData?.identifiedBy || "",
     },
   });
+
+  useEffect(() => {
+    const storedSuggestions = localStorage.getItem('aiHazardSuggestionsForManualHazard');
+    if (storedSuggestions) {
+      form.setValue('hazardDescription', storedSuggestions);
+      setIsAiPrefilled(true);
+      localStorage.removeItem('aiHazardSuggestionsForManualHazard');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
 
   const onSubmit = (data: ManualHazardFormValues) => {
     onSave(data);
@@ -68,7 +82,16 @@ export function ManualHazardForm({ initialData, onSave, onCancel, isSubmitting }
                     <FormItem><FormLabel className="flex items-center gap-1"><Activity className="h-4 w-4"/>Activity / Process / Area</FormLabel><FormControl><Input placeholder="e.g., Using angle grinder in Workshop B" {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="hazardDescription" render={({ field }) => (
-                    <FormItem><FormLabel className="flex items-center gap-1"><AlertTriangle className="h-4 w-4"/>Hazard Description</FormLabel><FormControl><Textarea placeholder="Describe the specific hazard (e.g., Trailing electrical cable, Unguarded rotating parts)" rows={3} {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem>
+                        <FormLabel className="flex items-center gap-1"><AlertTriangle className="h-4 w-4"/>Hazard Description</FormLabel>
+                        <FormControl><Textarea placeholder="Describe the specific hazard (e.g., Trailing electrical cable, Unguarded rotating parts)" rows={3} {...field} /></FormControl>
+                        {isAiPrefilled && (
+                            <FormDescription className="text-xs text-blue-600 flex items-center gap-1">
+                                <Lightbulb className="h-3 w-3" /> This field was pre-filled with AI suggestions. Please review and edit as necessary.
+                            </FormDescription>
+                        )}
+                        <FormMessage />
+                    </FormItem>
                 )}/>
                  <FormField control={form.control} name="potentialConsequences" render={({ field }) => (
                     <FormItem><FormLabel>Potential Consequences (Optional)</FormLabel><FormControl><Textarea placeholder="e.g., Electric shock, entanglement, trip and fall leading to sprain" rows={2} {...field} /></FormControl><FormMessage /></FormItem>

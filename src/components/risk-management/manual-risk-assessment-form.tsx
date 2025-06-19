@@ -1,9 +1,10 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { z } from "zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react"; // Added useState
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -28,7 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as UiCardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, Activity, Users, Briefcase, ShieldCheck, BarChart, ShieldAlert, ListChecks, Zap } from "lucide-react";
+import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, Activity, Users, Briefcase, ShieldCheck, BarChart, ShieldAlert, ListChecks, Zap, Lightbulb } from "lucide-react"; // Added Lightbulb
 import type { ManualRiskAssessment, RiskAssessmentControl, Likelihood, Severity, RiskLevel } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { likelihoodLevels, severityLevels, getRiskLevel, riskMatrix, controlActionStatuses, riskAssessmentStatuses } from "@/lib/risk-assessment-config";
@@ -87,6 +88,8 @@ const newControlDefault = (): RiskAssessmentControl => ({
 
 
 export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubmitting }: ManualRiskAssessmentFormProps) {
+  const [isHazardsAiPrefilled, setIsHazardsAiPrefilled] = useState(false);
+
   const form = useForm<ManualRiskAssessmentFormValues>({
     resolver: zodResolver(manualRiskAssessmentFormSchema),
     defaultValues: {
@@ -122,6 +125,16 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
   const watchedInitialSeverity = form.watch("initialSeverity");
   const watchedResidualLikelihood = form.watch("residualLikelihood");
   const watchedResidualSeverity = form.watch("residualSeverity");
+
+  useEffect(() => {
+    const storedSuggestions = localStorage.getItem('aiHazardSuggestionsForRiskAssessment');
+    if (storedSuggestions) {
+      form.setValue('potentialHazardsIdentified', storedSuggestions);
+      setIsHazardsAiPrefilled(true);
+      localStorage.removeItem('aiHazardSuggestionsForRiskAssessment');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (watchedInitialLikelihood && watchedInitialSeverity) {
@@ -186,7 +199,16 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
                     <CardHeader className="p-0 pb-3 mb-3 border-b"><CardTitle className="text-lg flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-primary"/>Hazard Identification & Existing Controls</CardTitle></CardHeader>
                     <div className="space-y-4">
                         <FormField control={form.control} name="potentialHazardsIdentified" render={({ field }) => (
-                            <FormItem><FormLabel>Potential Hazards Identified</FormLabel><FormControl><Textarea placeholder="List all identified hazards associated with the activity/process. One per line recommended." rows={4} {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem>
+                                <FormLabel>Potential Hazards Identified</FormLabel>
+                                <FormControl><Textarea placeholder="List all identified hazards associated with the activity/process. One per line recommended." rows={4} {...field} /></FormControl>
+                                {isHazardsAiPrefilled && (
+                                    <FormDescription className="text-xs text-blue-600 flex items-center gap-1">
+                                        <Lightbulb className="h-3 w-3" /> This field was pre-filled with AI suggestions. Please review and edit as necessary.
+                                    </FormDescription>
+                                )}
+                                <FormMessage />
+                            </FormItem>
                         )}/>
                         <FormField control={form.control} name="existingControls" render={({ field }) => (
                             <FormItem><FormLabel>Existing Control Measures</FormLabel><FormControl><Textarea placeholder="List all current controls in place to mitigate the identified hazards. One per line recommended." rows={4} {...field} /></FormControl><FormMessage /></FormItem>

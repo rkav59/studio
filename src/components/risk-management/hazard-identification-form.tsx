@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -5,32 +6,40 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Lightbulb, Loader2 } from "lucide-react";
+import { identifyHazards, type IdentifyHazardsInput, type IdentifyHazardsOutput } from "@/ai/flows/identify-hazards-flow";
+import { useToast } from "@/hooks/use-toast";
 
-export function HazardIdentificationForm() {
-    const [description, setDescription] = useState("");
+interface HazardIdentificationFormProps {
+  onSuggestionsGenerated: (suggestions: string) => void;
+}
+
+export function HazardIdentificationForm({ onSuggestionsGenerated }: HazardIdentificationFormProps) {
+    const [activityDescription, setActivityDescription] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [suggestions, setSuggestions] = useState<string[]>([]);
+    const [generatedSuggestions, setGeneratedSuggestions] = useState<string | null>(null);
+    const { toast } = useToast();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!activityDescription.trim()) {
+            toast({ title: "Input Required", description: "Please describe the activity or area.", variant: "destructive" });
+            return;
+        }
         setIsLoading(true);
-        setSuggestions([]); // Clear previous suggestions
+        setGeneratedSuggestions(null); 
+        onSuggestionsGenerated(""); // Clear previous suggestions in parent
 
         try {
-            // Mocking the API call with a delay and some sample hazards
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            const sampleHazards = [
-                "Slipping hazards due to wet floors",
-                "Electrical hazards from exposed wiring",
-                "Ergonomic hazards from poorly designed workstations",
-                "Chemical exposure hazards from improper ventilation",
-                "Fire hazards from flammable materials near heat sources"
-            ];
-            setSuggestions(sampleHazards);
+            const input: IdentifyHazardsInput = { activityDescription };
+            const result: IdentifyHazardsOutput = await identifyHazards(input);
+            setGeneratedSuggestions(result.identifiedHazards);
+            onSuggestionsGenerated(result.identifiedHazards); // Pass to parent
+            toast({ title: "Suggestions Generated", description: "Review the potential hazards listed below." });
         } catch (error) {
             console.error("Failed to fetch hazard suggestions:", error);
-            setSuggestions(["Failed to generate suggestions. Please try again later."]);
+            setGeneratedSuggestions("Failed to generate suggestions. Please try again later.");
+            onSuggestionsGenerated(""); // Clear on error
+            toast({ title: "Error", description: "Could not generate hazard suggestions.", variant: "destructive" });
         } finally {
             setIsLoading(false);
         }
@@ -46,8 +55,8 @@ export function HazardIdentificationForm() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <Textarea
                         placeholder="Describe the work activity or area..."
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
+                        value={activityDescription}
+                        onChange={(e) => setActivityDescription(e.target.value)}
                         rows={3}
                         disabled={isLoading}
                     />
@@ -65,14 +74,12 @@ export function HazardIdentificationForm() {
                         )}
                     </Button>
                 </form>
-                {suggestions.length > 0 && (
+                {generatedSuggestions && (
                     <div className="mt-6">
-                        <h3 className="text-sm font-semibold mb-2">Potential Hazards:</h3>
-                        <ul className="list-disc list-inside text-sm text-muted-foreground">
-                            {suggestions.map((hazard, index) => (
-                                <li key={index}>{hazard}</li>
-                            ))}
-                        </ul>
+                        <h3 className="text-md font-semibold mb-2">Potential Hazards Identified by AI:</h3>
+                        <pre className="whitespace-pre-wrap text-sm text-muted-foreground p-3 bg-secondary/50 rounded-md">
+                            {generatedSuggestions}
+                        </pre>
                     </div>
                 )}
             </CardContent>
