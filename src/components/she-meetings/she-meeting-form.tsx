@@ -37,7 +37,7 @@ import { useEffect } from "react";
 const meetingTypes: SheMeetingType[] = ['Safety Committee', 'Management Review', 'Toolbox Talk', 'Program Kick-off', 'Program Review', 'Other'];
 const actionItemStatuses: MeetingActionItemStatus[] = ['Open', 'In Progress', 'Completed', 'Deferred'];
 
-const NO_PROGRAM_VALUE = "NO_PROGRAM_SELECTED_BY_USER";
+const NO_PROGRAM_VALUE = "NO_PROGRAM_SELECTED_BY_USER"; // Defined constant
 
 const meetingActionItemSchema = z.object({
   id: z.string(),
@@ -90,7 +90,7 @@ export function SheMeetingForm({ programs, initialData, onSave, onCancel, isSubm
       agenda: initialData?.agenda || "",
       minutes: initialData?.minutes || "",
       actionItems: initialData?.actionItems?.map(ai => ({...ai, dueDate: ai.dueDate ? format(parseISO(ai.dueDate), 'yyyy-MM-dd') : undefined})) || [],
-      linkedProgramId: initialData?.linkedProgramId || undefined,
+      linkedProgramId: initialData?.linkedProgramId || NO_PROGRAM_VALUE, // Use defined constant for default if undefined
       linkedProgramName: initialData?.linkedProgramName || undefined,
     },
   });
@@ -156,10 +156,10 @@ export function SheMeetingForm({ programs, initialData, onSave, onCancel, isSubm
                 )}/>
                  <FormField control={form.control} name="linkedProgramId" render={({ field }) => (
                     <FormItem><FormLabel className="flex items-center gap-1"><LinkIcon className="h-4 w-4"/>Linked SHE Program (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || NO_PLAN_VALUE}>
+                    <Select onValueChange={field.onChange} value={field.value || NO_PROGRAM_VALUE}>
                         <FormControl><SelectTrigger><SelectValue placeholder={programs.length > 0 ? "Link to a program" : "No programs available"} /></SelectTrigger></FormControl>
                         <SelectContent>
-                            <SelectItem value={NO_PLAN_VALUE}>None</SelectItem>
+                            <SelectItem value={NO_PROGRAM_VALUE}>None</SelectItem>
                             {programs.map(prog => <SelectItem key={prog.id} value={prog.id}>{prog.programName} ({prog.programType})</SelectItem>)}
                         </SelectContent>
                     </Select><FormMessage /></FormItem>
