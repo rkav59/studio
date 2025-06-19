@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -7,10 +6,10 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, CalendarRange, Users, ListChecks, Activity, Settings, Loader2 } from "lucide-react";
-import type { SheProgram, SheMeeting, MeetingActionItem } from "@/lib/types";
+import { PlusCircle, Edit2, Trash2, Eye, CalendarRange, Users, ListChecks, Activity, Settings, Loader2, ClockIcon, AlertTriangle, CheckCircle } from "lucide-react";
+import type { SheProgram, SheMeeting, MeetingActionItem, MeetingActionItemStatus } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parseISO, isValid, isBefore, differenceInDays } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { SheProgramDetailsDialog } from '@/components/she-meetings/she-program-details-dialog';
@@ -22,6 +21,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const PROGRAMS_COLLECTION = 'shePrograms';
 const MEETINGS_COLLECTION = 'sheMeetings';
+const UPCOMING_MEETING_DAYS_THRESHOLD = 7;
+const ACTION_ITEM_DUE_SOON_DAYS = 3;
 
 export default function SheMeetingsPage() {
   const router = useRouter();
@@ -113,6 +114,68 @@ export default function SheMeetingsPage() {
     'Safety Committee': 'text-orange-500', 'Management Review': 'text-purple-500', 'Toolbox Talk': 'text-teal-500', 'Program Kick-off': 'text-blue-500', 'Program Review': 'text-indigo-500', 'Other': 'text-gray-500'
   }[type] || 'text-muted-foreground');
 
+  const upcomingMeetings = useMemo(() => {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const cutOffDate = new Date(today);
+    cutOffDate.setDate(today.getDate() + UPCOMING_MEETING_DAYS_THRESHOLD);
+
+    return meetings
+      .filter(meeting => {
+        if (!meeting.meetingDate || !isValid(parseISO(meeting.meetingDate))) return false;
+        const meetingDateObj = parseISO(meeting.meetingDate);
+        return meetingDateObj >= today && meetingDateObj <= cutOffDate;
+      })
+      .sort((a, b) => parseISO(a.meetingDate).getTime() - parseISO(b.meetingDate).getTime());
+  }, [meetings]);
+
+  const pendingActionItems = useMemo(() => {
+    const items: Array<MeetingActionItem & { meetingTitle: string; meetingId: string; isOverdue: boolean; isDueSoon: boolean }> = [];
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    meetings.forEach(meeting => {
+      (meeting.actionItems || []).forEach(item => {
+        if (item.status === 'Open' || item.status === 'In Progress') {
+          let isOverdue = false;
+          let isDueSoon = false;
+          if (item.dueDate && isValid(parseISO(item.dueDate))) {
+            const dueDateObj = parseISO(item.dueDate);
+            isOverdue = isBefore(dueDateObj, today);
+            if (!isOverdue) {
+                isDueSoon = differenceInDays(dueDateObj, today) <= ACTION_ITEM_DUE_SOON_DAYS;
+            }
+          }
+          items.push({ ...item, meetingTitle: meeting.title, meetingId: meeting.id, isOverdue, isDueSoon });
+        }
+      });
+    });
+    return items.sort((a,b) => {
+        if (a.isOverdue && !b.isOverdue) return -1;
+        if (!a.isOverdue && b.isOverdue) return 1;
+        if (a.dueDate && b.dueDate) return parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime();
+        if (a.dueDate) return -1;
+        if (b.dueDate) return 1;
+        return a.description.localeCompare(b.description);
+    });
+  }, [meetings]);
+  
+  const getActionItemDateColor = (item: { isOverdue: boolean; isDueSoon: boolean; dueDate?: string; status: MeetingActionItemStatus }) => {
+    if (item.status === 'Completed' || item.status === 'Deferred') return 'text-gray-500';
+    if (item.isOverdue) return 'text-red-500 font-semibold';
+    if (item.isDueSoon) return 'text-yellow-600 font-semibold';
+    return 'text-muted-foreground';
+  };
+  
+  const getActionItemStatusIcon = (status: MeetingActionItemStatus) => {
+    switch (status) {
+      case 'Open': return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+      case 'In Progress': return <ClockIcon className="h-4 w-4 text-blue-500" />;
+      case 'Completed': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'Deferred': return <ListChecks className="h-4 w-4 text-gray-500" />;
+      default: return null;
+    }
+  };
+
+
   const isLoading = isLoadingPrograms || isLoadingMeetings;
   const anyError = programsError || meetingsError;
 
@@ -140,6 +203,69 @@ export default function SheMeetingsPage() {
           </div>
         </div>
       </Card>
+
+      {/* Reminders Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><CalendarRange className="h-6 w-6 text-blue-500"/>Upcoming Meetings (Next {UPCOMING_MEETING_DAYS_THRESHOLD} Days)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {upcomingMeetings.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">No meetings scheduled in the next {UPCOMING_MEETING_DAYS_THRESHOLD} days.</p>
+            ) : (
+              <ScrollArea className="max-h-[300px] pr-3">
+                <ul className="space-y-3">
+                  {upcomingMeetings.map(meeting => (
+                    <li key={meeting.id} className="p-3 border rounded-md bg-blue-50 dark:bg-blue-900/20">
+                      <h4 className="font-semibold">{meeting.title} <span className={`text-xs ${getMeetingTypeColor(meeting.meetingType)}`}>({meeting.meetingType})</span></h4>
+                      <p className="text-sm text-muted-foreground">
+                        Date: {format(parseISO(meeting.meetingDate), "PPP, p")}
+                      </p>
+                      <Button variant="outline" size="xs" className="mt-1 h-7 text-xs" onClick={() => setViewingMeeting(meeting)}>View Details</Button>
+                    </li>
+                  ))}
+                </ul>
+              </ScrollArea>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><ListChecks className="h-6 w-6 text-orange-500"/>Pending & Overdue Action Items</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {pendingActionItems.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">No open or in-progress action items.</p>
+            ) : (
+              <ScrollArea className="max-h-[300px] pr-3">
+                <ul className="space-y-3">
+                  {pendingActionItems.map(item => (
+                    <li key={item.id} className={`p-3 border rounded-md ${item.isOverdue ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : item.isDueSoon ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700' : 'bg-muted/30'}`}>
+                      <p className="font-medium text-sm">{item.description}</p>
+                      <p className="text-xs text-muted-foreground">Assigned to: {item.assignedTo}</p>
+                      <p className={`text-xs ${getActionItemDateColor(item)}`}>
+                        Due: {item.dueDate ? format(parseISO(item.dueDate), "PPP") : "Not Set"}
+                        {item.isOverdue && " (Overdue!)"}
+                        {item.isDueSoon && !item.isOverdue && " (Due Soon)"}
+                      </p>
+                      <div className="flex items-center gap-1 text-xs">
+                        {getActionItemStatusIcon(item.status)} Status: {item.status}
+                      </div>
+                      <Button variant="link" size="xs" className="p-0 h-auto text-xs text-blue-600 hover:underline" onClick={() => { const m = meetings.find(meet => meet.id === item.meetingId); if (m) setViewingMeeting(m); }}>
+                        From: {item.meetingTitle}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </ScrollArea>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      <Separator/>
+
 
       {/* SHE Programs Section */}
       <Card>
@@ -245,7 +371,7 @@ export default function SheMeetingsPage() {
              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
                 <li>Overall Program Calendar/Timeline view.</li>
                 <li>Meeting effectiveness scoring and participation statistics.</li>
-                <li>Automated reminders for meeting action item due dates.</li>
+                <li>Automated reminders for meeting action item due dates (requires backend setup).</li>
                 <li>Integration with other modules (e.g., link incidents to meeting discussions).</li>
             </ul>
         </CardContent>
@@ -253,3 +379,4 @@ export default function SheMeetingsPage() {
     </div>
   );
 }
+
