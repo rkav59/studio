@@ -1,6 +1,7 @@
 
 export interface Incident {
   id: string;
+  userId?: string; // Added for data ownership
   type: 'Incident' | 'Near Miss' | 'Hazard';
   description: string;
   location: string;
@@ -10,8 +11,12 @@ export interface Incident {
   // New fields for KPIs
   isRecordable?: boolean;         // For TRIR
   lostWorkDays?: number;          // For Severity Rate & Man Hours Lost (Injury)
-  classification?: 'First Aid' | 'Recordable' | 'Lost Time' | 'Fatality MVA' | 'Non-Fatality MVA' | 'Property Damage MVA'; // Combines First Aid, MVA, and supports severity
+  classification?: 'First Aid' | 'Recordable' | 'Lost Time' | 'Fatality MVA' | 'Non-Fatality MVA' | 'Property Damage MVA' | 'Environmental' | 'Security' | 'Other'; // Added more classifications
   isFatality?: boolean;           // For Man Hours Lost (Fatality) - can be derived from classification or explicit
+  reportedBy?: string; // Added field
+  severityLevel?: Severity; // Added for qualitative severity, if needed alongside lostWorkDays
+  rootCauseAnalyzed?: boolean; // Added
+  status?: 'Open' | 'Under Investigation' | 'Actions Pending' | 'Closed'; // Added status
 }
 
 export interface InspectionChecklistItem {
@@ -754,3 +759,9 @@ export interface KpiSuggestion {
 }
 // --- End KPI Suggestion Type ---
 
+// --- Global App Types (Can be used across modules) ---
+// (Consider moving types here if they are shared by more than 2-3 modules)
+// e.g., export type ActionItemStatus = 'Open' | 'In Progress' | 'Completed' | 'Deferred';
+// export interface UserProfile { ... }
+
+// --- End Global App Types ---

@@ -7,13 +7,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-// Removed form imports that are now on separate pages
-import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen, LayoutDashboard, Brain } from "lucide-react";
+import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen, LayoutDashboard, Brain, Megaphone } from "lucide-react"; // Added Megaphone
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ManualHazard, ManualRiskAssessment, RiskLevel, RiskAssessmentControl, RiskRegisterEntry, RiskRegisterStatus, SheqAudit } from "@/lib/types";
+import type { ManualHazard, ManualRiskAssessment, RiskLevel, RiskAssessmentControl, RiskRegisterEntry, RiskRegisterStatus, SheqAudit, Incident } from "@/lib/types"; // Added Incident
 import { format, parseISO, isBefore, differenceInDays, isValid } from 'date-fns';
 import {
   AlertDialog,
@@ -26,14 +25,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-// Dialog import no longer needed here for AI tools
 import { Separator } from "@/components/ui/separator";
 import { riskMatrix, controlActionStatuses, riskAssessmentStatuses } from "@/lib/risk-assessment-config";
+import { IncidentDetailsDialog } from "@/components/risk-management/incident-details-dialog"; // Added import
 
 
 const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
 const MANUAL_RISK_ASSESSMENTS_COLLECTION = 'manualRiskAssessments';
 const RISK_REGISTER_ENTRIES_COLLECTION = 'riskRegisterEntries';
+const INCIDENTS_COLLECTION = 'incidents'; // New collection constant
 const CONTROL_REMINDER_LEAD_DAYS = 7;
 const RISK_REVIEW_REMINDER_LEAD_DAYS = 30;
 
@@ -48,8 +48,30 @@ export default function RiskManagementPage() {
   const router = useRouter();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [viewingIncident, setViewingIncident] = useState<Incident | null>(null); // New state for incident details dialog
 
-  // Removed useState for dialog visibility as AI tools are now on dedicated pages
+  // Fetch Incidents
+  const { data: incidents = [], isLoading: isLoadingIncidents, error: incidentsError } = useQuery<Incident[]>({
+    queryKey: [INCIDENTS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, INCIDENTS_COLLECTION), where("userId", "==", user.uid), orderBy("timestamp", "desc"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Incident));
+    },
+    enabled: !!user?.uid,
+  });
+
+  // Incident Deletion Mutation
+  const deleteIncidentMutation = useMutation({
+    mutationFn: (incidentId: string) => deleteDoc(doc(db, INCIDENTS_COLLECTION, incidentId)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [INCIDENTS_COLLECTION, user?.uid] });
+      alert("Incident deleted successfully."); // Replace with toast if available
+    },
+    onError: (e:Error) => alert(`Error deleting incident: ${e.message}`),
+  });
+
 
   // Fetch Manual Hazards
   const { data: manualHazards = [], isLoading: isLoadingHazards, error: hazardsError } = useQuery<ManualHazard[]>({
@@ -142,6 +164,16 @@ export default function RiskManagementPage() {
       default: return 'text-muted-foreground';
     }
   };
+  const getIncidentStatusColor = (status?: Incident['status']) => {
+    switch (status) {
+      case 'Open': return 'text-blue-600 dark:text-blue-400';
+      case 'Under Investigation': return 'text-yellow-600 dark:text-yellow-400';
+      case 'Actions Pending': return 'text-orange-500 dark:text-orange-400';
+      case 'Closed': return 'text-green-600 dark:text-green-400';
+      default: return 'text-muted-foreground';
+    }
+  };
+
 
   const activeControlActions = useMemo((): ActiveControlAction[] => {
     const controls: ActiveControlAction[] = [];
@@ -218,7 +250,7 @@ export default function RiskManagementPage() {
   };
 
 
-  if (isLoadingHazards || isLoadingAssessments || isLoadingRiskRegister) {
+  if (isLoadingHazards || isLoadingAssessments || isLoadingRiskRegister || isLoadingIncidents) {
     return (
         <div className="flex justify-center items-center h-screen">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -226,8 +258,8 @@ export default function RiskManagementPage() {
         </div>
     );
   }
-  if (hazardsError || assessmentsError || riskRegisterError) {
-    return <div className="text-red-500 text-center py-10">Error loading data: {(hazardsError || assessmentsError || riskRegisterError)?.message}</div>;
+  if (hazardsError || assessmentsError || riskRegisterError || incidentsError) {
+    return <div className="text-red-500 text-center py-10">Error loading data: {(hazardsError || assessmentsError || riskRegisterError || incidentsError)?.message}</div>;
   }
 
 
@@ -245,10 +277,64 @@ export default function RiskManagementPage() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           <div className="absolute bottom-0 left-0 p-6">
             <h1 className="text-3xl font-bold tracking-tight font-headline text-white">Risk Management - Aligned with ISO 31000 Principles</h1>
-            <p className="text-sm text-neutral-300">This module facilitates a systematic approach to risk management, following ISO 31000 guidelines for establishing context, identifying, analyzing, evaluating, treating, monitoring, and reporting risks.</p>
+            <p className="text-sm text-neutral-300">This module facilitates a systematic approach to risk management, following ISO 31000 guidelines for establishing context, identifying, analyzing, evaluating, treating, monitoring, and reporting risks. Now includes Incident Logging.</p>
           </div>
         </div>
       </Card>
+
+    {/* Incident Log Section */}
+    <Card className="shadow-md">
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+            <div>
+                <CardTitle className="flex items-center gap-2"><Megaphone className="h-6 w-6 text-orange-500"/>Incident Log</CardTitle>
+                <CardDescription>Record and track all workplace incidents, near misses, and hazards.</CardDescription>
+            </div>
+            <Button onClick={() => router.push('/risk-management/incidents/new')} className="bg-orange-500 hover:bg-orange-600 text-white">
+                <PlusCircle className="mr-2 h-4 w-4" /> Log New Incident/Event
+            </Button>
+        </CardHeader>
+        <CardContent>
+            {incidents.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">No incidents, near misses, or hazards logged yet.</p>
+            ) : (
+                <ScrollArea className="max-h-[400px] pr-3">
+                    <div className="space-y-3">
+                        {incidents.map(incident => (
+                            <Card key={incident.id} className="p-3 shadow-sm">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-grow">
+                                        <h4 className="font-semibold">{incident.type}: {incident.description.substring(0, 70)}{incident.description.length > 70 ? '...' : ''}</h4>
+                                        <p className="text-xs text-muted-foreground">
+                                            Date: {format(parseISO(incident.timestamp), "PPPp")} | Location: {incident.location}
+                                        </p>
+                                        <p className={`text-xs font-semibold ${getIncidentStatusColor(incident.status)}`}>Status: {incident.status || 'Open'}</p>
+                                    </div>
+                                    <div className="flex gap-1 shrink-0">
+                                        <Button variant="outline" size="sm" onClick={() => setViewingIncident(incident)}><Eye className="mr-1 h-3 w-3"/>View</Button>
+                                        <Button variant="secondary" size="sm" onClick={() => router.push(`/risk-management/incidents/edit/${incident.id}`)}><Edit2 className="mr-1 h-3 w-3"/>Edit</Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="destructive" size="sm" disabled={deleteIncidentMutation.isPending && deleteIncidentMutation.variables === incident.id}>
+                                                    {deleteIncidentMutation.isPending && deleteIncidentMutation.variables === incident.id ? <Loader2 className="h-3 w-3 animate-spin"/> : <Trash2 className="h-3 w-3"/>}
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader><AlertDialogTitle>Delete Incident?</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete this {incident.type.toLowerCase()} record?</AlertDialogDescription></AlertDialogHeader>
+                                                <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteIncidentMutation.mutate(incident.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </div>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                </ScrollArea>
+            )}
+        </CardContent>
+    </Card>
+    {viewingIncident && <IncidentDetailsDialog incident={viewingIncident} onClose={() => setViewingIncident(null)} />}
+    <Separator/>
+
 
     {/* Section 1: Risk Identification & Assessment Tools */}
       <Card className="shadow-md">
