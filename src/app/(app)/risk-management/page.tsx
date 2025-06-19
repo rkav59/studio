@@ -72,9 +72,9 @@ export default function RiskManagementPage() {
       const snapshot = await getDocs(q);
       return snapshot.docs.map(docSnap => {
         const data = docSnap.data();
-        return { 
-            id: docSnap.id, 
-            ...data, 
+        return {
+            id: docSnap.id,
+            ...data,
             assessmentDate: (data.assessmentDate as Timestamp)?.toDate().toISOString(),
             reviewDate: data.reviewDate ? (data.reviewDate as Timestamp).toDate().toISOString() : undefined,
             additionalControls: (data.additionalControls || []).map((control: any) => ({
@@ -108,7 +108,7 @@ export default function RiskManagementPage() {
     },
     enabled: !!user?.uid,
   });
-  
+
   // Deletion Mutations
   const deleteHazardMutation = useMutation({
     mutationFn: (hazardId: string) => deleteDoc(doc(db, MANUAL_HAZARDS_COLLECTION, hazardId)),
@@ -187,7 +187,7 @@ export default function RiskManagementPage() {
     }
     return { textClass: 'text-muted-foreground', icon: <ClockIcon className="h-3 w-3 mr-1" />, displayText: formattedDate, isOverdue };
   };
-  
+
   const getReviewDateStatusInfo = (dateString?: string): { textClass: string; icon?: JSX.Element; displayText: string; isOverdue: boolean } | null => {
     if (!dateString || !isValid(parseISO(dateString))) return null;
     const date = parseISO(dateString);
@@ -261,7 +261,7 @@ export default function RiskManagementPage() {
             <Card className="bg-muted/20">
                 <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
                     <div>
-                        <CardTitle className="text-lg flex items-center gap-2"><Target className="h-5 w-5 text-red-500"/>Manual Hazard Log</CardTitle>
+                        <CardTitle className="text-lg flex items-center gap-2"><Target className="h-5 w-5 text-red-500"/>Hazard Identification</CardTitle>
                         <CardDescription className="text-xs">Use this to quickly log hazards observed on site or reported (ISO 31000: Risk Identification). These can later be linked to detailed risk assessments.</CardDescription>
                     </div>
                     <Button onClick={() => router.push('/risk-management/hazards/new')} className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1.5">
@@ -274,7 +274,7 @@ export default function RiskManagementPage() {
                     ) : (
                         <ScrollArea className="max-h-[200px] pr-2">
                             <div className="space-y-2">
-                                {manualHazards.slice(0,3).map(hazard => ( 
+                                {manualHazards.slice(0,3).map(hazard => (
                                     <Card key={hazard.id} className="p-2 shadow-sm text-xs">
                                         <div className="flex justify-between items-start">
                                             <div>
@@ -383,7 +383,7 @@ export default function RiskManagementPage() {
             )}
         </CardContent>
       </Card>
-      
+
       {/* Active Risk Control Actions Section */}
       <Card className="shadow-md">
         <CardHeader>
@@ -410,7 +410,7 @@ export default function RiskManagementPage() {
                         <div className="mb-2 sm:mb-0 flex-grow">
                           <p className="font-semibold text-md leading-tight">{control.description}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            From Assessment: 
+                            From Assessment:
                             <Button variant="link" size="sm" className="h-auto p-0 ml-1 text-xs text-blue-600 hover:underline" onClick={() => router.push(`/risk-management/assessments/edit/${control.assessmentId}`)}>
                                 <LinkIcon className="h-3 w-3 mr-1"/>{control.assessmentActivity}
                             </Button>
@@ -422,9 +422,9 @@ export default function RiskManagementPage() {
                             <p className={`flex items-center gap-1 ${statusColor}`}>Status: {control.status}</p>
                           </div>
                         </div>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
+                        <Button
+                            variant="outline"
+                            size="sm"
                             className="mt-2 sm:mt-0 shrink-0"
                             onClick={() => router.push(`/risk-management/assessments/edit/${control.assessmentId}`)}
                         >
@@ -439,7 +439,7 @@ export default function RiskManagementPage() {
           )}
         </CardContent>
       </Card>
-      
+
       <Separator />
 
       {/* AI Assisted Tools */}
@@ -472,10 +472,10 @@ export default function RiskManagementPage() {
                 </Button>
             </CardContent>
         </Card>
-      
+
       <Card className="shadow-md mt-6">
         <CardHeader>
-            <CardTitle className="flex items-center gap-2"><LayoutDashboard className="h-6 w-6 text-muted-foreground" />Risk Reporting & Performance Monitoring (Future Development)</CardTitle>
+            <CardTitle className="flex items-center gap-2"><LayoutDashboard className="h-6 w-6 text-muted-foreground" />Risk Reporting Dashboard (Future Development)</CardTitle>
             <CardDescription>Future: Generate reports on risk profiles, control effectiveness, and monitor key risk indicators (KRIs) through customizable dashboards (ISO 31000: Monitoring, Review, and Reporting).</CardDescription>
         </CardHeader>
       </Card>
