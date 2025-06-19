@@ -2,10 +2,11 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks } from "lucide-react";
+import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks, UsersRound, Virus, Ear, UserX, Presentation } from "lucide-react"; // Added new icons
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
-import { useToast } from "@/hooks/use-toast"; // Added useToast
+import { useToast } from "@/hooks/use-toast";
+import { Separator } from "@/components/ui/separator"; // Added Separator
 
 // Data structure for KPI details
 const kpiInfoMap: Record<string, { definition: string; relevance: string }> = {
@@ -40,6 +41,26 @@ const kpiInfoMap: Record<string, { definition: string; relevance: string }> = {
   "Corrective Action Closure Rate": {
     definition: "Percentage of corrective and preventive actions (CAPAs) arising from incidents, audits, or inspections that are completed by their due date.",
     relevance: "Indicates the SHEQ system's responsiveness and effectiveness in implementing improvements and preventing recurrence of issues. A high rate is crucial for system integrity.",
+  },
+  "Occupational Health Surveillance Coverage": {
+    definition: "% of workers requiring scheduled medical surveillance who have received it on time.",
+    relevance: "Measures compliance with health monitoring obligations and ensures early detection of potential occupational health issues.",
+  },
+  "Work-Related Illness Rate": {
+    definition: "Number of new work-related illnesses per 10,000 workers (or other standard population size) over a defined period.",
+    relevance: "Tracks the incidence of illnesses linked to workplace exposures (e.g., respiratory, dermatological, hearing loss), indicating effectiveness of long-term exposure controls.",
+  },
+  "Hearing Conservation Compliance": {
+    definition: "% of workers in high-noise areas covered by the hearing conservation program (audiometry, training, PPE compliance).",
+    relevance: "Critical in manufacturing, construction, and energy sectors to prevent noise-induced hearing loss. Measures program reach and effectiveness.",
+  },
+  "Fit-for-Duty Non-Compliance Rate": {
+    definition: "% of workers in safety-critical roles who are found non-compliant or not medically cleared during fit-for-duty assessments.",
+    relevance: "Ensures workers in high-risk roles are medically fit, reducing the likelihood of incidents due to medical conditions.",
+  },
+  "Health Education Coverage": {
+    definition: "% of the workforce that has completed targeted health education programs (e.g., HIV/AIDS awareness, wellness, stress management).",
+    relevance: "Supports overall employee health awareness, preventative health behaviors, and contributes to long-term wellbeing and productivity.",
   },
 };
 
@@ -78,7 +99,7 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
             <p><strong>Relevance to SHE Performance:</strong> {details.relevance}</p>
           </div>
         ),
-        duration: 15000, // 15 seconds
+        duration: 15000, 
       });
     } else {
         toast({
@@ -131,7 +152,7 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
 }
 
 export function OverviewCards() {
-  // Mock data for new KPIs
+  // Mock data for general KPIs
   const trir = 2.1;
   const nmfr = 5.5;
   const severityRate = 15.2;
@@ -154,85 +175,65 @@ export function OverviewCards() {
     { name: 'Pending/Overdue', value: 100 - correctiveActionClosureRate, fill: 'hsl(var(--muted))' }
   ];
 
+  // Mock data for Health KPIs
+  const healthSurveillanceCoverage = 95;
+  const workIllnessRate = 1.2; // per 10,000 workers
+  const hearingConservationCompliance = 88;
+  const fitForDutyNonCompliance = 3; // %
+  const healthEducationCoverage = 75;
+
+  const healthSurveillanceCoverageData = [
+    { name: 'Covered', value: healthSurveillanceCoverage, fill: 'hsl(var(--chart-positive-green))' },
+    { name: 'Not Covered', value: 100 - healthSurveillanceCoverage, fill: 'hsl(var(--muted))' }
+  ];
+  const hearingConservationData = [
+    { name: 'Compliant', value: hearingConservationCompliance, fill: 'hsl(var(--chart-4))' },
+    { name: 'Non-Compliant', value: 100 - hearingConservationCompliance, fill: 'hsl(var(--muted))' }
+  ];
+   const fitForDutyData = [
+    { name: 'Non-Compliant', value: fitForDutyNonCompliance, fill: 'hsl(var(--chart-5))' }, // Highlight non-compliance
+    { name: 'Compliant', value: 100 - fitForDutyNonCompliance, fill: 'hsl(var(--muted))' }
+  ];
+  const healthEducationData = [
+    { name: 'Covered', value: healthEducationCoverage, fill: 'hsl(var(--chart-1))' },
+    { name: 'Not Covered', value: 100 - healthEducationCoverage, fill: 'hsl(var(--muted))' }
+  ];
+
+
   return (
-    <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-      <KpiCard
-        title="TRIR"
-        kpiKey="TRIR"
-        value={trir.toFixed(1)}
-        icon={Activity}
-        description="per 200,000 hours worked"
-      />
-      <KpiCard
-        title="Near Miss Frequency Rate"
-        kpiKey="Near Miss Frequency Rate"
-        value={nmfr.toFixed(1)}
-        icon={TrendingUp}
-        description="per 100 workers/month"
-      />
-      <KpiCard
-        title="Severity Rate"
-        kpiKey="Severity Rate"
-        value={severityRate.toFixed(1)}
-        icon={BedDouble}
-        description="Lost days per 200k hours"
-      />
-      <KpiCard
-        title="First Aid Cases"
-        kpiKey="First Aid Cases"
-        value={firstAidCases}
-        icon={HeartPulse}
-        description="Total this month"
-      />
-      <KpiCard
-        title="Unsafe Act / Condition Reports"
-        kpiKey="Unsafe Act / Condition Reports"
-        value={unsafeActConditionReports}
-        icon={AlertTriangle}
-        description="Reports this month"
-      />
-      <KpiCard
-        title="Incident Closure Rate"
-        kpiKey="Incident Closure Rate"
-        value={incidentClosureRate}
-        pieData={incidentClosureRateData}
-        icon={CheckCircle2}
-        valueSuffix="%"
-        description="Closed within target time"
-      />
-      <KpiCard
-        title="Toolbox Talk Attendance"
-        kpiKey="Toolbox Talk Attendance"
-        value={toolboxTalkAttendance}
-        pieData={toolboxTalkAttendanceData}
-        icon={Users}
-        valueSuffix="%"
-        description="Average attendance"
-      />
-      <KpiCard
-        title="Corrective Action Closure Rate"
-        kpiKey="Corrective Action Closure Rate"
-        value={correctiveActionClosureRate}
-        pieData={correctiveActionClosureRateData}
-        icon={ListChecks}
-        valueSuffix="%"
-        description="Closed by due date"
-      />
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold tracking-tight text-foreground/90">General SHEQ Performance Indicators</h2>
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+        <KpiCard title="TRIR" kpiKey="TRIR" value={trir.toFixed(1)} icon={Activity} description="per 200,000 hours worked"/>
+        <KpiCard title="Near Miss Frequency Rate" kpiKey="Near Miss Frequency Rate" value={nmfr.toFixed(1)} icon={TrendingUp} description="per 100 workers/month"/>
+        <KpiCard title="Severity Rate" kpiKey="Severity Rate" value={severityRate.toFixed(1)} icon={BedDouble} description="Lost days per 200k hours"/>
+        <KpiCard title="First Aid Cases" kpiKey="First Aid Cases" value={firstAidCases} icon={HeartPulse} description="Total this month"/>
+        <KpiCard title="Unsafe Act / Condition Reports" kpiKey="Unsafe Act / Condition Reports" value={unsafeActConditionReports} icon={AlertTriangle} description="Reports this month"/>
+        <KpiCard title="Incident Closure Rate" kpiKey="Incident Closure Rate" value={incidentClosureRate} pieData={incidentClosureRateData} icon={CheckCircle2} valueSuffix="%" description="Closed within target time"/>
+        <KpiCard title="Toolbox Talk Attendance" kpiKey="Toolbox Talk Attendance" value={toolboxTalkAttendance} pieData={toolboxTalkAttendanceData} icon={Users} valueSuffix="%" description="Average attendance"/>
+        <KpiCard title="Corrective Action Closure Rate" kpiKey="Corrective Action Closure Rate" value={correctiveActionClosureRate} pieData={correctiveActionClosureRateData} icon={ListChecks} valueSuffix="%" description="Closed by due date"/>
+      </div>
+      
+      <Separator className="my-8" />
+      
+      <h2 className="text-xl font-semibold tracking-tight text-foreground/90">Health Performance Indicators</h2>
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+        <KpiCard title="Health Surveillance Coverage" kpiKey="Occupational Health Surveillance Coverage" value={healthSurveillanceCoverage} pieData={healthSurveillanceCoverageData} icon={UsersRound} valueSuffix="%" description="% workers receiving scheduled medicals"/>
+        <KpiCard title="Work-Related Illness Rate" kpiKey="Work-Related Illness Rate" value={workIllnessRate.toFixed(1)} icon={Virus} description="per 10,000 workers"/>
+        <KpiCard title="Hearing Conservation Compliance" kpiKey="Hearing Conservation Compliance" value={hearingConservationCompliance} pieData={hearingConservationData} icon={Ear} valueSuffix="%" description="Audiometry & PPE compliance"/>
+        <KpiCard title="Fit-for-Duty Non-Compliance" kpiKey="Fit-for-Duty Non-Compliance Rate" value={fitForDutyNonCompliance} pieData={fitForDutyData} icon={UserX} valueSuffix="%" description="% workers not cleared"/>
+        <KpiCard title="Health Education Coverage" kpiKey="Health Education Coverage" value={healthEducationCoverage} pieData={healthEducationData} icon={Presentation} valueSuffix="%" description="% workforce trained"/>
+      </div>
     </div>
   );
 }
 
-// IncidentTypeChart (if it was a separate component, it would be here or removed if not used)
-// For this update, it's assumed to be part of the main dashboard page or not directly related to OverviewCards.
-// If IncidentTypeChart was previously part of OverviewCards.tsx and needs to be removed, it's done by not including it.
 export function IncidentTypeChart() {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Incidents by Type</CardTitle>
       </CardHeader>
-      {/* Content for the chart would go here if it were being rendered from this file */}
     </Card>
   );
 }
-
