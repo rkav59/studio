@@ -9,8 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { HazardIdentificationForm } from "@/components/risk-management/hazard-identification-form";
 import { RiskAssessmentSuggestionForm } from "@/components/risk-management/risk-assessment-suggestion-form";
-import { SuggestRootCauseForm } from "@/components/risk-management/suggest-root-cause-form"; // Added this import
-import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen, LayoutDashboard } from "lucide-react";
+import { SuggestRootCauseForm } from "@/components/risk-management/suggest-root-cause-form";
+import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen, LayoutDashboard, Brain } from "lucide-react";
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
@@ -243,15 +243,92 @@ export default function RiskManagementPage() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           <div className="absolute bottom-0 left-0 p-6">
-            <h1 className="text-3xl font-bold tracking-tight font-headline text-white">Risk Management</h1>
-            <p className="text-sm text-neutral-300">Proactively identify, assess, evaluate, and control risks.</p>
+            <h1 className="text-3xl font-bold tracking-tight font-headline text-white">Risk Management - Aligned with ISO 31000 Principles</h1>
+            <p className="text-sm text-neutral-300">This module facilitates a systematic approach to risk management, following ISO 31000 guidelines for establishing context, identifying, analyzing, evaluating, treating, monitoring, and reporting risks.</p>
           </div>
         </div>
-        <CardContent className="pt-6">
-          <p className="text-muted-foreground">
-            This module provides tools to support your risk management lifecycle, from identifying hazards to monitoring controls. 
-            Leverage AI for assistance or use manual tools for detailed recording and assessment. All data is stored in Firestore.
-          </p>
+      </Card>
+
+    {/* Section 1: Risk Identification & Assessment Tools */}
+      <Card className="shadow-md">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><ShieldAlert className="h-6 w-6 text-primary"/>Risk Identification, Analysis & Evaluation</CardTitle>
+            <CardDescription>Manually log hazards and conduct detailed risk assessments to understand and prioritize risks based on likelihood and severity.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+            {/* Manual Hazard Log Sub-Section */}
+            <Card className="bg-muted/20">
+                <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+                    <div>
+                        <CardTitle className="text-lg flex items-center gap-2"><Target className="h-5 w-5 text-red-500"/>Manual Hazard Log</CardTitle>
+                        <CardDescription className="text-xs">Document specific hazards identified in your workplace. This is the first step in systematic hazard identification as per ISO 31000.</CardDescription>
+                    </div>
+                    <Button onClick={() => router.push('/risk-management/hazards/new')} className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1.5">
+                        <PlusCircle className="mr-2 h-3 w-3" /> Log New Hazard
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {manualHazards.length === 0 ? (
+                        <p className="text-muted-foreground text-center text-sm py-3">No manual hazards logged yet.</p>
+                    ) : (
+                        <ScrollArea className="max-h-[200px] pr-2">
+                            <div className="space-y-2">
+                                {manualHazards.slice(0,3).map(hazard => ( // Show a few, can expand later
+                                    <Card key={hazard.id} className="p-2 shadow-sm text-xs">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h4 className="font-semibold text-sm truncate max-w-xs">{hazard.hazardDescription}</h4>
+                                                <p className="text-muted-foreground">Activity: {hazard.activityDescription.substring(0,50)}...</p>
+                                            </div>
+                                            <div className="flex gap-1 shrink-0">
+                                                <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => router.push(`/risk-management/hazards/edit/${hazard.id}`)}><Edit2 className="h-3 w-3"/></Button>
+                                            </div>
+                                        </div>
+                                    </Card>
+                                ))}
+                                {manualHazards.length > 3 && <p className="text-center text-xs text-muted-foreground mt-2">...and {manualHazards.length - 3} more.</p>}
+                            </div>
+                        </ScrollArea>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Manual Risk Assessments Sub-Section */}
+            <Card className="bg-muted/20 mt-4">
+                <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+                    <div>
+                        <CardTitle className="text-lg flex items-center gap-2"><FileSignature className="h-5 w-5 text-purple-600"/>Manual Risk Assessments</CardTitle>
+                        <CardDescription className="text-xs">Conduct detailed risk analysis and evaluation for identified hazards or activities to determine risk levels and inform treatment decisions.</CardDescription>
+                    </div>
+                    <Button onClick={() => router.push('/risk-management/assessments/new')} className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5">
+                        <PlusCircle className="mr-2 h-3 w-3" /> New Assessment
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                     {manualRiskAssessments.length === 0 ? (
+                        <p className="text-muted-foreground text-center text-sm py-3">No manual risk assessments conducted yet.</p>
+                    ) : (
+                        <ScrollArea className="max-h-[200px] pr-2">
+                            <div className="space-y-2">
+                                {manualRiskAssessments.slice(0,3).map(assessment => (
+                                    <Card key={assessment.id} className="p-2 shadow-sm text-xs">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h4 className="font-semibold text-sm truncate max-w-xs">{assessment.activityOrProcess}</h4>
+                                                <p className="text-muted-foreground">Initial: <span className={`px-1 py-0.5 rounded-full text-xs ${getRiskLevelColor(assessment.initialRiskLevel)}`}>{assessment.initialRiskLevel}</span> | Residual: <span className={`px-1 py-0.5 rounded-full text-xs ${getRiskLevelColor(assessment.residualRiskLevel)}`}>{assessment.residualRiskLevel}</span></p>
+                                            </div>
+                                            <div className="flex gap-1 shrink-0">
+                                                <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => router.push(`/risk-management/assessments/edit/${assessment.id}`)}><Edit2 className="h-3 w-3"/></Button>
+                                            </div>
+                                        </div>
+                                    </Card>
+                                ))}
+                                {manualRiskAssessments.length > 3 && <p className="text-center text-xs text-muted-foreground mt-2">...and {manualRiskAssessments.length - 3} more.</p>}
+                            </div>
+                        </ScrollArea>
+                    )}
+                </CardContent>
+            </Card>
         </CardContent>
       </Card>
 
@@ -259,8 +336,8 @@ export default function RiskManagementPage() {
       <Card className="shadow-md">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
-                <CardTitle className="flex items-center gap-2"><BookOpen className="h-6 w-6 text-green-600"/>Risk Register</CardTitle>
-                <CardDescription>Log, track, and manage individual organizational risks.</CardDescription>
+                <CardTitle className="flex items-center gap-2"><BookOpen className="h-6 w-6 text-green-600"/>Risk Register (Centralized Risk Recording)</CardTitle>
+                <CardDescription>Maintain a comprehensive register of identified risks, their analysis, evaluation, and treatment status, supporting ISO 31000's recording and reporting requirements.</CardDescription>
             </div>
             <Button onClick={() => router.push('/risk-management/risk-register/new')} className="bg-green-600 hover:bg-green-700 text-white">
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New Risk to Register
@@ -305,112 +382,16 @@ export default function RiskManagementPage() {
             )}
         </CardContent>
       </Card>
-
-      <Separator />
-
-      {/* Manual Hazard Log Section */}
-      <Card className="shadow-md">
-        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
-            <div>
-                <CardTitle className="flex items-center gap-2"><Target className="h-6 w-6 text-red-500"/>Manual Hazard Log</CardTitle>
-                <CardDescription>Document and track specific hazards identified in your workplace.</CardDescription>
-            </div>
-            <Button onClick={() => router.push('/risk-management/hazards/new')} className="bg-red-500 hover:bg-red-600 text-white">
-                <PlusCircle className="mr-2 h-4 w-4" /> Log New Hazard
-            </Button>
-        </CardHeader>
-        <CardContent>
-            {manualHazards.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">No manual hazards logged yet.</p>
-            ) : (
-                <ScrollArea className="max-h-[300px] pr-3">
-                    <div className="space-y-3">
-                        {manualHazards.map(hazard => (
-                            <Card key={hazard.id} className="p-3 shadow-sm">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h4 className="font-semibold">{hazard.hazardDescription.substring(0,100)}{hazard.hazardDescription.length > 100 ? '...' : ''}</h4>
-                                        <p className="text-xs text-muted-foreground">Activity: {hazard.activityDescription.substring(0,100)}{hazard.activityDescription.length > 100 ? '...' : ''}</p>
-                                        <p className="text-xs text-muted-foreground">Identified: {format(parseISO(hazard.dateIdentified), "PPP")} by {hazard.identifiedBy}</p>
-                                    </div>
-                                    <div className="flex gap-1 shrink-0">
-                                        <Button variant="outline" size="sm" onClick={() => router.push(`/risk-management/hazards/edit/${hazard.id}`)}><Edit2 className="mr-1 h-3 w-3"/>Edit</Button>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="mr-1 h-3 w-3"/>Delete</Button></AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader><AlertDialogTitle>Delete Hazard?</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete this hazard log?</AlertDialogDescription></AlertDialogHeader>
-                                                <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteHazardMutation.mutate(hazard.id)}>Delete</AlertDialogAction></AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </div>
-                                </div>
-                            </Card>
-                        ))}
-                    </div>
-                </ScrollArea>
-            )}
-        </CardContent>
-      </Card>
-      
-      <Separator />
-
-      {/* Manual Risk Assessments Section */}
-      <Card className="shadow-md">
-        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
-            <div>
-                <CardTitle className="flex items-center gap-2"><FileSignature className="h-6 w-6 text-purple-600"/>Manual Risk Assessments</CardTitle>
-                <CardDescription>Conduct, document, and track detailed risk assessments.</CardDescription>
-            </div>
-            <Button onClick={() => router.push('/risk-management/assessments/new')} className="bg-purple-600 hover:bg-purple-700 text-white">
-                <PlusCircle className="mr-2 h-4 w-4" /> Conduct New Assessment
-            </Button>
-        </CardHeader>
-        <CardContent>
-            {manualRiskAssessments.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">No manual risk assessments conducted yet.</p>
-            ) : (
-                 <ScrollArea className="max-h-[400px] pr-3">
-                    <div className="space-y-3">
-                        {manualRiskAssessments.map(assessment => (
-                            <Card key={assessment.id} className="p-3 shadow-sm">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h4 className="font-semibold">{assessment.activityOrProcess}</h4>
-                                        <p className="text-xs text-muted-foreground">Assessed: {format(parseISO(assessment.assessmentDate), "PPP")} by {assessment.assessedBy}</p>
-                                        <p className="text-xs">Initial Risk: <span className={`px-1.5 py-0.5 rounded-full text-xs ${getRiskLevelColor(assessment.initialRiskLevel)}`}>{assessment.initialRiskLevel}</span></p>
-                                        <p className="text-xs">Residual Risk: <span className={`px-1.5 py-0.5 rounded-full text-xs ${getRiskLevelColor(assessment.residualRiskLevel)}`}>{assessment.residualRiskLevel}</span></p>
-                                        <p className="text-xs text-muted-foreground">Status: {assessment.status}</p>
-                                    </div>
-                                    <div className="flex gap-1 shrink-0">
-                                        <Button variant="outline" size="sm" onClick={() => router.push(`/risk-management/assessments/edit/${assessment.id}`)}><Edit2 className="mr-1 h-3 w-3"/>Edit</Button>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="mr-1 h-3 w-3"/>Delete</Button></AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader><AlertDialogTitle>Delete Assessment?</AlertDialogTitle><AlertDialogDescription>Are you sure?</AlertDialogDescription></AlertDialogHeader>
-                                                <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteAssessmentMutation.mutate(assessment.id)}>Delete</AlertDialogAction></AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </div>
-                                </div>
-                            </Card>
-                        ))}
-                    </div>
-                </ScrollArea>
-            )}
-        </CardContent>
-      </Card>
-      
-      <Separator />
       
       {/* Active Risk Control Actions Section */}
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="h-6 w-6 text-green-500" />
-            Active Risk Control Actions (From Assessments)
+            Risk Treatment & Control Monitoring
           </CardTitle>
           <CardDescription>
-            Monitor and manage outstanding control measures from risk assessments.
+            Monitor the implementation and effectiveness of planned risk treatments (controls) as outlined in ISO 31000. This section lists active control actions from your Manual Risk Assessments.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -461,32 +442,35 @@ export default function RiskManagementPage() {
       <Separator />
 
       {/* AI Assisted Tools */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <HazardIdentificationForm />
-        <RiskAssessmentSuggestionForm />
-      </div>
-      <SuggestRootCauseForm />
+      <Card className="shadow-md">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Brain className="h-6 w-6 text-indigo-500"/>AI-Assisted Risk Management Tools</CardTitle>
+            <CardDescription>Leverage AI to support various stages of the risk management process, including hazard identification, suggesting assessment approaches and controls, and root cause analysis.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <HazardIdentificationForm />
+            <RiskAssessmentSuggestionForm />
+            <div className="lg:col-span-2"> {/* Make Root Cause form span full width on large screens */}
+                <SuggestRootCauseForm />
+            </div>
+        </CardContent>
+      </Card>
       
       <Card className="shadow-md mt-6">
         <CardHeader>
-            <CardTitle className="flex items-center gap-2"><LayoutDashboard className="h-6 w-6 text-muted-foreground" />Risk Reporting Dashboard (Future Development)</CardTitle>
-            <CardDescription>This section will provide customizable reports and visualizations for risk data.</CardDescription>
+            <CardTitle className="flex items-center gap-2"><LayoutDashboard className="h-6 w-6 text-muted-foreground" />Risk Reporting & Performance Monitoring (Future Development)</CardTitle>
+            <CardDescription>Future: Customizable dashboards and reports for monitoring risk levels, treatment effectiveness, and overall risk management performance, aligning with ISO 31000's monitoring, review, and reporting clauses.</CardDescription>
         </CardHeader>
-        <CardContent>
-            <p className="text-muted-foreground">
-                Future enhancements will include a dashboard to view key risk indicators, trends, heatmaps, and generate summary reports for management.
-            </p>
-        </CardContent>
       </Card>
 
        <Card className="mt-8">
         <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Settings className="h-6 w-6 text-muted-foreground" />Module Configuration & Expansion</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Settings className="h-6 w-6 text-muted-foreground" />Module Configuration & Continual Improvement (Future Development)</CardTitle>
         </CardHeader>
         <CardContent>
              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
+                    <li>Future: Tools for defining risk criteria, context, communication plans, and integrating with other SHEQ modules to support ISO 31000's principles of integration and continual improvement.</li>
                     <li>Direct editing of control action status from the 'Active Controls' list for assessments.</li>
-                    <li>Integration with Checklist Templates for risk-based auditing.</li>
                     <li>Customizable risk matrices (current matrix is hardcoded in `risk-assessment-config.ts`).</li>
                     <li>More granular action tracking within Risk Register entries.</li>
                 </ul>
@@ -495,4 +479,3 @@ export default function RiskManagementPage() {
     </div>
   );
 }
-
