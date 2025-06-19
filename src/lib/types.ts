@@ -1,3 +1,4 @@
+
 export interface Incident {
   id: string;
   type: 'Incident' | 'Near Miss' | 'Hazard';
@@ -687,3 +688,52 @@ export type MedicalTestWithCertStatus = MedicalTestRecord & {
 };
 // Helper type for pre-filling MedicalTestForm
 export type MedicalTestPrefillData = Partial<Pick<MedicalTestRecord, 'employeeName' | 'segId' | 'linkedExposure' | 'testType'>>;
+
+
+// --- SHE Meetings & Programs Module Types ---
+export type MeetingActionItemStatus = 'Open' | 'In Progress' | 'Completed' | 'Deferred';
+
+export interface MeetingActionItem {
+  id: string;
+  description: string;
+  assignedTo: string;
+  dueDate?: string; // ISO Date string
+  status: MeetingActionItemStatus;
+}
+
+export type SheMeetingType = 'Safety Committee' | 'Management Review' | 'Toolbox Talk' | 'Program Kick-off' | 'Program Review' | 'Other';
+
+export interface SheMeeting {
+  id: string;
+  userId?: string;
+  title: string;
+  meetingDate: string; // ISO Date string
+  meetingType: SheMeetingType;
+  locationOrPlatform: string;
+  attendees: string; // Text area for names/groups
+  agenda?: string; // Text area
+  minutes?: string; // Text area
+  actionItems: MeetingActionItem[];
+  linkedProgramId?: string; // Optional link to a SheProgram
+  linkedProgramName?: string; // For display
+}
+
+export type SheProgramType = 'Safety Campaign' | 'Health Initiative' | 'Environmental Drive' | 'Training Program' | 'Awareness Program' | 'Other';
+export type SheProgramStatus = 'Planned' | 'Ongoing' | 'Completed' | 'On Hold' | 'Cancelled';
+
+export interface SheProgram {
+  id: string;
+  userId?: string;
+  programName: string;
+  objective: string;
+  programType: SheProgramType;
+  targetAudience?: string;
+  startDate: string; // ISO Date string
+  endDate?: string; // ISO Date string, optional
+  status: SheProgramStatus;
+  keyActivities?: string; // Text area
+  kpis?: string; // Key Performance Indicators, text area
+  budget?: string; // Optional
+  leadPerson?: string;
+}
+// --- End SHE Meetings & Programs Module Types ---

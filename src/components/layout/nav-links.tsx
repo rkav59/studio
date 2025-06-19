@@ -16,6 +16,7 @@ import {
   HeartPulse, // Health Monitoring (now covers Medical Screening)
   Library, // For Checklist Templates
   AlertTriangle, // For Risk Management
+  CalendarRange, // For SHE Meetings & Programs
 } from 'lucide-react';
 import {
   SidebarMenu,
@@ -34,6 +35,7 @@ const navItems = [
   { href: '/ppe-management', label: 'PPE Management', icon: HardHat },
   { href: '/contractor-safety', label: 'Contractor Safety', icon: ListChecks },
   { href: '/health-monitoring', label: 'Health Monitoring', icon: HeartPulse },
+  { href: '/she-meetings', label: 'SHE Meetings & Programs', icon: CalendarRange },
   { href: '/data-visualization', label: 'Data Visualization', icon: BarChartHorizontalBig },
   { href: '/ai-recommendations', label: 'AI Safety Assist', icon: Sparkles },
 ];
