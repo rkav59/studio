@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks, UsersRound, Biohazard, Ear, UserX, Presentation } from "lucide-react"; // Replaced Virus with Biohazard
+import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks, UsersRound, Biohazard, Ear, UserX, Presentation, Hourglass, Skull, CarCrash } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { useToast } from "@/hooks/use-toast";
@@ -41,6 +41,18 @@ const kpiInfoMap: Record<string, { definition: string; relevance: string }> = {
   "Corrective Action Closure Rate": {
     definition: "Percentage of corrective and preventive actions (CAPAs) arising from incidents, audits, or inspections that are completed by their due date.",
     relevance: "Indicates the SHEQ system's responsiveness and effectiveness in implementing improvements and preventing recurrence of issues. A high rate is crucial for system integrity.",
+  },
+  "Man Hours Lost (Injury)": {
+    definition: "Total work hours lost due to non-fatal occupational injuries within a defined period.",
+    relevance: "Measures the direct impact of injuries on productivity and operational time. Helps in understanding the severity and recovery time associated with injuries.",
+  },
+  "Man Hours Lost (Fatality)": {
+    definition: "Total potential work hours lost due to an occupational fatality, often calculated based on standard work-life expectancy or project duration.",
+    relevance: "Highlights the ultimate cost of a workplace fatality in terms of lost productivity and potential. This is a critical lagging indicator reflecting the most severe safety failures.",
+  },
+  "Motor Vehicle Accidents (MVA)": {
+    definition: "Total number of work-related motor vehicle accidents involving company vehicles or employees on company business.",
+    relevance: "Tracks a significant source of workplace incidents and fatalities. Essential for organizations with vehicle fleets or frequent travel requirements.",
   },
   "Occupational Health Surveillance Coverage": {
     definition: "% of workers requiring scheduled medical surveillance who have received it on time.",
@@ -161,6 +173,10 @@ export function OverviewCards() {
   const incidentClosureRate = 85;
   const toolboxTalkAttendance = 92;
   const correctiveActionClosureRate = 78;
+  const manHoursLostInjury = 120;
+  const manHoursLostFatality = 0; // Hopefully!
+  const mvaCount = 2;
+
 
   const incidentClosureRateData = [
     { name: 'Closed', value: incidentClosureRate, fill: 'hsl(var(--chart-1))' },
@@ -208,10 +224,15 @@ export function OverviewCards() {
         <KpiCard title="Near Miss Frequency Rate" kpiKey="Near Miss Frequency Rate" value={nmfr.toFixed(1)} icon={TrendingUp} description="per 100 workers/month"/>
         <KpiCard title="Severity Rate" kpiKey="Severity Rate" value={severityRate.toFixed(1)} icon={BedDouble} description="Lost days per 200k hours"/>
         <KpiCard title="First Aid Cases" kpiKey="First Aid Cases" value={firstAidCases} icon={HeartPulse} description="Total this month"/>
+        
         <KpiCard title="Unsafe Act / Condition Reports" kpiKey="Unsafe Act / Condition Reports" value={unsafeActConditionReports} icon={AlertTriangle} description="Reports this month"/>
         <KpiCard title="Incident Closure Rate" kpiKey="Incident Closure Rate" value={incidentClosureRate} pieData={incidentClosureRateData} icon={CheckCircle2} valueSuffix="%" description="Closed within target time"/>
         <KpiCard title="Toolbox Talk Attendance" kpiKey="Toolbox Talk Attendance" value={toolboxTalkAttendance} pieData={toolboxTalkAttendanceData} icon={Users} valueSuffix="%" description="Average attendance"/>
         <KpiCard title="Corrective Action Closure Rate" kpiKey="Corrective Action Closure Rate" value={correctiveActionClosureRate} pieData={correctiveActionClosureRateData} icon={ListChecks} valueSuffix="%" description="Closed by due date"/>
+
+        <KpiCard title="Man Hours Lost (Injury)" kpiKey="Man Hours Lost (Injury)" value={manHoursLostInjury} icon={Hourglass} description="Total hours this period"/>
+        <KpiCard title="Man Hours Lost (Fatality)" kpiKey="Man Hours Lost (Fatality)" value={manHoursLostFatality} icon={Skull} description="Total hours (potential)"/>
+        <KpiCard title="Motor Vehicle Accidents" kpiKey="Motor Vehicle Accidents (MVA)" value={mvaCount} icon={CarCrash} description="Total MVAs this period"/>
       </div>
       
       <Separator className="my-8" />
