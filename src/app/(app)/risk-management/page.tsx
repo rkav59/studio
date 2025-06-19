@@ -7,9 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { HazardIdentificationForm } from "@/components/risk-management/hazard-identification-form";
-import { RiskAssessmentSuggestionForm } from "@/components/risk-management/risk-assessment-suggestion-form";
-import { SuggestRootCauseForm } from "@/components/risk-management/suggest-root-cause-form";
+// Removed form imports that are now on separate pages
 import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen, LayoutDashboard, Brain } from "lucide-react";
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
@@ -28,15 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
+// Dialog import no longer needed here for AI tools
 import { Separator } from "@/components/ui/separator";
 import { riskMatrix, controlActionStatuses, riskAssessmentStatuses } from "@/lib/risk-assessment-config";
 
@@ -59,10 +49,7 @@ export default function RiskManagementPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const [showHazardIdDialog, setShowHazardIdDialog] = useState(false);
-  const [showRiskAssessmentSuggestionDialog, setShowRiskAssessmentSuggestionDialog] = useState(false);
-  const [showRootCauseDialog, setShowRootCauseDialog] = useState(false);
-
+  // Removed useState for dialog visibility as AI tools are now on dedicated pages
 
   // Fetch Manual Hazards
   const { data: manualHazards = [], isLoading: isLoadingHazards, error: hazardsError } = useQuery<ManualHazard[]>({
@@ -462,21 +449,21 @@ export default function RiskManagementPage() {
                 <CardDescription>Utilize AI to support aspects of the risk management process, such as brainstorming hazards, suggesting assessment methodologies, or exploring potential root causes for incidents or high-risk events (ISO 31000: Risk Analysis & Evaluation Support).</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-4">
-                <Button onClick={() => setShowHazardIdDialog(true)} variant="outline" className="justify-start text-left h-auto py-3">
+                <Button onClick={() => router.push('/risk-management/ai-hazard-identification')} variant="outline" className="justify-start text-left h-auto py-3">
                     <AlertTriangle className="h-5 w-5 mr-3 text-orange-500"/>
                     <div>
                         <span className="font-semibold">AI Hazard Identification</span>
                         <p className="text-xs text-muted-foreground">Describe activity for hazard suggestions.</p>
                     </div>
                 </Button>
-                <Button onClick={() => setShowRiskAssessmentSuggestionDialog(true)} variant="outline" className="justify-start text-left h-auto py-3">
+                <Button onClick={() => router.push('/risk-management/ai-risk-assessment-suggestion')} variant="outline" className="justify-start text-left h-auto py-3">
                     <ShieldQuestion className="h-5 w-5 mr-3 text-blue-500"/>
                      <div>
                         <span className="font-semibold">AI Risk Assessment Assist</span>
                         <p className="text-xs text-muted-foreground">Get suggestions for controls & methods.</p>
                     </div>
                 </Button>
-                 <Button onClick={() => setShowRootCauseDialog(true)} variant="outline" className="justify-start text-left h-auto py-3">
+                 <Button onClick={() => router.push('/risk-management/ai-root-cause-suggestion')} variant="outline" className="justify-start text-left h-auto py-3">
                     <Brain className="h-5 w-5 mr-3 text-purple-500"/>
                      <div>
                         <span className="font-semibold">AI Root Cause Suggestions</span>
@@ -485,36 +472,6 @@ export default function RiskManagementPage() {
                 </Button>
             </CardContent>
         </Card>
-
-        {/* Dialog for AI Hazard Identification */}
-        <Dialog open={showHazardIdDialog} onOpenChange={setShowHazardIdDialog}>
-            <DialogContent className="sm:max-w-lg">
-                <HazardIdentificationForm />
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowHazardIdDialog(false)}>Close</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-
-        {/* Dialog for AI Risk Assessment Suggestion */}
-        <Dialog open={showRiskAssessmentSuggestionDialog} onOpenChange={setShowRiskAssessmentSuggestionDialog}>
-            <DialogContent className="sm:max-w-lg">
-                <RiskAssessmentSuggestionForm />
-                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowRiskAssessmentSuggestionDialog(false)}>Close</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-
-        {/* Dialog for AI Root Cause Suggestion */}
-        <Dialog open={showRootCauseDialog} onOpenChange={setShowRootCauseDialog}>
-            <DialogContent className="sm:max-w-lg">
-                <SuggestRootCauseForm />
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowRootCauseDialog(false)}>Close</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
       
       <Card className="shadow-md mt-6">
         <CardHeader>
@@ -539,3 +496,4 @@ export default function RiskManagementPage() {
   );
 }
 
+    
