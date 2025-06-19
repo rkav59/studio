@@ -9,13 +9,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'firebase/firestore'; // Added collection, query, getDocs
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { RiskRegisterEntry } from '@/lib/types';
+import type { RiskRegisterEntry, SheqAudit } from '@/lib/types'; // Added SheqAudit
 import { ArrowLeft, BookOpen } from 'lucide-react';
 import { parseISO, format } from 'date-fns';
 
 const RISK_REGISTER_ENTRIES_COLLECTION = 'riskRegisterEntries';
+const SHEQ_AUDITS_COLLECTION = 'sheqAudits'; // For fetching SHEQ Audits
 
 export default function EditRiskRegisterEntryPage() {
   const router = useRouter();
@@ -25,6 +26,22 @@ export default function EditRiskRegisterEntryPage() {
   const queryClient = useQueryClient();
   
   const entryId = params.id as string;
+
+  // Fetch SHEQ Audits for the dropdown
+  const { data: sheqAudits = [], isLoading: isLoadingSheqAudits, error: sheqAuditsError } = useQuery<SheqAudit[]>({
+    queryKey: [SHEQ_AUDITS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, SHEQ_AUDITS_COLLECTION), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(docSnap => ({ 
+        id: docSnap.id, 
+        ...docSnap.data(),
+        auditDate: (docSnap.data().auditDate as Timestamp)?.toDate().toISOString(),
+      } as SheqAudit));
+    },
+    enabled: !!user?.uid,
+  });
 
   const { data: entryToEdit, isLoading: isLoadingEntry, error: entryError } = useQuery<RiskRegisterEntry | null>({
     queryKey: [RISK_REGISTER_ENTRIES_COLLECTION, entryId, user?.uid],
@@ -60,6 +77,8 @@ export default function EditRiskRegisterEntryPage() {
         treatmentDueDate: dataToUpdate.treatmentDueDate ? Timestamp.fromDate(parseISO(dataToUpdate.treatmentDueDate as string)) : null,
         lastReviewedDate: dataToUpdate.lastReviewedDate ? Timestamp.fromDate(parseISO(dataToUpdate.lastReviewedDate as string)) : null,
         nextReviewDate: dataToUpdate.nextReviewDate ? Timestamp.fromDate(parseISO(dataToUpdate.nextReviewDate as string)) : null,
+        linkedSheqAuditId: dataToUpdate.linkedSheqAuditId || null, // Store null if undefined
+        linkedSheqAuditName: dataToUpdate.linkedSheqAuditName || null, // Store null if undefined
       };
       await updateDoc(entryRef, dataForDb); 
     },
@@ -77,11 +96,12 @@ export default function EditRiskRegisterEntryPage() {
     const entryDataToSave: RiskRegisterEntry = {
       ...entryToEdit, 
       ...formData,
-      // Ensure dates from form (which are strings) are converted to ISO strings for the mutation
       dateIdentified: parseISO(formData.dateIdentified).toISOString(),
       treatmentDueDate: formData.treatmentDueDate ? parseISO(formData.treatmentDueDate).toISOString() : undefined,
       lastReviewedDate: formData.lastReviewedDate ? parseISO(formData.lastReviewedDate).toISOString() : undefined,
       nextReviewDate: formData.nextReviewDate ? parseISO(formData.nextReviewDate).toISOString() : undefined,
+      linkedSheqAuditId: formData.linkedSheqAuditId || undefined,
+      linkedSheqAuditName: formData.linkedSheqAuditName || undefined,
     };
     updateEntryMutation.mutate(entryDataToSave);
   };
@@ -90,7 +110,7 @@ export default function EditRiskRegisterEntryPage() {
     router.push('/risk-management');
   };
 
-  if (isLoadingEntry) {
+  if (isLoadingEntry || isLoadingSheqAudits) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
@@ -104,13 +124,13 @@ export default function EditRiskRegisterEntryPage() {
     );
   }
 
-  if (entryError || !entryToEdit) {
+  if (entryError || !entryToEdit || sheqAuditsError) {
     return (
       <div className="space-y-6">
         <Button variant="outline" onClick={handleCancel}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
         <Card>
-          <CardHeader><CardTitle>Risk Register Entry Not Found</CardTitle></CardHeader>
-          <CardContent><p>{entryError?.message || "The risk entry could not be found or you don't have permission to edit it."}</p></CardContent>
+          <CardHeader><CardTitle>Error Loading Data</CardTitle></CardHeader>
+          <CardContent><p>{entryError?.message || sheqAuditsError?.message || "The risk entry or SHEQ audit data could not be found or you don't have permission to edit it."}</p></CardContent>
         </Card>
       </div>
     );
@@ -133,7 +153,8 @@ export default function EditRiskRegisterEntryPage() {
           </CardDescription>
         </CardHeader>
         <RiskRegisterEntryForm 
-            initialData={entryToEdit} 
+            initialData={entryToEdit}
+            sheqAudits={sheqAudits} 
             onSave={handleSaveEntry} 
             onCancel={handleCancel}
             isSubmitting={updateEntryMutation.isPending}
@@ -142,5 +163,3 @@ export default function EditRiskRegisterEntryPage() {
     </div>
   );
 }
-
-```

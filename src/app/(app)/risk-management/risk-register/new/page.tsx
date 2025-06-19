@@ -8,13 +8,15 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { RiskRegisterEntry } from '@/lib/types';
+import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore'; // Added getDocs
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'; // Added useQuery
+import type { RiskRegisterEntry, SheqAudit } from '@/lib/types'; // Added SheqAudit
 import { ArrowLeft, BookOpen } from 'lucide-react';
-import { parseISO } from 'date-fns';
+import { parseISO, format } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const RISK_REGISTER_ENTRIES_COLLECTION = 'riskRegisterEntries';
+const SHEQ_AUDITS_COLLECTION = 'sheqAudits'; // For fetching SHEQ Audits
 
 export default function NewRiskRegisterEntryPage() {
   const router = useRouter();
@@ -22,16 +24,34 @@ export default function NewRiskRegisterEntryPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // Fetch SHEQ Audits for the dropdown
+  const { data: sheqAudits = [], isLoading: isLoadingSheqAudits, error: sheqAuditsError } = useQuery<SheqAudit[]>({
+    queryKey: [SHEQ_AUDITS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, SHEQ_AUDITS_COLLECTION), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(docSnap => ({ 
+        id: docSnap.id, 
+        ...docSnap.data(),
+        auditDate: (docSnap.data().auditDate as Timestamp)?.toDate().toISOString(),
+      } as SheqAudit));
+    },
+    enabled: !!user?.uid,
+  });
+
   const addEntryMutation = useMutation({
     mutationFn: async (newEntryData: RiskRegisterEntryFormValues) => { 
       if (!user?.uid) throw new Error("User not authenticated.");
-      const dataForDb = {
+      const dataForDb: Omit<RiskRegisterEntry, 'id' | 'userId'> & { userId: string } = {
         ...newEntryData,
         userId: user.uid,
         dateIdentified: Timestamp.fromDate(parseISO(newEntryData.dateIdentified as string)),
         treatmentDueDate: newEntryData.treatmentDueDate ? Timestamp.fromDate(parseISO(newEntryData.treatmentDueDate as string)) : null,
         lastReviewedDate: newEntryData.lastReviewedDate ? Timestamp.fromDate(parseISO(newEntryData.lastReviewedDate as string)) : null,
         nextReviewDate: newEntryData.nextReviewDate ? Timestamp.fromDate(parseISO(newEntryData.nextReviewDate as string)) : null,
+        linkedSheqAuditId: newEntryData.linkedSheqAuditId || undefined, // Ensure it's undefined if empty
+        linkedSheqAuditName: newEntryData.linkedSheqAuditName || undefined,
       };
       return addDoc(collection(db, RISK_REGISTER_ENTRIES_COLLECTION), dataForDb);
     },
@@ -51,6 +71,24 @@ export default function NewRiskRegisterEntryPage() {
     router.push('/risk-management');
   };
 
+  if (isLoadingSheqAudits) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-64" />
+        <Card>
+          <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
+          <CardContent className="space-y-4">
+            {[...Array(10)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (sheqAuditsError) {
+     return <div className="text-red-500 text-center py-10">Error loading SHEQ Audits: {sheqAuditsError.message}</div>;
+  }
+
   return (
     <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -68,6 +106,7 @@ export default function NewRiskRegisterEntryPage() {
           </CardDescription>
         </CardHeader>
         <RiskRegisterEntryForm 
+          sheqAudits={sheqAudits}
           onSave={handleSaveEntry} 
           onCancel={handleCancel}
           isSubmitting={addEntryMutation.isPending}
@@ -76,5 +115,3 @@ export default function NewRiskRegisterEntryPage() {
     </div>
   );
 }
-
-```

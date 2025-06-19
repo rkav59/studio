@@ -29,8 +29,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as UiCardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, User, Tag, AlertTriangle, BarChart, BookOpen, ShieldAlert, Users, FileSignature } from "lucide-react";
-import type { RiskRegisterEntry, Likelihood, Severity, RiskLevel, RiskRegisterStatus } from "@/lib/types";
+import { CalendarIcon, Save, XCircle, User, Tag, AlertTriangle, BarChart, BookOpen, ShieldAlert, Users, FileSignature, Link as LinkIconSheq } from "lucide-react"; // Added LinkIconSheq
+import type { RiskRegisterEntry, Likelihood, Severity, RiskLevel, RiskRegisterStatus, SheqAudit } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { likelihoodLevels, severityLevels, getRiskLevel, riskMatrix, riskRegisterStatuses, riskCategories, riskSources } from "@/lib/risk-assessment-config";
 import { Separator } from "@/components/ui/separator";
@@ -58,22 +58,25 @@ const riskRegisterEntryFormSchema = z.object({
 
   lastReviewedDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid last reviewed date" }),
   nextReviewDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid next review date" }),
+  linkedSheqAuditId: z.string().optional(),
+  linkedSheqAuditName: z.string().optional(),
   notes: z.string().max(2000).optional(),
 }).refine(data => (data.residualLikelihood && data.residualSeverity) || (!data.residualLikelihood && !data.residualSeverity), {
     message: "Both Residual Likelihood and Severity must be provided if one is entered.",
-    path: ["residualLikelihood"], // Path to show error, can be either
+    path: ["residualLikelihood"], 
 });
 
 export type RiskRegisterEntryFormValues = z.infer<typeof riskRegisterEntryFormSchema>;
 
 interface RiskRegisterEntryFormProps {
   initialData?: RiskRegisterEntry | null;
+  sheqAudits: SheqAudit[]; // Added prop for SHEQ Audits
   onSave: (data: RiskRegisterEntryFormValues) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
 }
 
-export function RiskRegisterEntryForm({ initialData, onSave, onCancel, isSubmitting }: RiskRegisterEntryFormProps) {
+export function RiskRegisterEntryForm({ initialData, sheqAudits, onSave, onCancel, isSubmitting }: RiskRegisterEntryFormProps) {
   const form = useForm<RiskRegisterEntryFormValues>({
     resolver: zodResolver(riskRegisterEntryFormSchema),
     defaultValues: {
@@ -95,6 +98,8 @@ export function RiskRegisterEntryForm({ initialData, onSave, onCancel, isSubmitt
       residualRiskLevel: initialData?.residualRiskLevel || undefined,
       lastReviewedDate: initialData?.lastReviewedDate ? format(parseISO(initialData.lastReviewedDate), 'yyyy-MM-dd') : undefined,
       nextReviewDate: initialData?.nextReviewDate ? format(parseISO(initialData.nextReviewDate), 'yyyy-MM-dd') : undefined,
+      linkedSheqAuditId: initialData?.linkedSheqAuditId || undefined,
+      linkedSheqAuditName: initialData?.linkedSheqAuditName || undefined,
       notes: initialData?.notes || "",
     },
   });
@@ -103,6 +108,7 @@ export function RiskRegisterEntryForm({ initialData, onSave, onCancel, isSubmitt
   const watchedInitialSeverity = form.watch("initialSeverity");
   const watchedResidualLikelihood = form.watch("residualLikelihood");
   const watchedResidualSeverity = form.watch("residualSeverity");
+  const watchedLinkedSheqAuditId = form.watch("linkedSheqAuditId");
 
   useEffect(() => {
     if (watchedInitialLikelihood && watchedInitialSeverity) {
@@ -118,9 +124,23 @@ export function RiskRegisterEntryForm({ initialData, onSave, onCancel, isSubmitt
       const sValue = severityLevels[watchedResidualSeverity];
       form.setValue("residualRiskLevel", getRiskLevel(lValue, sValue));
     } else if (!watchedResidualLikelihood && !watchedResidualSeverity) {
-        form.setValue("residualRiskLevel", undefined); // Clear if inputs are cleared
+        form.setValue("residualRiskLevel", undefined); 
     }
   }, [watchedResidualLikelihood, watchedResidualSeverity, form]);
+
+  useEffect(() => {
+    if (watchedLinkedSheqAuditId) {
+      const selectedAudit = sheqAudits.find(audit => audit.id === watchedLinkedSheqAuditId);
+      if (selectedAudit) {
+        form.setValue("linkedSheqAuditName", `${selectedAudit.auditName} (${selectedAudit.auditType} - ${format(parseISO(selectedAudit.auditDate), "PPP")})`);
+      } else {
+        form.setValue("linkedSheqAuditName", undefined);
+      }
+    } else {
+      form.setValue("linkedSheqAuditName", undefined);
+    }
+  }, [watchedLinkedSheqAuditId, sheqAudits, form]);
+
 
   const onSubmit = (data: RiskRegisterEntryFormValues) => {
     onSave(data);
@@ -250,7 +270,7 @@ export function RiskRegisterEntryForm({ initialData, onSave, onCancel, isSubmitt
 
                 {/* Review & Monitoring */}
                 <Card className="p-4 bg-secondary/20">
-                     <CardHeader className="p-0 pb-3 mb-3 border-b"><CardTitle className="text-lg flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary"/>Review & Monitoring</CardTitle></CardHeader>
+                     <CardHeader className="p-0 pb-3 mb-3 border-b"><CardTitle className="text-lg flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary"/>Review, Monitoring & Links</CardTitle></CardHeader>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField control={form.control} name="lastReviewedDate" render={({ field }) => (
                             <FormItem className="flex flex-col"><FormLabel>Last Reviewed Date (Optional)</FormLabel>
@@ -271,6 +291,28 @@ export function RiskRegisterEntryForm({ initialData, onSave, onCancel, isSubmitt
                             </Popover><FormMessage /></FormItem>
                         )}/>
                      </div>
+                      <FormField
+                        control={form.control}
+                        name="linkedSheqAuditId"
+                        render={({ field }) => (
+                            <FormItem className="mt-4">
+                            <FormLabel className="flex items-center gap-1"><LinkIconSheq className="h-4 w-4"/>Link to SHEQ Audit (Optional)</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ""}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select an audit to link" /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                <SelectItem value="">None</SelectItem>
+                                {sheqAudits.map(audit => (
+                                    <SelectItem key={audit.id} value={audit.id}>
+                                    {audit.auditName} ({audit.auditType} - {format(parseISO(audit.auditDate), "PPP")})
+                                    </SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            <FormDescription>Associate this risk with a specific SHEQ audit for context.</FormDescription>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
                      <FormField control={form.control} name="notes" render={({ field }) => (
                         <FormItem className="mt-4"><FormLabel>General Notes (Optional)</FormLabel><FormControl><Textarea placeholder="Any other relevant information or updates for this risk..." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
                     )}/>
@@ -289,5 +331,3 @@ export function RiskRegisterEntryForm({ initialData, onSave, onCancel, isSubmitt
     </Form>
   );
 }
-
-```

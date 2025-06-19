@@ -102,6 +102,8 @@ export interface RiskRegisterEntry {
   
   lastReviewedDate?: string; // ISO
   nextReviewDate?: string; // ISO
+  linkedSheqAuditId?: string; // ID of the linked SHEQ Audit
+  linkedSheqAuditName?: string; // Descriptive name of the linked SHEQ Audit
   notes?: string;
 }
 
@@ -685,5 +687,3 @@ export type MedicalTestWithCertStatus = MedicalTestRecord & {
 };
 // Helper type for pre-filling MedicalTestForm
 export type MedicalTestPrefillData = Partial<Pick<MedicalTestRecord, 'employeeName' | 'segId' | 'linkedExposure' | 'testType'>>;
-
-```

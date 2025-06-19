@@ -277,12 +277,13 @@ export default function RiskManagementPage() {
                             return (
                                 <Card key={entry.id} className="p-3 shadow-sm">
                                     <div className="flex justify-between items-start">
-                                        <div>
+                                        <div className="flex-grow">
                                             <h4 className="font-semibold">{entry.riskTitle}</h4>
                                             <p className="text-xs text-muted-foreground">Category: {entry.category || "N/A"} | Owner: {entry.riskOwner || "N/A"}</p>
                                             <p className="text-xs">Risk Level: <span className={`px-1.5 py-0.5 rounded-full text-xs ${getRiskLevelColor(displayRiskLevel)}`}>{displayRiskLevel}</span></p>
                                             <p className={`text-xs font-semibold ${getRiskRegisterStatusColor(entry.status)}`}>Status: {entry.status}</p>
                                             {reviewDateStatus && <p className={`text-xs flex items-center ${reviewDateStatus.textClass}`}>{reviewDateStatus.icon}{reviewDateStatus.displayText}</p>}
+                                            {entry.linkedSheqAuditName && <p className="text-xs text-muted-foreground flex items-center"><LinkIcon className="h-3 w-3 mr-1"/>Linked Audit: {entry.linkedSheqAuditName}</p>}
                                         </div>
                                         <div className="flex gap-1 shrink-0">
                                             <Button variant="outline" size="sm" onClick={() => router.push(`/risk-management/risk-register/edit/${entry.id}`)}><Edit2 className="mr-1 h-3 w-3"/>Edit</Button>
