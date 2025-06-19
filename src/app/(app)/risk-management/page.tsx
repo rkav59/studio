@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { HazardIdentificationForm } from "@/components/risk-management/hazard-identification-form";
 import { RiskAssessmentSuggestionForm } from "@/components/risk-management/risk-assessment-suggestion-form";
+import { SuggestRootCauseForm } from "@/components/risk-management/suggest-root-cause-form"; // Added this import
 import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen } from "lucide-react";
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
@@ -460,8 +461,11 @@ export default function RiskManagementPage() {
       <Separator />
 
       {/* AI Assisted Tools */}
-      <HazardIdentificationForm />
-      <RiskAssessmentSuggestionForm />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <HazardIdentificationForm />
+        <RiskAssessmentSuggestionForm />
+      </div>
+      <SuggestRootCauseForm />
       
        <Card className="mt-8">
         <CardHeader>
