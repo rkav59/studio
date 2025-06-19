@@ -298,7 +298,7 @@ export default function RiskManagementPage() {
             <Card className="bg-muted/20 mt-4">
                 <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
                     <div>
-                        <CardTitle className="text-lg flex items-center gap-2"><FileSignature className="h-5 w-5 text-purple-600"/>Manual Risk Assessments</CardTitle>
+                        <CardTitle className="text-lg flex items-center gap-2"><FileSignature className="h-5 w-5 text-purple-600"/>Risk Assessments</CardTitle>
                         <CardDescription className="text-xs">Perform systematic risk assessments using the defined matrix (ISO 31000: Risk Analysis & Evaluation). Document controls, calculate residual risk, and track actions.</CardDescription>
                     </div>
                     <Button onClick={() => router.push('/risk-management/assessments/new')} className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5">
