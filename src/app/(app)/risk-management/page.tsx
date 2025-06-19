@@ -461,7 +461,7 @@ export default function RiskManagementPage() {
                 <CardTitle className="flex items-center gap-2"><Brain className="h-6 w-6 text-indigo-500"/>AI-Assisted Risk Management Tools</CardTitle>
                 <CardDescription>Utilize AI to support aspects of the risk management process, such as brainstorming hazards, suggesting assessment methodologies, or exploring potential root causes for incidents or high-risk events (ISO 31000: Risk Analysis & Evaluation Support).</CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <CardContent className="grid grid-cols-1 gap-4">
                 <Button onClick={() => setShowHazardIdDialog(true)} variant="outline" className="justify-start text-left h-auto py-3">
                     <AlertTriangle className="h-5 w-5 mr-3 text-orange-500"/>
                     <div>
@@ -538,3 +538,4 @@ export default function RiskManagementPage() {
     </div>
   );
 }
+
