@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { z } from "zod";
-import { useEffect, useState } from "react"; // Added useState
+import { useEffect, useState } from "react"; 
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -29,7 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as UiCardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, Activity, Users, Briefcase, ShieldCheck, BarChart, ShieldAlert, ListChecks, Zap, Lightbulb } from "lucide-react"; // Added Lightbulb
+import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, Activity, Users, Briefcase, ShieldCheck, BarChart, ShieldAlert, ListChecks, Zap, Lightbulb } from "lucide-react"; 
 import type { ManualRiskAssessment, RiskAssessmentControl, Likelihood, Severity, RiskLevel } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { likelihoodLevels, severityLevels, getRiskLevel, riskMatrix, controlActionStatuses, riskAssessmentStatuses } from "@/lib/risk-assessment-config";
@@ -56,13 +56,13 @@ const manualRiskAssessmentFormSchema = z.object({
 
   initialLikelihood: z.enum(Object.keys(likelihoodLevels) as [Likelihood, ...Likelihood[]], { required_error: "Initial Likelihood is required." }),
   initialSeverity: z.enum(Object.keys(severityLevels) as [Severity, ...Severity[]], { required_error: "Initial Severity is required." }),
-  initialRiskLevel: z.custom<RiskLevel>((val) => Object.keys(riskMatrix).includes(val as string), {message: "Invalid Risk Level"}).optional(), // Will be calculated
+  initialRiskLevel: z.custom<RiskLevel>((val) => Object.keys(riskMatrix).includes(val as string), {message: "Invalid Risk Level"}).optional(),
 
   additionalControls: z.array(riskAssessmentControlSchema).optional(),
 
   residualLikelihood: z.enum(Object.keys(likelihoodLevels) as [Likelihood, ...Likelihood[]], { required_error: "Residual Likelihood is required." }),
   residualSeverity: z.enum(Object.keys(severityLevels) as [Severity, ...Severity[]], { required_error: "Residual Severity is required." }),
-  residualRiskLevel: z.custom<RiskLevel>((val) => Object.keys(riskMatrix).includes(val as string), {message: "Invalid Risk Level"}).optional(), // Will be calculated
+  residualRiskLevel: z.custom<RiskLevel>((val) => Object.keys(riskMatrix).includes(val as string), {message: "Invalid Risk Level"}).optional(),
 
   reviewDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid review date" }),
   status: z.enum(riskAssessmentStatuses, { required_error: "Assessment status is required." }),
@@ -89,6 +89,9 @@ const newControlDefault = (): RiskAssessmentControl => ({
 
 export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubmitting }: ManualRiskAssessmentFormProps) {
   const [isHazardsAiPrefilled, setIsHazardsAiPrefilled] = useState(false);
+  const [isPotentialRisksAiPrefilled, setIsPotentialRisksAiPrefilled] = useState(false);
+  const [isControlsAiPrefilled, setIsControlsAiPrefilled] = useState(false);
+
 
   const form = useForm<ManualRiskAssessmentFormValues>({
     resolver: zodResolver(manualRiskAssessmentFormSchema),
@@ -127,14 +130,30 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
   const watchedResidualSeverity = form.watch("residualSeverity");
 
   useEffect(() => {
-    const storedSuggestions = localStorage.getItem('aiHazardSuggestionsForRiskAssessment');
-    if (storedSuggestions) {
-      form.setValue('potentialHazardsIdentified', storedSuggestions);
+    const storedHazardSuggestions = localStorage.getItem('aiHazardSuggestionsForRiskAssessment');
+    if (storedHazardSuggestions) {
+      form.setValue('potentialHazardsIdentified', storedHazardSuggestions);
       setIsHazardsAiPrefilled(true);
       localStorage.removeItem('aiHazardSuggestionsForRiskAssessment');
     }
+
+    const storedPotentialRisks = localStorage.getItem('aiPotentialRisksForRiskAssessment');
+    if (storedPotentialRisks) {
+      // Append if hazards already prefilled, otherwise set
+      const currentHazards = form.getValues('potentialHazardsIdentified');
+      form.setValue('potentialHazardsIdentified', currentHazards ? `${currentHazards}\n\nAI Suggested Potential Risks:\n${storedPotentialRisks}` : storedPotentialRisks);
+      setIsPotentialRisksAiPrefilled(true);
+      localStorage.removeItem('aiPotentialRisksForRiskAssessment');
+    }
+
+    const storedRecommendedControls = localStorage.getItem('aiRecommendedControlsForRiskAssessment');
+    if (storedRecommendedControls) {
+      form.setValue('existingControls', storedRecommendedControls);
+      setIsControlsAiPrefilled(true); // Use a new state for this
+      localStorage.removeItem('aiRecommendedControlsForRiskAssessment');
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // Run once on mount
 
   useEffect(() => {
     if (watchedInitialLikelihood && watchedInitialSeverity) {
@@ -202,7 +221,7 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
                             <FormItem>
                                 <FormLabel>Potential Hazards Identified</FormLabel>
                                 <FormControl><Textarea placeholder="List all identified hazards associated with the activity/process. One per line recommended." rows={4} {...field} /></FormControl>
-                                {isHazardsAiPrefilled && (
+                                {(isHazardsAiPrefilled || isPotentialRisksAiPrefilled) && (
                                     <FormDescription className="text-xs text-blue-600 flex items-center gap-1">
                                         <Lightbulb className="h-3 w-3" /> This field was pre-filled with AI suggestions. Please review and edit as necessary.
                                     </FormDescription>
@@ -211,7 +230,16 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
                             </FormItem>
                         )}/>
                         <FormField control={form.control} name="existingControls" render={({ field }) => (
-                            <FormItem><FormLabel>Existing Control Measures</FormLabel><FormControl><Textarea placeholder="List all current controls in place to mitigate the identified hazards. One per line recommended." rows={4} {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem>
+                                <FormLabel>Existing Control Measures</FormLabel>
+                                <FormControl><Textarea placeholder="List all current controls in place to mitigate the identified hazards. One per line recommended." rows={4} {...field} /></FormControl>
+                                {isControlsAiPrefilled && (
+                                    <FormDescription className="text-xs text-blue-600 flex items-center gap-1">
+                                        <Lightbulb className="h-3 w-3" /> This field was pre-filled with AI suggested controls. Please review, categorize, and move to 'Additional Controls' if new.
+                                    </FormDescription>
+                                )}
+                                <FormMessage />
+                            </FormItem>
                         )}/>
                     </div>
                 </Card>
@@ -335,3 +363,4 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
     </Form>
   );
 }
+
