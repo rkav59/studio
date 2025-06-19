@@ -2,11 +2,11 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks, UsersRound, Virus, Ear, UserX, Presentation } from "lucide-react"; // Added new icons
+import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks, UsersRound, Biohazard, Ear, UserX, Presentation } from "lucide-react"; // Replaced Virus with Biohazard
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { useToast } from "@/hooks/use-toast";
-import { Separator } from "@/components/ui/separator"; // Added Separator
+import { Separator } from "@/components/ui/separator"; 
 
 // Data structure for KPI details
 const kpiInfoMap: Record<string, { definition: string; relevance: string }> = {
@@ -219,7 +219,7 @@ export function OverviewCards() {
       <h2 className="text-xl font-semibold tracking-tight text-foreground/90">Health Performance Indicators</h2>
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
         <KpiCard title="Health Surveillance Coverage" kpiKey="Occupational Health Surveillance Coverage" value={healthSurveillanceCoverage} pieData={healthSurveillanceCoverageData} icon={UsersRound} valueSuffix="%" description="% workers receiving scheduled medicals"/>
-        <KpiCard title="Work-Related Illness Rate" kpiKey="Work-Related Illness Rate" value={workIllnessRate.toFixed(1)} icon={Virus} description="per 10,000 workers"/>
+        <KpiCard title="Work-Related Illness Rate" kpiKey="Work-Related Illness Rate" value={workIllnessRate.toFixed(1)} icon={Biohazard} description="per 10,000 workers"/>
         <KpiCard title="Hearing Conservation Compliance" kpiKey="Hearing Conservation Compliance" value={hearingConservationCompliance} pieData={hearingConservationData} icon={Ear} valueSuffix="%" description="Audiometry & PPE compliance"/>
         <KpiCard title="Fit-for-Duty Non-Compliance" kpiKey="Fit-for-Duty Non-Compliance Rate" value={fitForDutyNonCompliance} pieData={fitForDutyData} icon={UserX} valueSuffix="%" description="% workers not cleared"/>
         <KpiCard title="Health Education Coverage" kpiKey="Health Education Coverage" value={healthEducationCoverage} pieData={healthEducationData} icon={Presentation} valueSuffix="%" description="% workforce trained"/>
@@ -237,3 +237,4 @@ export function IncidentTypeChart() {
     </Card>
   );
 }
+
