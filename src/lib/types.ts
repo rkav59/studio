@@ -737,3 +737,13 @@ export interface SheProgram {
   leadPerson?: string;
 }
 // --- End SHE Meetings & Programs Module Types ---
+
+// --- KPI Suggestion Type ---
+export interface KpiSuggestion {
+  id: string;
+  userId: string;
+  suggestionText: string;
+  timestamp: any; // Firestore Timestamp
+  status: 'New' | 'Reviewed' | 'Implemented' | 'Rejected';
+}
+// --- End KPI Suggestion Type ---
