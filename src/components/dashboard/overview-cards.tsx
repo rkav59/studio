@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks, UsersRound, Biohazard, Ear, UserX, Presentation, Hourglass, Skull, CarCrash } from "lucide-react";
+import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks, UsersRound, Biohazard, Ear, UserX, Presentation, Hourglass, Skull, Car, GraduationCap, ClipboardCheck, Eye, Lightbulb, Footprints } from "lucide-react"; // Replaced CarCrash with Car
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { useToast } from "@/hooks/use-toast";
@@ -73,6 +73,26 @@ const kpiInfoMap: Record<string, { definition: string; relevance: string }> = {
   "Health Education Coverage": {
     definition: "% of the workforce that has completed targeted health education programs (e.g., HIV/AIDS awareness, wellness, stress management).",
     relevance: "Supports overall employee health awareness, preventative health behaviors, and contributes to long-term wellbeing and productivity.",
+  },
+  "Training Compliance Rate": {
+    definition: "Percentage of employees or relevant workforce who have completed required SHEQ training topics by their due dates.",
+    relevance: "Reflects adherence to legal and organizational training requirements, contributing to overall safety readiness and competence. Low rates can indicate gaps in essential knowledge or skills.",
+  },
+  "Audit Score / Compliance Rate": {
+    definition: "Average score or percentage of conformance achieved in internal or external SHEQ audits (e.g., ISO 45001, ISO 14001, specific site audits).",
+    relevance: "Indicates the overall effectiveness and maturity of the SHEQ management system. Trends can show improvement or decline in system implementation.",
+  },
+  "Behavior-Based Safety (BBS) Observation Rate": {
+    definition: "Number of BBS observation cards submitted compared to an expected target, often per employee or team, over a period.",
+    relevance: "Measures engagement with proactive safety culture initiatives. A healthy submission rate (with quality observations) indicates active participation in identifying safe and at-risk behaviors.",
+  },
+  "SHE Suggestion Rate": {
+    definition: "Number of SHE-related suggestions, ideas, or feedback items submitted by employees, often normalized per employee per month/quarter.",
+    relevance: "Reflects employee involvement and perceived openness of the system to suggestions for improvement. A good rate indicates a proactive and learning safety culture.",
+  },
+  "Leadership Walks / Site Visits": {
+    definition: "Percentage of scheduled leadership safety walks, site visits, or management safety tours that are completed as planned.",
+    relevance: "Demonstrates visible management commitment and engagement with SHEQ at the operational level. Consistent completion reinforces the importance of safety from the top.",
   },
 };
 
@@ -174,9 +194,8 @@ export function OverviewCards() {
   const toolboxTalkAttendance = 92;
   const correctiveActionClosureRate = 78;
   const manHoursLostInjury = 120;
-  const manHoursLostFatality = 0; // Hopefully!
+  const manHoursLostFatality = 0; 
   const mvaCount = 2;
-
 
   const incidentClosureRateData = [
     { name: 'Closed', value: incidentClosureRate, fill: 'hsl(var(--chart-1))' },
@@ -193,9 +212,9 @@ export function OverviewCards() {
 
   // Mock data for Health KPIs
   const healthSurveillanceCoverage = 95;
-  const workIllnessRate = 1.2; // per 10,000 workers
+  const workIllnessRate = 1.2; 
   const hearingConservationCompliance = 88;
-  const fitForDutyNonCompliance = 3; // %
+  const fitForDutyNonCompliance = 3; 
   const healthEducationCoverage = 75;
 
   const healthSurveillanceCoverageData = [
@@ -207,7 +226,7 @@ export function OverviewCards() {
     { name: 'Non-Compliant', value: 100 - hearingConservationCompliance, fill: 'hsl(var(--muted))' }
   ];
    const fitForDutyData = [
-    { name: 'Non-Compliant', value: fitForDutyNonCompliance, fill: 'hsl(var(--chart-5))' }, // Highlight non-compliance
+    { name: 'Non-Compliant', value: fitForDutyNonCompliance, fill: 'hsl(var(--chart-5))' }, 
     { name: 'Compliant', value: 100 - fitForDutyNonCompliance, fill: 'hsl(var(--muted))' }
   ];
   const healthEducationData = [
@@ -215,6 +234,29 @@ export function OverviewCards() {
     { name: 'Not Covered', value: 100 - healthEducationCoverage, fill: 'hsl(var(--muted))' }
   ];
 
+  // Mock data for Process & Engagement KPIs
+  const trainingComplianceRate = 90;
+  const auditScore = 88;
+  const bbsObservationRate = 75; // e.g. % of target observations
+  const sheSuggestionRate = 2.5; // e.g. per 100 employees per month
+  const leadershipWalksRate = 95;
+
+  const trainingComplianceData = [
+    { name: 'Compliant', value: trainingComplianceRate, fill: 'hsl(var(--chart-positive-green))' },
+    { name: 'Non-Compliant', value: 100 - trainingComplianceRate, fill: 'hsl(var(--muted))' }
+  ];
+  const auditScoreData = [
+    { name: 'Achieved', value: auditScore, fill: 'hsl(var(--chart-2))' },
+    { name: 'Gap', value: 100 - auditScore, fill: 'hsl(var(--muted))' }
+  ];
+  const bbsObservationData = [
+    { name: 'Submitted', value: bbsObservationRate, fill: 'hsl(var(--chart-3))' },
+    { name: 'Missed Target', value: 100 - bbsObservationRate, fill: 'hsl(var(--muted))' }
+  ];
+  const leadershipWalksData = [
+    { name: 'Completed', value: leadershipWalksRate, fill: 'hsl(var(--chart-4))' },
+    { name: 'Scheduled', value: 100 - leadershipWalksRate, fill: 'hsl(var(--muted))' }
+  ];
 
   return (
     <div className="space-y-6">
@@ -232,7 +274,7 @@ export function OverviewCards() {
 
         <KpiCard title="Man Hours Lost (Injury)" kpiKey="Man Hours Lost (Injury)" value={manHoursLostInjury} icon={Hourglass} description="Total hours this period"/>
         <KpiCard title="Man Hours Lost (Fatality)" kpiKey="Man Hours Lost (Fatality)" value={manHoursLostFatality} icon={Skull} description="Total hours (potential)"/>
-        <KpiCard title="Motor Vehicle Accidents" kpiKey="Motor Vehicle Accidents (MVA)" value={mvaCount} icon={CarCrash} description="Total MVAs this period"/>
+        <KpiCard title="Motor Vehicle Accidents" kpiKey="Motor Vehicle Accidents (MVA)" value={mvaCount} icon={Car} description="Total MVAs this period"/>
       </div>
       
       <Separator className="my-8" />
@@ -244,6 +286,17 @@ export function OverviewCards() {
         <KpiCard title="Hearing Conservation Compliance" kpiKey="Hearing Conservation Compliance" value={hearingConservationCompliance} pieData={hearingConservationData} icon={Ear} valueSuffix="%" description="Audiometry & PPE compliance"/>
         <KpiCard title="Fit-for-Duty Non-Compliance" kpiKey="Fit-for-Duty Non-Compliance Rate" value={fitForDutyNonCompliance} pieData={fitForDutyData} icon={UserX} valueSuffix="%" description="% workers not cleared"/>
         <KpiCard title="Health Education Coverage" kpiKey="Health Education Coverage" value={healthEducationCoverage} pieData={healthEducationData} icon={Presentation} valueSuffix="%" description="% workforce trained"/>
+      </div>
+
+      <Separator className="my-8" />
+      
+      <h2 className="text-xl font-semibold tracking-tight text-foreground/90">SHEQ Process & Engagement KPIs</h2>
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+        <KpiCard title="Training Compliance Rate" kpiKey="Training Compliance Rate" value={trainingComplianceRate} pieData={trainingComplianceData} icon={GraduationCap} valueSuffix="%" description="% employees trained on time"/>
+        <KpiCard title="Audit Score / Compliance Rate" kpiKey="Audit Score / Compliance Rate" value={auditScore} pieData={auditScoreData} icon={ClipboardCheck} valueSuffix="%" description="Average audit conformance"/>
+        <KpiCard title="BBS Observation Rate" kpiKey="Behavior-Based Safety (BBS) Observation Rate" value={bbsObservationRate} pieData={bbsObservationData} icon={Eye} valueSuffix="%" description="% of target BBS cards submitted"/>
+        <KpiCard title="SHE Suggestion Rate" kpiKey="SHE Suggestion Rate" value={sheSuggestionRate.toFixed(1)} icon={Lightbulb} description="Suggestions per 100 employees/month"/>
+        <KpiCard title="Leadership Walks / Site Visits" kpiKey="Leadership Walks / Site Visits" value={leadershipWalksRate} pieData={leadershipWalksData} icon={Footprints} valueSuffix="%" description="% of scheduled visits completed"/>
       </div>
     </div>
   );
@@ -258,4 +311,3 @@ export function IncidentTypeChart() {
     </Card>
   );
 }
-
