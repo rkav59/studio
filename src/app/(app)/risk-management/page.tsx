@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen, LayoutDashboard, Brain, Megaphone } from "lucide-react";
+import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen, LayoutDashboard, Brain, Megaphone, Download } from "lucide-react"; // Added Download
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
@@ -48,7 +48,7 @@ interface ActiveControlAction extends RiskAssessmentControl {
 export default function RiskManagementPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { toast } = useToast(); // Added useToast
+  const { toast } = useToast(); 
   const queryClient = useQueryClient();
   const [viewingIncident, setViewingIncident] = useState<Incident | null>(null); 
 
@@ -258,6 +258,79 @@ export default function RiskManagementPage() {
     }
   };
 
+  const escapeCsvCell = (cellData: any): string => {
+    if (cellData === null || cellData === undefined) {
+      return "";
+    }
+    const stringData = String(cellData);
+    // If the string contains a comma, newline, or double quote, enclose it in double quotes
+    // and escape any existing double quotes by doubling them.
+    if (stringData.includes(',') || stringData.includes('\n') || stringData.includes('"')) {
+      return `"${stringData.replace(/"/g, '""')}"`;
+    }
+    return stringData;
+  };
+
+  const handleDownloadRiskRegister = () => {
+    if (riskRegisterEntries.length === 0) {
+      toast({ title: "No Data", description: "There are no entries in the risk register to download.", variant: "default" });
+      return;
+    }
+
+    const headers = [
+      "ID", "Risk Title", "Description", "Date Identified", "Identified By", "Category", "Source",
+      "Initial Likelihood", "Initial Severity", "Initial Risk Level",
+      "Treatment Plan", "Risk Owner", "Treatment Due Date", "Status",
+      "Residual Likelihood", "Residual Severity", "Residual Risk Level",
+      "Last Reviewed Date", "Next Review Date", "Linked SHEQ Audit", "Notes"
+    ];
+
+    const rows = riskRegisterEntries.map(entry => [
+      escapeCsvCell(entry.id),
+      escapeCsvCell(entry.riskTitle),
+      escapeCsvCell(entry.riskDescription),
+      escapeCsvCell(entry.dateIdentified ? format(parseISO(entry.dateIdentified), "yyyy-MM-dd") : ""),
+      escapeCsvCell(entry.identifiedBy),
+      escapeCsvCell(entry.category),
+      escapeCsvCell(entry.source),
+      escapeCsvCell(entry.initialLikelihood),
+      escapeCsvCell(entry.initialSeverity),
+      escapeCsvCell(entry.initialRiskLevel),
+      escapeCsvCell(entry.treatmentPlan),
+      escapeCsvCell(entry.riskOwner),
+      escapeCsvCell(entry.treatmentDueDate ? format(parseISO(entry.treatmentDueDate), "yyyy-MM-dd") : ""),
+      escapeCsvCell(entry.status),
+      escapeCsvCell(entry.residualLikelihood),
+      escapeCsvCell(entry.residualSeverity),
+      escapeCsvCell(entry.residualRiskLevel),
+      escapeCsvCell(entry.lastReviewedDate ? format(parseISO(entry.lastReviewedDate), "yyyy-MM-dd") : ""),
+      escapeCsvCell(entry.nextReviewDate ? format(parseISO(entry.nextReviewDate), "yyyy-MM-dd") : ""),
+      escapeCsvCell(entry.linkedSheqAuditName || entry.linkedSheqAuditId),
+      escapeCsvCell(entry.notes),
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", "risk_register.csv");
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast({ title: "Download Started", description: "Risk register CSV file is being downloaded." });
+    } else {
+        toast({ title: "Download Failed", description: "Your browser does not support direct downloads.", variant: "destructive" });
+    }
+  };
+
 
   if (isLoadingHazards || isLoadingAssessments || isLoadingRiskRegister || isLoadingIncidents) {
     return (
@@ -378,9 +451,14 @@ export default function RiskManagementPage() {
                 <CardTitle className="flex items-center gap-2"><BookOpen className="h-6 w-6 text-green-600"/>Risk Register (Centralized Risk Recording & Reporting)</CardTitle>
                 <CardDescription>A central log of significant organizational risks, their owners, treatment plans, and review status (ISO 31000: Recording & Reporting). Provides an overview of the risk landscape.</CardDescription>
             </div>
-            <Button onClick={() => router.push('/risk-management/risk-register/new')} className="bg-green-600 hover:bg-green-700 text-white">
-                <PlusCircle className="mr-2 h-4 w-4" /> Add New Risk to Register
-            </Button>
+            <div className="flex gap-2">
+                <Button onClick={handleDownloadRiskRegister} variant="outline">
+                    <Download className="mr-2 h-4 w-4" /> Download as Excel
+                </Button>
+                <Button onClick={() => router.push('/risk-management/risk-register/new')} className="bg-green-600 hover:bg-green-700 text-white">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add New Risk to Register
+                </Button>
+            </div>
         </CardHeader>
         <CardContent>
             {riskRegisterEntries.length === 0 ? (
