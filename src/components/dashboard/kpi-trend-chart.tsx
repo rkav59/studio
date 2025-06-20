@@ -5,7 +5,7 @@ import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-import { Button } from "@/components/ui/button"; // Added
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -13,22 +13,25 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"; // Added
-import { SlidersHorizontal } from "lucide-react"; // Added for dropdown trigger icon
+} from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Added Select
+import { SlidersHorizontal } from "lucide-react";
 
-
-// Actual data
+// Expanded actual data to 12 months for period selection
 const ACTUAL_DATA = [
-  { month: "Jan", incidents: 5, nearMisses: 8 },
-  { month: "Feb", incidents: 3, nearMisses: 6 },
-  { month: "Mar", incidents: 6, nearMisses: 9 },
-  { month: "Apr", incidents: 4, nearMisses: 5 },
-  { month: "May", incidents: 7, nearMisses: 10 },
-  { month: "Jun", incidents: 5, nearMisses: 7 },
+  { month: "Jul '23", incidents: 2, nearMisses: 4 },
+  { month: "Aug '23", incidents: 3, nearMisses: 5 },
+  { month: "Sep '23", incidents: 1, nearMisses: 3 },
+  { month: "Oct '23", incidents: 4, nearMisses: 6 },
+  { month: "Nov '23", incidents: 2, nearMisses: 4 },
+  { month: "Dec '23", incidents: 3, nearMisses: 7 },
+  { month: "Jan '24", incidents: 5, nearMisses: 8 },
+  { month: "Feb '24", incidents: 3, nearMisses: 6 },
+  { month: "Mar '24", incidents: 6, nearMisses: 9 },
+  { month: "Apr '24", incidents: 4, nearMisses: 5 },
+  { month: "May '24", incidents: 7, nearMisses: 10 },
+  { month: "Jun '24", incidents: 5, nearMisses: 7 },
 ];
-
-// Chart data now directly uses actual data
-const chartData = ACTUAL_DATA;
 
 const chartConfig = {
   incidents: {
@@ -39,10 +42,8 @@ const chartConfig = {
     label: "Near Misses",
     color: "hsl(var(--chart-2))",
   },
-  // Removed projectedIncidents and projectedNearMisses
 } satisfies ChartConfig;
 
-// Define which KPIs can be trended
 const trendableKpis: Array<{ key: keyof typeof chartConfig; label: string }> = [
   { key: 'incidents', label: 'Total Incidents' },
   { key: 'nearMisses', label: 'Near Misses' },
@@ -50,11 +51,23 @@ const trendableKpis: Array<{ key: keyof typeof chartConfig; label: string }> = [
 
 type SelectableKpiKeys = keyof typeof chartConfig;
 
+const periodOptions = [
+  { label: "Last 3 Months", value: 3 },
+  { label: "Last 6 Months", value: 6 },
+  { label: "Last 12 Months", value: 12 },
+];
+
 export function KpiTrendChart() {
   const [selectedKpis, setSelectedKpis] = React.useState<Record<SelectableKpiKeys, boolean>>({
     incidents: true,
     nearMisses: true,
   });
+  const [selectedPeriod, setSelectedPeriod] = React.useState<number>(6); // Default to 6 months
+
+  const chartData = React.useMemo(() => {
+    // Assuming ACTUAL_DATA is sorted chronologically with latest data at the end
+    return ACTUAL_DATA.slice(-selectedPeriod);
+  }, [selectedPeriod]);
 
   return (
     <Card>
@@ -62,31 +75,45 @@ export function KpiTrendChart() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div>
                 <CardTitle>Monthly Occurrence Trends</CardTitle>
-                <CardDescription>Actual total incidents and near misses over the last 6 months. Select KPIs to display via the dropdown.</CardDescription>
+                <CardDescription>Actual total incidents and near misses over the selected period. Customize via dropdowns.</CardDescription>
             </div>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                        <SlidersHorizontal className="mr-2 h-4 w-4" />
-                        Display Options
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                    <DropdownMenuLabel>Select KPIs to Display</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {trendableKpis.map((kpi) => (
-                    <DropdownMenuCheckboxItem
-                        key={kpi.key}
-                        checked={selectedKpis[kpi.key as SelectableKpiKeys]}
-                        onCheckedChange={(checked) =>
-                        setSelectedKpis((prev) => ({ ...prev, [kpi.key]: Boolean(checked) }))
-                        }
-                    >
-                        {kpi.label}
-                    </DropdownMenuCheckboxItem>
-                    ))}
-                </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Select value={String(selectedPeriod)} onValueChange={(value) => setSelectedPeriod(Number(value))}>
+                <SelectTrigger className="w-full sm:w-[160px] h-9 text-xs">
+                  <SelectValue placeholder="Select period" />
+                </SelectTrigger>
+                <SelectContent>
+                  {periodOptions.map((option) => (
+                    <SelectItem key={option.value} value={String(option.value)} className="text-xs">
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto h-9 text-xs">
+                          <SlidersHorizontal className="mr-2 h-4 w-4" />
+                          Display KPIs
+                      </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56">
+                      <DropdownMenuLabel>Select KPIs to Display</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {trendableKpis.map((kpi) => (
+                      <DropdownMenuCheckboxItem
+                          key={kpi.key}
+                          checked={selectedKpis[kpi.key as SelectableKpiKeys]}
+                          onCheckedChange={(checked) =>
+                          setSelectedKpis((prev) => ({ ...prev, [kpi.key]: Boolean(checked) }))
+                          }
+                      >
+                          {kpi.label}
+                      </DropdownMenuCheckboxItem>
+                      ))}
+                  </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -148,7 +175,6 @@ export function KpiTrendChart() {
           </ResponsiveContainer>
         </ChartContainer>
       </CardContent>
-      {/* CardFooter removed as projections are no longer displayed */}
     </Card>
   );
 }
