@@ -1,4 +1,5 @@
 
+
 "use client"; 
 
 import { useState, useEffect, useMemo } from 'react';
@@ -10,7 +11,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Filter, Settings, Loader2 as PageLoader, Activity, Users as UsersIcon, CalendarClock } from "lucide-react"; 
+import { CalendarIcon, Filter, Settings, Loader2 as PageLoader, Activity, Users as UsersIcon, CalendarClock, RefreshCw } from "lucide-react"; 
 import { cn } from "@/lib/utils";
 import { format, parseISO, startOfToday } from "date-fns"; 
 import { Label } from '@/components/ui/label';
@@ -21,7 +22,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, getDoc, Timestamp, orderBy } from 'firebase/firestore';
 import type { KpiThreshold, KpiVisibilitySettings, SheProgram, SheMeeting } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const mockLocations = ["All Locations", "Warehouse A", "Office Block", "Factory Floor", "Loading Bay"];
@@ -47,6 +48,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter(); 
+  const queryClient = useQueryClient();
 
   const [selectedLocation, setSelectedLocation] = useState<string | undefined>(mockLocations[0]);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(mockCategories[0]);
@@ -56,6 +58,7 @@ export default function DashboardPage() {
   const [kpiThresholds, setKpiThresholds] = useState<KpiThreshold[]>([]);
   const [kpiVisibility, setKpiVisibility] = useState<Record<string, boolean>>({});
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [isRefreshingEvents, setIsRefreshingEvents] = useState(false);
   
 
   // Fetch thresholds and visibility settings
@@ -173,6 +176,19 @@ export default function DashboardPage() {
   }, [upcomingPrograms, upcomingMeetingsData]);
 
   const isLoadingUpcomingEvents = isLoadingPrograms || isLoadingMeetings;
+
+  const handleRefreshEvents = async () => {
+    setIsRefreshingEvents(true);
+    try {
+      await queryClient.invalidateQueries({ queryKey: [PROGRAMS_COLLECTION, 'upcoming', user?.uid] });
+      await queryClient.invalidateQueries({ queryKey: [MEETINGS_COLLECTION, 'upcoming', user?.uid] });
+      toast({ title: "Events Refreshed", description: "Upcoming SHE events have been updated."});
+    } catch (e) {
+      toast({ title: "Error Refreshing", description: "Could not refresh events.", variant: "destructive"});
+    } finally {
+      setIsRefreshingEvents(false);
+    }
+  };
 
 
   return (
@@ -323,9 +339,14 @@ export default function DashboardPage() {
         </Card>
 
         <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><CalendarClock className="h-5 w-5 text-primary"/>Upcoming SHE Events</CardTitle>
-                <CardDescription>Key programs and meetings on the horizon.</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div className="flex-grow">
+                    <CardTitle className="flex items-center gap-2"><CalendarClock className="h-5 w-5 text-primary"/>Upcoming SHE Events</CardTitle>
+                    <CardDescription>Key programs and meetings on the horizon.</CardDescription>
+                </div>
+                <Button variant="ghost" size="icon" onClick={handleRefreshEvents} disabled={isRefreshingEvents} title="Refresh Events">
+                    {isRefreshingEvents ? <PageLoader className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                </Button>
             </CardHeader>
             <CardContent>
                 {isLoadingUpcomingEvents ? (
@@ -364,3 +385,4 @@ export default function DashboardPage() {
 }
 
     
+
