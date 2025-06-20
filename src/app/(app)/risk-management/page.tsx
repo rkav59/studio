@@ -268,11 +268,11 @@ export default function RiskManagementPage() {
       <Card className="shadow-lg overflow-hidden">
         <div className="relative h-60 w-full">
           <Image
-            src="https://placehold.co/1200x400.png"
+            src="https://placehold.co/1200x300.png" 
             alt="Risk matrix and safety gear"
             layout="fill"
             objectFit="cover"
-            data-ai-hint="risk assessment safety"
+            data-ai-hint="risk management safety"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           <div className="absolute bottom-0 left-0 p-6">
