@@ -169,17 +169,16 @@ export function IncidentForm({ initialData, onSave, onCancel, isSubmitting }: In
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="classification" render={({ field }) => (
                     <FormItem><FormLabel className="flex items-center gap-1"><Briefcase className="h-4 w-4"/>Classification (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select classification" /></SelectTrigger></FormControl>
                         <SelectContent>{incidentClassifications.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                     </Select><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="severityLevel" render={({ field }) => (
                     <FormItem><FormLabel className="flex items-center gap-1"><BarChart3 className="h-4 w-4"/>Severity (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select severity level" /></SelectTrigger></FormControl>
                         <SelectContent>
-                             {/* <SelectItem value="">N/A</SelectItem>  Removed this line to fix the error */}
                              {Object.keys(severityLevels).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                         </SelectContent>
                     </Select><FormMessage /></FormItem>
