@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react'; // Added useMemo
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, Save, Loader2 as FormLoader, ArrowLeft } from "lucide-react"; // Renamed Loader2
+import { Settings, Save, Loader2 as FormLoader, ArrowLeft } from "lucide-react";
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
@@ -23,12 +23,11 @@ import type { KpiThreshold } from '@/lib/types';
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { kpiInfoMap } from "@/components/dashboard/overview-cards"; // Import kpiInfoMap
+import { kpiInfoMap } from "@/components/dashboard/overview-cards";
 import { useRouter } from 'next/navigation';
 
 const KPI_THRESHOLDS_COLLECTION = 'kpiThresholds';
 
-// Zod schema for a single threshold item
 const kpiThresholdItemSchema = z.object({
   kpiKey: z.string(),
   title: z.string(),
@@ -36,7 +35,6 @@ const kpiThresholdItemSchema = z.object({
   targetDirection: z.enum(['above', 'below'], {errorMap: () => ({ message: "Please select target direction." })}).optional(),
 });
 
-// Zod schema for the array of thresholds
 const kpiThresholdsFormSchema = z.object({
   thresholds: z.array(kpiThresholdItemSchema),
 });
@@ -51,15 +49,14 @@ export default function KpiSettingsPage() {
   const [isThresholdLoading, setIsThresholdLoading] = useState(true);
   const [isThresholdSaving, setIsThresholdSaving] = useState(false);
   
-  // Prepare initial values for the threshold form based on kpiInfoMap
-  const defaultThresholdFormValues: KpiThresholdsFormValues = {
+  const defaultThresholdFormValues = useMemo<KpiThresholdsFormValues>(() => ({
     thresholds: Object.keys(kpiInfoMap).map(key => ({
       kpiKey: key,
       title: kpiInfoMap[key].title || key,
       value: undefined,
-      targetDirection: kpiInfoMap[key].defaultTargetDirection, // Use default from kpiInfoMap
+      targetDirection: kpiInfoMap[key].defaultTargetDirection,
     })),
-  };
+  }), []); // Empty dependency array: memoize and compute once
 
   const thresholdForm = useForm<KpiThresholdsFormValues>({
     resolver: zodResolver(kpiThresholdsFormSchema),
@@ -71,7 +68,6 @@ export default function KpiSettingsPage() {
     name: "thresholds",
   });
 
-  // Fetch thresholds
   useEffect(() => {
     if (!user?.uid) return;
     const fetchThresholds = async () => {
@@ -100,7 +96,7 @@ export default function KpiSettingsPage() {
       }
     };
     fetchThresholds();
-  }, [user?.uid, thresholdForm, toast, defaultThresholdFormValues.thresholds]);
+  }, [user?.uid, thresholdForm, toast, defaultThresholdFormValues.thresholds]); // defaultThresholdFormValues.thresholds is now stable
 
   const onSaveThresholds = async (data: KpiThresholdsFormValues) => {
     if (!user?.uid) return;
@@ -208,3 +204,4 @@ export default function KpiSettingsPage() {
     </div>
   );
 }
+
