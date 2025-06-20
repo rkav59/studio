@@ -1,5 +1,4 @@
 
-
 "use client"; 
 
 import { useState, useEffect, useMemo } from 'react';
@@ -13,7 +12,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon, Filter, Settings, Loader2 as PageLoader, Activity, Users as UsersIcon, CalendarClock, RefreshCw } from "lucide-react"; 
 import { cn } from "@/lib/utils";
-import { format, parseISO, startOfToday } from "date-fns"; 
+import { format, parseISO, startOfToday, isValid } from "date-fns"; 
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useAuth } from '@/contexts/auth-context';
@@ -103,29 +102,57 @@ export default function DashboardPage() {
     queryKey: [PROGRAMS_COLLECTION, 'upcoming', user?.uid],
     queryFn: async () => {
       if (!user?.uid) return [];
-      const today = Timestamp.fromDate(startOfToday());
+      const today = startOfToday(); 
+
       const q = query(
         collection(db, PROGRAMS_COLLECTION),
         where("userId", "==", user.uid),
-        // We fetch both planned and ongoing. Filtering for 'endDate' if ongoing, or 'startDate' for planned will be done client-side
-        // as Firestore doesn't support complex OR on different fields effectively.
         where("status", "in", ["Planned", "Ongoing"]),
         orderBy("startDate", "asc") 
       );
       const snapshot = await getDocs(q);
-      return snapshot.docs
-        .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as SheProgram))
-        .filter(program => {
-            const progStartDate = parseISO(program.startDate);
-            if (program.status === 'Planned') {
-                return progStartDate >= startOfToday();
+      
+      const mappedPrograms = snapshot.docs.map(docSnap => {
+          const data = docSnap.data();
+          // Ensure dates are consistently ISO strings or null if invalid/missing
+          const startDateISO = data.startDate instanceof Timestamp 
+                               ? data.startDate.toDate().toISOString() 
+                               : (typeof data.startDate === 'string' && isValid(parseISO(data.startDate)) ? data.startDate : null);
+          const endDateISO = data.endDate instanceof Timestamp 
+                             ? data.endDate.toDate().toISOString() 
+                             : (typeof data.endDate === 'string' && isValid(parseISO(data.endDate)) ? data.endDate : null);
+          
+          return { 
+              id: docSnap.id, 
+              ...data, 
+              startDate: startDateISO, 
+              endDate: endDateISO     
+          } as SheProgram; 
+      });
+
+      // Client-side filtering for "upcoming" based on JS Dates
+      return mappedPrograms.filter(program => {
+        if (!program.startDate || !isValid(parseISO(program.startDate))) {
+          // console.warn(`Program ${program.id} filtered out due to invalid or missing startDate: ${program.startDate}`);
+          return false; // Skip if startDate is invalid or missing
+        }
+        const progStartDate = parseISO(program.startDate);
+
+        if (program.status === 'Planned') {
+          return progStartDate >= today;
+        }
+        if (program.status === 'Ongoing') {
+          if (program.endDate) { // If there's an end date
+            if (!isValid(parseISO(program.endDate))) {
+                // console.warn(`Program ${program.id} filtered out due to invalid endDate: ${program.endDate}`);
+                return false; // Skip if endDate is invalid
             }
-            if (program.status === 'Ongoing') {
-                // Include ongoing programs unless their end date has passed
-                return !program.endDate || parseISO(program.endDate) >= startOfToday();
-            }
-            return false;
-        });
+            return parseISO(program.endDate) >= today; // Must not have ended yet
+          }
+          return true; // Ongoing with no end date means it's current
+        }
+        return false; // Should not happen if query restricts status
+      });
     },
     enabled: !!user?.uid,
   });
@@ -135,15 +162,35 @@ export default function DashboardPage() {
     queryKey: [MEETINGS_COLLECTION, 'upcoming', user?.uid],
     queryFn: async () => {
       if (!user?.uid) return [];
-      const today = Timestamp.fromDate(startOfToday());
+      const todayForQuery = Timestamp.fromDate(startOfToday()); // Firestore Timestamp for query
       const q = query(
         collection(db, MEETINGS_COLLECTION),
         where("userId", "==", user.uid),
-        where("meetingDate", ">=", today),
+        where("meetingDate", ">=", todayForQuery), // Query for meetingDate on or after start of today
         orderBy("meetingDate", "asc")
       );
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as SheMeeting));
+      return snapshot.docs.map(docSnap => {
+          const data = docSnap.data();
+          // Ensure meetingDate is consistently an ISO string or null
+          const meetingDateISO = data.meetingDate instanceof Timestamp 
+                                 ? data.meetingDate.toDate().toISOString() 
+                                 : (typeof data.meetingDate === 'string' && isValid(parseISO(data.meetingDate)) ? data.meetingDate : null);
+          
+          const actionItems = (data.actionItems || []).map((ai: any) => ({
+            ...ai,
+            dueDate: ai.dueDate instanceof Timestamp 
+                     ? ai.dueDate.toDate().toISOString() 
+                     : (typeof ai.dueDate === 'string' && isValid(parseISO(ai.dueDate)) ? ai.dueDate : null),
+          }));
+
+          return { 
+            id: docSnap.id, 
+            ...data, 
+            meetingDate: meetingDateISO,
+            actionItems
+          } as SheMeeting;
+      }).filter(meeting => meeting.meetingDate != null && isValid(parseISO(meeting.meetingDate))); // Filter out meetings with invalid/missing dates post-mapping
     },
     enabled: !!user?.uid,
   });
@@ -151,28 +198,37 @@ export default function DashboardPage() {
   const upcomingEvents = useMemo(() => {
     const events: UpcomingEvent[] = [];
     upcomingPrograms.forEach(program => {
-      events.push({
-        id: program.id,
-        type: 'Program',
-        title: program.programName,
-        date: program.startDate,
-        dateDisplay: format(parseISO(program.startDate), "MMM d, yyyy"),
-        icon: Activity,
-        path: `/she-meetings#program-${program.id}` // Example path
-      });
+      if (program.startDate && isValid(parseISO(program.startDate))) {
+        events.push({
+          id: program.id,
+          type: 'Program',
+          title: program.programName,
+          date: program.startDate, // This is already a validated ISO string or null
+          dateDisplay: format(parseISO(program.startDate), "MMM d, yyyy"),
+          icon: Activity,
+          path: `/she-meetings#program-${program.id}`
+        });
+      }
     });
     upcomingMeetingsData.forEach(meeting => {
-      events.push({
-        id: meeting.id,
-        type: 'Meeting',
-        title: meeting.title,
-        date: meeting.meetingDate,
-        dateDisplay: format(parseISO(meeting.meetingDate), "MMM d, yyyy 'at' p"),
-        icon: UsersIcon,
-        path: `/she-meetings#meeting-${meeting.id}` // Example path
-      });
+      if (meeting.meetingDate && isValid(parseISO(meeting.meetingDate))) { // meeting.meetingDate is already validated ISO string or null
+        events.push({
+          id: meeting.id,
+          type: 'Meeting',
+          title: meeting.title,
+          date: meeting.meetingDate, 
+          dateDisplay: format(parseISO(meeting.meetingDate), "MMM d, yyyy 'at' p"),
+          icon: UsersIcon,
+          path: `/she-meetings#meeting-${meeting.id}`
+        });
+      }
     });
-    return events.sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime()).slice(0, 5); // Show top 5
+    return events.sort((a, b) => {
+        // Dates are already confirmed valid ISO strings by the time they are pushed to events array
+        const dateA = parseISO(a.date).getTime();
+        const dateB = parseISO(b.date).getTime();
+        return dateA - dateB;
+    }).slice(0, 5);
   }, [upcomingPrograms, upcomingMeetingsData]);
 
   const isLoadingUpcomingEvents = isLoadingPrograms || isLoadingMeetings;
