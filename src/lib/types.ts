@@ -770,6 +770,16 @@ export interface KpiThreshold {
 }
 // --- End KPI Threshold Type ---
 
+// --- KPI Visibility Settings Type ---
+export interface KpiVisibilitySettings {
+  id: string; // Document ID will be userId
+  userId: string;
+  visibility: Record<string, boolean>; // e.g., { "TRIR": true, "NMFR": false }
+  lastUpdated: string; // ISO string for timestamp
+}
+// --- End KPI Visibility Settings Type ---
+
+
 // --- KPI AI Recommendation Types ---
 export interface KpiRecommendationInput {
   kpiKey: string;

@@ -1,7 +1,7 @@
 
 "use client"; 
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { OverviewCards, kpiInfoMap } from "@/components/dashboard/overview-cards";
 import { KpiTrendChart } from "@/components/dashboard/kpi-trend-chart";
 import { SuggestIndicatorForm } from "@/components/dashboard/suggest-indicator-form";
@@ -12,26 +12,27 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon, Filter, Settings, Loader2 as PageLoader } from "lucide-react"; // Renamed Loader2
 import { cn } from "@/lib/utils";
-import { format } from "date-fns"; // Removed parseISO as it's not used here directly anymore
+import { format } from "date-fns"; 
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import type { KpiThreshold } from '@/lib/types';
-import { useRouter } from 'next/navigation'; // Added useRouter
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore'; // Added doc, getDoc
+import type { KpiThreshold, KpiVisibilitySettings } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 
 
 const mockLocations = ["All Locations", "Warehouse A", "Office Block", "Factory Floor", "Loading Bay"];
 const mockCategories = ["All Categories", "Incident", "Near Miss", "Hazard"];
 
 const KPI_THRESHOLDS_COLLECTION = 'kpiThresholds';
+const KPI_VISIBILITY_COLLECTION = 'kpiVisibilitySettings'; // New collection name
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const router = useRouter(); // Initialize router
+  const router = useRouter(); 
 
   const [selectedLocation, setSelectedLocation] = useState<string | undefined>(mockLocations[0]);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(mockCategories[0]);
@@ -39,31 +40,46 @@ export default function DashboardPage() {
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   
   const [kpiThresholds, setKpiThresholds] = useState<KpiThreshold[]>([]);
-  const [isThresholdLoading, setIsThresholdLoading] = useState(true);
+  const [kpiVisibility, setKpiVisibility] = useState<Record<string, boolean>>({});
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   
 
-  // Fetch thresholds - this is still needed for OverviewCards to function correctly
+  // Fetch thresholds and visibility settings
   useEffect(() => {
     if (!user?.uid) return;
-    const fetchThresholds = async () => {
-      setIsThresholdLoading(true);
+    const fetchAllSettings = async () => {
+      setIsLoadingSettings(true);
       try {
-        const q = query(collection(db, KPI_THRESHOLDS_COLLECTION), where("userId", "==", user.uid));
-        const querySnapshot = await getDocs(q);
+        // Fetch Thresholds
+        const thresholdQuery = query(collection(db, KPI_THRESHOLDS_COLLECTION), where("userId", "==", user.uid));
+        const thresholdSnapshot = await getDocs(thresholdQuery);
         const fetchedThresholds: KpiThreshold[] = [];
-        querySnapshot.forEach((docSnap) => {
+        thresholdSnapshot.forEach((docSnap) => {
           fetchedThresholds.push({ id: docSnap.id, ...docSnap.data() } as KpiThreshold);
         });
         setKpiThresholds(fetchedThresholds);
+
+        // Fetch Visibility Settings
+        const visibilityDocRef = doc(db, KPI_VISIBILITY_COLLECTION, user.uid);
+        const visibilitySnap = await getDoc(visibilityDocRef);
+        if (visibilitySnap.exists()) {
+          setKpiVisibility(visibilitySnap.data().visibility || {});
+        } else {
+          // Default to all visible if no settings found
+          const defaultVisibility: Record<string, boolean> = {};
+          Object.keys(kpiInfoMap).forEach(key => defaultVisibility[key] = true);
+          setKpiVisibility(defaultVisibility);
+        }
+
       } catch (error) {
-        console.error("Error fetching KPI thresholds for dashboard display:", error);
-        // Toast is optional here, as settings page handles direct user feedback for load errors
+        console.error("Error fetching KPI settings for dashboard:", error);
+        toast({ title: "Error", description: "Could not load KPI settings.", variant: "destructive" });
       } finally {
-        setIsThresholdLoading(false);
+        setIsLoadingSettings(false);
       }
     };
-    fetchThresholds();
-  }, [user?.uid]);
+    fetchAllSettings();
+  }, [user?.uid, toast]);
 
 
   return (
@@ -72,11 +88,15 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard</h1>
         <Button variant="outline" onClick={() => router.push('/dashboard/kpi-settings')}>
           <Settings className="mr-2 h-4 w-4" />
-          Configure KPI Thresholds
+          Configure KPI Settings
         </Button>
       </div>
       
-      <OverviewCards kpiThresholds={kpiThresholds} isLoadingThresholds={isThresholdLoading} />
+      <OverviewCards 
+        kpiThresholds={kpiThresholds} 
+        kpiVisibility={kpiVisibility}
+        isLoadingSettings={isLoadingSettings} 
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -176,8 +196,6 @@ export default function DashboardPage() {
         <KpiTrendChart />
       </div>
       
-      {/* KPI Threshold Settings Card is Removed from here */}
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"> 
         <Card>
           <CardHeader>
