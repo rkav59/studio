@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, CalendarRange, Users, ListChecks, Activity, Settings, Loader2, ClockIcon, AlertTriangle, CheckCircle, Download } from "lucide-react"; // Added Download
+import { PlusCircle, Edit2, Trash2, Eye, CalendarRange, Users, ListChecks, Activity, Settings, Loader2, ClockIcon, AlertTriangle, CheckCircle, Download, RefreshCw } from "lucide-react"; // Added RefreshCw
 import type { SheProgram, SheMeeting, MeetingActionItem, MeetingActionItemStatus } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid, isBefore, differenceInDays } from 'date-fns';
@@ -33,6 +33,7 @@ export default function SheMeetingsPage() {
 
   const [viewingProgram, setViewingProgram] = useState<SheProgram | null>(null);
   const [viewingMeeting, setViewingMeeting] = useState<SheMeeting | null>(null);
+  const [isRefreshingUpcomingMeetings, setIsRefreshingUpcomingMeetings] = useState(false); // State for upcoming meetings refresh
 
   // Fetch SHE Programs
   const { data: programs = [], isLoading: isLoadingPrograms, error: programsError } = useQuery<SheProgram[]>({
@@ -301,6 +302,17 @@ export default function SheMeetingsPage() {
     toast({ title: "Template Downloaded", description: "SHE_Meeting_Minutes_Template.html has been downloaded. You can open it with Microsoft Word." });
   };
 
+  const handleRefreshUpcomingMeetings = async () => {
+    setIsRefreshingUpcomingMeetings(true);
+    try {
+      await queryClient.invalidateQueries({ queryKey: [MEETINGS_COLLECTION, user?.uid] });
+      toast({ title: "Upcoming Meetings Refreshed", description: "The list of upcoming meetings has been updated." });
+    } catch (e) {
+      toast({ title: "Error Refreshing Meetings", description: "Could not refresh upcoming meetings.", variant: "destructive" });
+    } finally {
+      setIsRefreshingUpcomingMeetings(false);
+    }
+  };
 
   const isLoading = isLoadingPrograms || isLoadingMeetings;
   const anyError = programsError || meetingsError;
@@ -333,8 +345,11 @@ export default function SheMeetingsPage() {
       {/* Reminders Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2"><CalendarRange className="h-6 w-6 text-blue-500"/>Upcoming Meetings (Next {UPCOMING_MEETING_DAYS_THRESHOLD} Days)</CardTitle>
+            <Button variant="ghost" size="icon" onClick={handleRefreshUpcomingMeetings} disabled={isRefreshingUpcomingMeetings} title="Refresh Upcoming Meetings">
+                {isRefreshingUpcomingMeetings ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            </Button>
           </CardHeader>
           <CardContent>
             {upcomingMeetings.length === 0 ? (
