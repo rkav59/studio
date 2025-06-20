@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -320,10 +321,10 @@ export default function SheMeetingsPage() {
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
             <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-accent"/>SHE Meetings</CardTitle>
-            <CardDescription>Log and track minutes and actions for various SHE meetings.</CardDescription>
+            <CardDescription>Schedule upcoming meetings, including agenda and attendees. After meetings, update them to log minutes, track outcomes, and manage action items.</CardDescription>
           </div>
           <Button onClick={handleOpenNewMeetingForm} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            <PlusCircle className="mr-2 h-4 w-4" /> Add New Meeting
+            <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Meeting
           </Button>
         </CardHeader>
         <CardContent>

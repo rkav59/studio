@@ -101,6 +101,7 @@ export function SheMeetingForm({ programs, initialData, onSave, onCancel, isSubm
   });
 
   const watchedLinkedProgramId = form.watch("linkedProgramId");
+  const currentMeetingStatus = initialData?.status; // Assuming SheMeeting has a status field if needed for more dynamic form
 
   useEffect(() => {
     if (watchedLinkedProgramId && watchedLinkedProgramId !== NO_PROGRAM_VALUE) {
@@ -122,6 +123,9 @@ export function SheMeetingForm({ programs, initialData, onSave, onCancel, isSubm
     };
     onSave(meetingToSave);
   };
+
+  const isSchedulingPhase = !initialData || (initialData && (initialData as any).status === 'Planned'); // A simple way to check phase
+
 
   return (
     <Form {...form}>
@@ -167,7 +171,7 @@ export function SheMeetingForm({ programs, initialData, onSave, onCancel, isSubm
 
 
                 <Separator className="my-6"/>
-                <h3 className="text-lg font-medium text-muted-foreground">Meeting Content (Optional)</h3>
+                <h3 className="text-lg font-medium text-muted-foreground">Meeting Content {isSchedulingPhase && <span className="text-sm font-normal text-muted-foreground/80">(Typically filled after meeting)</span>}</h3>
 
                 <FormField control={form.control} name="agenda" render={({ field }) => (
                     <FormItem><FormLabel>Agenda</FormLabel><FormControl><Textarea placeholder="Key topics and agenda items..." rows={4} {...field} /></FormControl><FormMessage /></FormItem>
@@ -178,7 +182,12 @@ export function SheMeetingForm({ programs, initialData, onSave, onCancel, isSubm
 
                 <Separator className="my-6"/>
                 <Card className="bg-muted/30">
-                    <CardHeader className="pb-3"><CardTitle className="text-md flex items-center gap-2"><ClipboardList className="h-5 w-5"/>Action Items</CardTitle><UiCardDescription>Track follow-up actions arising from the meeting.</UiCardDescription></CardHeader>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-md flex items-center gap-2">
+                            <ClipboardList className="h-5 w-5"/>Action Items {isSchedulingPhase && <span className="text-sm font-normal text-muted-foreground/80">(Typically added during/after meeting)</span>}
+                        </CardTitle>
+                        <UiCardDescription>Track follow-up actions arising from the meeting.</UiCardDescription>
+                    </CardHeader>
                     <CardContent className="space-y-3">
                         {actionItemFields.map((item, index) => (
                             <Card key={item.id} className="p-3 bg-background shadow-sm space-y-3">
@@ -226,3 +235,4 @@ export function SheMeetingForm({ programs, initialData, onSave, onCancel, isSubm
     </Form>
   );
 }
+
