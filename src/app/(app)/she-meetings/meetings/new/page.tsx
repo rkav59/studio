@@ -46,6 +46,8 @@ export default function NewSheMeetingPage() {
           ...ai,
           dueDate: ai.dueDate ? Timestamp.fromDate(parseISO(ai.dueDate as string)) : null,
         })),
+        linkedProgramId: newMeetingData.linkedProgramId || null, // Convert undefined to null
+        linkedProgramName: newMeetingData.linkedProgramName || null, // Convert undefined to null
       };
       return addDoc(collection(db, MEETINGS_COLLECTION), dataForDb);
     },

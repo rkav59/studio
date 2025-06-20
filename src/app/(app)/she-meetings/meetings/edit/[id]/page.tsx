@@ -74,6 +74,8 @@ export default function EditSheMeetingPage() {
           ...ai,
           dueDate: ai.dueDate ? Timestamp.fromDate(parseISO(ai.dueDate as string)) : null,
         })),
+        linkedProgramId: dataToUpdate.linkedProgramId || null, // Convert undefined to null
+        linkedProgramName: dataToUpdate.linkedProgramName || null, // Convert undefined to null
       };
       await updateDoc(meetingRef, dataForDb);
     },
