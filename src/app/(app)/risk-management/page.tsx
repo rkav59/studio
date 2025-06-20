@@ -48,7 +48,7 @@ export default function RiskManagementPage() {
   const router = useRouter();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [viewingIncident, setViewingIncident] = useState<Incident | null>(null); // New state for incident details dialog
+  const [viewingIncident, setViewingIncident] = useState<Incident | null>(null); 
 
   // Fetch Incidents
   const { data: incidents = [], isLoading: isLoadingIncidents, error: incidentsError } = useQuery<Incident[]>({
@@ -273,6 +273,7 @@ export default function RiskManagementPage() {
             layout="fill"
             objectFit="cover"
             data-ai-hint="risk management safety"
+            className="transform -scale-y-100"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           <div className="absolute bottom-0 left-0 p-6">
@@ -343,53 +344,22 @@ export default function RiskManagementPage() {
             <CardDescription>Manually log hazards and conduct detailed risk assessments to understand and prioritize risks based on likelihood and severity. These tools support the core ISO 31000 risk assessment process.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-            {/* Manual Hazard Log Sub-Section */}
-            <Card className="bg-muted/20">
-                <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
-                    <div>
-                        <CardTitle className="text-lg flex items-center gap-2"><Target className="h-5 w-5 text-red-500"/>Hazard Identification</CardTitle>
-                        <CardDescription className="text-xs">Use this to quickly log hazards observed on site or reported (ISO 31000: Risk Identification). These can later be linked to detailed risk assessments.</CardDescription>
-                    </div>
-                    <Button onClick={() => router.push('/risk-management/hazards/new')} className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1.5">
-                        <PlusCircle className="mr-2 h-3 w-3" /> Log New Hazard
-                    </Button>
-                </CardHeader>
-                <CardContent>
-                    {manualHazards.length === 0 ? (
-                        <p className="text-muted-foreground text-center text-sm py-3">No manual hazards logged yet.</p>
-                    ) : (
-                        <ScrollArea className="max-h-[200px] pr-2">
-                            <div className="space-y-2">
-                                {manualHazards.slice(0,3).map(hazard => (
-                                    <Card key={hazard.id} className="p-2 shadow-sm text-xs">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <h4 className="font-semibold text-sm truncate max-w-xs">{hazard.hazardDescription}</h4>
-                                                <p className="text-muted-foreground">Activity: {hazard.activityDescription.substring(0,50)}...</p>
-                                            </div>
-                                            <div className="flex gap-1 shrink-0">
-                                                <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => router.push(`/risk-management/hazards/edit/${hazard.id}`)}><Edit2 className="h-3 w-3"/></Button>
-                                            </div>
-                                        </div>
-                                    </Card>
-                                ))}
-                                {manualHazards.length > 3 && <p className="text-center text-xs text-muted-foreground mt-2">...and {manualHazards.length - 3} more.</p>}
-                            </div>
-                        </ScrollArea>
-                    )}
-                </CardContent>
-            </Card>
-
+            <div className="flex flex-col sm:flex-row gap-4">
+                <Button onClick={() => router.push('/risk-management/hazards/new')} className="flex-1 bg-red-500 hover:bg-red-600 text-white">
+                    <Target className="mr-2 h-4 w-4" /> Log New Hazard
+                </Button>
+                <Button onClick={() => router.push('/risk-management/assessments/new')} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
+                    <FileSignature className="mr-2 h-4 w-4" /> Conduct New Risk Assessment
+                </Button>
+            </div>
+            
             {/* Manual Risk Assessments Sub-Section */}
             <Card className="bg-muted/20 mt-4">
                 <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
                     <div>
-                        <CardTitle className="text-lg flex items-center gap-2"><FileSignature className="h-5 w-5 text-purple-600"/>Risk Assessments</CardTitle>
-                        <CardDescription className="text-xs">Perform systematic risk assessments using the defined matrix (ISO 31000: Risk Analysis & Evaluation). Document controls, calculate residual risk, and track actions.</CardDescription>
+                        <CardTitle className="text-lg flex items-center gap-2"><FileSignature className="h-5 w-5 text-purple-600"/>Existing Risk Assessments</CardTitle>
+                        <CardDescription className="text-xs">Review and manage previously conducted systematic risk assessments.</CardDescription>
                     </div>
-                    <Button onClick={() => router.push('/risk-management/assessments/new')} className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5">
-                        <PlusCircle className="mr-2 h-3 w-3" /> New Assessment
-                    </Button>
                 </CardHeader>
                 <CardContent>
                      {manualRiskAssessments.length === 0 ? (
@@ -397,7 +367,7 @@ export default function RiskManagementPage() {
                     ) : (
                         <ScrollArea className="max-h-[200px] pr-2">
                             <div className="space-y-2">
-                                {manualRiskAssessments.slice(0,3).map(assessment => (
+                                {manualRiskAssessments.slice(0,5).map(assessment => ( // Show up to 5
                                     <Card key={assessment.id} className="p-2 shadow-sm text-xs">
                                         <div className="flex justify-between items-start">
                                             <div>
@@ -410,7 +380,7 @@ export default function RiskManagementPage() {
                                         </div>
                                     </Card>
                                 ))}
-                                {manualRiskAssessments.length > 3 && <p className="text-center text-xs text-muted-foreground mt-2">...and {manualRiskAssessments.length - 3} more.</p>}
+                                {manualRiskAssessments.length > 5 && <p className="text-center text-xs text-muted-foreground mt-2">...and {manualRiskAssessments.length - 5} more.</p>}
                             </div>
                         </ScrollArea>
                     )}
@@ -583,3 +553,4 @@ export default function RiskManagementPage() {
 }
 
     
+
