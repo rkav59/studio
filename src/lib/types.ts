@@ -770,6 +770,25 @@ export interface KpiThreshold {
 }
 // --- End KPI Threshold Type ---
 
+// --- KPI AI Recommendation Types ---
+export interface KpiRecommendationInput {
+  kpiKey: string;
+  kpiTitle: string;
+  currentValue: number | string;
+  thresholdValue: number;
+  targetDirection: 'above' | 'below';
+  kpiDefinition: string;
+  kpiRelevance: string;
+}
+
+export interface KpiRecommendationOutput {
+  suggestedActions: string[]; // Array of actionable recommendations
+  reasoning: string; // Overall reasoning for the suggestions
+  // Example of more structured output if needed later:
+  // recommendations: Array<{ action: string; rationale: string; category?: string; difficulty?: 'Low' | 'Medium' | 'High' }>;
+}
+// --- End KPI AI Recommendation Types ---
+
 
 // --- Global App Types (Can be used across modules) ---
 // (Consider moving types here if they are shared by more than 2-3 modules)

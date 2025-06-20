@@ -2,12 +2,26 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks, UsersRound, Biohazard, Ear, UserX, Presentation, Hourglass, Skull, Car, GraduationCap, ClipboardCheck, Eye, Lightbulb, Footprints, AlertCircleIcon } from "lucide-react"; 
+import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks, UsersRound, Biohazard, Ear, UserX, Presentation, Hourglass, Skull, Car, GraduationCap, ClipboardCheck, Eye, Lightbulb, Footprints, BrainCircuit, Sparkles, Loader2 as KpiLoader } from "lucide-react"; 
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator"; 
-import type { KpiThreshold } from '@/lib/types'; // Import KpiThreshold
+import type { KpiThreshold, KpiRecommendationInput, KpiRecommendationOutput } from '@/lib/types';
+import React, { useState, useMemo } from "react"; // Added useState and useMemo
+import { generateKpiRecommendation } from "@/ai/flows/generate-kpi-recommendation-flow";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription as UiAlertDescription, AlertTitle as UiAlertTitle } from "@/components/ui/alert";
 
 
 // Data structure for KPI details including a user-friendly title
@@ -151,26 +165,23 @@ interface KpiCardProps {
   kpiKey: string; 
   threshold?: number;
   targetDirection?: 'above' | 'below';
+  onGetAiRecommendation: (kpiDetails: KpiRecommendationInput) => void;
 }
 
-function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix = "", kpiKey, threshold, targetDirection }: KpiCardProps) {
+function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix = "", kpiKey, threshold, targetDirection, onGetAiRecommendation }: KpiCardProps) {
   const { toast } = useToast();
 
   let isDesirable = true;
-  let valueColor = "text-foreground"; // Default color
+  let valueColor = "text-foreground"; 
 
   if (threshold !== undefined && targetDirection !== undefined && typeof value === 'number') {
     if (targetDirection === 'below') {
       isDesirable = value <= threshold;
-    } else { // targetDirection === 'above'
+    } else { 
       isDesirable = value >= threshold;
     }
     valueColor = isDesirable ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400";
-  } else if (threshold !== undefined && targetDirection !== undefined && typeof value === 'string') {
-    // Handle string values if necessary, e.g., convert to number or specific string comparisons
-    // For now, we assume numeric comparison for thresholds
   }
-
 
   let chartConfig: ChartConfig | undefined = undefined;
   if (pieData && pieData.length > 0) {
@@ -181,13 +192,13 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
   }
   const isDonut = pieData && pieData.length > 1;
 
-  const handleClick = () => {
+  const handleCardClick = () => {
     const details = kpiInfoMap[kpiKey];
     let thresholdInfo = "";
     if (threshold !== undefined && targetDirection !== undefined) {
         thresholdInfo = `\n\n**Current Threshold:** ${threshold} (Target: ${targetDirection === 'above' ? 'Higher' : 'Lower'} is better).`;
         if (!isDesirable) {
-            thresholdInfo += `\n**Status:** <span class="font-semibold text-red-600">This KPI is outside the desired range.</span> Consider reviewing related processes or data. AI-powered recommendations for improvement may be available in future updates.`;
+            thresholdInfo += `\n**Status:** <span class="font-semibold text-red-600">This KPI is outside the desired range.</span> Click the lightbulb icon on the card to get AI-powered improvement suggestions.`;
         } else {
             thresholdInfo += `\n**Status:** <span class="font-semibold text-green-600">This KPI is within the desired range.</span>`;
         }
@@ -214,9 +225,28 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
         });
     }
   };
+  
+  const handleRecommendationClick = (event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent card click event
+    const details = kpiInfoMap[kpiKey];
+    if (details && threshold !== undefined && targetDirection !== undefined && typeof value === 'number') {
+      onGetAiRecommendation({
+        kpiKey,
+        kpiTitle: title,
+        currentValue: value,
+        thresholdValue: threshold,
+        targetDirection,
+        kpiDefinition: details.definition,
+        kpiRelevance: details.relevance,
+      });
+    } else {
+      toast({ title: "Error", description: "Cannot get recommendation. KPI details or threshold missing.", variant: "destructive" });
+    }
+  };
+
 
   return (
-    <Card onClick={handleClick} className="cursor-pointer hover:shadow-lg transition-shadow duration-200 relative">
+    <Card onClick={handleCardClick} className="cursor-pointer hover:shadow-lg transition-shadow duration-200 relative">
        {threshold !== undefined && targetDirection !== undefined && (
         <div className={`absolute top-2 right-2 h-3 w-3 rounded-full ${isDesirable ? 'bg-green-500' : 'bg-red-500'}`} 
              title={`Status: ${isDesirable ? 'Meeting target' : 'Needs attention'}`} />
@@ -254,6 +284,17 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
         )}
         <div className={`text-2xl font-bold ${valueColor} ${pieData && pieData.length > 0 ? 'mt-2' : 'mt-2 mb-2'}`}>{value}{valueSuffix}</div>
         {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
+        {!isDesirable && threshold !== undefined && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRecommendationClick}
+            className="mt-2 text-xs text-accent hover:text-accent/90 h-auto p-1"
+            title="Get AI Recommendation"
+          >
+            <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
@@ -261,13 +302,41 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
 
 interface OverviewCardsProps {
   kpiThresholds: KpiThreshold[];
-  isLoadingThresholds: boolean; // To optionally show loading state or disable interactions
+  isLoadingThresholds: boolean; 
 }
 
 export function OverviewCards({ kpiThresholds, isLoadingThresholds }: OverviewCardsProps) {
+  const [isRecommendationLoading, setIsRecommendationLoading] = useState(false);
+  const [currentKpiForRecommendation, setCurrentKpiForRecommendation] = useState<KpiRecommendationInput | null>(null);
+  const [recommendationResult, setRecommendationResult] = useState<KpiRecommendationOutput | null>(null);
+  const [isRecommendationModalOpen, setIsRecommendationModalOpen] = useState(false);
+  const { toast } = useToast();
+
+
   const findThreshold = (kpiKey: string): KpiThreshold | undefined => {
     return kpiThresholds.find(t => t.kpiKey === kpiKey);
   };
+
+  const handleGetAiRecommendation = async (kpiDetails: KpiRecommendationInput) => {
+    setCurrentKpiForRecommendation(kpiDetails);
+    setIsRecommendationModalOpen(true);
+    setIsRecommendationLoading(true);
+    setRecommendationResult(null);
+    try {
+      const result = await generateKpiRecommendation(kpiDetails);
+      setRecommendationResult(result);
+    } catch (error) {
+      console.error("Error getting AI recommendation:", error);
+      setRecommendationResult({
+        suggestedActions: ["Failed to generate recommendations. Please try again later."],
+        reasoning: "An error occurred while contacting the AI service.",
+      });
+      toast({ title: "Error", description: "Could not fetch AI recommendations.", variant: "destructive" });
+    } finally {
+      setIsRecommendationLoading(false);
+    }
+  };
+
 
   // Mock data for general KPIs
   const trir = 2.1;
@@ -310,7 +379,7 @@ export function OverviewCards({ kpiThresholds, isLoadingThresholds }: OverviewCa
     { name: 'Compliant', value: hearingConservationCompliance, fill: 'hsl(var(--chart-4))' },
     { name: 'Non-Compliant', value: 100 - hearingConservationCompliance, fill: 'hsl(var(--muted))' }
   ];
-   const fitForDutyData = [ // Note: For non-compliance, lower is better. Threshold setup will handle this.
+   const fitForDutyData = [ 
     { name: 'Non-Compliant', value: fitForDutyNonCompliance, fill: 'hsl(var(--chart-5))' }, 
     { name: 'Compliant', value: 100 - fitForDutyNonCompliance, fill: 'hsl(var(--muted))' }
   ];
@@ -347,47 +416,99 @@ export function OverviewCards({ kpiThresholds, isLoadingThresholds }: OverviewCa
     <div className="space-y-6">
       <h2 className="text-xl font-semibold tracking-tight text-foreground/90">General SHEQ Performance Indicators</h2>
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-        <KpiCard title={kpiInfoMap["TRIR"].title} kpiKey="TRIR" value={trir.toFixed(1)} icon={Activity} description="per 200,000 hours worked" threshold={findThreshold("TRIR")?.value} targetDirection={findThreshold("TRIR")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["NMFR"].title} kpiKey="NMFR" value={nmfr.toFixed(1)} icon={TrendingUp} description="per 100 workers/month" threshold={findThreshold("NMFR")?.value} targetDirection={findThreshold("NMFR")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["SeverityRate"].title} kpiKey="SeverityRate" value={severityRate.toFixed(1)} icon={BedDouble} description="Lost days per 200k hours" threshold={findThreshold("SeverityRate")?.value} targetDirection={findThreshold("SeverityRate")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["FirstAidCases"].title} kpiKey="FirstAidCases" value={firstAidCases} icon={HeartPulse} description="Total this month" threshold={findThreshold("FirstAidCases")?.value} targetDirection={findThreshold("FirstAidCases")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["TRIR"].title} kpiKey="TRIR" value={trir.toFixed(1)} icon={Activity} description="per 200,000 hours worked" threshold={findThreshold("TRIR")?.value} targetDirection={findThreshold("TRIR")?.targetDirection || kpiInfoMap["TRIR"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["NMFR"].title} kpiKey="NMFR" value={nmfr.toFixed(1)} icon={TrendingUp} description="per 100 workers/month" threshold={findThreshold("NMFR")?.value} targetDirection={findThreshold("NMFR")?.targetDirection || kpiInfoMap["NMFR"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["SeverityRate"].title} kpiKey="SeverityRate" value={severityRate.toFixed(1)} icon={BedDouble} description="Lost days per 200k hours" threshold={findThreshold("SeverityRate")?.value} targetDirection={findThreshold("SeverityRate")?.targetDirection || kpiInfoMap["SeverityRate"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["FirstAidCases"].title} kpiKey="FirstAidCases" value={firstAidCases} icon={HeartPulse} description="Total this month" threshold={findThreshold("FirstAidCases")?.value} targetDirection={findThreshold("FirstAidCases")?.targetDirection || kpiInfoMap["FirstAidCases"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
         
-        <KpiCard title={kpiInfoMap["UnsafeActConditionReports"].title} kpiKey="UnsafeActConditionReports" value={unsafeActConditionReports} icon={AlertTriangle} description="Reports this month" threshold={findThreshold("UnsafeActConditionReports")?.value} targetDirection={findThreshold("UnsafeActConditionReports")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["IncidentClosureRate"].title} kpiKey="IncidentClosureRate" value={incidentClosureRate} pieData={incidentClosureRateData} icon={CheckCircle2} valueSuffix="%" description="Closed within target time" threshold={findThreshold("IncidentClosureRate")?.value} targetDirection={findThreshold("IncidentClosureRate")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["ToolboxTalkAttendance"].title} kpiKey="ToolboxTalkAttendance" value={toolboxTalkAttendance} pieData={toolboxTalkAttendanceData} icon={Users} valueSuffix="%" description="Average attendance" threshold={findThreshold("ToolboxTalkAttendance")?.value} targetDirection={findThreshold("ToolboxTalkAttendance")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["CorrectiveActionClosureRate"].title} kpiKey="CorrectiveActionClosureRate" value={correctiveActionClosureRate} pieData={correctiveActionClosureRateData} icon={ListChecks} valueSuffix="%" description="Closed by due date" threshold={findThreshold("CorrectiveActionClosureRate")?.value} targetDirection={findThreshold("CorrectiveActionClosureRate")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["UnsafeActConditionReports"].title} kpiKey="UnsafeActConditionReports" value={unsafeActConditionReports} icon={AlertTriangle} description="Reports this month" threshold={findThreshold("UnsafeActConditionReports")?.value} targetDirection={findThreshold("UnsafeActConditionReports")?.targetDirection || kpiInfoMap["UnsafeActConditionReports"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["IncidentClosureRate"].title} kpiKey="IncidentClosureRate" value={incidentClosureRate} pieData={incidentClosureRateData} icon={CheckCircle2} valueSuffix="%" description="Closed within target time" threshold={findThreshold("IncidentClosureRate")?.value} targetDirection={findThreshold("IncidentClosureRate")?.targetDirection || kpiInfoMap["IncidentClosureRate"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["ToolboxTalkAttendance"].title} kpiKey="ToolboxTalkAttendance" value={toolboxTalkAttendance} pieData={toolboxTalkAttendanceData} icon={Users} valueSuffix="%" description="Average attendance" threshold={findThreshold("ToolboxTalkAttendance")?.value} targetDirection={findThreshold("ToolboxTalkAttendance")?.targetDirection || kpiInfoMap["ToolboxTalkAttendance"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["CorrectiveActionClosureRate"].title} kpiKey="CorrectiveActionClosureRate" value={correctiveActionClosureRate} pieData={correctiveActionClosureRateData} icon={ListChecks} valueSuffix="%" description="Closed by due date" threshold={findThreshold("CorrectiveActionClosureRate")?.value} targetDirection={findThreshold("CorrectiveActionClosureRate")?.targetDirection || kpiInfoMap["CorrectiveActionClosureRate"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
 
-        <KpiCard title={kpiInfoMap["ManHoursLostInjury"].title} kpiKey="ManHoursLostInjury" value={manHoursLostInjury} icon={Hourglass} description="Total hours this period" threshold={findThreshold("ManHoursLostInjury")?.value} targetDirection={findThreshold("ManHoursLostInjury")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["ManHoursLostFatality"].title} kpiKey="ManHoursLostFatality" value={manHoursLostFatality} icon={Skull} description="Total hours (potential)" threshold={findThreshold("ManHoursLostFatality")?.value} targetDirection={findThreshold("ManHoursLostFatality")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["MVAs"].title} kpiKey="MVAs" value={mvaCount} icon={Car} description="Total MVAs this period" threshold={findThreshold("MVAs")?.value} targetDirection={findThreshold("MVAs")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["ManHoursLostInjury"].title} kpiKey="ManHoursLostInjury" value={manHoursLostInjury} icon={Hourglass} description="Total hours this period" threshold={findThreshold("ManHoursLostInjury")?.value} targetDirection={findThreshold("ManHoursLostInjury")?.targetDirection || kpiInfoMap["ManHoursLostInjury"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["ManHoursLostFatality"].title} kpiKey="ManHoursLostFatality" value={manHoursLostFatality} icon={Skull} description="Total hours (potential)" threshold={findThreshold("ManHoursLostFatality")?.value} targetDirection={findThreshold("ManHoursLostFatality")?.targetDirection || kpiInfoMap["ManHoursLostFatality"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["MVAs"].title} kpiKey="MVAs" value={mvaCount} icon={Car} description="Total MVAs this period" threshold={findThreshold("MVAs")?.value} targetDirection={findThreshold("MVAs")?.targetDirection || kpiInfoMap["MVAs"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
       </div>
       
       <Separator className="my-8" />
       
       <h2 className="text-xl font-semibold tracking-tight text-foreground/90">Health Performance Indicators</h2>
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-        <KpiCard title={kpiInfoMap["HealthSurveillanceCoverage"].title} kpiKey="HealthSurveillanceCoverage" value={healthSurveillanceCoverage} pieData={healthSurveillanceCoverageData} icon={UsersRound} valueSuffix="%" description="% workers receiving scheduled medicals" threshold={findThreshold("HealthSurveillanceCoverage")?.value} targetDirection={findThreshold("HealthSurveillanceCoverage")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["WorkRelatedIllnessRate"].title} kpiKey="WorkRelatedIllnessRate" value={workIllnessRate.toFixed(1)} icon={Biohazard} description="per 10,000 workers" threshold={findThreshold("WorkRelatedIllnessRate")?.value} targetDirection={findThreshold("WorkRelatedIllnessRate")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["HearingConservationCompliance"].title} kpiKey="HearingConservationCompliance" value={hearingConservationCompliance} pieData={hearingConservationData} icon={Ear} valueSuffix="%" description="Audiometry & PPE compliance" threshold={findThreshold("HearingConservationCompliance")?.value} targetDirection={findThreshold("HearingConservationCompliance")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["FitForDutyNonCompliance"].title} kpiKey="FitForDutyNonCompliance" value={fitForDutyNonCompliance} pieData={fitForDutyData} icon={UserX} valueSuffix="%" description="% workers not cleared" threshold={findThreshold("FitForDutyNonCompliance")?.value} targetDirection={findThreshold("FitForDutyNonCompliance")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["HealthEducationCoverage"].title} kpiKey="HealthEducationCoverage" value={healthEducationCoverage} pieData={healthEducationData} icon={Presentation} valueSuffix="%" description="% workforce trained" threshold={findThreshold("HealthEducationCoverage")?.value} targetDirection={findThreshold("HealthEducationCoverage")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["HealthSurveillanceCoverage"].title} kpiKey="HealthSurveillanceCoverage" value={healthSurveillanceCoverage} pieData={healthSurveillanceCoverageData} icon={UsersRound} valueSuffix="%" description="% workers receiving scheduled medicals" threshold={findThreshold("HealthSurveillanceCoverage")?.value} targetDirection={findThreshold("HealthSurveillanceCoverage")?.targetDirection || kpiInfoMap["HealthSurveillanceCoverage"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["WorkRelatedIllnessRate"].title} kpiKey="WorkRelatedIllnessRate" value={workIllnessRate.toFixed(1)} icon={Biohazard} description="per 10,000 workers" threshold={findThreshold("WorkRelatedIllnessRate")?.value} targetDirection={findThreshold("WorkRelatedIllnessRate")?.targetDirection || kpiInfoMap["WorkRelatedIllnessRate"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["HearingConservationCompliance"].title} kpiKey="HearingConservationCompliance" value={hearingConservationCompliance} pieData={hearingConservationData} icon={Ear} valueSuffix="%" description="Audiometry & PPE compliance" threshold={findThreshold("HearingConservationCompliance")?.value} targetDirection={findThreshold("HearingConservationCompliance")?.targetDirection || kpiInfoMap["HearingConservationCompliance"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["FitForDutyNonCompliance"].title} kpiKey="FitForDutyNonCompliance" value={fitForDutyNonCompliance} pieData={fitForDutyData} icon={UserX} valueSuffix="%" description="% workers not cleared" threshold={findThreshold("FitForDutyNonCompliance")?.value} targetDirection={findThreshold("FitForDutyNonCompliance")?.targetDirection || kpiInfoMap["FitForDutyNonCompliance"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["HealthEducationCoverage"].title} kpiKey="HealthEducationCoverage" value={healthEducationCoverage} pieData={healthEducationData} icon={Presentation} valueSuffix="%" description="% workforce trained" threshold={findThreshold("HealthEducationCoverage")?.value} targetDirection={findThreshold("HealthEducationCoverage")?.targetDirection || kpiInfoMap["HealthEducationCoverage"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
       </div>
 
       <Separator className="my-8" />
       
       <h2 className="text-xl font-semibold tracking-tight text-foreground/90">SHEQ Process & Engagement KPIs</h2>
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-        <KpiCard title={kpiInfoMap["TrainingComplianceRate"].title} kpiKey="TrainingComplianceRate" value={trainingComplianceRate} pieData={trainingComplianceData} icon={GraduationCap} valueSuffix="%" description="% employees trained on time" threshold={findThreshold("TrainingComplianceRate")?.value} targetDirection={findThreshold("TrainingComplianceRate")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["AuditScoreComplianceRate"].title} kpiKey="AuditScoreComplianceRate" value={auditScore} pieData={auditScoreData} icon={ClipboardCheck} valueSuffix="%" description="Average audit conformance" threshold={findThreshold("AuditScoreComplianceRate")?.value} targetDirection={findThreshold("AuditScoreComplianceRate")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["BBSObservationRate"].title} kpiKey="BBSObservationRate" value={bbsObservationRate} pieData={bbsObservationData} icon={Eye} valueSuffix="%" description="% of target BBS cards submitted" threshold={findThreshold("BBSObservationRate")?.value} targetDirection={findThreshold("BBSObservationRate")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["SHESuggestionRate"].title} kpiKey="SHESuggestionRate" value={sheSuggestionRate.toFixed(1)} icon={Lightbulb} description="Suggestions per 100 employees/month" threshold={findThreshold("SHESuggestionRate")?.value} targetDirection={findThreshold("SHESuggestionRate")?.targetDirection}/>
-        <KpiCard title={kpiInfoMap["LeadershipWalksRate"].title} kpiKey="LeadershipWalksRate" value={leadershipWalksRate} pieData={leadershipWalksData} icon={Footprints} valueSuffix="%" description="% of scheduled visits completed" threshold={findThreshold("LeadershipWalksRate")?.value} targetDirection={findThreshold("LeadershipWalksRate")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["TrainingComplianceRate"].title} kpiKey="TrainingComplianceRate" value={trainingComplianceRate} pieData={trainingComplianceData} icon={GraduationCap} valueSuffix="%" description="% employees trained on time" threshold={findThreshold("TrainingComplianceRate")?.value} targetDirection={findThreshold("TrainingComplianceRate")?.targetDirection || kpiInfoMap["TrainingComplianceRate"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["AuditScoreComplianceRate"].title} kpiKey="AuditScoreComplianceRate" value={auditScore} pieData={auditScoreData} icon={ClipboardCheck} valueSuffix="%" description="Average audit conformance" threshold={findThreshold("AuditScoreComplianceRate")?.value} targetDirection={findThreshold("AuditScoreComplianceRate")?.targetDirection || kpiInfoMap["AuditScoreComplianceRate"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["BBSObservationRate"].title} kpiKey="BBSObservationRate" value={bbsObservationRate} pieData={bbsObservationData} icon={Eye} valueSuffix="%" description="% of target BBS cards submitted" threshold={findThreshold("BBSObservationRate")?.value} targetDirection={findThreshold("BBSObservationRate")?.targetDirection || kpiInfoMap["BBSObservationRate"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["SHESuggestionRate"].title} kpiKey="SHESuggestionRate" value={sheSuggestionRate.toFixed(1)} icon={Lightbulb} description="Suggestions per 100 employees/month" threshold={findThreshold("SHESuggestionRate")?.value} targetDirection={findThreshold("SHESuggestionRate")?.targetDirection || kpiInfoMap["SHESuggestionRate"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["LeadershipWalksRate"].title} kpiKey="LeadershipWalksRate" value={leadershipWalksRate} pieData={leadershipWalksData} icon={Footprints} valueSuffix="%" description="% of scheduled visits completed" threshold={findThreshold("LeadershipWalksRate")?.value} targetDirection={findThreshold("LeadershipWalksRate")?.targetDirection || kpiInfoMap["LeadershipWalksRate"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
       </div>
+
+      {isRecommendationModalOpen && currentKpiForRecommendation && (
+        <AlertDialog open={isRecommendationModalOpen} onOpenChange={setIsRecommendationModalOpen}>
+          <AlertDialogContent className="sm:max-w-lg">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-accent" /> AI Recommendations for: {currentKpiForRecommendation.kpiTitle}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Current Value: {currentKpiForRecommendation.currentValue}, Target: {currentKpiForRecommendation.thresholdValue} ({currentKpiForRecommendation.targetDirection === 'above' ? 'Higher' : 'Lower'} is better)
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            
+            {isRecommendationLoading ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <KpiLoader className="h-8 w-8 animate-spin text-primary" />
+                <p className="mt-2 text-muted-foreground">Generating recommendations...</p>
+              </div>
+            ) : recommendationResult ? (
+                <ScrollArea className="max-h-[60vh] pr-4">
+                    <div className="space-y-4 text-sm">
+                        <div>
+                            <h4 className="font-semibold text-primary mb-1">Suggested Actions:</h4>
+                            <ul className="list-disc list-inside space-y-1 pl-4 bg-secondary/50 p-3 rounded-md">
+                                {recommendationResult.suggestedActions.map((action, index) => (
+                                <li key={index}>{action}</li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold text-primary mb-1">Reasoning:</h4>
+                            <p className="whitespace-pre-wrap bg-secondary/50 p-3 rounded-md">{recommendationResult.reasoning}</p>
+                        </div>
+                        <Alert variant="info" className="mt-4 text-xs">
+                            <BrainCircuit className="h-4 w-4" />
+                            <UiAlertTitle>AI Generated Content</UiAlertTitle>
+                            <UiAlertDescription>
+                            These recommendations are AI-generated. Always use professional judgment and adapt suggestions to your specific organizational context.
+                            </UiAlertDescription>
+                        </Alert>
+                    </div>
+                </ScrollArea>
+            ) : (
+              <p className="text-center py-4 text-muted-foreground">No recommendations available at this time.</p>
+            )}
+
+            <AlertDialogFooter className="mt-4 pt-4 border-t">
+              <AlertDialogCancel onClick={() => setIsRecommendationModalOpen(false)}>Close</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }
 
-export function IncidentTypeChart() { // This is an unused export, keeping it for now.
+export function IncidentTypeChart() { 
   return (
     <Card>
       <CardHeader>
@@ -396,5 +517,3 @@ export function IncidentTypeChart() { // This is an unused export, keeping it fo
     </Card>
   );
 }
-
-    
