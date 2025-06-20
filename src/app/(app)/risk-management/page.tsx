@@ -7,12 +7,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen, LayoutDashboard, Brain, Megaphone } from "lucide-react"; // Added Megaphone
+import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen, LayoutDashboard, Brain, Megaphone } from "lucide-react";
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ManualHazard, ManualRiskAssessment, RiskLevel, RiskAssessmentControl, RiskRegisterEntry, RiskRegisterStatus, SheqAudit, Incident } from "@/lib/types"; // Added Incident
+import type { ManualHazard, ManualRiskAssessment, RiskLevel, RiskAssessmentControl, RiskRegisterEntry, RiskRegisterStatus, SheqAudit, Incident } from "@/lib/types";
 import { format, parseISO, isBefore, differenceInDays, isValid } from 'date-fns';
 import {
   AlertDialog,
@@ -27,13 +27,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { riskMatrix, controlActionStatuses, riskAssessmentStatuses } from "@/lib/risk-assessment-config";
-import { IncidentDetailsDialog } from "@/components/risk-management/incident-details-dialog"; // Added import
+import { IncidentDetailsDialog } from "@/components/risk-management/incident-details-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 
 const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
 const MANUAL_RISK_ASSESSMENTS_COLLECTION = 'manualRiskAssessments';
 const RISK_REGISTER_ENTRIES_COLLECTION = 'riskRegisterEntries';
-const INCIDENTS_COLLECTION = 'incidents'; // New collection constant
+const INCIDENTS_COLLECTION = 'incidents';
 const CONTROL_REMINDER_LEAD_DAYS = 7;
 const RISK_REVIEW_REMINDER_LEAD_DAYS = 30;
 
@@ -47,6 +48,7 @@ interface ActiveControlAction extends RiskAssessmentControl {
 export default function RiskManagementPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { toast } = useToast(); // Added useToast
   const queryClient = useQueryClient();
   const [viewingIncident, setViewingIncident] = useState<Incident | null>(null); 
 
@@ -67,9 +69,9 @@ export default function RiskManagementPage() {
     mutationFn: (incidentId: string) => deleteDoc(doc(db, INCIDENTS_COLLECTION, incidentId)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [INCIDENTS_COLLECTION, user?.uid] });
-      alert("Incident deleted successfully."); // Replace with toast if available
+      toast({ title: "Incident Deleted", description: "The incident record has been deleted." });
     },
-    onError: (e:Error) => alert(`Error deleting incident: ${e.message}`),
+    onError: (e:Error) => toast({title: "Error Deleting Incident", description: e.message, variant: "destructive"}),
   });
 
 
@@ -136,20 +138,27 @@ export default function RiskManagementPage() {
     mutationFn: (hazardId: string) => deleteDoc(doc(db, MANUAL_HAZARDS_COLLECTION, hazardId)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [MANUAL_HAZARDS_COLLECTION, user?.uid] });
+      toast({ title: "Hazard Deleted", description: "The hazard record has been deleted." });
     },
-    onError: (e:Error) => alert(`Error deleting hazard: ${e.message}`),
+    onError: (e:Error) => toast({title: "Error Deleting Hazard", description: e.message, variant: "destructive"}),
   });
 
   const deleteAssessmentMutation = useMutation({
     mutationFn: (assessmentId: string) => deleteDoc(doc(db, MANUAL_RISK_ASSESSMENTS_COLLECTION, assessmentId)),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [MANUAL_RISK_ASSESSMENTS_COLLECTION, user?.uid] }),
-    onError: (e:Error) => alert(`Error deleting assessment: ${e.message}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [MANUAL_RISK_ASSESSMENTS_COLLECTION, user?.uid] });
+      toast({ title: "Assessment Deleted", description: "The risk assessment has been deleted." });
+    },
+    onError: (e:Error) => toast({title: "Error Deleting Assessment", description: e.message, variant: "destructive"}),
   });
 
   const deleteRiskRegisterEntryMutation = useMutation({
     mutationFn: (entryId: string) => deleteDoc(doc(db, RISK_REGISTER_ENTRIES_COLLECTION, entryId)),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [RISK_REGISTER_ENTRIES_COLLECTION, user?.uid] }),
-    onError: (e: Error) => alert(`Error deleting risk register entry: ${e.message}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [RISK_REGISTER_ENTRIES_COLLECTION, user?.uid] });
+      toast({ title: "Risk Register Entry Deleted", description: "The entry has been removed from the risk register." });
+    },
+    onError: (e: Error) => toast({title: "Error Deleting Risk Entry", description: e.message, variant: "destructive"}),
   });
 
 
@@ -344,48 +353,21 @@ export default function RiskManagementPage() {
             <CardDescription>Manually log hazards and conduct detailed risk assessments to understand and prioritize risks based on likelihood and severity. These tools support the core ISO 31000 risk assessment process.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-                <Button onClick={() => router.push('/risk-management/hazards/new')} className="flex-1 bg-red-500 hover:bg-red-600 text-white">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Button onClick={() => router.push('/risk-management/hazards/new')} className="w-full bg-red-500 hover:bg-red-600 text-white">
                     <Target className="mr-2 h-4 w-4" /> Log New Hazard
                 </Button>
-                <Button onClick={() => router.push('/risk-management/assessments/new')} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
+                <Button onClick={() => router.push('/risk-management/assessments/new')} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
                     <FileSignature className="mr-2 h-4 w-4" /> Conduct New Risk Assessment
                 </Button>
+                <Button 
+                    onClick={() => toast({ title: "Info", description: "Viewing all risk assessments will be available on a dedicated page soon."})} 
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                    variant="secondary"
+                >
+                    <ListChecks className="mr-2 h-4 w-4" /> View/Manage Risk Assessments
+                </Button>
             </div>
-            
-            {/* Manual Risk Assessments Sub-Section */}
-            <Card className="bg-muted/20 mt-4">
-                <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
-                    <div>
-                        <CardTitle className="text-lg flex items-center gap-2"><FileSignature className="h-5 w-5 text-purple-600"/>Existing Risk Assessments</CardTitle>
-                        <CardDescription className="text-xs">Review and manage previously conducted systematic risk assessments.</CardDescription>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                     {manualRiskAssessments.length === 0 ? (
-                        <p className="text-muted-foreground text-center text-sm py-3">No manual risk assessments conducted yet.</p>
-                    ) : (
-                        <ScrollArea className="max-h-[200px] pr-2">
-                            <div className="space-y-2">
-                                {manualRiskAssessments.slice(0,5).map(assessment => ( // Show up to 5
-                                    <Card key={assessment.id} className="p-2 shadow-sm text-xs">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <h4 className="font-semibold text-sm truncate max-w-xs">{assessment.activityOrProcess}</h4>
-                                                <p className="text-muted-foreground">Initial: <span className={`px-1 py-0.5 rounded-full text-xs ${getRiskLevelColor(assessment.initialRiskLevel)}`}>{assessment.initialRiskLevel}</span> | Residual: <span className={`px-1 py-0.5 rounded-full text-xs ${getRiskLevelColor(assessment.residualRiskLevel)}`}>{assessment.residualRiskLevel}</span></p>
-                                            </div>
-                                            <div className="flex gap-1 shrink-0">
-                                                <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => router.push(`/risk-management/assessments/edit/${assessment.id}`)}><Edit2 className="h-3 w-3"/></Button>
-                                            </div>
-                                        </div>
-                                    </Card>
-                                ))}
-                                {manualRiskAssessments.length > 5 && <p className="text-center text-xs text-muted-foreground mt-2">...and {manualRiskAssessments.length - 5} more.</p>}
-                            </div>
-                        </ScrollArea>
-                    )}
-                </CardContent>
-            </Card>
         </CardContent>
       </Card>
 
@@ -551,6 +533,5 @@ export default function RiskManagementPage() {
     </div>
   );
 }
-
     
 
