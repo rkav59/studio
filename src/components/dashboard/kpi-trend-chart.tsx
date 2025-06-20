@@ -2,14 +2,22 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-import { TrendingDown, TrendingUp } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button"; // Added
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"; // Added
+import { SlidersHorizontal } from "lucide-react"; // Added for dropdown trigger icon
 
-// Original actual data
+
+// Actual data
 const ACTUAL_DATA = [
   { month: "Jan", incidents: 5, nearMisses: 8 },
   { month: "Feb", incidents: 3, nearMisses: 6 },
@@ -19,38 +27,8 @@ const ACTUAL_DATA = [
   { month: "Jun", incidents: 5, nearMisses: 7 },
 ];
 
-// Projected data points
-const PROJECTED_POINTS = [
-  { month: "Jul", projectedIncidents: 4, projectedNearMisses: 8 },
-  { month: "Aug", projectedIncidents: 3, projectedNearMisses: 9 },
-];
-
-const ALL_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"];
-
-const chartData = ALL_MONTHS.map(month => {
-  const actualMonthData = ACTUAL_DATA.find(d => d.month === month);
-  const projectedMonthData = PROJECTED_POINTS.find(d => d.month === month);
-
-  let pInc = null;
-  let pNM = null;
-
-  if (month === "Jun" && actualMonthData) {
-    pInc = actualMonthData.incidents;
-    pNM = actualMonthData.nearMisses;
-  } else if (projectedMonthData) {
-    pInc = projectedMonthData.projectedIncidents;
-    pNM = projectedMonthData.projectedNearMisses;
-  }
-
-  return {
-    month,
-    incidents: actualMonthData?.incidents ?? null,
-    nearMisses: actualMonthData?.nearMisses ?? null,
-    projectedIncidents: pInc,
-    projectedNearMisses: pNM,
-  };
-});
-
+// Chart data now directly uses actual data
+const chartData = ACTUAL_DATA;
 
 const chartConfig = {
   incidents: {
@@ -61,54 +39,54 @@ const chartConfig = {
     label: "Near Misses",
     color: "hsl(var(--chart-2))",
   },
-  projectedIncidents: {
-    label: "Projected Incidents",
-    color: "hsl(var(--chart-1))", 
-    icon: TrendingDown,
-  },
-  projectedNearMisses: {
-    label: "Projected Near Misses",
-    color: "hsl(var(--chart-2))", 
-    icon: TrendingUp,
-  }
+  // Removed projectedIncidents and projectedNearMisses
 } satisfies ChartConfig;
 
-type VisibleKpiKeys = keyof typeof chartConfig;
+// Define which KPIs can be trended
+const trendableKpis: Array<{ key: keyof typeof chartConfig; label: string }> = [
+  { key: 'incidents', label: 'Total Incidents' },
+  { key: 'nearMisses', label: 'Near Misses' },
+];
+
+type SelectableKpiKeys = keyof typeof chartConfig;
 
 export function KpiTrendChart() {
-  const [visibleKpis, setVisibleKpis] = React.useState<Record<VisibleKpiKeys, boolean>>({
+  const [selectedKpis, setSelectedKpis] = React.useState<Record<SelectableKpiKeys, boolean>>({
     incidents: true,
     nearMisses: true,
-    projectedIncidents: true,
-    projectedNearMisses: true,
   });
-
-  const handleToggleKpi = (kpiKey: VisibleKpiKeys) => {
-    setVisibleKpis(prev => ({ ...prev, [kpiKey]: !prev[kpiKey] }));
-  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Monthly Occurrence Trends & Projections</CardTitle>
-        <CardDescription>Total incidents and near misses over the last 6 months, with a 2-month projection. Toggle lines below.</CardDescription>
-        <div className="pt-3 space-y-2">
-          <Label className="text-xs text-muted-foreground">Display options:</Label>
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {(Object.keys(visibleKpis) as VisibleKpiKeys[]).map((key) => (
-              <div key={key} className="flex items-center space-x-2">
-                <Switch
-                  id={`toggle-${key}`}
-                  checked={visibleKpis[key]}
-                  onCheckedChange={() => handleToggleKpi(key)}
-                  aria-label={`Toggle ${chartConfig[key]?.label || key}`}
-                />
-                <Label htmlFor={`toggle-${key}`} className="text-xs cursor-pointer">
-                  {chartConfig[key]?.label || key}
-                </Label>
-              </div>
-            ))}
-          </div>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div>
+                <CardTitle>Monthly Occurrence Trends</CardTitle>
+                <CardDescription>Actual total incidents and near misses over the last 6 months. Select KPIs to display via the dropdown.</CardDescription>
+            </div>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                        <SlidersHorizontal className="mr-2 h-4 w-4" />
+                        Display Options
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                    <DropdownMenuLabel>Select KPIs to Display</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {trendableKpis.map((kpi) => (
+                    <DropdownMenuCheckboxItem
+                        key={kpi.key}
+                        checked={selectedKpis[kpi.key as SelectableKpiKeys]}
+                        onCheckedChange={(checked) =>
+                        setSelectedKpis((prev) => ({ ...prev, [kpi.key]: Boolean(checked) }))
+                        }
+                    >
+                        {kpi.label}
+                    </DropdownMenuCheckboxItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
       </CardHeader>
       <CardContent>
@@ -144,7 +122,7 @@ export function KpiTrendChart() {
               />
               <Legend content={<ChartLegendContent />} />
               
-              {visibleKpis.incidents && (
+              {selectedKpis.incidents && (
                 <Line
                   dataKey="incidents"
                   type="monotone"
@@ -155,7 +133,7 @@ export function KpiTrendChart() {
                   name="Total Incidents"
                 />
               )}
-              {visibleKpis.nearMisses && (
+              {selectedKpis.nearMisses && (
                 <Line
                   dataKey="nearMisses"
                   type="monotone"
@@ -166,42 +144,11 @@ export function KpiTrendChart() {
                   name="Near Misses"
                 />
               )}
-              {visibleKpis.projectedIncidents && (
-                <Line
-                  dataKey="projectedIncidents"
-                  type="monotone"
-                  stroke="var(--color-projectedIncidents)"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  dot={{ r: 3, fill: "var(--color-projectedIncidents)", strokeWidth:0 }}
-                  activeDot={{ r: 5 }}
-                  name="Projected Incidents"
-                  connectNulls={true}
-                />
-              )}
-              {visibleKpis.projectedNearMisses && (
-                <Line
-                  dataKey="projectedNearMisses"
-                  type="monotone"
-                  stroke="var(--color-projectedNearMisses)"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  dot={{ r: 3, fill: "var(--color-projectedNearMisses)", strokeWidth:0 }}
-                  activeDot={{ r: 5 }}
-                  name="Projected Near Misses"
-                  connectNulls={true}
-                />
-              )}
             </LineChart>
           </ResponsiveContainer>
         </ChartContainer>
       </CardContent>
-      <CardFooter>
-        <p className="text-xs text-muted-foreground">
-          Projections for the next two months are illustrative, based on a simple extrapolation of recent mock data trends. Actual performance may vary.
-        </p>
-      </CardFooter>
+      {/* CardFooter removed as projections are no longer displayed */}
     </Card>
   );
 }
-
