@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Alert, AlertDescription as UiAlertDescription, AlertTitle as UiAlertTitle } from "@/components/ui/alert"; // Aliased AlertDescription
+import { Alert, AlertDescription as UiAlertDescription, AlertTitle as UiAlertTitle } from "@/components/ui/alert";
 import { Loader2, ArrowLeft, AlertCircle, FileText, Landmark, Tag, BookOpen, Search, ShieldAlert } from "lucide-react";
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
@@ -63,7 +63,8 @@ export default function LegalRegisterPage() {
     }
     setIsLoadingRegister(true);
     setError(null);
-    setLegalRegister(null);
+    // Keep existing legalRegister data while loading to avoid UI flicker if user just wants to refresh
+    // setLegalRegister(null); // Commented out to keep old data during refresh
     try {
       const result = await generateLegalRegister({ country: userProfile.country });
       setLegalRegister(result);
@@ -76,11 +77,12 @@ export default function LegalRegisterPage() {
   };
 
   useEffect(() => {
-    if (userProfile?.country && !legalRegister && !isLoadingRegister && !error) {
+    // Only fetch automatically if no data and no error, and profile is loaded with country
+    if (userProfile?.country && !legalRegister && !isLoadingRegister && !error && !isLoadingProfile) {
       fetchLegalRegister();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProfile]); // Trigger fetch when userProfile (and country) is loaded
+  }, [userProfile, isLoadingProfile]); // Depend on userProfile and its loading state
 
   const renderLegalItem = (item: LegalRegisterItem) => (
     <Card key={item.title} className="shadow-sm">
@@ -126,7 +128,7 @@ export default function LegalRegisterPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 print-hide"> {/* Added print-hide */}
         <div className="flex items-center gap-4">
             <Button variant="outline" size="icon" onClick={() => router.push('/risk-management')} aria-label="Back to Risk Management">
             <ArrowLeft className="h-4 w-4" />
@@ -135,10 +137,7 @@ export default function LegalRegisterPage() {
             <Landmark className="h-6 w-6 text-green-600" /> SHEQ Legal Register
             </h1>
         </div>
-        <Button onClick={fetchLegalRegister} disabled={isLoadingRegister || !userProfile?.country} variant="outline">
-          {isLoadingRegister && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {legalRegister ? 'Refresh Register' : 'Generate Register'}
-        </Button>
+        {/* Button moved into card content when data is loaded */}
       </div>
 
       <Card className="shadow-lg">
@@ -150,8 +149,8 @@ export default function LegalRegisterPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
+          {error && !isLoadingRegister && ( // Show error only if not actively loading new data
+            <Alert variant="destructive" className="mb-4 print-hide"> {/* Added print-hide */}
               <AlertCircle className="h-4 w-4" />
               <UiAlertTitle>Error</UiAlertTitle>
               <UiAlertDescription>{error}</UiAlertDescription>
@@ -167,13 +166,13 @@ export default function LegalRegisterPage() {
 
           {!isLoadingRegister && legalRegister && (
             <>
-              <Alert variant="info" className="mb-6">
+              <Alert variant="info" className="mb-6 print-hide"> {/* Added print-hide */}
                 <ShieldAlert className="h-4 w-4" />
                 <UiAlertTitle>Important Disclaimer</UiAlertTitle>
                 <UiAlertDescription>{legalRegister.disclaimer}</UiAlertDescription>
               </Alert>
-              <ScrollArea className="max-h-[calc(100vh-20rem)] pr-2"> {/* Adjust max-h as needed */}
-                <div className="space-y-4">
+              <ScrollArea className="max-h-[70vh]"> {/* Simplified max-height */}
+                <div className="space-y-4 pr-4"> {/* Added pr-4 for scrollbar */}
                   {legalRegister.legalItems.length > 0 ? (
                     legalRegister.legalItems.map(renderLegalItem)
                   ) : (
@@ -181,13 +180,28 @@ export default function LegalRegisterPage() {
                   )}
                 </div>
               </ScrollArea>
+              <div className="mt-4 text-center print-hide"> {/* Added print-hide and moved button here */}
+                <Button onClick={fetchLegalRegister} disabled={isLoadingRegister || !userProfile?.country} variant="default">
+                  {isLoadingRegister && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {legalRegister.legalItems.length > 0 ? 'Refresh Register' : 'Generate Register'}
+                </Button>
+              </div>
             </>
           )}
-          {!isLoadingProfile && !userProfile?.country && !isLoadingRegister && (
-            <p className="text-muted-foreground text-center py-4">
-              Please set your country in your user profile to generate a legal register. If you've just signed up, this might take a moment to reflect or may require re-login if country wasn't captured.
-            </p>
+          {!isLoadingProfile && !userProfile?.country && !isLoadingRegister && !legalRegister && ( // Show if profile loaded, no country, not loading, no data
+            <div className="text-muted-foreground text-center py-4 print-hide"> {/* Added print-hide */}
+              <p className="mb-2">Please set your country in your user profile to generate a legal register.</p>
+              <Button onClick={() => router.push('/user-profile')} variant="secondary">Go to Profile</Button>
+            </div>
           )}
+           {!isLoadingProfile && userProfile?.country && !isLoadingRegister && !legalRegister && !error && ( // Initial state with country, but no data/error
+             <div className="text-center py-4 print-hide"> {/* Added print-hide */}
+                <Button onClick={fetchLegalRegister} disabled={isLoadingRegister} variant="default">
+                    {isLoadingRegister && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Generate Legal Register for {userProfile.country}
+                </Button>
+             </div>
+           )}
         </CardContent>
       </Card>
     </div>
