@@ -86,7 +86,7 @@ export default function PrivacyPolicyPage() {
               <p>You are advised to review this Privacy Policy periodically for any changes. Changes to this Privacy Policy are effective when they are posted on this page.</p>
 
               <h2>11. Contact Us</h2>
-              <p>If you have any questions about this Privacy Policy, please contact us at [Your Contact Email, e.g., privacy@sheild-example.com].</p>
+              <p>If you have any questions about this Privacy Policy, please contact us at sentriq263@gmail.com.</p>
             </div>
           </ScrollArea>
         </CardContent>
@@ -94,3 +94,4 @@ export default function PrivacyPolicyPage() {
     </div>
   );
 }
+

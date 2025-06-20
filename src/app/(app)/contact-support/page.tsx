@@ -49,7 +49,7 @@ export default function ContactSupportPage() {
           
           <div className="text-center text-sm text-muted-foreground pt-4 border-t">
             <p>Alternatively, you can email us directly at:</p>
-            <p className="font-semibold text-primary">support@sheild-example.com (Placeholder)</p>
+            <p className="font-semibold text-primary">sentriq263@gmail.com</p>
             <p className="mt-2">Our support team aims to respond within 24-48 business hours.</p>
           </div>
         </CardContent>
@@ -57,3 +57,4 @@ export default function ContactSupportPage() {
     </div>
   );
 }
+

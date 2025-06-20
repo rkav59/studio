@@ -73,7 +73,7 @@ export default function TermsOfServicePage() {
               <p>By continuing to access or use our Service after any revisions become effective, you agree to be bound by the revised terms. If you do not agree to the new terms, you are no longer authorized to use the Service.</p>
 
               <h2>13. Contact Us</h2>
-              <p>If you have any questions about these Terms, please contact us at [Your Contact Email, e.g., legal@sheild-example.com].</p>
+              <p>If you have any questions about these Terms, please contact us at sentriq263@gmail.com.</p>
             </div>
           </ScrollArea>
         </CardContent>
