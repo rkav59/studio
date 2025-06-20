@@ -27,7 +27,7 @@ import { Alert, AlertDescription as UiAlertDescription, AlertTitle as UiAlertTit
 // Data structure for KPI details including a user-friendly title
 export const kpiInfoMap: Record<string, { title: string; definition: string; relevance: string, defaultTargetDirection: 'above' | 'below' }> = {
   "TRIR": {
-    title: "TRIR",
+    title: "Total Recordable Incident Rate",
     definition: "Total Recordable Incident Rate: Number of recordable work-related injuries per 200,000 hours worked (or 100 employees per year).",
     relevance: "This is a lagging indicator and an industry benchmark for overall safety performance. A lower TRIR generally indicates better safety performance.",
     defaultTargetDirection: 'below',
@@ -535,4 +535,5 @@ export function IncidentTypeChart() {
     </Card>
   );
 }
+
 
