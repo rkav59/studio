@@ -2,102 +2,145 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks, UsersRound, Biohazard, Ear, UserX, Presentation, Hourglass, Skull, Car, GraduationCap, ClipboardCheck, Eye, Lightbulb, Footprints } from "lucide-react"; // Replaced CarCrash with Car
+import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks, UsersRound, Biohazard, Ear, UserX, Presentation, Hourglass, Skull, Car, GraduationCap, ClipboardCheck, Eye, Lightbulb, Footprints, AlertCircleIcon } from "lucide-react"; 
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator"; 
+import type { KpiThreshold } from '@/lib/types'; // Import KpiThreshold
 
-// Data structure for KPI details
-const kpiInfoMap: Record<string, { definition: string; relevance: string }> = {
+
+// Data structure for KPI details including a user-friendly title
+export const kpiInfoMap: Record<string, { title: string; definition: string; relevance: string, defaultTargetDirection: 'above' | 'below' }> = {
   "TRIR": {
+    title: "TRIR",
     definition: "Total Recordable Incident Rate: Number of recordable work-related injuries per 200,000 hours worked (or 100 employees per year).",
     relevance: "This is a lagging indicator and an industry benchmark for overall safety performance. A lower TRIR generally indicates better safety performance.",
+    defaultTargetDirection: 'below',
   },
-  "Near Miss Frequency Rate": {
+  "NMFR": { // Using a shorter key for consistency
+    title: "Near Miss Frequency Rate",
     definition: "Near Miss Frequency Rate (NMFR): Number of near-misses reported per a standard unit (e.g., per 1,000,000 hours worked or per 100 workers per month).",
     relevance: "Reflects a proactive safety reporting culture. A higher NMFR (with low incident rates) can indicate good hazard awareness and opportunity for preventative action before incidents occur.",
+    defaultTargetDirection: 'below', // Typically aim to reduce near misses by addressing root causes, though high reporting can be good initially
   },
-  "Severity Rate": {
+  "SeverityRate": {
+    title: "Severity Rate",
     definition: "Lost Time Injury Severity Rate (LTISR): Number of lost workdays due to injuries per 200,000 hours worked.",
     relevance: "Measures the seriousness/impact of incidents that do occur, focusing on the time lost from work due to injuries. Helps understand the severity beyond just frequency.",
+    defaultTargetDirection: 'below',
   },
-  "First Aid Cases": {
+  "FirstAidCases": {
+    title: "First Aid Cases",
     definition: "Total number of minor injuries requiring only first aid treatment within a defined period (e.g., monthly).",
     relevance: "Acts as an early warning indicator. Tracking first aid cases can help identify emerging risk trends or areas where minor incidents are frequent, potentially preventing more serious ones.",
+    defaultTargetDirection: 'below',
   },
-  "Unsafe Act / Condition Reports": {
+  "UnsafeActConditionReports": {
+    title: "Unsafe Act / Condition Reports",
     definition: "Number of unsafe act or unsafe condition reports submitted, often normalized per employee or per period (e.g., reports per employee per month).",
     relevance: "Indicates worker engagement in the safety program and the effectiveness of hazard identification processes. A healthy reporting rate suggests a proactive safety culture.",
+    defaultTargetDirection: 'above', // Higher reporting is good
   },
-  "Incident Closure Rate": {
+  "IncidentClosureRate": {
+    title: "Incident Closure Rate",
     definition: "Percentage of reported incidents (including near misses and hazards, if applicable) that are investigated and have corrective actions closed within a target timeframe.",
     relevance: "Measures the responsiveness and accountability of the SHEQ system in addressing identified issues. A high closure rate indicates effective follow-through.",
+    defaultTargetDirection: 'above',
   },
-  "Toolbox Talk Attendance": {
+  "ToolboxTalkAttendance": {
+    title: "Toolbox Talk Attendance",
     definition: "Percentage of the relevant workforce attending scheduled toolbox talks or daily safety briefings, typically measured per week or month.",
     relevance: "Measures the effectiveness and reach of routine safety communication efforts. Consistent high attendance supports reinforcement of safety messages.",
+    defaultTargetDirection: 'above',
   },
-  "Corrective Action Closure Rate": {
+  "CorrectiveActionClosureRate": {
+    title: "Corrective Action Closure Rate",
     definition: "Percentage of corrective and preventive actions (CAPAs) arising from incidents, audits, or inspections that are completed by their due date.",
     relevance: "Indicates the SHEQ system's responsiveness and effectiveness in implementing improvements and preventing recurrence of issues. A high rate is crucial for system integrity.",
+    defaultTargetDirection: 'above',
   },
-  "Man Hours Lost (Injury)": {
+  "ManHoursLostInjury": {
+    title: "Man Hours Lost (Injury)",
     definition: "Total work hours lost due to non-fatal occupational injuries within a defined period.",
     relevance: "Measures the direct impact of injuries on productivity and operational time. Helps in understanding the severity and recovery time associated with injuries.",
+    defaultTargetDirection: 'below',
   },
-  "Man Hours Lost (Fatality)": {
+  "ManHoursLostFatality": {
+    title: "Man Hours Lost (Fatality)",
     definition: "Total potential work hours lost due to an occupational fatality, often calculated based on standard work-life expectancy or project duration.",
     relevance: "Highlights the ultimate cost of a workplace fatality in terms of lost productivity and potential. This is a critical lagging indicator reflecting the most severe safety failures.",
+    defaultTargetDirection: 'below',
   },
-  "Motor Vehicle Accidents (MVA)": {
+  "MVAs": { // Shorter key
+    title: "Motor Vehicle Accidents (MVA)",
     definition: "Total number of work-related motor vehicle accidents involving company vehicles or employees on company business.",
     relevance: "Tracks a significant source of workplace incidents and fatalities. Essential for organizations with vehicle fleets or frequent travel requirements.",
+    defaultTargetDirection: 'below',
   },
-  "Occupational Health Surveillance Coverage": {
+  "HealthSurveillanceCoverage": {
+    title: "Health Surveillance Coverage",
     definition: "% of workers requiring scheduled medical surveillance who have received it on time.",
     relevance: "Measures compliance with health monitoring obligations and ensures early detection of potential occupational health issues.",
+    defaultTargetDirection: 'above',
   },
-  "Work-Related Illness Rate": {
+  "WorkRelatedIllnessRate": {
+    title: "Work-Related Illness Rate",
     definition: "Number of new work-related illnesses per 10,000 workers (or other standard population size) over a defined period.",
     relevance: "Tracks the incidence of illnesses linked to workplace exposures (e.g., respiratory, dermatological, hearing loss), indicating effectiveness of long-term exposure controls.",
+    defaultTargetDirection: 'below',
   },
-  "Hearing Conservation Compliance": {
+  "HearingConservationCompliance": {
+    title: "Hearing Conservation Compliance",
     definition: "% of workers in high-noise areas covered by the hearing conservation program (audiometry, training, PPE compliance).",
     relevance: "Critical in manufacturing, construction, and energy sectors to prevent noise-induced hearing loss. Measures program reach and effectiveness.",
+    defaultTargetDirection: 'above',
   },
-  "Fit-for-Duty Non-Compliance Rate": {
+  "FitForDutyNonCompliance": {
+    title: "Fit-for-Duty Non-Compliance",
     definition: "% of workers in safety-critical roles who are found non-compliant or not medically cleared during fit-for-duty assessments.",
     relevance: "Ensures workers in high-risk roles are medically fit, reducing the likelihood of incidents due to medical conditions.",
+    defaultTargetDirection: 'below',
   },
-  "Health Education Coverage": {
+  "HealthEducationCoverage": {
+    title: "Health Education Coverage",
     definition: "% of the workforce that has completed targeted health education programs (e.g., HIV/AIDS awareness, wellness, stress management).",
     relevance: "Supports overall employee health awareness, preventative health behaviors, and contributes to long-term wellbeing and productivity.",
+    defaultTargetDirection: 'above',
   },
-  "Training Compliance Rate": {
+  "TrainingComplianceRate": {
+    title: "Training Compliance Rate",
     definition: "Percentage of employees or relevant workforce who have completed required SHEQ training topics by their due dates.",
     relevance: "Reflects adherence to legal and organizational training requirements, contributing to overall safety readiness and competence. Low rates can indicate gaps in essential knowledge or skills.",
+    defaultTargetDirection: 'above',
   },
-  "Audit Score / Compliance Rate": {
+  "AuditScoreComplianceRate": {
+    title: "Audit Score / Compliance Rate",
     definition: "Average score or percentage of conformance achieved in internal or external SHEQ audits (e.g., ISO 45001, ISO 14001, specific site audits).",
     relevance: "Indicates the overall effectiveness and maturity of the SHEQ management system. Trends can show improvement or decline in system implementation.",
+    defaultTargetDirection: 'above',
   },
-  "Behavior-Based Safety (BBS) Observation Rate": {
-    definition: "Number of BBS observation cards submitted compared to an expected target, often per employee or team, over a period.",
+  "BBSObservationRate": {
+    title: "BBS Observation Rate",
+    definition: "Number of Behavior-Based Safety (BBS) observation cards submitted compared to an expected target, often per employee or team, over a period.",
     relevance: "Measures engagement with proactive safety culture initiatives. A healthy submission rate (with quality observations) indicates active participation in identifying safe and at-risk behaviors.",
+    defaultTargetDirection: 'above',
   },
-  "SHE Suggestion Rate": {
+  "SHESuggestionRate": {
+    title: "SHE Suggestion Rate",
     definition: "Number of SHE-related suggestions, ideas, or feedback items submitted by employees, often normalized per employee per month/quarter.",
     relevance: "Reflects employee involvement and perceived openness of the system to suggestions for improvement. A good rate indicates a proactive and learning safety culture.",
+    defaultTargetDirection: 'above',
   },
-  "Leadership Walks / Site Visits": {
+  "LeadershipWalksRate": {
+    title: "Leadership Walks / Site Visits",
     definition: "Percentage of scheduled leadership safety walks, site visits, or management safety tours that are completed as planned.",
     relevance: "Demonstrates visible management commitment and engagement with SHEQ at the operational level. Consistent completion reinforces the importance of safety from the top.",
+    defaultTargetDirection: 'above',
   },
 };
 
 
-// Reusable KpiCard Component
 interface KpiCardProps {
   title: string;
   value: string | number;
@@ -105,11 +148,29 @@ interface KpiCardProps {
   icon: React.ElementType;
   description?: string;
   valueSuffix?: string;
-  kpiKey: string; // Key to look up details in kpiInfoMap
+  kpiKey: string; 
+  threshold?: number;
+  targetDirection?: 'above' | 'below';
 }
 
-function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix = "", kpiKey }: KpiCardProps) {
+function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix = "", kpiKey, threshold, targetDirection }: KpiCardProps) {
   const { toast } = useToast();
+
+  let isDesirable = true;
+  let valueColor = "text-foreground"; // Default color
+
+  if (threshold !== undefined && targetDirection !== undefined && typeof value === 'number') {
+    if (targetDirection === 'below') {
+      isDesirable = value <= threshold;
+    } else { // targetDirection === 'above'
+      isDesirable = value >= threshold;
+    }
+    valueColor = isDesirable ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400";
+  } else if (threshold !== undefined && targetDirection !== undefined && typeof value === 'string') {
+    // Handle string values if necessary, e.g., convert to number or specific string comparisons
+    // For now, we assume numeric comparison for thresholds
+  }
+
 
   let chartConfig: ChartConfig | undefined = undefined;
   if (pieData && pieData.length > 0) {
@@ -122,6 +183,16 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
 
   const handleClick = () => {
     const details = kpiInfoMap[kpiKey];
+    let thresholdInfo = "";
+    if (threshold !== undefined && targetDirection !== undefined) {
+        thresholdInfo = `\n\n**Current Threshold:** ${threshold} (Target: ${targetDirection === 'above' ? 'Higher' : 'Lower'} is better).`;
+        if (!isDesirable) {
+            thresholdInfo += `\n**Status:** <span class="font-semibold text-red-600">This KPI is outside the desired range.</span> Consider reviewing related processes or data. AI-powered recommendations for improvement may be available in future updates.`;
+        } else {
+            thresholdInfo += `\n**Status:** <span class="font-semibold text-green-600">This KPI is within the desired range.</span>`;
+        }
+    }
+
     if (details) {
       toast({
         title: `About: ${title}`,
@@ -129,9 +200,10 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
           <div className="space-y-1 text-xs max-w-md">
             <p><strong>Definition:</strong> {details.definition}</p>
             <p><strong>Relevance to SHE Performance:</strong> {details.relevance}</p>
+            {thresholdInfo && <p dangerouslySetInnerHTML={{ __html: thresholdInfo.replace(/\n/g, '<br />') }} />}
           </div>
         ),
-        duration: 15000, 
+        duration: 20000, 
       });
     } else {
         toast({
@@ -144,7 +216,11 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
   };
 
   return (
-    <Card onClick={handleClick} className="cursor-pointer hover:shadow-lg transition-shadow duration-200">
+    <Card onClick={handleClick} className="cursor-pointer hover:shadow-lg transition-shadow duration-200 relative">
+       {threshold !== undefined && targetDirection !== undefined && (
+        <div className={`absolute top-2 right-2 h-3 w-3 rounded-full ${isDesirable ? 'bg-green-500' : 'bg-red-500'}`} 
+             title={`Status: ${isDesirable ? 'Meeting target' : 'Needs attention'}`} />
+      )}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <Icon className="h-4 w-4 text-muted-foreground" />
@@ -176,14 +252,23 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
             </ChartContainer>
           </div>
         )}
-        <div className={`text-2xl font-bold ${pieData && pieData.length > 0 ? 'mt-2' : 'mt-2 mb-2'}`}>{value}{valueSuffix}</div>
+        <div className={`text-2xl font-bold ${valueColor} ${pieData && pieData.length > 0 ? 'mt-2' : 'mt-2 mb-2'}`}>{value}{valueSuffix}</div>
         {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
       </CardContent>
     </Card>
   );
 }
 
-export function OverviewCards() {
+interface OverviewCardsProps {
+  kpiThresholds: KpiThreshold[];
+  isLoadingThresholds: boolean; // To optionally show loading state or disable interactions
+}
+
+export function OverviewCards({ kpiThresholds, isLoadingThresholds }: OverviewCardsProps) {
+  const findThreshold = (kpiKey: string): KpiThreshold | undefined => {
+    return kpiThresholds.find(t => t.kpiKey === kpiKey);
+  };
+
   // Mock data for general KPIs
   const trir = 2.1;
   const nmfr = 5.5;
@@ -225,7 +310,7 @@ export function OverviewCards() {
     { name: 'Compliant', value: hearingConservationCompliance, fill: 'hsl(var(--chart-4))' },
     { name: 'Non-Compliant', value: 100 - hearingConservationCompliance, fill: 'hsl(var(--muted))' }
   ];
-   const fitForDutyData = [
+   const fitForDutyData = [ // Note: For non-compliance, lower is better. Threshold setup will handle this.
     { name: 'Non-Compliant', value: fitForDutyNonCompliance, fill: 'hsl(var(--chart-5))' }, 
     { name: 'Compliant', value: 100 - fitForDutyNonCompliance, fill: 'hsl(var(--muted))' }
   ];
@@ -262,47 +347,47 @@ export function OverviewCards() {
     <div className="space-y-6">
       <h2 className="text-xl font-semibold tracking-tight text-foreground/90">General SHEQ Performance Indicators</h2>
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-        <KpiCard title="TRIR" kpiKey="TRIR" value={trir.toFixed(1)} icon={Activity} description="per 200,000 hours worked"/>
-        <KpiCard title="Near Miss Frequency Rate" kpiKey="Near Miss Frequency Rate" value={nmfr.toFixed(1)} icon={TrendingUp} description="per 100 workers/month"/>
-        <KpiCard title="Severity Rate" kpiKey="Severity Rate" value={severityRate.toFixed(1)} icon={BedDouble} description="Lost days per 200k hours"/>
-        <KpiCard title="First Aid Cases" kpiKey="First Aid Cases" value={firstAidCases} icon={HeartPulse} description="Total this month"/>
+        <KpiCard title={kpiInfoMap["TRIR"].title} kpiKey="TRIR" value={trir.toFixed(1)} icon={Activity} description="per 200,000 hours worked" threshold={findThreshold("TRIR")?.value} targetDirection={findThreshold("TRIR")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["NMFR"].title} kpiKey="NMFR" value={nmfr.toFixed(1)} icon={TrendingUp} description="per 100 workers/month" threshold={findThreshold("NMFR")?.value} targetDirection={findThreshold("NMFR")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["SeverityRate"].title} kpiKey="SeverityRate" value={severityRate.toFixed(1)} icon={BedDouble} description="Lost days per 200k hours" threshold={findThreshold("SeverityRate")?.value} targetDirection={findThreshold("SeverityRate")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["FirstAidCases"].title} kpiKey="FirstAidCases" value={firstAidCases} icon={HeartPulse} description="Total this month" threshold={findThreshold("FirstAidCases")?.value} targetDirection={findThreshold("FirstAidCases")?.targetDirection}/>
         
-        <KpiCard title="Unsafe Act / Condition Reports" kpiKey="Unsafe Act / Condition Reports" value={unsafeActConditionReports} icon={AlertTriangle} description="Reports this month"/>
-        <KpiCard title="Incident Closure Rate" kpiKey="Incident Closure Rate" value={incidentClosureRate} pieData={incidentClosureRateData} icon={CheckCircle2} valueSuffix="%" description="Closed within target time"/>
-        <KpiCard title="Toolbox Talk Attendance" kpiKey="Toolbox Talk Attendance" value={toolboxTalkAttendance} pieData={toolboxTalkAttendanceData} icon={Users} valueSuffix="%" description="Average attendance"/>
-        <KpiCard title="Corrective Action Closure Rate" kpiKey="Corrective Action Closure Rate" value={correctiveActionClosureRate} pieData={correctiveActionClosureRateData} icon={ListChecks} valueSuffix="%" description="Closed by due date"/>
+        <KpiCard title={kpiInfoMap["UnsafeActConditionReports"].title} kpiKey="UnsafeActConditionReports" value={unsafeActConditionReports} icon={AlertTriangle} description="Reports this month" threshold={findThreshold("UnsafeActConditionReports")?.value} targetDirection={findThreshold("UnsafeActConditionReports")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["IncidentClosureRate"].title} kpiKey="IncidentClosureRate" value={incidentClosureRate} pieData={incidentClosureRateData} icon={CheckCircle2} valueSuffix="%" description="Closed within target time" threshold={findThreshold("IncidentClosureRate")?.value} targetDirection={findThreshold("IncidentClosureRate")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["ToolboxTalkAttendance"].title} kpiKey="ToolboxTalkAttendance" value={toolboxTalkAttendance} pieData={toolboxTalkAttendanceData} icon={Users} valueSuffix="%" description="Average attendance" threshold={findThreshold("ToolboxTalkAttendance")?.value} targetDirection={findThreshold("ToolboxTalkAttendance")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["CorrectiveActionClosureRate"].title} kpiKey="CorrectiveActionClosureRate" value={correctiveActionClosureRate} pieData={correctiveActionClosureRateData} icon={ListChecks} valueSuffix="%" description="Closed by due date" threshold={findThreshold("CorrectiveActionClosureRate")?.value} targetDirection={findThreshold("CorrectiveActionClosureRate")?.targetDirection}/>
 
-        <KpiCard title="Man Hours Lost (Injury)" kpiKey="Man Hours Lost (Injury)" value={manHoursLostInjury} icon={Hourglass} description="Total hours this period"/>
-        <KpiCard title="Man Hours Lost (Fatality)" kpiKey="Man Hours Lost (Fatality)" value={manHoursLostFatality} icon={Skull} description="Total hours (potential)"/>
-        <KpiCard title="Motor Vehicle Accidents" kpiKey="Motor Vehicle Accidents (MVA)" value={mvaCount} icon={Car} description="Total MVAs this period"/>
+        <KpiCard title={kpiInfoMap["ManHoursLostInjury"].title} kpiKey="ManHoursLostInjury" value={manHoursLostInjury} icon={Hourglass} description="Total hours this period" threshold={findThreshold("ManHoursLostInjury")?.value} targetDirection={findThreshold("ManHoursLostInjury")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["ManHoursLostFatality"].title} kpiKey="ManHoursLostFatality" value={manHoursLostFatality} icon={Skull} description="Total hours (potential)" threshold={findThreshold("ManHoursLostFatality")?.value} targetDirection={findThreshold("ManHoursLostFatality")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["MVAs"].title} kpiKey="MVAs" value={mvaCount} icon={Car} description="Total MVAs this period" threshold={findThreshold("MVAs")?.value} targetDirection={findThreshold("MVAs")?.targetDirection}/>
       </div>
       
       <Separator className="my-8" />
       
       <h2 className="text-xl font-semibold tracking-tight text-foreground/90">Health Performance Indicators</h2>
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-        <KpiCard title="Health Surveillance Coverage" kpiKey="Occupational Health Surveillance Coverage" value={healthSurveillanceCoverage} pieData={healthSurveillanceCoverageData} icon={UsersRound} valueSuffix="%" description="% workers receiving scheduled medicals"/>
-        <KpiCard title="Work-Related Illness Rate" kpiKey="Work-Related Illness Rate" value={workIllnessRate.toFixed(1)} icon={Biohazard} description="per 10,000 workers"/>
-        <KpiCard title="Hearing Conservation Compliance" kpiKey="Hearing Conservation Compliance" value={hearingConservationCompliance} pieData={hearingConservationData} icon={Ear} valueSuffix="%" description="Audiometry & PPE compliance"/>
-        <KpiCard title="Fit-for-Duty Non-Compliance" kpiKey="Fit-for-Duty Non-Compliance Rate" value={fitForDutyNonCompliance} pieData={fitForDutyData} icon={UserX} valueSuffix="%" description="% workers not cleared"/>
-        <KpiCard title="Health Education Coverage" kpiKey="Health Education Coverage" value={healthEducationCoverage} pieData={healthEducationData} icon={Presentation} valueSuffix="%" description="% workforce trained"/>
+        <KpiCard title={kpiInfoMap["HealthSurveillanceCoverage"].title} kpiKey="HealthSurveillanceCoverage" value={healthSurveillanceCoverage} pieData={healthSurveillanceCoverageData} icon={UsersRound} valueSuffix="%" description="% workers receiving scheduled medicals" threshold={findThreshold("HealthSurveillanceCoverage")?.value} targetDirection={findThreshold("HealthSurveillanceCoverage")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["WorkRelatedIllnessRate"].title} kpiKey="WorkRelatedIllnessRate" value={workIllnessRate.toFixed(1)} icon={Biohazard} description="per 10,000 workers" threshold={findThreshold("WorkRelatedIllnessRate")?.value} targetDirection={findThreshold("WorkRelatedIllnessRate")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["HearingConservationCompliance"].title} kpiKey="HearingConservationCompliance" value={hearingConservationCompliance} pieData={hearingConservationData} icon={Ear} valueSuffix="%" description="Audiometry & PPE compliance" threshold={findThreshold("HearingConservationCompliance")?.value} targetDirection={findThreshold("HearingConservationCompliance")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["FitForDutyNonCompliance"].title} kpiKey="FitForDutyNonCompliance" value={fitForDutyNonCompliance} pieData={fitForDutyData} icon={UserX} valueSuffix="%" description="% workers not cleared" threshold={findThreshold("FitForDutyNonCompliance")?.value} targetDirection={findThreshold("FitForDutyNonCompliance")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["HealthEducationCoverage"].title} kpiKey="HealthEducationCoverage" value={healthEducationCoverage} pieData={healthEducationData} icon={Presentation} valueSuffix="%" description="% workforce trained" threshold={findThreshold("HealthEducationCoverage")?.value} targetDirection={findThreshold("HealthEducationCoverage")?.targetDirection}/>
       </div>
 
       <Separator className="my-8" />
       
       <h2 className="text-xl font-semibold tracking-tight text-foreground/90">SHEQ Process & Engagement KPIs</h2>
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-        <KpiCard title="Training Compliance Rate" kpiKey="Training Compliance Rate" value={trainingComplianceRate} pieData={trainingComplianceData} icon={GraduationCap} valueSuffix="%" description="% employees trained on time"/>
-        <KpiCard title="Audit Score / Compliance Rate" kpiKey="Audit Score / Compliance Rate" value={auditScore} pieData={auditScoreData} icon={ClipboardCheck} valueSuffix="%" description="Average audit conformance"/>
-        <KpiCard title="BBS Observation Rate" kpiKey="Behavior-Based Safety (BBS) Observation Rate" value={bbsObservationRate} pieData={bbsObservationData} icon={Eye} valueSuffix="%" description="% of target BBS cards submitted"/>
-        <KpiCard title="SHE Suggestion Rate" kpiKey="SHE Suggestion Rate" value={sheSuggestionRate.toFixed(1)} icon={Lightbulb} description="Suggestions per 100 employees/month"/>
-        <KpiCard title="Leadership Walks / Site Visits" kpiKey="Leadership Walks / Site Visits" value={leadershipWalksRate} pieData={leadershipWalksData} icon={Footprints} valueSuffix="%" description="% of scheduled visits completed"/>
+        <KpiCard title={kpiInfoMap["TrainingComplianceRate"].title} kpiKey="TrainingComplianceRate" value={trainingComplianceRate} pieData={trainingComplianceData} icon={GraduationCap} valueSuffix="%" description="% employees trained on time" threshold={findThreshold("TrainingComplianceRate")?.value} targetDirection={findThreshold("TrainingComplianceRate")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["AuditScoreComplianceRate"].title} kpiKey="AuditScoreComplianceRate" value={auditScore} pieData={auditScoreData} icon={ClipboardCheck} valueSuffix="%" description="Average audit conformance" threshold={findThreshold("AuditScoreComplianceRate")?.value} targetDirection={findThreshold("AuditScoreComplianceRate")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["BBSObservationRate"].title} kpiKey="BBSObservationRate" value={bbsObservationRate} pieData={bbsObservationData} icon={Eye} valueSuffix="%" description="% of target BBS cards submitted" threshold={findThreshold("BBSObservationRate")?.value} targetDirection={findThreshold("BBSObservationRate")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["SHESuggestionRate"].title} kpiKey="SHESuggestionRate" value={sheSuggestionRate.toFixed(1)} icon={Lightbulb} description="Suggestions per 100 employees/month" threshold={findThreshold("SHESuggestionRate")?.value} targetDirection={findThreshold("SHESuggestionRate")?.targetDirection}/>
+        <KpiCard title={kpiInfoMap["LeadershipWalksRate"].title} kpiKey="LeadershipWalksRate" value={leadershipWalksRate} pieData={leadershipWalksData} icon={Footprints} valueSuffix="%" description="% of scheduled visits completed" threshold={findThreshold("LeadershipWalksRate")?.value} targetDirection={findThreshold("LeadershipWalksRate")?.targetDirection}/>
       </div>
     </div>
   );
 }
 
-export function IncidentTypeChart() {
+export function IncidentTypeChart() { // This is an unused export, keeping it for now.
   return (
     <Card>
       <CardHeader>
@@ -311,3 +396,5 @@ export function IncidentTypeChart() {
     </Card>
   );
 }
+
+    

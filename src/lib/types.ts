@@ -759,9 +759,23 @@ export interface KpiSuggestion {
 }
 // --- End KPI Suggestion Type ---
 
+// --- KPI Threshold Type ---
+export interface KpiThreshold {
+  id: string; // Composite key: `${userId}_${kpiKey}`
+  userId: string;
+  kpiKey: string; // e.g., "TRIR", "NMFR"
+  value: number;
+  targetDirection: 'above' | 'below'; // 'above' means higher is better, 'below' means lower is better
+  lastUpdated: string; // ISO string for timestamp
+}
+// --- End KPI Threshold Type ---
+
+
 // --- Global App Types (Can be used across modules) ---
 // (Consider moving types here if they are shared by more than 2-3 modules)
 // e.g., export type ActionItemStatus = 'Open' | 'In Progress' | 'Completed' | 'Deferred';
 // export interface UserProfile { ... }
 
 // --- End Global App Types ---
+
+    
