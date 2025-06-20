@@ -3,6 +3,7 @@
 "use client";
 
 import type { ReactNode } from 'react';
+import Link from 'next/link'; // Added Link
 import {
   SidebarProvider,
   Sidebar,
@@ -73,9 +74,11 @@ export default function AppLayoutInternal({ children }: AppLayoutInternalProps) 
           <SidebarTrigger className="md:hidden" />
           <div className="flex items-center gap-4">
             {user && (
-                <span className="text-sm text-muted-foreground hidden sm:inline">
+                <Button variant="link" asChild className="text-sm text-muted-foreground hidden sm:inline p-0 h-auto hover:text-primary">
+                  <Link href="/user-profile">
                     Welcome, {user.displayName || user.email}
-                </span>
+                  </Link>
+                </Button>
             )}
             <GenerateReportButton />
           </div>
@@ -87,3 +90,4 @@ export default function AppLayoutInternal({ children }: AppLayoutInternalProps) 
     </SidebarProvider>
   );
 }
+
