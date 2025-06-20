@@ -75,8 +75,9 @@ export default function AppLayoutInternal({ children }: AppLayoutInternalProps) 
           <div className="flex items-center gap-4">
             {user && (
                 <Button variant="link" asChild className="text-sm text-muted-foreground hidden sm:inline p-0 h-auto hover:text-primary">
-                  <Link href="/user-profile">
-                    Welcome, {user.displayName || user.email}
+                  <Link href="/user-profile" className="flex items-center gap-1">
+                    {user.displayName || user.email}
+                    <UserCircle className="h-4 w-4 ml-1" />
                   </Link>
                 </Button>
             )}
