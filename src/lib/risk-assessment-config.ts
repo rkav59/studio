@@ -115,6 +115,14 @@ export const severityLevels: Record<Severity, number> = {
   "Catastrophic": 5,
 };
 
+// For dropdown options in forms
+export const severityOptions: Array<{ value: Severity; label: Severity }> = 
+  (Object.keys(severityLevels) as Severity[]).map(s => ({ value: s, label: s }));
+
+export const likelihoodOptions: Array<{ value: Likelihood; label: Likelihood }> =
+  (Object.keys(likelihoodLevels) as Likelihood[]).map(l => ({ value: l, label: l }));
+
+
 export const getRiskLevel = (likelihoodValue: number, severityValue: number): RiskLevel => {
   const riskScore = likelihoodValue * severityValue;
   if (riskScore <= 4) return 'Low';
@@ -137,5 +145,5 @@ export const riskAssessmentStatuses: Array<Required<ManualRiskAssessment>['statu
 // --- Risk Register Config ---
 export const riskRegisterStatuses: RiskRegisterStatus[] = ['Open', 'In Progress', 'Mitigated', 'Closed', 'Accepted'];
 export const riskCategories: string[] = ['Safety', 'Health', 'Environmental', 'Operational', 'Financial', 'Reputational', 'Legal/Compliance', 'Other'];
-export const riskSources: string[] = ['Audit Finding', 'Inspection Finding', 'Incident Investigation', 'Hazard Report', 'Risk Assessment', 'Management Review', 'External Source', 'Other'];
+export const riskSources: string[] = ['Audit Finding', 'Inspection Finding', 'Hazard Report', 'Risk Assessment', 'Management Review', 'External Source', 'Other'];
 // --- End Risk Register Config ---

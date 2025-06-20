@@ -33,7 +33,7 @@ import { CalendarIcon, Save, XCircle, AlertTriangle, MapPin, User, Type, Rows, S
 import type { Incident, Severity } from "@/lib/types";
 import { format, parseISO, isValid, set } from 'date-fns';
 import { Separator } from "../ui/separator";
-import { severityLevels } from "@/lib/risk-assessment-config"; // For severity dropdown
+import { severityOptions } from "@/lib/risk-assessment-config"; // Changed import
 
 const incidentClassifications: Array<Required<Incident>['classification']> = ['First Aid', 'Recordable', 'Lost Time', 'Fatality MVA', 'Non-Fatality MVA', 'Property Damage MVA', 'Environmental', 'Security', 'Other'];
 const incidentTypes: Array<Incident['type']> = ['Incident', 'Near Miss', 'Hazard'];
@@ -53,7 +53,7 @@ const incidentFormSchema = z.object({
   lostWorkDays: z.coerce.number().min(0).optional(),
   isFatality: z.boolean().optional().default(false),
   
-  severityLevel: z.enum(Object.keys(severityLevels) as [Severity, ...Severity[]]).optional(),
+  severityLevel: z.enum(severityOptions.map(s => s.value) as [Severity, ...Severity[]]).optional(), // Use severityOptions for enum
   rootCauseAnalyzed: z.boolean().optional().default(false),
   status: z.enum(incidentStatuses).optional().default('Open'),
 });
@@ -179,7 +179,7 @@ export function IncidentForm({ initialData, onSave, onCancel, isSubmitting }: In
                     <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select severity level" /></SelectTrigger></FormControl>
                         <SelectContent>
-                             {Object.keys(severityLevels).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                             {severityOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
                         </SelectContent>
                     </Select><FormMessage /></FormItem>
                 )}/>
