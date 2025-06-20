@@ -170,7 +170,7 @@ export function SheMeetingForm({ programs, initialData, onSave, onCancel, isSubm
                 <h3 className="text-lg font-medium text-muted-foreground">Meeting Content (Optional)</h3>
 
                 <FormField control={form.control} name="agenda" render={({ field }) => (
-                    <FormItem><FormLabel>Agenda / Topics Discussed</FormLabel><FormControl><Textarea placeholder="Key topics and agenda items..." rows={4} {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Agenda</FormLabel><FormControl><Textarea placeholder="Key topics and agenda items..." rows={4} {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="minutes" render={({ field }) => (
                     <FormItem><FormLabel>Minutes / Key Discussion Points</FormLabel><FormControl><Textarea placeholder="Summary of discussions, decisions made..." rows={6} {...field} /></FormControl><FormMessage /></FormItem>
