@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, CalendarRange, Users, ListChecks, Activity, Settings, Loader2, ClockIcon, AlertTriangle, CheckCircle } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, Eye, CalendarRange, Users, ListChecks, Activity, Settings, Loader2, ClockIcon, AlertTriangle, CheckCircle, Download } from "lucide-react"; // Added Download
 import type { SheProgram, SheMeeting, MeetingActionItem, MeetingActionItemStatus } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid, isBefore, differenceInDays } from 'date-fns';
@@ -176,6 +176,131 @@ export default function SheMeetingsPage() {
     }
   };
 
+  const handleDownloadMinutesTemplate = () => {
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SHE Meeting Minutes and Action Items</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.4; color: #333; }
+        h1, h2, h3 { color: #2c3e50; } /* Darker blue for headings */
+        h1 { font-size: 24px; border-bottom: 2px solid #3498DB; padding-bottom: 5px; }
+        h2 { font-size: 20px; margin-top: 30px; color: #3498DB; } /* Primary blue for H2 */
+        h3 { font-size: 16px; margin-top: 20px; color: #E67E22; } /* Accent orange for H3 */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10pt; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+        th { background-color: #f0f0f0; font-weight: bold; }
+        .section { margin-bottom: 25px; }
+        .placeholder { color: #888; font-style: italic; }
+        ul { margin-top: 5px; padding-left: 20px; }
+        li { margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h1>SHE Meeting Minutes and Action Items</h1>
+
+    <div class="section">
+        <h2>Meeting Details</h2>
+        <p><strong>Meeting Title:</strong> <span class="placeholder">[Enter Meeting Title]</span></p>
+        <p><strong>Date:</strong> <span class="placeholder">[Enter Date, e.g., YYYY-MM-DD]</span></p>
+        <p><strong>Time:</strong> <span class="placeholder">[Enter Time, e.g., HH:MM AM/PM]</span></p>
+        <p><strong>Type:</strong> <span class="placeholder">[Safety Committee / Management Review / Toolbox Talk / Other]</span></p>
+        <p><strong>Location/Platform:</strong> <span class="placeholder">[Enter Location or Platform, e.g., Conference Room A, MS Teams]</span></p>
+    </div>
+
+    <div class="section">
+        <h2>Attendees</h2>
+        <p class="placeholder">[List attendees here. Consider using a table for larger meetings with columns like Name, Department, Signature (if physical).]</p>
+        <pre class="placeholder" style="white-space: pre-wrap; background-color: #f9f9f9; border: 1px dashed #ccc; padding: 10px;">[Attendee 1 - Department A]\n[Attendee 2 - Department B]\n[Guest 1 - External]</pre>
+    </div>
+    
+    <div class="section">
+        <h2>Agenda / Topics Discussed</h2>
+        <p class="placeholder">[List agenda items or topics discussed. Use bullet points or a numbered list for clarity.]</p>
+        <ul>
+            <li><span class="placeholder">[Agenda Item 1: Detailed description or question]</span></li>
+            <li><span class="placeholder">[Agenda Item 2: Detailed description or question]</span></li>
+            <li><span class="placeholder">[Add more agenda items as needed...]</span></li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Minutes / Key Discussion Points</h2>
+        <p class="placeholder">[For each agenda item, record the main discussion points, decisions made, and key outcomes. Be specific and clear.]</p>
+        <h3>Topic 1: <span class="placeholder">[Agenda Item 1 Title]</span></h3>
+        <pre class="placeholder" style="white-space: pre-wrap; background-color: #f9f9f9; border: 1px dashed #ccc; padding: 10px;">[Detailed minutes for Topic 1...]</pre>
+        <h3>Topic 2: <span class="placeholder">[Agenda Item 2 Title]</span></h3>
+        <pre class="placeholder" style="white-space: pre-wrap; background-color: #f9f9f9; border: 1px dashed #ccc; padding: 10px;">[Detailed minutes for Topic 2...]</pre>
+    </div>
+
+    <div class="section">
+        <h2>Action Items</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:5%;">#</th>
+                    <th style="width:40%;">Action Item Description</th>
+                    <th style="width:20%;">Assigned To</th>
+                    <th style="width:15%;">Due Date</th>
+                    <th style="width:20%;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td><span class="placeholder">[Describe Action Item 1 clearly and concisely]</span></td>
+                    <td><span class="placeholder">[Name/Team]</span></td>
+                    <td><span class="placeholder">[YYYY-MM-DD]</span></td>
+                    <td><span class="placeholder">[Open/In Progress/Completed/Deferred]</span></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td><span class="placeholder">[Describe Action Item 2 clearly and concisely]</span></td>
+                    <td><span class="placeholder">[Name/Team]</span></td>
+                    <td><span class="placeholder">[YYYY-MM-DD]</span></td>
+                    <td><span class="placeholder">[Open/In Progress/Completed/Deferred]</span></td>
+                </tr>
+                <!-- Add more rows by copying the tr block -->
+                <tr>
+                    <td><span class="placeholder">...</span></td>
+                    <td><span class="placeholder">[Add more action items as needed]</span></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h3>Next Meeting (if applicable)</h3>
+        <p><strong>Date:</strong> <span class="placeholder">[Enter Date, e.g., YYYY-MM-DD]</span></p>
+        <p><strong>Time:</strong> <span class="placeholder">[Enter Time, e.g., HH:MM AM/PM]</span></p>
+        <p><strong>Location/Platform:</strong> <span class="placeholder">[Enter Location or Platform]</span></p>
+        <p><strong>Tentative Agenda Items for Next Meeting:</strong></p>
+        <p class="placeholder">[List any items to be carried over or new items for the next meeting.]</p>
+    </div>
+
+    <div class="section" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc;">
+        <p><strong>Minutes recorded by:</strong> <span class="placeholder">[Your Name/Role]</span></p>
+        <p><strong>Date minutes prepared:</strong> <span class="placeholder">[YYYY-MM-DD]</span></p>
+        <p style="margin-top: 20px;"><strong>Approved by (if applicable):</strong> <span class="placeholder">[Name/Role of Approver]</span></p>
+        <p><strong>Date approved:</strong> <span class="placeholder">[YYYY-MM-DD]</span></p>
+    </div>
+</body>
+</html>`;
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "SHE_Meeting_Minutes_Template.html";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    toast({ title: "Template Downloaded", description: "SHE_Meeting_Minutes_Template.html has been downloaded. You can open it with Microsoft Word." });
+  };
+
 
   const isLoading = isLoadingPrograms || isLoadingMeetings;
   const anyError = programsError || meetingsError;
@@ -323,9 +448,14 @@ export default function SheMeetingsPage() {
             <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-accent"/>SHE Meetings</CardTitle>
             <CardDescription>Schedule upcoming meetings, including agenda and attendees. After meetings, update them to log minutes, track outcomes, and manage action items.</CardDescription>
           </div>
-          <Button onClick={handleOpenNewMeetingForm} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Meeting
-          </Button>
+          <div className="flex gap-2">
+             <Button onClick={handleDownloadMinutesTemplate} variant="outline">
+                <Download className="mr-2 h-4 w-4" /> Download Minutes Template
+             </Button>
+            <Button onClick={handleOpenNewMeetingForm} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Meeting
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {meetings.length === 0 ? (
