@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore'; // Changed updateDoc to setDoc
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,17 +35,18 @@ export default function UserProfilePage() {
       if (profileSnap.exists()) {
         return { id: profileSnap.id, ...profileSnap.data() } as UserProfile;
       }
-      // If profile doesn't exist, create a basic one (though signup should handle this ideally)
+      // If profile doesn't exist, create a basic one
       const basicProfile: Omit<UserProfile, 'id'> = {
           email: user.email || "",
-          displayName: user.displayName || "",
+          displayName: user.displayName || user.email?.split('@')[0] || "User", // Default display name
           country: "", // Default empty, user needs to set it
           createdAt: new Date().toISOString(),
       };
-      await updateDoc(profileRef, basicProfile, { merge: true }); // Use updateDoc with merge to create if not exists
+      await setDoc(profileRef, basicProfile, { merge: true }); // Use setDoc to create if not exists
       return {id: user.uid, ...basicProfile };
     },
     enabled: !!user?.uid,
+    retry: false, // Don't retry if profile creation fails once due to permission or other issues
   });
 
   const profileUpdateMutation = useMutation({
@@ -63,7 +64,8 @@ export default function UserProfilePage() {
 
       if (Object.keys(dataToUpdate).length > 0) {
         const profileRef = doc(db, USER_PROFILES_COLLECTION, user.uid);
-        await updateDoc(profileRef, dataToUpdate);
+        // Use setDoc with merge:true to ensure it updates or creates if somehow still missing
+        await setDoc(profileRef, dataToUpdate, { merge: true });
       }
       return dataToUpdate;
     },
@@ -105,7 +107,7 @@ export default function UserProfilePage() {
   }
 
   if (!user || !userProfile) {
-    return <div className="text-muted-foreground">User profile not available.</div>;
+    return <div className="text-muted-foreground">User profile not available. Please try refreshing the page or logging out and back in.</div>;
   }
 
   return (
@@ -167,4 +169,3 @@ export default function UserProfilePage() {
     </div>
   );
 }
-
