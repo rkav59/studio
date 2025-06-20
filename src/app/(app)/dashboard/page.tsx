@@ -10,24 +10,38 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Filter, Settings, Loader2 as PageLoader } from "lucide-react"; // Renamed Loader2
+import { CalendarIcon, Filter, Settings, Loader2 as PageLoader, Activity, Users as UsersIcon, CalendarClock } from "lucide-react"; 
 import { cn } from "@/lib/utils";
-import { format } from "date-fns"; 
+import { format, parseISO, startOfToday } from "date-fns"; 
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore'; // Added doc, getDoc
-import type { KpiThreshold, KpiVisibilitySettings } from '@/lib/types';
+import { collection, query, where, getDocs, doc, getDoc, Timestamp, orderBy } from 'firebase/firestore';
+import type { KpiThreshold, KpiVisibilitySettings, SheProgram, SheMeeting } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-
+import { useQuery } from '@tanstack/react-query';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const mockLocations = ["All Locations", "Warehouse A", "Office Block", "Factory Floor", "Loading Bay"];
 const mockCategories = ["All Categories", "Incident", "Near Miss", "Hazard"];
 
 const KPI_THRESHOLDS_COLLECTION = 'kpiThresholds';
-const KPI_VISIBILITY_COLLECTION = 'kpiVisibilitySettings'; // New collection name
+const KPI_VISIBILITY_COLLECTION = 'kpiVisibilitySettings';
+const PROGRAMS_COLLECTION = 'shePrograms';
+const MEETINGS_COLLECTION = 'sheMeetings';
+
+interface UpcomingEvent {
+  id: string;
+  type: 'Program' | 'Meeting';
+  title: string;
+  date: string; // ISO string for sorting
+  dateDisplay: string; // Formatted for display
+  icon: React.ElementType;
+  path?: string;
+}
+
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -80,6 +94,85 @@ export default function DashboardPage() {
     };
     fetchAllSettings();
   }, [user?.uid, toast]);
+
+  // Fetch Upcoming SHE Programs
+  const { data: upcomingPrograms = [], isLoading: isLoadingPrograms, error: programsError } = useQuery<SheProgram[]>({
+    queryKey: [PROGRAMS_COLLECTION, 'upcoming', user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const today = Timestamp.fromDate(startOfToday());
+      const q = query(
+        collection(db, PROGRAMS_COLLECTION),
+        where("userId", "==", user.uid),
+        // We fetch both planned and ongoing. Filtering for 'endDate' if ongoing, or 'startDate' for planned will be done client-side
+        // as Firestore doesn't support complex OR on different fields effectively.
+        where("status", "in", ["Planned", "Ongoing"]),
+        orderBy("startDate", "asc") 
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs
+        .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as SheProgram))
+        .filter(program => {
+            const progStartDate = parseISO(program.startDate);
+            if (program.status === 'Planned') {
+                return progStartDate >= startOfToday();
+            }
+            if (program.status === 'Ongoing') {
+                // Include ongoing programs unless their end date has passed
+                return !program.endDate || parseISO(program.endDate) >= startOfToday();
+            }
+            return false;
+        });
+    },
+    enabled: !!user?.uid,
+  });
+
+  // Fetch Upcoming SHE Meetings
+  const { data: upcomingMeetingsData = [], isLoading: isLoadingMeetings, error: meetingsError } = useQuery<SheMeeting[]>({
+    queryKey: [MEETINGS_COLLECTION, 'upcoming', user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const today = Timestamp.fromDate(startOfToday());
+      const q = query(
+        collection(db, MEETINGS_COLLECTION),
+        where("userId", "==", user.uid),
+        where("meetingDate", ">=", today),
+        orderBy("meetingDate", "asc")
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as SheMeeting));
+    },
+    enabled: !!user?.uid,
+  });
+
+  const upcomingEvents = useMemo(() => {
+    const events: UpcomingEvent[] = [];
+    upcomingPrograms.forEach(program => {
+      events.push({
+        id: program.id,
+        type: 'Program',
+        title: program.programName,
+        date: program.startDate,
+        dateDisplay: format(parseISO(program.startDate), "MMM d, yyyy"),
+        icon: Activity,
+        path: `/she-meetings#program-${program.id}` // Example path
+      });
+    });
+    upcomingMeetingsData.forEach(meeting => {
+      events.push({
+        id: meeting.id,
+        type: 'Meeting',
+        title: meeting.title,
+        date: meeting.meetingDate,
+        dateDisplay: format(parseISO(meeting.meetingDate), "MMM d, yyyy 'at' p"),
+        icon: UsersIcon,
+        path: `/she-meetings#meeting-${meeting.id}` // Example path
+      });
+    });
+    return events.sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime()).slice(0, 5); // Show top 5
+  }, [upcomingPrograms, upcomingMeetingsData]);
+
+  const isLoadingUpcomingEvents = isLoadingPrograms || isLoadingMeetings;
 
 
   return (
@@ -231,22 +324,35 @@ export default function DashboardPage() {
 
         <Card>
             <CardHeader>
-                <CardTitle>Safety Campaign: Zero Harm</CardTitle>
-                <CardDescription>Focusing on proactive hazard identification this month.</CardDescription>
+                <CardTitle className="flex items-center gap-2"><CalendarClock className="h-5 w-5 text-primary"/>Upcoming SHE Events</CardTitle>
+                <CardDescription>Key programs and meetings on the horizon.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="relative aspect-video max-h-[300px] overflow-hidden rounded-lg">
-                    <Image 
-                        src="https://placehold.co/800x450.png" 
-                        alt="Safety campaign banner" 
-                        layout="fill"
-                        objectFit="cover"
-                        data-ai-hint="safety meeting"
-                    />
-                </div>
-                <p className="mt-4 text-sm text-muted-foreground">
-                    Join us in our commitment to a safer workplace. Report any potential hazards and participate in upcoming safety briefings.
-                </p>
+                {isLoadingUpcomingEvents ? (
+                    <div className="flex justify-center items-center h-32">
+                        <PageLoader className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                ) : upcomingEvents.length > 0 ? (
+                    <ScrollArea className="max-h-[280px]">
+                        <ul className="space-y-3 pr-3">
+                            {upcomingEvents.map(event => (
+                                <li key={event.id} className="flex items-start gap-3 p-2.5 rounded-md border bg-secondary/40 hover:shadow-sm transition-shadow">
+                                    <event.icon className={`h-5 w-5 mt-0.5 ${event.type === 'Program' ? 'text-primary' : 'text-accent'}`} />
+                                    <div>
+                                        <p className="font-medium text-sm leading-tight">{event.title}</p>
+                                        <p className="text-xs text-muted-foreground">{event.dateDisplay} ({event.type})</p>
+                                        {/* Future: Add Link to event.path if needed */}
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </ScrollArea>
+                ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No upcoming events scheduled.</p>
+                )}
+                {(programsError || meetingsError) && (
+                    <p className="text-xs text-red-500 mt-2 text-center">Error loading events. Please try again later.</p>
+                )}
             </CardContent>
         </Card>
       </div>
