@@ -32,11 +32,11 @@ export const kpiInfoMap: Record<string, { title: string; definition: string; rel
     relevance: "This is a lagging indicator and an industry benchmark for overall safety performance. A lower TRIR generally indicates better safety performance.",
     defaultTargetDirection: 'below',
   },
-  "NMFR": { // Using a shorter key for consistency
+  "NMFR": { 
     title: "Near Miss Frequency Rate",
     definition: "Near Miss Frequency Rate (NMFR): Number of near-misses reported per a standard unit (e.g., per 1,000,000 hours worked or per 100 workers per month).",
     relevance: "Reflects a proactive safety reporting culture. A higher NMFR (with low incident rates) can indicate good hazard awareness and opportunity for preventative action before incidents occur.",
-    defaultTargetDirection: 'below', // Typically aim to reduce near misses by addressing root causes, though high reporting can be good initially
+    defaultTargetDirection: 'below', 
   },
   "SeverityRate": {
     title: "Severity Rate",
@@ -44,17 +44,17 @@ export const kpiInfoMap: Record<string, { title: string; definition: string; rel
     relevance: "Measures the seriousness/impact of incidents that do occur, focusing on the time lost from work due to injuries. Helps understand the severity beyond just frequency.",
     defaultTargetDirection: 'below',
   },
-  "FirstAidCases": {
-    title: "First Aid Cases",
-    definition: "Total number of minor injuries requiring only first aid treatment within a defined period (e.g., monthly).",
-    relevance: "Acts as an early warning indicator. Tracking first aid cases can help identify emerging risk trends or areas where minor incidents are frequent, potentially preventing more serious ones.",
+  "MinorInjuries": {
+    title: "Minor Injuries",
+    definition: "Total number of injuries not resulting in lost work time (e.g., medical treatment cases beyond first aid) within a defined period.",
+    relevance: "Tracks incidents that are more serious than first aid but do not result in lost workdays. Helps identify trends in less severe, but still significant, injuries, aiding in proactive risk reduction.",
     defaultTargetDirection: 'below',
   },
   "UnsafeActConditionReports": {
     title: "Unsafe Act / Condition Reports",
     definition: "Number of unsafe act or unsafe condition reports submitted, often normalized per employee or per period (e.g., reports per employee per month).",
     relevance: "Indicates worker engagement in the safety program and the effectiveness of hazard identification processes. A healthy reporting rate suggests a proactive safety culture.",
-    defaultTargetDirection: 'above', // Higher reporting is good
+    defaultTargetDirection: 'above', 
   },
   "IncidentClosureRate": {
     title: "Incident Closure Rate",
@@ -86,7 +86,7 @@ export const kpiInfoMap: Record<string, { title: string; definition: string; rel
     relevance: "Highlights the ultimate cost of a workplace fatality in terms of lost productivity and potential. This is a critical lagging indicator reflecting the most severe safety failures.",
     defaultTargetDirection: 'below',
   },
-  "MVAs": { // Shorter key
+  "MVAs": { 
     title: "Motor Vehicle Accidents (MVA)",
     definition: "Total number of work-related motor vehicle accidents involving company vehicles or employees on company business.",
     relevance: "Tracks a significant source of workplace incidents and fatalities. Essential for organizations with vehicle fleets or frequent travel requirements.",
@@ -342,7 +342,7 @@ export function OverviewCards({ kpiThresholds, isLoadingThresholds }: OverviewCa
   const trir = 2.1;
   const nmfr = 5.5;
   const severityRate = 15.2;
-  const firstAidCases = 18;
+  const minorInjuries = 18; // Renamed from firstAidCases
   const unsafeActConditionReports = 35;
   const incidentClosureRate = 85;
   const toolboxTalkAttendance = 92;
@@ -412,6 +412,24 @@ export function OverviewCards({ kpiThresholds, isLoadingThresholds }: OverviewCa
     { name: 'Scheduled', value: 100 - leadershipWalksRate, fill: 'hsl(var(--muted))' }
   ];
 
+  if (isLoadingThresholds) {
+    return (
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+        {[...Array(8)].map((_, i) => (
+            <Card key={`skl-${i}`} className="h-[180px] flex flex-col justify-between">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <KpiLoader className="h-6 w-6 animate-spin text-muted-foreground/50" />
+                </CardHeader>
+                <CardContent className="flex-grow flex flex-col items-center justify-center">
+                    <div className="h-6 bg-muted-foreground/10 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-muted-foreground/10 rounded w-1/2"></div>
+                </CardContent>
+            </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold tracking-tight text-foreground/90">General SHEQ Performance Indicators</h2>
@@ -419,7 +437,7 @@ export function OverviewCards({ kpiThresholds, isLoadingThresholds }: OverviewCa
         <KpiCard title={kpiInfoMap["TRIR"].title} kpiKey="TRIR" value={trir.toFixed(1)} icon={Activity} description="per 200,000 hours worked" threshold={findThreshold("TRIR")?.value} targetDirection={findThreshold("TRIR")?.targetDirection || kpiInfoMap["TRIR"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
         <KpiCard title={kpiInfoMap["NMFR"].title} kpiKey="NMFR" value={nmfr.toFixed(1)} icon={TrendingUp} description="per 100 workers/month" threshold={findThreshold("NMFR")?.value} targetDirection={findThreshold("NMFR")?.targetDirection || kpiInfoMap["NMFR"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
         <KpiCard title={kpiInfoMap["SeverityRate"].title} kpiKey="SeverityRate" value={severityRate.toFixed(1)} icon={BedDouble} description="Lost days per 200k hours" threshold={findThreshold("SeverityRate")?.value} targetDirection={findThreshold("SeverityRate")?.targetDirection || kpiInfoMap["SeverityRate"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
-        <KpiCard title={kpiInfoMap["FirstAidCases"].title} kpiKey="FirstAidCases" value={firstAidCases} icon={HeartPulse} description="Total this month" threshold={findThreshold("FirstAidCases")?.value} targetDirection={findThreshold("FirstAidCases")?.targetDirection || kpiInfoMap["FirstAidCases"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
+        <KpiCard title={kpiInfoMap["MinorInjuries"].title} kpiKey="MinorInjuries" value={minorInjuries} icon={HeartPulse} description="Total this period" threshold={findThreshold("MinorInjuries")?.value} targetDirection={findThreshold("MinorInjuries")?.targetDirection || kpiInfoMap["MinorInjuries"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
         
         <KpiCard title={kpiInfoMap["UnsafeActConditionReports"].title} kpiKey="UnsafeActConditionReports" value={unsafeActConditionReports} icon={AlertTriangle} description="Reports this month" threshold={findThreshold("UnsafeActConditionReports")?.value} targetDirection={findThreshold("UnsafeActConditionReports")?.targetDirection || kpiInfoMap["UnsafeActConditionReports"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
         <KpiCard title={kpiInfoMap["IncidentClosureRate"].title} kpiKey="IncidentClosureRate" value={incidentClosureRate} pieData={incidentClosureRateData} icon={CheckCircle2} valueSuffix="%" description="Closed within target time" threshold={findThreshold("IncidentClosureRate")?.value} targetDirection={findThreshold("IncidentClosureRate")?.targetDirection || kpiInfoMap["IncidentClosureRate"].defaultTargetDirection} onGetAiRecommendation={handleGetAiRecommendation}/>
@@ -517,3 +535,4 @@ export function IncidentTypeChart() {
     </Card>
   );
 }
+
