@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore'; // Changed updateDoc to setDoc
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ProfileUpdateForm } from '@/components/user-profile/profile-update-form';
 import { PasswordChangeSection } from '@/components/user-profile/password-change-section';
 import type { UserProfile } from '@/lib/types';
-import { Mail, User as UserIcon, Globe, Shield, HelpCircle, FileText as FileTextIcon, Phone } from 'lucide-react'; // Aliased FileText
+import { Mail, User as UserIcon, Globe, Shield, HelpCircle, FileText as FileTextIcon, Phone } from 'lucide-react';
 import Link from 'next/link';
 
 const USER_PROFILES_COLLECTION = 'userProfiles';
@@ -38,47 +38,60 @@ export default function UserProfilePage() {
       // If profile doesn't exist, create a basic one
       const basicProfile: Omit<UserProfile, 'id'> = {
           email: user.email || "",
-          displayName: user.displayName || user.email?.split('@')[0] || "User", // Default display name
+          displayName: user.displayName || user.email?.split('@')[0] || "User",
           country: "", // Default empty, user needs to set it
           createdAt: new Date().toISOString(),
       };
-      await setDoc(profileRef, basicProfile, { merge: true }); // Use setDoc to create if not exists
+      // Use setDoc without merge for initial creation, as it's a new document.
+      await setDoc(profileRef, basicProfile); 
       return {id: user.uid, ...basicProfile };
     },
     enabled: !!user?.uid,
-    retry: false, // Don't retry if profile creation fails once due to permission or other issues
+    retry: false,
   });
 
   const profileUpdateMutation = useMutation({
     mutationFn: async (updatedData: { displayName?: string; country?: string }) => {
-      if (!user?.uid || !userProfile) throw new Error("User or profile not available.");
+      if (!user?.uid) throw new Error("User not authenticated.");
+      // Ensure userProfile is available from the query before proceeding
+      const currentProfile = queryClient.getQueryData<UserProfile | null>([USER_PROFILES_COLLECTION, user.uid]);
+      if (!currentProfile) throw new Error("User profile data not loaded yet.");
       
       const dataToUpdate: Partial<UserProfile> = {};
-      if (updatedData.displayName && updatedData.displayName !== userProfile.displayName) {
-        await updateUserDisplayName(updatedData.displayName); // Updates Firebase Auth display name
+      let displayNameChanged = false;
+
+      if (updatedData.displayName && updatedData.displayName !== currentProfile.displayName) {
+        await updateUserDisplayName(updatedData.displayName);
         dataToUpdate.displayName = updatedData.displayName;
+        displayNameChanged = true;
       }
-      if (updatedData.country && updatedData.country !== userProfile.country) {
+      if (updatedData.country && updatedData.country !== currentProfile.country) {
         dataToUpdate.country = updatedData.country;
       }
 
       if (Object.keys(dataToUpdate).length > 0) {
         const profileRef = doc(db, USER_PROFILES_COLLECTION, user.uid);
-        // Use setDoc with merge:true to ensure it updates or creates if somehow still missing
+        // Use setDoc with merge:true to update existing or create if somehow deleted
         await setDoc(profileRef, dataToUpdate, { merge: true });
       }
-      return dataToUpdate;
+      return { ...dataToUpdate, displayNameChanged }; // Pass info about what changed
     },
     onSuccess: (updatedFields) => {
       queryClient.invalidateQueries({ queryKey: [USER_PROFILES_COLLECTION, user?.uid] });
       let successMessage = "Profile updated successfully.";
-      if (updatedFields.displayName && updatedFields.country) {
+       if (updatedFields.displayNameChanged && updatedFields.country) {
         successMessage = "Display name and country updated.";
-      } else if (updatedFields.displayName) {
+      } else if (updatedFields.displayNameChanged) {
         successMessage = "Display name updated.";
       } else if (updatedFields.country) {
         successMessage = "Country updated.";
+      } else if (Object.keys(updatedFields).length === 1 && 'displayNameChanged' in updatedFields ) {
+        // This case handles when only displayName was changed, and it was the only potential update.
+        // No specific message beyond the generic one is needed if no actual fields were staged for Firestore.
+      } else if (Object.keys(updatedFields).length === 0) {
+        successMessage = "No changes were saved as the data was the same.";
       }
+      
       toast({ title: "Success", description: successMessage });
     },
     onError: (error: Error) => {
