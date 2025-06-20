@@ -72,14 +72,18 @@ export default function AppLayoutInternal({ children }: AppLayoutInternalProps) 
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:justify-end">
           <SidebarTrigger className="md:hidden" />
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3"> {/* Adjusted gap for better spacing */}
             {user && (
-                <Button variant="link" asChild className="text-sm text-muted-foreground hidden sm:inline p-0 h-auto hover:text-primary">
-                  <Link href="/user-profile" className="flex items-center gap-1">
-                    {user.displayName || user.email}
-                    <UserCircle className="h-4 w-4 ml-1" />
-                  </Link>
-                </Button>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                  {user.displayName || user.email}
+                </span>
+                <Link href="/user-profile" passHref legacyBehavior>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="User Profile">
+                    <UserCircle className="h-5 w-5" />
+                  </Button>
+                </Link>
+              </div>
             )}
             <GenerateReportButton />
           </div>
