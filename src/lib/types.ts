@@ -1,4 +1,5 @@
 
+
 export interface Incident {
   id: string;
   userId?: string; // Added for data ownership
@@ -800,6 +801,40 @@ export interface KpiRecommendationOutput {
 // --- End KPI AI Recommendation Types ---
 
 
+// --- User Profile Type ---
+export interface UserProfile {
+    id: string; // Firebase User UID
+    email: string;
+    displayName?: string;
+    country: string;
+    createdAt: string; // ISO string
+}
+// --- End User Profile Type ---
+
+// --- Legal Register Types ---
+export interface LegalRegisterItem {
+    title: string;
+    type: 'Act' | 'Regulation' | 'Policy' | 'Framework' | 'Guideline' | 'Code of Practice' | 'Other';
+    summary: string;
+    relevanceToSheq: string;
+    issuingBody?: string;
+    jurisdiction?: string; // e.g., National, State/Provincial, Local
+    keywords?: string[];
+}
+
+export interface GenerateLegalRegisterInput {
+    country: string;
+    industry?: string; // Optional for more specific results
+}
+
+export interface GenerateLegalRegisterOutput {
+    legalItems: LegalRegisterItem[];
+    disclaimer: string;
+}
+// --- End Legal Register Types ---
+
+
+
 // --- Global App Types (Can be used across modules) ---
 // (Consider moving types here if they are shared by more than 2-3 modules)
 // e.g., export type ActionItemStatus = 'Open' | 'In Progress' | 'Completed' | 'Deferred';
@@ -808,3 +843,4 @@ export interface KpiRecommendationOutput {
 // --- End Global App Types ---
 
     
+

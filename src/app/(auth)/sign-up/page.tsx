@@ -16,25 +16,31 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase"; // Import db
+import { doc, setDoc, serverTimestamp } from "firebase/firestore"; // Import Firestore functions
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
-import { Loader2, Mail, Lock, User as UserIcon } from "lucide-react";
+import { Loader2, Mail, Lock, User as UserIcon, Globe } from "lucide-react"; // Added Globe
 import { SocialButtons } from "@/components/auth/social-buttons";
 import { Separator } from "@/components/ui/separator";
+import type { UserProfile } from "@/lib/types";
+
 
 const signUpFormSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   confirmPassword: z.string(),
+  country: z.string().min(2, { message: "Country is required."}).max(100, "Country name is too long."), // Added country field
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match.",
-  path: ["confirmPassword"], // Path to the field that will display the error
+  path: ["confirmPassword"], 
 });
 
 type SignUpFormValues = z.infer<typeof signUpFormSchema>;
+
+const USER_PROFILES_COLLECTION = 'userProfiles';
 
 export default function SignUpPage() {
   const { toast } = useToast();
@@ -48,6 +54,7 @@ export default function SignUpPage() {
       email: "",
       password: "",
       confirmPassword: "",
+      country: "", // Default for country
     },
   });
 
@@ -56,18 +63,28 @@ export default function SignUpPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       
-      // Update user profile with full name
       if (userCredential.user) {
-        await updateProfile(userCredential.user, {
+        const firebaseUser = userCredential.user;
+        await updateProfile(firebaseUser, {
           displayName: data.fullName,
         });
+
+        // Create user profile document in Firestore
+        const userProfileRef = doc(db, USER_PROFILES_COLLECTION, firebaseUser.uid);
+        const userProfileData: Omit<UserProfile, 'id'> = { // id will be the doc id
+          email: firebaseUser.email || "",
+          displayName: data.fullName,
+          country: data.country,
+          createdAt: new Date().toISOString(),
+        };
+        await setDoc(userProfileRef, userProfileData);
       }
       
       toast({
         title: "Account Created Successfully",
         description: "Welcome! You are now signed in.",
       });
-      router.push("/dashboard"); // Redirect to dashboard after successful sign up
+      router.push("/dashboard"); 
     } catch (error: any) {
       console.error("Sign up error:", error);
       let errorMessage = "An unexpected error occurred. Please try again.";
@@ -121,6 +138,22 @@ export default function SignUpPage() {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <FormControl>
                     <Input type="email" placeholder="Email address" {...field} className="pl-10" />
+                  </FormControl>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+           <FormField
+            control={form.control}
+            name="country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="sr-only">Country</FormLabel>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <FormControl>
+                    <Input placeholder="Country of Operation" {...field} className="pl-10" />
                   </FormControl>
                 </div>
                 <FormMessage />
@@ -188,3 +221,4 @@ export default function SignUpPage() {
     </>
   );
 }
+
