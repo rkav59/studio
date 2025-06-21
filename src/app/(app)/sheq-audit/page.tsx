@@ -172,8 +172,9 @@ export default function SheqAuditPage() {
         })),
       };
       await updateDoc(auditRef, dataForDb);
+      return executedAudit; // Pass the original executedAudit data to onSuccess
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (variables) => {
       queryClient.invalidateQueries({ queryKey: [SHEQ_AUDITS_COLLECTION, user?.uid] });
       toast({ title: "Audit Updated", description: `Audit "${variables.auditName}" has been updated.` });
       setCurrentAudit(null);
@@ -335,25 +336,21 @@ export default function SheqAuditPage() {
     <div className="space-y-6">
       {!currentAudit ? (
         <>
-          <Card className="shadow-lg">
-            <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <CardTitle className="text-3xl font-bold tracking-tight font-headline">SHEQ Audits</CardTitle>
-                    <Button onClick={handleGenerateAiInsights} disabled={isAiInsightsLoading || audits.length === 0} variant="outline" className="border-accent text-accent hover:bg-accent/10">
-                        {isAiInsightsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                        AI Audit Insights
-                    </Button>
-                </div>
-                <CardDescription className="p-0 pt-2">Ensure compliance and drive continuous improvement across SHEQ. Data now in Firestore.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p className="text-muted-foreground">
-                    This module facilitates the planning, execution, and tracking of SHEQ audits, with all data stored in Firebase Firestore. 
-                    Select from default or custom checklist templates. During execution, customize items, log responsible persons, multiple observations, and comments. Document non-conformances with CAPA details.
-                    Checklist items now include fields for audit criteria and evidence gathering to align with ISO 19011 principles.
-                </p>
-            </CardContent>
-          </Card>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h1 className="text-3xl font-bold tracking-tight font-headline">SHEQ Audits</h1>
+            <Button onClick={handleGenerateAiInsights} disabled={isAiInsightsLoading || audits.length === 0} variant="outline" className="border-accent text-accent hover:bg-accent/10">
+                {isAiInsightsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                AI Audit Insights
+            </Button>
+          </div>
+          <div className="space-y-2">
+            <p className="text-muted-foreground">Ensure compliance and drive continuous improvement across SHEQ. Data now in Firestore.</p>
+            <p className="text-muted-foreground">
+                This module facilitates the planning, execution, and tracking of SHEQ audits, with all data stored in Firebase Firestore. 
+                Select from default or custom checklist templates. During execution, customize items, log responsible persons, multiple observations, and comments. Document non-conformances with CAPA details.
+                Checklist items now include fields for audit criteria and evidence gathering to align with ISO 19011 principles.
+            </p>
+          </div>
           
           <AuditScheduler
             scheduledAudits={audits.filter(a => a.status === 'Planned' || a.status === 'In Progress')}
@@ -399,7 +396,7 @@ export default function SheqAuditPage() {
                       <div className="flex-grow">
                         <p className="font-medium">{audit.auditName} <span className="text-xs text-muted-foreground">({audit.auditType})</span></p>
                         <p className="text-sm text-muted-foreground">Scope: {audit.scope}</p>
-                        <p className="text-xs text-muted-foreground">Date: {format(parseISO(audit.auditDate), "PPP")} | Auditor: {audit.auditor}</p>
+                        <p className="text-xs text-muted-foreground">Date: {format(parseISO(audit.auditDate), "PPP")} | Auditor(s): {audit.auditor}</p>
                         <p className={`text-xs font-semibold ${getStatusColor(audit.status)}`}>Status: {audit.status}</p>
                       </div>
                        <Button variant="outline" size="sm" onClick={() => setViewingAuditDetails(audit)} className="mt-2 sm:mt-0 self-start sm:self-auto">
