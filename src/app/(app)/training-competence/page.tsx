@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -147,34 +148,19 @@ export default function TrainingCompetencePage() {
     );
   }
   if (coursesError || recordsError) {
-    return <div className="text-red-500 text-center py-10">Error loading data: {(coursesError || recordsError)?.message}</div>;
+    return <div className="text-red-500 text-center py-10">Error loading data: ${(coursesError || recordsError)?.message}</div>;
   }
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-lg overflow-hidden">
-        <div className="relative h-60 w-full">
-            <Image 
-                src="https://placehold.co/1200x400.png" 
-                alt="Training session in progress" 
-                layout="fill" 
-                objectFit="cover"
-                data-ai-hint="classroom training"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-0 left-0 p-6">
-                <h1 className="text-3xl font-bold tracking-tight font-headline text-white">Training &amp; Competence</h1>
-                <p className="text-sm text-neutral-300">Manage courses and track employee training records effectively. Data stored in Firestore.</p>
-            </div>
-        </div>
-        <CardContent className="pt-6">
-            <p className="text-muted-foreground">
-                This module allows you to build a course catalog and maintain training records for employees. 
-                Track completion dates, expiry dates, and overall training status to ensure workforce competence.
-                All data is now stored securely in Firebase Firestore.
-            </p>
-        </CardContent>
-      </Card>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight font-headline">Training &amp; Competence</h1>
+        <p className="text-muted-foreground mt-2">
+            This module allows you to build a course catalog and maintain training records for employees. 
+            Track completion dates, expiry dates, and overall training status to ensure workforce competence.
+            All data is now stored securely in Firebase Firestore.
+        </p>
+      </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
