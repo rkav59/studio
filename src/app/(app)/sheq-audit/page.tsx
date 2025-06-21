@@ -177,10 +177,12 @@ export default function SheqAuditPage() {
     onSuccess: (variables: SheqAudit) => {
         queryClient.invalidateQueries({ queryKey: [SHEQ_AUDITS_COLLECTION, user?.uid] });
         toast({
-          title: "Audit Updated",
-          description: `Audit "${variables.auditName}" has been updated.`,
+          title: variables.status === 'Completed' ? "Audit Completed" : "Audit Progress Saved",
+          description: `Audit "${variables.auditName}" has been ${variables.status === 'Completed' ? 'completed' : 'saved'}.`,
         });
-        setCurrentAudit(null);
+        if (variables.status === 'Completed') {
+            setCurrentAudit(null);
+        }
     },
     onError: (error: Error) => {
       toast({ title: "Error Updating Audit", description: error.message, variant: "destructive" });
@@ -509,7 +511,7 @@ export default function SheqAuditPage() {
                         <p className="font-medium">{audit.auditName} <span className="text-xs text-muted-foreground">({audit.auditType})</span></p>
                         <p className="text-sm text-muted-foreground">Scope: {audit.scope}</p>
                         <p className="text-xs text-muted-foreground">Date: {format(parseISO(audit.auditDate), "PPP")} | Auditor(s): {audit.auditor}</p>
-                        <p className={`text-xs font-semibold ${getStatusColor(audit.status)}`}>Status: {audit.status}</p>
+                        <p className={`text-xs font-medium ${getStatusColor(audit.status)}`}>Status: {audit.status}</p>
                       </div>
                       <div className="flex flex-wrap gap-2 mt-2 sm:mt-0 self-start sm:self-auto">
                         <Button variant="outline" size="sm" onClick={() => setViewingAuditDetails(audit)}>

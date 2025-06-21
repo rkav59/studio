@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -144,9 +145,10 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
     name: "nonConformances",
   });
 
-  async function onSubmit(data: AuditExecutionFormValues) {
+  async function handleSave(data: AuditExecutionFormValues, status: 'In Progress' | 'Completed') {
     const updatedAuditData: SheqAudit = {
       ...audit,
+      status, // Use the new status
       checklist: data.checklist.map(item => ({...item})), 
       nonConformances: data.nonConformances.map(nc => ({
         ...nc,
@@ -155,13 +157,8 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
       })),
       overallFindings: data.overallFindings,
       recommendations: data.recommendations,
-      status: "Completed", 
     };
     onSaveAudit(updatedAuditData);
-    toast({
-      title: "Audit Data Saved",
-      description: `Audit findings for "${audit.auditName}" have been recorded.`,
-    });
   }
   
   const handleAddNewChecklistItem = () => {
@@ -184,7 +181,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
         
         <Card>
           <CardHeader>
@@ -666,8 +663,11 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
             </CardContent>
         </Card>
         
-        <div className="flex justify-end pt-4">
-            <Button type="submit" className="bg-primary hover:bg-primary/90">
+        <div className="flex justify-end pt-4 gap-2">
+            <Button type="button" variant="secondary" onClick={form.handleSubmit(data => handleSave(data, 'In Progress'))}>
+                Save Progress
+            </Button>
+            <Button type="button" className="bg-primary hover:bg-primary/90" onClick={form.handleSubmit(data => handleSave(data, 'Completed'))}>
                 <Save className="mr-2 h-4 w-4" /> Save and Complete Audit
             </Button>
         </div>
