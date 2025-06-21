@@ -328,7 +328,7 @@ export default function SheqAuditPage() {
   }
 
   if (auditsError || userTemplatesError) {
-    return <div className="text-red-500 text-center py-10">Error loading data: {(auditsError || userTemplatesError)?.message}</div>;
+    return <div className="text-red-500 text-center py-10">Error loading data: ${(auditsError || userTemplatesError)?.message}</div>;
   }
 
   return (
@@ -342,22 +342,12 @@ export default function SheqAuditPage() {
               AI Audit Insights
             </Button>
           </div>
-          <Card className="shadow-lg overflow-hidden">
-            <div className="relative h-60 w-full">
-                <Image 
-                    src="https://placehold.co/1200x400.png" 
-                    alt="Auditor reviewing documents with a checklist" 
-                    layout="fill" 
-                    objectFit="cover"
-                    data-ai-hint="audit review checklist"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-0 left-0 p-6">
-                    <h2 className="text-2xl font-semibold text-white font-headline">Comprehensive Auditing</h2>
-                    <p className="text-sm text-neutral-300">Ensure compliance and drive continuous improvement across SHEQ. Data now in Firestore.</p>
-                </div>
-            </div>
-            <CardContent className="pt-6">
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle>Comprehensive Auditing</CardTitle>
+              <CardDescription className="p-0 pt-2">Ensure compliance and drive continuous improvement across SHEQ. Data now in Firestore.</CardDescription>
+            </CardHeader>
+            <CardContent>
                 <p className="text-muted-foreground">
                     This module facilitates the planning, execution, and tracking of SHEQ audits, with all data stored in Firebase Firestore. 
                     Select from default or custom checklist templates. During execution, customize items, log responsible persons, multiple observations, and comments. Document non-conformances with CAPA details.
@@ -602,7 +592,7 @@ export default function SheqAuditPage() {
                   <pre className="whitespace-pre-wrap text-sm p-3 bg-secondary/50 rounded-md">{aiInsights.positiveObservations}</pre>
                 </div>
               )}
-               <Alert variant="info" className="mt-4">
+               <Alert variant="info" className="mt-4 text-xs">
                 <BrainCircuit className="h-4 w-4" />
                 <AlertTitle>Note on AI Insights</AlertTitle>
                 <UIAlertDescription>
@@ -620,5 +610,3 @@ export default function SheqAuditPage() {
     </div>
   );
 }
-
-    
