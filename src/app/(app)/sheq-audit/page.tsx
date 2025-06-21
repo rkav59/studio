@@ -150,7 +150,7 @@ export default function SheqAuditPage() {
   });
 
   const updateAuditMutation = useMutation({
-    mutationFn: async (executedAudit: SheqAudit) => {
+    mutationFn: async (executedAudit: SheqAudit): Promise<SheqAudit> => {
       if (!user?.uid || !executedAudit.id) throw new Error("User or Audit ID missing");
       const { id, ...dataToUpdate } = executedAudit;
       const auditRef = doc(db, SHEQ_AUDITS_COLLECTION, id);
@@ -172,7 +172,7 @@ export default function SheqAuditPage() {
         })),
       };
       await updateDoc(auditRef, dataForDb);
-      return executedAudit; // Pass the original executedAudit data to onSuccess
+      return executedAudit;
     },
     onSuccess: (variables: SheqAudit) => {
       queryClient.invalidateQueries({ queryKey: [SHEQ_AUDITS_COLLECTION, user?.uid] });
@@ -183,6 +183,7 @@ export default function SheqAuditPage() {
       toast({ title: "Error Updating Audit", description: error.message, variant: "destructive" });
     },
   });
+
 
   const handleScheduleAudit = (
     newAuditData: Omit<SheqAudit, 'id' | 'status' | 'checklist' | 'nonConformances' | 'overallFindings' | 'recommendations' | 'userId'>,
@@ -353,6 +354,7 @@ export default function SheqAuditPage() {
                 Checklist items now include fields for audit criteria and evidence gathering to align with ISO 19011 principles.
             </p>
           </div>
+          <Separator />
           
           <AuditScheduler
             scheduledAudits={audits.filter(a => a.status === 'Planned' || a.status === 'In Progress')}
@@ -592,7 +594,7 @@ export default function SheqAuditPage() {
               )}
                <Alert variant="info" className="mt-4 text-xs">
                 <BrainCircuit className="h-4 w-4" />
-                <AlertTitle>Note on AI Insights</AlertTitle>
+                <UIAlertTitle>Note on AI Insights</UIAlertTitle>
                 <UIAlertDescription>
                   These insights are AI-generated based on a summary of audit data from Firestore.
                   Always use professional judgment when interpreting AI-generated information.
