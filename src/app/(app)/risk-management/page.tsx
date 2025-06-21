@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -345,22 +344,11 @@ export default function RiskManagementPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-lg overflow-hidden">
-        <div className="relative h-60 w-full">
-          <Image
-            src="https://placehold.co/1200x300.png" 
-            alt="Risk matrix and safety gear"
-            layout="fill"
-            objectFit="cover"
-            data-ai-hint="risk management safety"
-            className="transform -scale-y-100"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-          <div className="absolute bottom-0 left-0 p-6">
-            <h1 className="text-3xl font-bold tracking-tight font-headline text-white">Risk Management - Aligned with ISO 31000 Principles</h1>
-            <p className="text-sm text-neutral-300">This module facilitates a systematic approach to risk management, following ISO 31000 guidelines for establishing context, identifying, analyzing, evaluating, treating, monitoring, and reporting risks. Now includes Incident Logging.</p>
-          </div>
-        </div>
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold tracking-tight font-headline">Risk Management - Aligned with ISO 31000 Principles</CardTitle>
+          <CardDescription className="p-0 pt-2 text-base text-muted-foreground">This module facilitates a systematic approach to risk management, following ISO 31000 guidelines for establishing context, identifying, analyzing, evaluating, treating, monitoring, and reporting risks. Now includes Incident Logging.</CardDescription>
+        </CardHeader>
       </Card>
 
     {/* Incident Log Section */}
@@ -616,3 +604,5 @@ export default function RiskManagementPage() {
     </div>
   );
 }
+
+    
