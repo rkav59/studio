@@ -11,7 +11,7 @@ import type { SheqAudit, AuditChecklistItem, ChecklistItemTemplate, NonConforman
 import { defaultChecklistTemplates } from '@/lib/checklist-templates';
 import { Separator } from '@/components/ui/separator';
 import { format, isValid, parseISO } from 'date-fns';
-import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2, LinkIcon, Filter, BookCheck, SearchCheck } from "lucide-react";
+import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2, LinkIcon, Filter, BookCheck, SearchCheck, FileCheck2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -174,7 +174,7 @@ export default function SheqAuditPage() {
       await updateDoc(auditRef, dataForDb);
       return executedAudit; // Pass the original executedAudit data to onSuccess
     },
-    onSuccess: (variables) => {
+    onSuccess: (variables: SheqAudit) => {
       queryClient.invalidateQueries({ queryKey: [SHEQ_AUDITS_COLLECTION, user?.uid] });
       toast({ title: "Audit Updated", description: `Audit "${variables.auditName}" has been updated.` });
       setCurrentAudit(null);
@@ -336,14 +336,16 @@ export default function SheqAuditPage() {
     <div className="space-y-6">
       {!currentAudit ? (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h1 className="text-3xl font-bold tracking-tight font-headline">SHEQ Audits</h1>
-            <Button onClick={handleGenerateAiInsights} disabled={isAiInsightsLoading || audits.length === 0} variant="outline" className="border-accent text-accent hover:bg-accent/10">
-                {isAiInsightsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                AI Audit Insights
-            </Button>
-          </div>
           <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
+                  <FileCheck2 className="h-8 w-8 text-primary"/> SHEQ Audits
+              </h1>
+              <Button onClick={handleGenerateAiInsights} disabled={isAiInsightsLoading || audits.length === 0} variant="outline" className="border-accent text-accent hover:bg-accent/10">
+                  {isAiInsightsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                  AI Audit Insights
+              </Button>
+            </div>
             <p className="text-muted-foreground">Ensure compliance and drive continuous improvement across SHEQ. Data now in Firestore.</p>
             <p className="text-muted-foreground">
                 This module facilitates the planning, execution, and tracking of SHEQ audits, with all data stored in Firebase Firestore. 

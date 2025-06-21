@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 // Removed Dialog import as forms are now on separate pages
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, BookOpen, UserCheck, CalendarClock, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, BookOpen, UserCheck, CalendarClock, AlertTriangle, CheckCircle2, Loader2, BookUser } from "lucide-react";
 import type { TrainingCourse, TrainingRecord, TrainingRecordStatus } from "@/lib/types";
 // Removed CourseForm and TrainingRecordForm imports
 import { useToast } from '@/hooks/use-toast';
@@ -154,7 +154,9 @@ export default function TrainingCompetencePage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight font-headline">Training &amp; Competence</h1>
+        <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
+          <BookUser className="h-8 w-8 text-primary"/> Training &amp; Competence
+        </h1>
         <p className="text-muted-foreground mt-2">
             This module allows you to build a course catalog and maintain training records for employees. 
             Track completion dates, expiry dates, and overall training status to ensure workforce competence.

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, ClipboardList, FileText, CheckSquare, ShieldAlert, Loader2, Download, Users, Settings, Search } from "lucide-react"; // Added Search
+import { PlusCircle, Edit2, Trash2, Eye, ClipboardList, FileText, CheckSquare, ShieldAlert, Loader2, Download, Users, Settings, Search, ListChecks } from "lucide-react"; // Added ListChecks
 import type { Contractor, PermitToWork, ContractorVettingStatus, PtwStatus, ContractorDocument, PtwSupervisionRecord } from "@/lib/types";
 import { ContractorDetailsDialog } from "@/components/contractor-safety/contractor-details-dialog";
 import { PtwDetailsDialog } from "@/components/contractor-safety/ptw-details-dialog";
@@ -224,7 +224,9 @@ export default function ContractorSafetyPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight font-headline">Contractor Safety</h1>
+        <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
+          <ListChecks className="h-8 w-8 text-primary"/> Contractor Safety
+        </h1>
         <p className="text-muted-foreground">
           Oversee contractor vetting, inductions, Permits-to-Work (PTW), and on-site supervision.
         </p>

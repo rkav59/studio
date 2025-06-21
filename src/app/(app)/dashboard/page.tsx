@@ -10,7 +10,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Filter, Settings, Loader2 as PageLoader, Activity, Users as UsersIcon, CalendarClock, RefreshCw } from "lucide-react"; 
+import { LayoutDashboard, CalendarIcon, Filter, Settings, Loader2 as PageLoader, Activity, Users as UsersIcon, CalendarClock, RefreshCw } from "lucide-react"; 
 import { cn } from "@/lib/utils";
 import { format, parseISO, startOfToday, isValid } from "date-fns"; 
 import { Label } from '@/components/ui/label';
@@ -250,7 +250,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0">
-        <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
+          <LayoutDashboard className="h-8 w-8 text-primary"/> Dashboard
+        </h1>
         <Button variant="outline" onClick={() => router.push('/dashboard/kpi-settings')}>
           <Settings className="mr-2 h-4 w-4" />
           Configure KPI Settings
@@ -441,4 +443,5 @@ export default function DashboardPage() {
 }
 
     
+
 

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -331,7 +332,9 @@ export default function SheMeetingsPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight font-headline">SHE Meetings & Programs</h1>
+        <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
+          <CalendarRange className="h-8 w-8 text-primary"/> SHE Meetings & Programs
+        </h1>
         <p className="text-muted-foreground">
           Organize, track, and manage safety, health, and environmental initiatives and communication. Data stored in Firestore.
         </p>

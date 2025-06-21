@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog"; 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, Package, CheckCheck, ClipboardList, Settings2, AlertTriangle, ListFilter, Search, ShieldCheck, Activity, CalendarClock, ClockIcon, AlertCircle, Users, Loader2 } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, Eye, Package, CheckCheck, ClipboardList, Settings2, AlertTriangle, ListFilter, Search, ShieldCheck, Activity, CalendarClock, ClockIcon, AlertCircle, Users, Loader2, HardHat } from "lucide-react";
 import type { PpeItem, PpeIssuanceRecord, PpeInspectionRecord, PpeItemStatus, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid, differenceInDays, isBefore } from 'date-fns';
@@ -332,7 +332,9 @@ export default function PpeManagementPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight font-headline">PPE Management</h1>
+        <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
+          <HardHat className="h-8 w-8 text-primary"/> PPE Management
+        </h1>
         <p className="text-muted-foreground">
           Track inventory, issuance, inspections, and compliance for Personal Protective Equipment. Data stored in Firestore.
         </p>

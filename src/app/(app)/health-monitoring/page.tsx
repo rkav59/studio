@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 // Removed Dialog import
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Edit2, Trash2, Eye, Users, Thermometer, ShieldCheck, Award, UserPlus, FlaskConical, ClipboardPlus, Users2Icon, AlertTriangle, CalendarClock, ClockIcon, ShieldAlert, FilePlus, Loader2 } from "lucide-react";
+import { Edit2, Trash2, Eye, Users, Thermometer, ShieldCheck, Award, UserPlus, FlaskConical, ClipboardPlus, Users2Icon, AlertTriangle, CalendarClock, ClockIcon, ShieldAlert, FilePlus, Loader2, HeartPulse } from "lucide-react";
 import type { SimilarExposureGroup, IndustrialHygieneSample, MedicalTestRecord, WellnessProgram, MedicalTestWithCertStatus, MedicalTestPrefillData, IndustrialHygieneSampleAgent, MedicalTestRecordType } from "@/lib/types";
 // Removed form imports: SegForm, IhSampleForm, MedicalTestForm, WellnessProgramForm
 import { SegDetailsDialog } from '@/components/health-monitoring/seg-details-dialog';
@@ -203,7 +203,9 @@ export default function HealthMonitoringPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight font-headline">Proactive Health Management</h1>
+        <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
+          <HeartPulse className="h-8 w-8 text-primary"/> Proactive Health Management
+        </h1>
         <p className="text-muted-foreground">
           Monitor occupational health, exposure data, medical screenings, and wellness. This module facilitates health monitoring including SEGs, IH sampling, medical tests, and wellness programs. Data is stored in Firebase Firestore.
         </p>
