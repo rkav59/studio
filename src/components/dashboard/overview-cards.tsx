@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Alert, AlertDescription as UiAlertDescription, AlertTitle as UiAlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle as UIAlertTitle } from "@/components/ui/alert";
 
 
 // Data structure for KPI details including a user-friendly title
@@ -279,7 +279,7 @@ function KpiCard({ title, value, pieData, valueSuffix = "", kpiKey, threshold, t
             </ChartContainer>
           </div>
         )}
-        <div className={`text-2xl font-bold ${valueColor} ${pieData && pieData.length > 0 ? 'mt-2' : 'mt-2 mb-2'}`}>{value}{valueSuffix}</div>
+        <div className={`text-4xl font-bold ${valueColor} ${pieData && pieData.length > 0 ? 'mt-2' : 'mt-2 mb-2'}`}>{value}{valueSuffix}</div>
         {!isDesirable && threshold !== undefined && (
           <Button
             variant="ghost"
@@ -446,7 +446,7 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
         { key: "LeadershipWalksRate", value: leadershipWalksRate, pieData: leadershipWalksData, valueSuffix: "%" },
       ]
     }
-  ], [trir, nmfr, severityRate, minorInjuries, unsafeActConditionReports, incidentClosureRate, toolboxTalkAttendance, correctiveActionClosureRate, manHoursLostInjury, manHoursLostFatality, mvaCount, healthSurveillanceCoverage, workIllnessRate, hearingConservationCompliance, fitForDutyNonCompliance, healthEducationCoverage, trainingComplianceRate, auditScore, bbsObservationRate, sheSuggestionRate, leadershipWalksRate]);
+  ], []);
 
 
   if (isLoadingSettings) {
@@ -550,10 +550,10 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
                         </div>
                         <Alert variant="info" className="mt-4 text-xs">
                             <BrainCircuit className="h-4 w-4" />
-                            <UiAlertTitle>AI Generated Content</UiAlertTitle>
-                            <UiAlertDescription>
+                            <UIAlertTitle>AI Generated Content</UIAlertTitle>
+                            <AlertDescription>
                             These recommendations are AI-generated. Always use professional judgment and adapt suggestions to your specific organizational context.
-                            </UiAlertDescription>
+                            </AlertDescription>
                         </Alert>
                     </div>
                 </ScrollArea>
