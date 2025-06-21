@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit2, Trash2, Eye, Siren, FileText, Box, ShieldAlert, Activity, Users, CalendarClock, ClockIcon, AlertTriangle, ListChecksIcon, Loader2, Link } from "lucide-react";
-import Image from "next/image";
 import { format, isValid, parseISO, differenceInDays, isBefore } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 // Removed form imports: EmergencyPlanForm, EmergencyResourceForm, MockDrillForm
@@ -190,14 +189,12 @@ export default function EmergencyPreparednessPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-lg overflow-hidden">
-        <div className="relative h-60 w-full">
-          <Image src="https://placehold.co/1200x400.png" alt="Emergency evacuation drill" layout="fill" objectFit="cover" data-ai-hint="emergency drill"/>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-          <div className="absolute bottom-0 left-0 p-6"><h1 className="text-3xl font-bold tracking-tight font-headline text-white">Emergency Preparedness</h1><p className="text-sm text-neutral-300">Manage plans, resources, and drills. Data in Firestore.</p></div>
-        </div>
-        <CardContent className="pt-6"><p className="text-muted-foreground">This module assists in creating emergency plans, managing resources, and tracking drills. All data is stored securely in Firebase Firestore.</p></CardContent>
-      </Card>
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight font-headline">Emergency Preparedness</h1>
+        <p className="text-muted-foreground">
+          This module assists in creating emergency plans, managing resources, and tracking drills to ensure readiness for any situation. All data is stored securely in Firebase Firestore.
+        </p>
+      </div>
 
       {pendingDrillActions > 0 && (<Alert variant="info" className="shadow-md"><ListChecksIcon className="h-4 w-4" /><AlertTitle>Pending Drill Actions</AlertTitle><UiAlertDescription>There are <strong className="text-accent">{pendingDrillActions}</strong> pending action items from mock drills.</UiAlertDescription></Alert>)}
       
@@ -244,5 +241,6 @@ export default function EmergencyPreparednessPage() {
     </div>
   );
 }
+    
 
     
