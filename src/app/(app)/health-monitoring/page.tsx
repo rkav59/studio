@@ -204,13 +204,15 @@ export default function HealthMonitoringPage() {
     <div className="space-y-8">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
-          <HeartPulse className="h-8 w-8 text-primary"/> Proactive Health Management
+          <HeartPulse className="h-8 w-8"/> Proactive Health Management
         </h1>
         <p className="text-muted-foreground">
           Monitor occupational health, exposure data, medical screenings, and wellness. This module facilitates health monitoring including SEGs, IH sampling, medical tests, and wellness programs. Data is stored in Firebase Firestore.
         </p>
       </div>
       
+      <Separator/>
+
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><CalendarClock className="h-6 w-6 text-orange-500"/>Upcoming/Overdue Certificate Expiries</CardTitle><CardDescription>Medical test certificates requiring attention.</CardDescription></CardHeader>
         <CardContent>{upcomingOrOverdueCerts.length === 0 ? <p className="text-muted-foreground text-center py-4">No certificates currently due or overdue.</p> : (
