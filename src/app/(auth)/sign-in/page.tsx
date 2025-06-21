@@ -89,7 +89,7 @@ export default function SignInPage() {
     <>
       <h2 className="text-2xl font-semibold tracking-tight text-center text-foreground">Welcome Back</h2>
       <p className="text-sm text-muted-foreground text-center mt-1 mb-6">
-        Sign in to access your SHEiQpro dashboard.
+        sign in to access your SHEiQpro account
       </p>
       
       <Form {...form}>
