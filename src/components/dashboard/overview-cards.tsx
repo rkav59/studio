@@ -281,7 +281,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
       </CardContent>
        {hasThreshold && (
         <CardFooter className="pt-0 pb-2 px-4 justify-end">
-            <p className="text-xs text-muted-foreground">Threshold: {threshold}</p>
+            <p className="text-xs text-muted-foreground">{threshold}</p>
         </CardFooter>
       )}
     </Card>
