@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           {children}
         </div>
       </div>
-      <div className="hidden bg-muted lg:flex flex-col items-center justify-center p-10 text-center relative">
+      <div className="hidden lg:flex flex-col items-center justify-center p-10 text-center relative">
         {/* Blurred shadow effect */}
         <div className="absolute left-0 top-0 h-full w-px bg-border shadow-[1px_0_15px_rgba(0,0,0,0.1)] dark:shadow-[1px_0_25px_rgba(0,0,0,0.3)]" />
         
