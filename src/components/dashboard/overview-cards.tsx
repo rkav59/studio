@@ -157,7 +157,6 @@ export const kpiInfoMap: Record<string, { title: string; definition: string; rel
 interface KpiCardProps {
   title: string;
   value: string | number;
-  chartData?: Array<{ name: string; value: number; fill: string }>;
   valueSuffix?: string;
   kpiKey: string; 
   threshold?: number;
@@ -165,7 +164,7 @@ interface KpiCardProps {
   onGetAiRecommendation: (kpiDetails: KpiRecommendationInput) => void;
 }
 
-function KpiCard({ title, value, chartData, valueSuffix = "", kpiKey, threshold, targetDirection, onGetAiRecommendation }: KpiCardProps) {
+function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDirection, onGetAiRecommendation }: KpiCardProps) {
   const { toast } = useToast();
 
   let isDesirable = true;
@@ -179,9 +178,7 @@ function KpiCard({ title, value, chartData, valueSuffix = "", kpiKey, threshold,
     }
     valueColor = isDesirable ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400";
   }
-
-  const isPercentage = chartData && chartData.length > 1;
-
+  
   const handleCardClick = () => {
     const details = kpiInfoMap[kpiKey];
     let thresholdInfo = "";
@@ -244,33 +241,9 @@ function KpiCard({ title, value, chartData, valueSuffix = "", kpiKey, threshold,
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
       <CardTitle className="text-sm font-medium">{title}</CardTitle>
     </CardHeader>
-    <CardContent className="flex flex-row items-center justify-center gap-4 pt-4">
-      {isPercentage && chartData && (
-        <div className="h-[50px] w-[50px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius="100%"
-                innerRadius="60%"
-                stroke="none"
-                startAngle={90}
-                endAngle={-270}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} className="outline-none" />
-                ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+    <CardContent className="flex flex-col items-center justify-center pt-4">
       <div className="flex flex-col items-center">
-        <div className={`text-4xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
+        <div className={`text-5xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
         {!isDesirable && threshold !== undefined && (
           <Button
             variant="ghost"
@@ -339,67 +312,20 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
   const manHoursLostInjury = 120;
   const manHoursLostFatality = 0; 
   const mvaCount = 2;
-
-  const incidentClosureRateData = [
-    { name: 'Closed', value: incidentClosureRate, fill: 'hsl(var(--chart-1))' },
-    { name: 'Open', value: 100 - incidentClosureRate, fill: 'hsl(var(--muted))' }
-  ];
-  const toolboxTalkAttendanceData = [
-    { name: 'Attended', value: toolboxTalkAttendance, fill: 'hsl(var(--chart-2))' },
-    { name: 'Absent', value: 100 - toolboxTalkAttendance, fill: 'hsl(var(--muted))' }
-  ];
-  const correctiveActionClosureRateData = [
-    { name: 'Closed On Time', value: correctiveActionClosureRate, fill: 'hsl(var(--chart-3))' },
-    { name: 'Pending/Overdue', value: 100 - correctiveActionClosureRate, fill: 'hsl(var(--muted))' }
-  ];
-
+  
   // Mock data for Health KPIs
   const healthSurveillanceCoverage = 95;
   const workIllnessRate = 1.2; 
   const hearingConservationCompliance = 88;
   const fitForDutyNonCompliance = 3; 
   const healthEducationCoverage = 75;
-
-  const healthSurveillanceCoverageData = [
-    { name: 'Covered', value: healthSurveillanceCoverage, fill: 'hsl(var(--chart-positive-green))' },
-    { name: 'Not Covered', value: 100 - healthSurveillanceCoverage, fill: 'hsl(var(--muted))' }
-  ];
-  const hearingConservationData = [
-    { name: 'Compliant', value: hearingConservationCompliance, fill: 'hsl(var(--chart-4))' },
-    { name: 'Non-Compliant', value: 100 - hearingConservationCompliance, fill: 'hsl(var(--muted))' }
-  ];
-   const fitForDutyData = [ 
-    { name: 'Non-Compliant', value: fitForDutyNonCompliance, fill: 'hsl(var(--chart-5))' }, 
-    { name: 'Compliant', value: 100 - fitForDutyNonCompliance, fill: 'hsl(var(--muted))' }
-  ];
-  const healthEducationData = [
-    { name: 'Covered', value: healthEducationCoverage, fill: 'hsl(var(--chart-1))' },
-    { name: 'Not Covered', value: 100 - healthEducationCoverage, fill: 'hsl(var(--muted))' }
-  ];
-
+  
   // Mock data for Process & Engagement KPIs
   const trainingComplianceRate = 90;
   const auditScore = 88;
   const bbsObservationRate = 75; // e.g. % of target observations
   const sheSuggestionRate = 2.5; // e.g. per 100 employees per month
   const leadershipWalksRate = 95;
-
-  const trainingComplianceData = [
-    { name: 'Compliant', value: trainingComplianceRate, fill: 'hsl(var(--chart-positive-green))' },
-    { name: 'Non-Compliant', value: 100 - trainingComplianceRate, fill: 'hsl(var(--muted))' }
-  ];
-  const auditScoreData = [
-    { name: 'Achieved', value: auditScore, fill: 'hsl(var(--chart-2))' },
-    { name: 'Gap', value: 100 - auditScore, fill: 'hsl(var(--muted))' }
-  ];
-  const bbsObservationData = [
-    { name: 'Submitted', value: bbsObservationRate, fill: 'hsl(var(--chart-3))' },
-    { name: 'Missed Target', value: 100 - bbsObservationRate, fill: 'hsl(var(--muted))' }
-  ];
-  const leadershipWalksData = [
-    { name: 'Completed', value: leadershipWalksRate, fill: 'hsl(var(--chart-4))' },
-    { name: 'Scheduled', value: 100 - leadershipWalksRate, fill: 'hsl(var(--muted))' }
-  ];
   
   const kpiSections = useMemo(() => [
     {
@@ -410,9 +336,9 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
         { key: "SeverityRate", value: severityRate.toFixed(1), valueSuffix: "" },
         { key: "MinorInjuries", value: minorInjuries, valueSuffix: "" },
         { key: "UnsafeActConditionReports", value: unsafeActConditionReports, valueSuffix: "" },
-        { key: "IncidentClosureRate", value: incidentClosureRate, chartData: incidentClosureRateData, valueSuffix: "%" },
-        { key: "ToolboxTalkAttendance", value: toolboxTalkAttendance, chartData: toolboxTalkAttendanceData, valueSuffix: "%" },
-        { key: "CorrectiveActionClosureRate", value: correctiveActionClosureRate, chartData: correctiveActionClosureRateData, valueSuffix: "%" },
+        { key: "IncidentClosureRate", value: incidentClosureRate, valueSuffix: "%" },
+        { key: "ToolboxTalkAttendance", value: toolboxTalkAttendance, valueSuffix: "%" },
+        { key: "CorrectiveActionClosureRate", value: correctiveActionClosureRate, valueSuffix: "%" },
         { key: "ManHoursLostInjury", value: manHoursLostInjury, valueSuffix: "" },
         { key: "ManHoursLostFatality", value: manHoursLostFatality, valueSuffix: "" },
         { key: "MVAs", value: mvaCount, valueSuffix: "" },
@@ -421,21 +347,21 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
     {
       title: "Health Performance Indicators",
       kpis: [
-        { key: "HealthSurveillanceCoverage", value: healthSurveillanceCoverage, chartData: healthSurveillanceCoverageData, valueSuffix: "%" },
+        { key: "HealthSurveillanceCoverage", value: healthSurveillanceCoverage, valueSuffix: "%" },
         { key: "WorkRelatedIllnessRate", value: workIllnessRate.toFixed(1), valueSuffix: "" },
-        { key: "HearingConservationCompliance", value: hearingConservationCompliance, chartData: hearingConservationData, valueSuffix: "%" },
-        { key: "FitForDutyNonCompliance", value: fitForDutyNonCompliance, chartData: fitForDutyData, valueSuffix: "%" },
-        { key: "HealthEducationCoverage", value: healthEducationCoverage, chartData: healthEducationData, valueSuffix: "%" },
+        { key: "HearingConservationCompliance", value: hearingConservationCompliance, valueSuffix: "%" },
+        { key: "FitForDutyNonCompliance", value: fitForDutyNonCompliance, valueSuffix: "%" },
+        { key: "HealthEducationCoverage", value: healthEducationCoverage, valueSuffix: "%" },
       ]
     },
     {
       title: "SHEQ Process & Engagement KPIs",
       kpis: [
-        { key: "TrainingComplianceRate", value: trainingComplianceRate, chartData: trainingComplianceData, valueSuffix: "%" },
-        { key: "AuditScoreComplianceRate", value: auditScore, chartData: auditScoreData, valueSuffix: "%" },
-        { key: "BBSObservationRate", value: bbsObservationRate, chartData: bbsObservationData, valueSuffix: "%" },
+        { key: "TrainingComplianceRate", value: trainingComplianceRate, valueSuffix: "%" },
+        { key: "AuditScoreComplianceRate", value: auditScore, valueSuffix: "%" },
+        { key: "BBSObservationRate", value: bbsObservationRate, valueSuffix: "%" },
         { key: "SHESuggestionRate", value: sheSuggestionRate.toFixed(1), valueSuffix: "" },
-        { key: "LeadershipWalksRate", value: leadershipWalksRate, chartData: leadershipWalksData, valueSuffix: "%" },
+        { key: "LeadershipWalksRate", value: leadershipWalksRate, valueSuffix: "%" },
       ]
     }
   ], []);
@@ -496,7 +422,6 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
                   title={kpiInfoMap[kpi.key].title}
                   kpiKey={kpi.key}
                   value={kpi.value}
-                  chartData={kpi.chartData}
                   valueSuffix={kpi.valueSuffix}
                   threshold={thresholdConfig?.value}
                   targetDirection={thresholdConfig?.targetDirection || kpiInfoMap[kpi.key].defaultTargetDirection}
