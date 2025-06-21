@@ -231,33 +231,100 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
     }
   };
 
+  const hasThreshold = threshold !== undefined;
+
+  const chartData = useMemo(() => {
+    if (!hasThreshold || typeof value !== 'number') return [];
+    
+    if (targetDirection === 'below') {
+      const chartValue = Math.min(value, threshold!); // Cap value at threshold for visualization
+      const remaining = Math.max(0, threshold! - chartValue);
+      return [
+        { name: 'current', value: chartValue, fill: isDesirable ? 'hsl(var(--chart-positive-green))' : 'hsl(var(--destructive))' },
+        { name: 'remaining', value: remaining, fill: 'hsl(var(--muted))' }
+      ];
+    }
+    
+    if (targetDirection === 'above') {
+      const chartValue = Math.min(value, 100); // Assume max 100 for percentages
+      const remaining = Math.max(0, 100 - chartValue);
+      return [
+        { name: 'current', value: chartValue, fill: isDesirable ? 'hsl(var(--chart-positive-green))' : 'hsl(var(--chart-1))' },
+        { name: 'remaining', value: remaining, fill: 'hsl(var(--muted))' }
+      ];
+    }
+    
+    return [];
+  }, [value, threshold, targetDirection, hasThreshold, isDesirable]);
+
 
   return (
-    <Card onClick={handleCardClick} className="cursor-pointer hover:shadow-lg transition-shadow duration-200 relative">
-      {threshold !== undefined && targetDirection !== undefined && (
-      <div className={`absolute top-2 right-2 h-3 w-3 rounded-full ${isDesirable ? 'bg-green-500' : 'bg-red-500'}`} 
-            title={`Status: ${isDesirable ? 'Meeting target' : 'Needs attention'}`} />
-    )}
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
-    </CardHeader>
-    <CardContent className="flex flex-col items-center justify-center pt-4">
-      <div className="flex flex-col items-center">
-        <div className={`text-5xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
-        {!isDesirable && threshold !== undefined && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleRecommendationClick}
-            className="mt-2 text-xs text-accent hover:text-accent/90 h-auto p-1"
-            title="Get AI Recommendation"
-          >
-            <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
-          </Button>
+    <Card onClick={handleCardClick} className="cursor-pointer hover:shadow-lg transition-shadow duration-200 relative h-[180px] flex flex-col">
+      {hasThreshold && (
+        <div className={`absolute top-2 right-2 h-3 w-3 rounded-full ${isDesirable ? 'bg-green-500' : 'bg-red-500'}`} 
+             title={`Status: ${isDesirable ? 'Meeting target' : 'Needs attention'}`} />
+      )}
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      </CardHeader>
+      
+      <CardContent className="flex-1 flex items-center justify-center">
+        {hasThreshold && typeof value === 'number' ? (
+          <div className="flex flex-row items-center justify-center gap-4 w-full">
+            <div className="h-20 w-20 flex-shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    dataKey="value"
+                    innerRadius="60%"
+                    outerRadius="80%"
+                    strokeWidth={0}
+                    paddingAngle={0}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex flex-col items-start">
+              <div className={`text-4xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
+              {!isDesirable && (
+                 <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRecommendationClick}
+                  className="mt-1 text-xs text-accent hover:text-accent/90 h-auto p-1"
+                  title="Get AI Recommendation"
+                >
+                  <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground text-xs space-y-2 p-2">
+            <Settings className="h-6 w-6 mx-auto text-muted-foreground/50"/>
+            <p>Configure threshold to see progress.</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.location.href = '/dashboard/kpi-settings';
+              }}
+            >
+              Go to Settings
+            </Button>
+          </div>
         )}
-      </div>
-    </CardContent>
-  </Card>
+      </CardContent>
+    </Card>
   );
 }
 
