@@ -172,11 +172,13 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
   let isDesirable = true;
   let valueColor = "text-foreground"; 
 
-  if (threshold !== undefined && targetDirection !== undefined && typeof value === 'number') {
+  const hasThreshold = threshold !== undefined && targetDirection !== undefined;
+
+  if (hasThreshold && typeof value === 'number') {
     if (targetDirection === 'below') {
-      isDesirable = value <= threshold;
+      isDesirable = value <= threshold!;
     } else { 
-      isDesirable = value >= threshold;
+      isDesirable = value >= threshold!;
     }
     valueColor = isDesirable ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400";
   }
@@ -233,19 +235,28 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
     }
   };
 
-  const hasThreshold = threshold !== undefined;
-
   const chartData = useMemo(() => {
-    if (!hasThreshold || typeof value !== 'number' || valueSuffix !== '%') return [];
+    if (!hasThreshold || typeof value !== 'number') return [];
+
+    let chartValue = 0;
     
-    // For percentages, chart shows proportion out of 100
-    const chartValue = Math.min(value, 100);
+    if (valueSuffix === '%') {
+      // For percentages, chart shows proportion out of 100
+      chartValue = Math.min(value, 100);
+    } else {
+      // For raw numbers, chart shows proportion relative to the threshold
+      if (threshold! > 0) {
+        const percentage = (value / threshold!) * 100;
+        chartValue = Math.min(percentage, 100); 
+      }
+    }
+
     const remaining = Math.max(0, 100 - chartValue);
+
     return [
       { name: 'current', value: chartValue, fill: isDesirable ? 'hsl(var(--chart-positive-green))' : 'hsl(var(--chart-1))' },
       { name: 'remaining', value: remaining, fill: 'hsl(var(--muted))' }
     ];
-
   }, [value, threshold, targetDirection, hasThreshold, isDesirable, valueSuffix]);
 
 
@@ -262,28 +273,26 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
       <CardContent className="flex-1 flex items-center justify-center">
         {hasThreshold ? (
           <div className="flex flex-row items-center justify-center gap-4 w-full">
-            {chartData.length > 0 ? (
-              <div className="h-20 w-20 flex-shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      dataKey="value"
-                      innerRadius="60%"
-                      outerRadius="80%"
-                      strokeWidth={0}
-                      paddingAngle={0}
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            ) : null}
+            <div className="h-20 w-20 flex-shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    dataKey="value"
+                    innerRadius="60%"
+                    outerRadius="80%"
+                    strokeWidth={0}
+                    paddingAngle={0}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
             <div className="flex flex-col items-start">
               <div className={`text-6xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
               {!isDesirable && (
