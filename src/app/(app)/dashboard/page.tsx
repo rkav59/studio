@@ -251,7 +251,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0">
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
-          <LayoutDashboard className="h-8 w-8 text-primary"/> Dashboard
+          <LayoutDashboard className="h-8 w-8"/> Dashboard
         </h1>
         <Button variant="outline" onClick={() => router.push('/dashboard/kpi-settings')}>
           <Settings className="mr-2 h-4 w-4" />
@@ -443,5 +443,6 @@ export default function DashboardPage() {
 }
 
     
+
 
 
