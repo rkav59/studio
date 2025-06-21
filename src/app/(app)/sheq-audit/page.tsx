@@ -709,7 +709,7 @@ export default function SheqAuditPage() {
               )}
                <Alert variant="info" className="mt-4 text-xs">
                 <BrainCircuit className="h-4 w-4" />
-                <UIAlertTitle>Note on AI Insights</UIAlertTitle>
+                <AlertTitle>Note on AI Insights</AlertTitle>
                 <UIAlertDescription>
                   These insights are AI-generated based on a summary of audit data from Firestore.
                   Always use professional judgment when interpreting AI-generated information.
