@@ -423,8 +423,8 @@ export default function RiskManagementPage() {
             <CardTitle className="flex items-center gap-2"><ShieldAlert className="h-6 w-6 text-primary"/>Risk Identification, Analysis & Evaluation</CardTitle>
             <CardDescription>Manually log hazards and conduct detailed risk assessments to understand and prioritize risks based on likelihood and severity. These tools support the core ISO 31000 risk assessment process.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <CardContent>
+            <div className="flex flex-col gap-4">
                 <Button onClick={() => router.push('/risk-management/hazards/new')} className="w-full bg-red-500 hover:bg-red-600 text-white">
                     <Target className="mr-2 h-4 w-4" /> Log New Hazard
                 </Button>
@@ -616,5 +616,3 @@ export default function RiskManagementPage() {
     </div>
   );
 }
-    
-
