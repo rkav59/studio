@@ -3,7 +3,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks, UsersRound, Biohazard, Ear, UserX, Presentation, Hourglass, Skull, Car, GraduationCap, ClipboardCheck, Eye, Lightbulb, Footprints, BrainCircuit, Sparkles, Loader2 as KpiLoader, Settings } from "lucide-react"; 
-import { ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator"; 
 import type { KpiThreshold, KpiRecommendationInput, KpiRecommendationOutput } from '@/lib/types';
@@ -235,23 +234,6 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
     }
   };
 
-  const chartData = useMemo(() => {
-    if (!hasThreshold || typeof value !== 'number') return [];
-
-    let chartValue = 0;
-    if (threshold! > 0) {
-      const percentageOfThreshold = (value / threshold!) * 100;
-      chartValue = Math.min(percentageOfThreshold, 100);
-    }
-    
-    const remaining = Math.max(0, 100 - chartValue);
-
-    return [
-      { name: 'current', value: chartValue, fill: isDesirable ? 'hsl(var(--chart-positive-green))' : 'hsl(var(--chart-1))' },
-      { name: 'remaining', value: remaining, fill: 'hsl(var(--muted))' }
-    ];
-  }, [value, threshold, targetDirection, hasThreshold, isDesirable]);
-
 
   return (
     <Card onClick={handleCardClick} className="cursor-pointer hover:shadow-lg transition-shadow duration-200 relative h-[180px] flex flex-col">
@@ -265,59 +247,20 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
       
       <CardContent className="flex-1 flex flex-col items-center justify-center">
         {hasThreshold ? (
-          valueSuffix === '%' || (typeof value === 'number' && hasThreshold) ? (
-            <div className="flex flex-row items-center justify-center gap-4 w-full">
-              <div className="h-20 w-20 flex-shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      dataKey="value"
-                      innerRadius="60%"
-                      outerRadius="80%"
-                      strokeWidth={0}
-                      paddingAngle={0}
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex flex-col items-start">
-                <div className={`text-5xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
-                {!isDesirable && (
-                   <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRecommendationClick}
-                    className="mt-1 text-xs text-accent hover:text-accent/90 h-auto p-1"
-                    title="Get AI Recommendation"
-                  >
-                    <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
-                  </Button>
-                )}
-              </div>
-            </div>
-          ) : (
-             <div className="text-center">
-              <div className={`text-6xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
-              {!isDesirable && (
-                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRecommendationClick}
-                  className="mt-1 text-xs text-accent hover:text-accent/90 h-auto p-1"
-                  title="Get AI Recommendation"
-                >
-                  <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
-                </Button>
-              )}
-            </div>
-          )
+          <div className="text-center">
+            <div className={`text-6xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
+            {!isDesirable && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRecommendationClick}
+                className="mt-1 text-xs text-accent hover:text-accent/90 h-auto p-1"
+                title="Get AI Recommendation"
+              >
+                <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
+              </Button>
+            )}
+          </div>
         ) : (
           <div className="text-center text-muted-foreground text-xs space-y-2 p-2">
             <Settings className="h-6 w-6 mx-auto text-muted-foreground/50"/>
