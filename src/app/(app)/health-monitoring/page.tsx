@@ -202,13 +202,12 @@ export default function HealthMonitoringPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-lg overflow-hidden">
-        <div className="relative h-60 w-full">
-            <Image src="https://placehold.co/1200x400.png" alt="Health data charts" layout="fill" objectFit="cover" data-ai-hint="health dashboard"/>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" /><div className="absolute bottom-0 left-0 p-6"><h1 className="text-3xl font-bold tracking-tight font-headline text-white">Proactive Health Management</h1><p className="text-sm text-neutral-300">Monitor occupational health, exposure data, medical screenings, and wellness. Data in Firestore.</p></div>
-        </div>
-        <CardContent className="pt-6"><p className="text-muted-foreground">This module facilitates health monitoring including SEGs, IH sampling, medical tests, and wellness programs. Data is stored in Firebase Firestore.</p></CardContent>
-      </Card>
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight font-headline">Proactive Health Management</h1>
+        <p className="text-muted-foreground">
+          Monitor occupational health, exposure data, medical screenings, and wellness. This module facilitates health monitoring including SEGs, IH sampling, medical tests, and wellness programs. Data is stored in Firebase Firestore.
+        </p>
+      </div>
       
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><CalendarClock className="h-6 w-6 text-orange-500"/>Upcoming/Overdue Certificate Expiries</CardTitle><CardDescription>Medical test certificates requiring attention.</CardDescription></CardHeader>
