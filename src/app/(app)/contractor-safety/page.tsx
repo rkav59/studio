@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -222,35 +223,20 @@ export default function ContractorSafetyPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-lg overflow-hidden">
-        <div className="relative h-60 w-full">
-            <Image 
-                src="https://placehold.co/1200x400.png" 
-                alt="Contractors working safely on site" 
-                layout="fill" 
-                objectFit="cover"
-                data-ai-hint="construction safety"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-0 left-0 p-6">
-                <h1 className="text-3xl font-bold tracking-tight font-headline text-white">Contractor Safety</h1>
-                <p className="text-sm text-neutral-300">Oversee contractor vetting, inductions, PTWs, and on-site supervision.</p>
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight font-headline">Contractor Safety</h1>
+        <p className="text-muted-foreground">
+          Oversee contractor vetting, inductions, Permits-to-Work (PTW), and on-site supervision.
+        </p>
+         <Alert variant="info" className="!mt-4">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertTitle>Data Storage & Security</AlertTitle>
+            <div className="text-xs text-muted-foreground">
+                Contractor metadata & PTW data is stored in Firestore. Documents are uploaded to Firebase Storage.
+                Ensure appropriate Firebase Storage & Firestore security rules are in place.
             </div>
-        </div>
-        <CardContent className="pt-6">
-            <p className="text-muted-foreground">
-                Manage contractor information, documents, Permits-to-Work (PTW), and associated on-site supervision records.
-            </p>
-             <Alert variant="info" className="mt-4">
-                <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>Data Storage & Security</AlertTitle>
-                <div className="text-xs text-muted-foreground">
-                    Contractor metadata & PTW data is stored in Firestore. Documents are uploaded to Firebase Storage.
-                    Ensure appropriate Firebase Storage & Firestore security rules are in place.
-                </div>
-            </Alert>
-        </CardContent>
-      </Card>
+        </Alert>
+      </div>
 
       {/* Contractor Management Section */}
       <Card>
