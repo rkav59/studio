@@ -333,12 +333,14 @@ export default function PpeManagementPage() {
     <div className="space-y-8">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
-          <HardHat className="h-8 w-8 text-primary"/> PPE Management
+          <HardHat className="h-8 w-8"/> PPE Management
         </h1>
         <p className="text-muted-foreground">
           Track inventory, issuance, inspections, and compliance for Personal Protective Equipment. Data stored in Firestore.
         </p>
       </div>
+
+      <Separator/>
 
       <Card>
         <CardHeader>
