@@ -225,7 +225,7 @@ export default function ContractorSafetyPage() {
     <div className="space-y-8">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
-          <ListChecks className="h-8 w-8 text-primary"/> Contractor Safety
+          <ListChecks className="h-8 w-8"/> Contractor Safety
         </h1>
         <p className="text-muted-foreground">
           Oversee contractor vetting, inductions, Permits-to-Work (PTW), and on-site supervision.
@@ -239,6 +239,8 @@ export default function ContractorSafetyPage() {
             </div>
         </Alert>
       </div>
+
+      <Separator />
 
       {/* Contractor Management Section */}
       <Card>
