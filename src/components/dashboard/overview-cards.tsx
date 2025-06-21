@@ -240,16 +240,18 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
 
     let chartValue = 0;
     
-    if (valueSuffix === '%') {
-      // For percentages, chart shows proportion out of 100
-      chartValue = Math.min(value, 100);
-    } else {
-      // For raw numbers, chart shows proportion relative to the threshold
-      if (threshold! > 0) {
-        const percentage = (value / threshold!) * 100;
-        chartValue = Math.min(percentage, 100); 
-      }
+    // For both percentages and raw numbers, chart shows proportion relative to the threshold
+    if (threshold! > 0) {
+      // If lower is better, the "good" part is how far below the threshold we are.
+      // This visualization is tricky. Let's show (value / threshold * 100)
+      const percentageOfThreshold = (value / threshold!) * 100;
+      
+      // If a low value is good, we want the bar to be small. 
+      // If a high value is good, we want the bar to be large.
+      // The color already indicates desirability, so the magnitude should be consistent.
+      chartValue = Math.min(percentageOfThreshold, 100);
     }
+    
 
     const remaining = Math.max(0, 100 - chartValue);
 
@@ -270,30 +272,47 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
       </CardHeader>
       
-      <CardContent className="flex-1 flex items-center justify-center">
+      <CardContent className="flex-1 flex flex-col items-center justify-center">
         {hasThreshold ? (
-          <div className="flex flex-row items-center justify-center gap-4 w-full">
-            <div className="h-20 w-20 flex-shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    dataKey="value"
-                    innerRadius="60%"
-                    outerRadius="80%"
-                    strokeWidth={0}
-                    paddingAngle={0}
+          valueSuffix === '%' ? (
+            <div className="flex flex-row items-center justify-center gap-4 w-full">
+              <div className="h-20 w-20 flex-shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      cx="50%"
+                      cy="50%"
+                      dataKey="value"
+                      innerRadius="60%"
+                      outerRadius="80%"
+                      strokeWidth={0}
+                      paddingAngle={0}
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex flex-col items-start">
+                <div className={`text-6xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
+                {!isDesirable && (
+                   <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRecommendationClick}
+                    className="mt-1 text-xs text-accent hover:text-accent/90 h-auto p-1"
+                    title="Get AI Recommendation"
                   >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
+                    <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex flex-col items-start">
+          ) : (
+             <div className="text-center">
               <div className={`text-6xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
               {!isDesirable && (
                  <Button
@@ -307,7 +326,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
                 </Button>
               )}
             </div>
-          </div>
+          )
         ) : (
           <div className="text-center text-muted-foreground text-xs space-y-2 p-2">
             <Settings className="h-6 w-6 mx-auto text-muted-foreground/50"/>
