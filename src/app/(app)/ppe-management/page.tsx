@@ -331,28 +331,12 @@ export default function PpeManagementPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-lg overflow-hidden">
-        <div className="relative h-60 w-full">
-          <Image
-            src="https://storage.googleapis.com/project-gameface-dev-assets/sheild/ppe-banner.png"
-            alt="Person wearing Personal Protective Equipment"
-            layout="fill"
-            objectFit="cover"
-            data-ai-hint="safety gear"
-            className="transform -scale-y-100"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-          <div className="absolute bottom-0 left-0 p-6">
-            <h1 className="text-3xl font-bold tracking-tight font-headline text-white">PPE Management</h1>
-            <p className="text-sm text-neutral-300">Track inventory, issuance, inspections, and compliance for Personal Protective Equipment. Data stored in Firestore.</p>
-          </div>
-        </div>
-        <CardContent className="pt-6">
-          <p className="text-muted-foreground">
-            This module helps manage all aspects of Personal Protective Equipment. Data is stored securely in Firebase Firestore.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight font-headline">PPE Management</h1>
+        <p className="text-muted-foreground">
+          Track inventory, issuance, inspections, and compliance for Personal Protective Equipment. Data stored in Firestore.
+        </p>
+      </div>
 
       <Card>
         <CardHeader>
