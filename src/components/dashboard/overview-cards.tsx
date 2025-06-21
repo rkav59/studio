@@ -252,47 +252,47 @@ function KpiCard({ title, value, pieData, valueSuffix = "", kpiKey, threshold, t
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
       <CardTitle className="text-sm font-medium">{title}</CardTitle>
     </CardHeader>
-    <CardContent className="flex flex-col items-center justify-center pt-4">
-      <div className="flex flex-row items-center justify-center gap-4">
-        {pieData && pieData.length > 0 && chartConfig && (
-          <div className="h-[50px] w-[50px]">
-            <ChartContainer config={chartConfig} className="w-full h-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                  <Pie
-                    data={pieData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={isDonut ? 12 : 0}
-                    outerRadius={23}
-                    paddingAngle={isDonut ? 2 : 0}
-                    labelLine={false}
-                    strokeWidth={pieData.length === 1 && pieData[0].value === 100 ? 0 : 1}
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </div>
-        )}
-        <div className={`text-5xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
-      </div>
-      {!isDesirable && threshold !== undefined && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleRecommendationClick}
-          className="mt-2 text-xs text-accent hover:text-accent/90 h-auto p-1"
-          title="Get AI Recommendation"
-        >
-          <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
-        </Button>
+    <CardContent className="flex flex-row items-center justify-center gap-4 pt-4">
+      {pieData && pieData.length > 0 && chartConfig && (
+        <div className="h-[50px] w-[50px]">
+          <ChartContainer config={chartConfig} className="w-full h-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                <Pie
+                  data={pieData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={isDonut ? 12 : 0}
+                  outerRadius={23}
+                  paddingAngle={isDonut ? 2 : 0}
+                  labelLine={false}
+                  strokeWidth={pieData.length === 1 && pieData[0].value === 100 ? 0 : 1}
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </div>
       )}
+      <div className="flex flex-col items-center">
+        <div className={`text-6xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
+        {!isDesirable && threshold !== undefined && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRecommendationClick}
+            className="mt-2 text-xs text-accent hover:text-accent/90 h-auto p-1"
+            title="Get AI Recommendation"
+          >
+            <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
+          </Button>
+        )}
+      </div>
     </CardContent>
   </Card>
   );
@@ -415,24 +415,24 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
     {
       title: "General SHEQ Performance Indicators",
       kpis: [
-        { key: "TRIR", value: trir.toFixed(1), valueSuffix: "" },
-        { key: "NMFR", value: nmfr.toFixed(1), valueSuffix: "" },
-        { key: "SeverityRate", value: severityRate.toFixed(1), valueSuffix: "" },
-        { key: "MinorInjuries", value: minorInjuries, valueSuffix: "" },
-        { key: "UnsafeActConditionReports", value: unsafeActConditionReports, valueSuffix: "" },
+        { key: "TRIR", value: trir.toFixed(1), valueSuffix: "", pieData: [{ name: 'TRIR', value: 100, fill: 'hsl(var(--chart-1))' }] },
+        { key: "NMFR", value: nmfr.toFixed(1), valueSuffix: "", pieData: [{ name: 'NMFR', value: 100, fill: 'hsl(var(--chart-2))' }] },
+        { key: "SeverityRate", value: severityRate.toFixed(1), valueSuffix: "", pieData: [{ name: 'SeverityRate', value: 100, fill: 'hsl(var(--chart-3))' }] },
+        { key: "MinorInjuries", value: minorInjuries, valueSuffix: "", pieData: [{ name: 'MinorInjuries', value: 100, fill: 'hsl(var(--chart-4))' }] },
+        { key: "UnsafeActConditionReports", value: unsafeActConditionReports, valueSuffix: "", pieData: [{ name: 'UnsafeActConditionReports', value: 100, fill: 'hsl(var(--chart-5))' }] },
         { key: "IncidentClosureRate", value: incidentClosureRate, pieData: incidentClosureRateData, valueSuffix: "%" },
         { key: "ToolboxTalkAttendance", value: toolboxTalkAttendance, pieData: toolboxTalkAttendanceData, valueSuffix: "%" },
         { key: "CorrectiveActionClosureRate", value: correctiveActionClosureRate, pieData: correctiveActionClosureRateData, valueSuffix: "%" },
-        { key: "ManHoursLostInjury", value: manHoursLostInjury, valueSuffix: "" },
-        { key: "ManHoursLostFatality", value: manHoursLostFatality, valueSuffix: "" },
-        { key: "MVAs", value: mvaCount, valueSuffix: "" },
+        { key: "ManHoursLostInjury", value: manHoursLostInjury, valueSuffix: "", pieData: [{ name: 'ManHoursLostInjury', value: 100, fill: 'hsl(var(--chart-1))' }] },
+        { key: "ManHoursLostFatality", value: manHoursLostFatality, valueSuffix: "", pieData: [{ name: 'ManHoursLostFatality', value: 100, fill: 'hsl(var(--chart-2))' }] },
+        { key: "MVAs", value: mvaCount, valueSuffix: "", pieData: [{ name: 'MVAs', value: 100, fill: 'hsl(var(--chart-3))' }] },
       ]
     },
     {
       title: "Health Performance Indicators",
       kpis: [
         { key: "HealthSurveillanceCoverage", value: healthSurveillanceCoverage, pieData: healthSurveillanceCoverageData, valueSuffix: "%" },
-        { key: "WorkRelatedIllnessRate", value: workIllnessRate.toFixed(1), valueSuffix: "" },
+        { key: "WorkRelatedIllnessRate", value: workIllnessRate.toFixed(1), valueSuffix: "", pieData: [{ name: 'WorkRelatedIllnessRate', value: 100, fill: 'hsl(var(--chart-4))' }] },
         { key: "HearingConservationCompliance", value: hearingConservationCompliance, pieData: hearingConservationData, valueSuffix: "%" },
         { key: "FitForDutyNonCompliance", value: fitForDutyNonCompliance, pieData: fitForDutyData, valueSuffix: "%" },
         { key: "HealthEducationCoverage", value: healthEducationCoverage, pieData: healthEducationData, valueSuffix: "%" },
@@ -444,7 +444,7 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
         { key: "TrainingComplianceRate", value: trainingComplianceRate, pieData: trainingComplianceData, valueSuffix: "%" },
         { key: "AuditScoreComplianceRate", value: auditScore, pieData: auditScoreData, valueSuffix: "%" },
         { key: "BBSObservationRate", value: bbsObservationRate, pieData: bbsObservationData, valueSuffix: "%" },
-        { key: "SHESuggestionRate", value: sheSuggestionRate.toFixed(1), valueSuffix: "" },
+        { key: "SHESuggestionRate", value: sheSuggestionRate.toFixed(1), valueSuffix: "", pieData: [{ name: 'SHESuggestionRate', value: 100, fill: 'hsl(var(--chart-5))' }] },
         { key: "LeadershipWalksRate", value: leadershipWalksRate, pieData: leadershipWalksData, valueSuffix: "%" },
       ]
     }
