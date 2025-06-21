@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { NavLinks, AppLogo } from './nav-links';
 import { UserCircle, LogOut } from 'lucide-react';
 import { GenerateReportButton } from './generate-report-button';
+import { ThemeToggle } from './theme-toggle'; // Import the new ThemeToggle
 import { useAuth } from '@/contexts/auth-context';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -72,7 +73,8 @@ export default function AppLayoutInternal({ children }: AppLayoutInternalProps) 
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:justify-end">
           <SidebarTrigger className="md:hidden" />
-          <div className="flex items-center gap-3"> {/* Adjusted gap for better spacing */}
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
             {user && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground hidden sm:inline">
@@ -95,4 +97,3 @@ export default function AppLayoutInternal({ children }: AppLayoutInternalProps) 
     </SidebarProvider>
   );
 }
-
