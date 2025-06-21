@@ -20,9 +20,11 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { SheiqproLogo } from '../icons/sheiqpro-logo';
+import { Button } from '../ui/button';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -64,20 +66,24 @@ export function NavLinks() {
 }
 
 export function AppLogo() {
+  const { toggleSidebar } = useSidebar();
+
   return (
-    <Link
-      href="/dashboard"
+    <Button
+      variant="ghost"
+      onClick={toggleSidebar}
       className={cn(
-        "flex items-center gap-2 w-full", // Use w-full to fill header space
-        "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:h-8", // Center icon and set height when collapsed
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring rounded-md" // Focus styling
+        "flex items-center gap-2 w-full h-auto py-2",
+        "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:h-8",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring rounded-md justify-start",
+        "hover:bg-sidebar-accent/20"
       )}
-      title="SHEiQpro Dashboard" // Tooltip for accessibility
+      title="Toggle Sidebar"
     >
       <SheiqproLogo className="h-8 w-8 text-primary group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7" />
       <span className="text-xl font-semibold text-foreground group-data-[collapsible=icon]:hidden font-headline">
         SHEiQpro
       </span>
-    </Link>
+    </Button>
   );
 }
