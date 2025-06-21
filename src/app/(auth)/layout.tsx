@@ -1,6 +1,6 @@
 
 import type { ReactNode } from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { SheiqproLogo } from '@/components/icons/sheiqpro-logo';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
@@ -8,7 +8,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       <main className="flex flex-1 flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-6">
           <div className="flex flex-col items-center text-center">
-            <ShieldCheck className="h-16 w-16 text-primary mb-4" />
+            <SheiqproLogo className="h-16 w-16 text-primary mb-4" />
             <h1 className="text-4xl font-bold text-foreground font-headline">SHEiQpro</h1>
             <p className="text-muted-foreground mt-2">
               Safety, Health & Environmental Management Platform

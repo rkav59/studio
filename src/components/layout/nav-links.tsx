@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
-  ShieldCheck,
   ListChecks, // Inspections (now for Contractor Safety)
   Sparkles, // AI Safety Assist
   FileCheck2, // SHEQ Audit
@@ -23,6 +22,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
+import { SheiqproLogo } from '../icons/sheiqpro-logo';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -74,7 +74,7 @@ export function AppLogo() {
       )}
       title="SHEiQpro Dashboard" // Tooltip for accessibility
     >
-      <ShieldCheck className="h-8 w-8 text-primary group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7" />
+      <SheiqproLogo className="h-8 w-8 text-primary group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7" />
       <span className="text-xl font-semibold text-foreground group-data-[collapsible=icon]:hidden font-headline">
         SHEiQpro
       </span>
