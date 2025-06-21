@@ -12,22 +12,12 @@ export default function AiRecommendationsPage() {
         </h1>
       </div>
 
-       <Card className="shadow-lg overflow-hidden">
-        <div className="relative h-60 w-full">
-            <Image 
-                src="https://placehold.co/1200x400.png" 
-                alt="AI brain graphic" 
-                layout="fill" 
-                objectFit="cover"
-                data-ai-hint="artificial intelligence"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-0 left-0 p-6">
-                <h2 className="text-2xl font-semibold text-white font-headline">Proactive Safety Insights</h2>
-                <p className="text-sm text-neutral-300">Leverage AI to identify potential risks and get tailored recommendations.</p>
-            </div>
-        </div>
-        <CardContent className="pt-6">
+       <Card>
+        <CardHeader>
+          <CardTitle>Proactive Safety Insights</CardTitle>
+          <CardDescription>Leverage AI to identify potential risks and get tailored recommendations.</CardDescription>
+        </CardHeader>
+        <CardContent>
             <p className="text-muted-foreground">
                 Our AI Safety Assist tool analyzes your incident logs and inspection data to provide actionable insights. 
                 Input the required information below to receive customized safety recommendations for your specified region or site.
