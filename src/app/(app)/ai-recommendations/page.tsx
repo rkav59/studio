@@ -1,6 +1,5 @@
 import { RecommendationGenerator } from "@/components/ai-recommendations/recommendation-generator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Image from "next/image";
 import { Sparkles } from "lucide-react";
 
 export default function AiRecommendationsPage() {
@@ -8,7 +7,7 @@ export default function AiRecommendationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
-          <Sparkles className="h-8 w-8 text-primary"/> AI Safety Assist
+          <Sparkles className="h-8 w-8"/> AI Safety Assist
         </h1>
       </div>
 
