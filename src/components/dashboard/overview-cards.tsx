@@ -248,18 +248,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
       <CardContent className="flex-1 flex flex-col items-center justify-center">
         {hasThreshold ? (
           <div className="text-center">
-            <div className={`text-6xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
-            {!isDesirable && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRecommendationClick}
-                className="mt-1 text-xs text-accent hover:text-accent/90 h-auto p-1"
-                title="Get AI Recommendation"
-              >
-                <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
-              </Button>
-            )}
+            <div className={`text-5xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
           </div>
         ) : (
           <div className="text-center text-muted-foreground text-xs space-y-2 p-2">
@@ -280,7 +269,20 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
         )}
       </CardContent>
        {hasThreshold && (
-        <CardFooter className="pt-0 pb-2 px-4 justify-end">
+        <CardFooter className="pt-0 pb-2 px-4 justify-between items-center">
+            {!isDesirable ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRecommendationClick}
+                className="text-xs text-accent hover:text-accent/90 h-auto p-1"
+                title="Get AI Recommendation"
+              >
+                <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
+              </Button>
+            ) : (
+                <div /> // Empty div for spacing to keep threshold on the right
+            )}
             <p className="text-xs text-muted-foreground font-bold">{threshold}</p>
         </CardFooter>
       )}
