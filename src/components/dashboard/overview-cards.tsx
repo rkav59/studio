@@ -159,8 +159,6 @@ interface KpiCardProps {
   title: string;
   value: string | number;
   pieData?: Array<{ name: string; value: number; fill: string }>;
-  icon: React.ElementType;
-  description?: string;
   valueSuffix?: string;
   kpiKey: string; 
   threshold?: number;
@@ -168,7 +166,7 @@ interface KpiCardProps {
   onGetAiRecommendation: (kpiDetails: KpiRecommendationInput) => void;
 }
 
-function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix = "", kpiKey, threshold, targetDirection, onGetAiRecommendation }: KpiCardProps) {
+function KpiCard({ title, value, pieData, valueSuffix = "", kpiKey, threshold, targetDirection, onGetAiRecommendation }: KpiCardProps) {
   const { toast } = useToast();
 
   let isDesirable = true;
@@ -253,7 +251,6 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
       )}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent className="flex flex-col items-center pt-4 text-center">
         {pieData && pieData.length > 0 && chartConfig && (
@@ -283,7 +280,6 @@ function KpiCard({ title, value, pieData, icon: Icon, description, valueSuffix =
           </div>
         )}
         <div className={`text-2xl font-bold ${valueColor} ${pieData && pieData.length > 0 ? 'mt-2' : 'mt-2 mb-2'}`}>{value}{valueSuffix}</div>
-        {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
         {!isDesirable && threshold !== undefined && (
           <Button
             variant="ghost"
@@ -417,37 +413,37 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
     {
       title: "General SHEQ Performance Indicators",
       kpis: [
-        { key: "TRIR", value: trir.toFixed(1), icon: Activity, description: "per 200,000 hours worked" },
-        { key: "NMFR", value: nmfr.toFixed(1), icon: TrendingUp, description: "per 100 workers/month" },
-        { key: "SeverityRate", value: severityRate.toFixed(1), icon: BedDouble, description: "Lost days per 200k hours" },
-        { key: "MinorInjuries", value: minorInjuries, icon: HeartPulse, description: "Total this period" },
-        { key: "UnsafeActConditionReports", value: unsafeActConditionReports, icon: AlertTriangle, description: "Reports this month" },
-        { key: "IncidentClosureRate", value: incidentClosureRate, pieData: incidentClosureRateData, icon: CheckCircle2, valueSuffix: "%", description: "Closed within target time" },
-        { key: "ToolboxTalkAttendance", value: toolboxTalkAttendance, pieData: toolboxTalkAttendanceData, icon: Users, valueSuffix: "%", description: "Average attendance" },
-        { key: "CorrectiveActionClosureRate", value: correctiveActionClosureRate, pieData: correctiveActionClosureRateData, icon: ListChecks, valueSuffix: "%", description: "Closed by due date" },
-        { key: "ManHoursLostInjury", value: manHoursLostInjury, icon: Hourglass, description: "Total hours this period" },
-        { key: "ManHoursLostFatality", value: manHoursLostFatality, icon: Skull, description: "Total hours (potential)" },
-        { key: "MVAs", value: mvaCount, icon: Car, description: "Total MVAs this period" },
+        { key: "TRIR", value: trir.toFixed(1), valueSuffix: "" },
+        { key: "NMFR", value: nmfr.toFixed(1), valueSuffix: "" },
+        { key: "SeverityRate", value: severityRate.toFixed(1), valueSuffix: "" },
+        { key: "MinorInjuries", value: minorInjuries, valueSuffix: "" },
+        { key: "UnsafeActConditionReports", value: unsafeActConditionReports, valueSuffix: "" },
+        { key: "IncidentClosureRate", value: incidentClosureRate, pieData: incidentClosureRateData, valueSuffix: "%" },
+        { key: "ToolboxTalkAttendance", value: toolboxTalkAttendance, pieData: toolboxTalkAttendanceData, valueSuffix: "%" },
+        { key: "CorrectiveActionClosureRate", value: correctiveActionClosureRate, pieData: correctiveActionClosureRateData, valueSuffix: "%" },
+        { key: "ManHoursLostInjury", value: manHoursLostInjury, valueSuffix: "" },
+        { key: "ManHoursLostFatality", value: manHoursLostFatality, valueSuffix: "" },
+        { key: "MVAs", value: mvaCount, valueSuffix: "" },
       ]
     },
     {
       title: "Health Performance Indicators",
       kpis: [
-        { key: "HealthSurveillanceCoverage", value: healthSurveillanceCoverage, pieData: healthSurveillanceCoverageData, icon: UsersRound, valueSuffix: "%", description: "% workers receiving scheduled medicals" },
-        { key: "WorkRelatedIllnessRate", value: workIllnessRate.toFixed(1), icon: Biohazard, description: "per 10,000 workers" },
-        { key: "HearingConservationCompliance", value: hearingConservationCompliance, pieData: hearingConservationData, icon: Ear, valueSuffix: "%", description: "Audiometry & PPE compliance" },
-        { key: "FitForDutyNonCompliance", value: fitForDutyNonCompliance, pieData: fitForDutyData, icon: UserX, valueSuffix: "%", description: "% workers not cleared" },
-        { key: "HealthEducationCoverage", value: healthEducationCoverage, pieData: healthEducationData, icon: Presentation, valueSuffix: "%", description: "% workforce trained" },
+        { key: "HealthSurveillanceCoverage", value: healthSurveillanceCoverage, pieData: healthSurveillanceCoverageData, valueSuffix: "%" },
+        { key: "WorkRelatedIllnessRate", value: workIllnessRate.toFixed(1), valueSuffix: "" },
+        { key: "HearingConservationCompliance", value: hearingConservationCompliance, pieData: hearingConservationData, valueSuffix: "%" },
+        { key: "FitForDutyNonCompliance", value: fitForDutyNonCompliance, pieData: fitForDutyData, valueSuffix: "%" },
+        { key: "HealthEducationCoverage", value: healthEducationCoverage, pieData: healthEducationData, valueSuffix: "%" },
       ]
     },
     {
       title: "SHEQ Process & Engagement KPIs",
       kpis: [
-        { key: "TrainingComplianceRate", value: trainingComplianceRate, pieData: trainingComplianceData, icon: GraduationCap, valueSuffix: "%", description: "% employees trained on time" },
-        { key: "AuditScoreComplianceRate", value: auditScore, pieData: auditScoreData, icon: ClipboardCheck, valueSuffix: "%", description: "Average audit conformance" },
-        { key: "BBSObservationRate", value: bbsObservationRate, pieData: bbsObservationData, icon: Eye, valueSuffix: "%", description: "% of target BBS cards submitted" },
-        { key: "SHESuggestionRate", value: sheSuggestionRate.toFixed(1), icon: Lightbulb, description: "Suggestions per 100 employees/month" },
-        { key: "LeadershipWalksRate", value: leadershipWalksRate, pieData: leadershipWalksData, icon: Footprints, valueSuffix: "%", description: "% of scheduled visits completed" },
+        { key: "TrainingComplianceRate", value: trainingComplianceRate, pieData: trainingComplianceData, valueSuffix: "%" },
+        { key: "AuditScoreComplianceRate", value: auditScore, pieData: auditScoreData, valueSuffix: "%" },
+        { key: "BBSObservationRate", value: bbsObservationRate, pieData: bbsObservationData, valueSuffix: "%" },
+        { key: "SHESuggestionRate", value: sheSuggestionRate.toFixed(1), valueSuffix: "" },
+        { key: "LeadershipWalksRate", value: leadershipWalksRate, pieData: leadershipWalksData, valueSuffix: "%" },
       ]
     }
   ], [trir, nmfr, severityRate, minorInjuries, unsafeActConditionReports, incidentClosureRate, toolboxTalkAttendance, correctiveActionClosureRate, manHoursLostInjury, manHoursLostFatality, mvaCount, healthSurveillanceCoverage, workIllnessRate, hearingConservationCompliance, fitForDutyNonCompliance, healthEducationCoverage, trainingComplianceRate, auditScore, bbsObservationRate, sheSuggestionRate, leadershipWalksRate]);
@@ -509,8 +505,6 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
                   kpiKey={kpi.key}
                   value={kpi.value}
                   pieData={kpi.pieData}
-                  icon={kpi.icon}
-                  description={kpi.description}
                   valueSuffix={kpi.valueSuffix}
                   threshold={thresholdConfig?.value}
                   targetDirection={thresholdConfig?.targetDirection || kpiInfoMap[kpi.key].defaultTargetDirection}
