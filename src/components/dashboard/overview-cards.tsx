@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle as UIAlertTitle } from "@/components/ui/alert";
+import { useRouter } from "next/navigation";
 
 
 // Data structure for KPI details including a user-friendly title
@@ -166,6 +167,7 @@ interface KpiCardProps {
 
 function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDirection, onGetAiRecommendation }: KpiCardProps) {
   const { toast } = useToast();
+  const router = useRouter();
 
   let isDesirable = true;
   let valueColor = "text-foreground"; 
@@ -234,28 +236,17 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
   const hasThreshold = threshold !== undefined;
 
   const chartData = useMemo(() => {
-    if (!hasThreshold || typeof value !== 'number') return [];
+    if (!hasThreshold || typeof value !== 'number' || valueSuffix !== '%') return [];
     
-    if (targetDirection === 'below') {
-      const chartValue = Math.min(value, threshold!); // Cap value at threshold for visualization
-      const remaining = Math.max(0, threshold! - chartValue);
-      return [
-        { name: 'current', value: chartValue, fill: isDesirable ? 'hsl(var(--chart-positive-green))' : 'hsl(var(--destructive))' },
-        { name: 'remaining', value: remaining, fill: 'hsl(var(--muted))' }
-      ];
-    }
-    
-    if (targetDirection === 'above') {
-      const chartValue = Math.min(value, 100); // Assume max 100 for percentages
-      const remaining = Math.max(0, 100 - chartValue);
-      return [
-        { name: 'current', value: chartValue, fill: isDesirable ? 'hsl(var(--chart-positive-green))' : 'hsl(var(--chart-1))' },
-        { name: 'remaining', value: remaining, fill: 'hsl(var(--muted))' }
-      ];
-    }
-    
-    return [];
-  }, [value, threshold, targetDirection, hasThreshold, isDesirable]);
+    // For percentages, chart shows proportion out of 100
+    const chartValue = Math.min(value, 100);
+    const remaining = Math.max(0, 100 - chartValue);
+    return [
+      { name: 'current', value: chartValue, fill: isDesirable ? 'hsl(var(--chart-positive-green))' : 'hsl(var(--chart-1))' },
+      { name: 'remaining', value: remaining, fill: 'hsl(var(--muted))' }
+    ];
+
+  }, [value, threshold, targetDirection, hasThreshold, isDesirable, valueSuffix]);
 
 
   return (
@@ -269,30 +260,32 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
       </CardHeader>
       
       <CardContent className="flex-1 flex items-center justify-center">
-        {hasThreshold && typeof value === 'number' ? (
+        {hasThreshold ? (
           <div className="flex flex-row items-center justify-center gap-4 w-full">
-            <div className="h-20 w-20 flex-shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    dataKey="value"
-                    innerRadius="60%"
-                    outerRadius="80%"
-                    strokeWidth={0}
-                    paddingAngle={0}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            {chartData.length > 0 ? (
+              <div className="h-20 w-20 flex-shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      cx="50%"
+                      cy="50%"
+                      dataKey="value"
+                      innerRadius="60%"
+                      outerRadius="80%"
+                      strokeWidth={0}
+                      paddingAngle={0}
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : null}
             <div className="flex flex-col items-start">
-              <div className={`text-4xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
+              <div className={`text-6xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
               {!isDesirable && (
                  <Button
                   variant="ghost"
@@ -316,7 +309,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
               className="h-7 text-xs"
               onClick={(e) => {
                 e.stopPropagation();
-                window.location.href = '/dashboard/kpi-settings';
+                router.push('/dashboard/kpi-settings');
               }}
             >
               Go to Settings
@@ -340,6 +333,7 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
   const [recommendationResult, setRecommendationResult] = useState<KpiRecommendationOutput | null>(null);
   const [isRecommendationModalOpen, setIsRecommendationModalOpen] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
 
   const findThreshold = (kpiKey: string): KpiThreshold | undefined => {
@@ -465,7 +459,7 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground mb-4">You have hidden all KPIs. Go to KPI Settings to select which indicators to display.</p>
-          <Button onClick={() => (window.location.href = '/dashboard/kpi-settings')}>
+          <Button onClick={() => router.push('/dashboard/kpi-settings')}>
             Go to KPI Settings
           </Button>
         </CardContent>
