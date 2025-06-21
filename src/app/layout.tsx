@@ -4,8 +4,8 @@ import './globals.css';
 import { Providers } from '@/components/layout/providers'; // Import the new Providers component
 
 export const metadata: Metadata = {
-  title: 'SHEild - Safety, Health & Environment',
-  description: 'Comprehensive SHE management platform by SHEild',
+  title: 'SHEiQpro - Safety, Health & Environment',
+  description: 'Comprehensive SHE management platform by SHEiQpro',
 };
 
 export default function RootLayout({

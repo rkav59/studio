@@ -9,7 +9,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         <div className="w-full max-w-sm space-y-6">
           <div className="flex flex-col items-center text-center">
             <ShieldCheck className="h-16 w-16 text-primary mb-4" />
-            <h1 className="text-4xl font-bold text-foreground font-headline">SHEild</h1>
+            <h1 className="text-4xl font-bold text-foreground font-headline">SHEiQpro</h1>
             <p className="text-muted-foreground mt-2">
               Safety, Health & Environmental Management Platform
             </p>
@@ -20,7 +20,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         </div>
       </main>
        <footer className="py-4 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} SHEild Platform. All rights reserved.
+          &copy; {new Date().getFullYear()} SHEiQpro Platform. All rights reserved.
         </footer>
     </div>
   );

@@ -107,7 +107,7 @@ export default function SignUpPage() {
     <>
       <h2 className="text-2xl font-semibold tracking-tight text-center text-foreground">Create Your Account</h2>
       <p className="text-sm text-muted-foreground text-center mt-1 mb-6">
-        Join SHEild to manage your safety, health, and environment data.
+        Join SHEiQpro to manage your safety, health, and environment data.
       </p>
 
       <Form {...form}>
@@ -221,4 +221,3 @@ export default function SignUpPage() {
     </>
   );
 }
-
