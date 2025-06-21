@@ -191,12 +191,13 @@ export default function EmergencyPreparednessPage() {
     <div className="space-y-8">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
-          <Siren className="h-8 w-8 text-primary"/> Emergency Preparedness
+          <Siren className="h-8 w-8"/> Emergency Preparedness
         </h1>
         <p className="text-muted-foreground">
           This module assists in creating emergency plans, managing resources, and tracking drills to ensure readiness for any situation. All data is stored securely in Firebase Firestore.
         </p>
       </div>
+      <Separator />
 
       {pendingDrillActions > 0 && (<Alert variant="info" className="shadow-md"><ListChecksIcon className="h-4 w-4" /><AlertTitle>Pending Drill Actions</AlertTitle><UiAlertDescription>There are <strong className="text-accent">{pendingDrillActions}</strong> pending action items from mock drills.</UiAlertDescription></Alert>)}
       
