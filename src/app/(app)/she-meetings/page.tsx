@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -331,16 +330,12 @@ export default function SheMeetingsPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-lg overflow-hidden">
-        <div className="relative h-60 w-full">
-          <Image src="https://placehold.co/1200x400.png" alt="Team discussing SHE programs" layout="fill" objectFit="cover" data-ai-hint="team meeting" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-          <div className="absolute bottom-0 left-0 p-6">
-            <h1 className="text-3xl font-bold tracking-tight font-headline text-white">SHE Meetings & Programs</h1>
-            <p className="text-sm text-neutral-300">Organize, track, and manage safety, health, and environmental initiatives and communication. Data stored in Firestore.</p>
-          </div>
-        </div>
-      </Card>
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight font-headline">SHE Meetings & Programs</h1>
+        <p className="text-muted-foreground">
+          Organize, track, and manage safety, health, and environmental initiatives and communication. Data stored in Firestore.
+        </p>
+      </div>
 
       {/* Reminders Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -525,4 +520,3 @@ export default function SheMeetingsPage() {
     </div>
   );
 }
-
