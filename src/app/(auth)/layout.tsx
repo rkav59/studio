@@ -4,7 +4,7 @@ import { ShieldCheck } from 'lucide-react';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-white">
       <main className="flex flex-1 flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-6">
           <div className="flex flex-col items-center text-center">
