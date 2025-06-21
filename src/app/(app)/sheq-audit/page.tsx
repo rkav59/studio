@@ -335,17 +335,16 @@ export default function SheqAuditPage() {
     <div className="space-y-6">
       {!currentAudit ? (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h1 className="text-3xl font-bold tracking-tight font-headline">SHEQ Audits</h1>
-            <Button onClick={handleGenerateAiInsights} disabled={isAiInsightsLoading || audits.length === 0} variant="outline" className="border-accent text-accent hover:bg-accent/10">
-              {isAiInsightsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-              AI Audit Insights
-            </Button>
-          </div>
           <Card className="shadow-lg">
             <CardHeader>
-              <CardTitle>Comprehensive Auditing</CardTitle>
-              <CardDescription className="p-0 pt-2">Ensure compliance and drive continuous improvement across SHEQ. Data now in Firestore.</CardDescription>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <CardTitle className="text-3xl font-bold tracking-tight font-headline">SHEQ Audits</CardTitle>
+                    <Button onClick={handleGenerateAiInsights} disabled={isAiInsightsLoading || audits.length === 0} variant="outline" className="border-accent text-accent hover:bg-accent/10">
+                        {isAiInsightsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        AI Audit Insights
+                    </Button>
+                </div>
+                <CardDescription className="p-0 pt-2">Ensure compliance and drive continuous improvement across SHEQ. Data now in Firestore.</CardDescription>
             </CardHeader>
             <CardContent>
                 <p className="text-muted-foreground">
