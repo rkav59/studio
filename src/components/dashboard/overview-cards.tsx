@@ -1,7 +1,7 @@
 
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks, UsersRound, Biohazard, Ear, UserX, Presentation, Hourglass, Skull, Car, GraduationCap, ClipboardCheck, Eye, Lightbulb, Footprints, BrainCircuit, Sparkles, Loader2 as KpiLoader, Settings } from "lucide-react"; 
 import { ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useToast } from "@/hooks/use-toast";
@@ -239,27 +239,18 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
     if (!hasThreshold || typeof value !== 'number') return [];
 
     let chartValue = 0;
-    
-    // For both percentages and raw numbers, chart shows proportion relative to the threshold
     if (threshold! > 0) {
-      // If lower is better, the "good" part is how far below the threshold we are.
-      // This visualization is tricky. Let's show (value / threshold * 100)
       const percentageOfThreshold = (value / threshold!) * 100;
-      
-      // If a low value is good, we want the bar to be small. 
-      // If a high value is good, we want the bar to be large.
-      // The color already indicates desirability, so the magnitude should be consistent.
       chartValue = Math.min(percentageOfThreshold, 100);
     }
     
-
     const remaining = Math.max(0, 100 - chartValue);
 
     return [
       { name: 'current', value: chartValue, fill: isDesirable ? 'hsl(var(--chart-positive-green))' : 'hsl(var(--chart-1))' },
       { name: 'remaining', value: remaining, fill: 'hsl(var(--muted))' }
     ];
-  }, [value, threshold, targetDirection, hasThreshold, isDesirable, valueSuffix]);
+  }, [value, threshold, targetDirection, hasThreshold, isDesirable]);
 
 
   return (
@@ -274,7 +265,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
       
       <CardContent className="flex-1 flex flex-col items-center justify-center">
         {hasThreshold ? (
-          valueSuffix === '%' ? (
+          valueSuffix === '%' || (typeof value === 'number' && hasThreshold) ? (
             <div className="flex flex-row items-center justify-center gap-4 w-full">
               <div className="h-20 w-20 flex-shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
@@ -297,7 +288,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
                 </ResponsiveContainer>
               </div>
               <div className="flex flex-col items-start">
-                <div className={`text-6xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
+                <div className={`text-5xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
                 {!isDesirable && (
                    <Button
                     variant="ghost"
@@ -345,6 +336,11 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
           </div>
         )}
       </CardContent>
+       {hasThreshold && (
+        <CardFooter className="pt-0 pb-2 px-4 justify-end">
+            <p className="text-xs text-muted-foreground">Threshold: {threshold}</p>
+        </CardFooter>
+      )}
     </Card>
   );
 }
@@ -420,9 +416,9 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
     {
       title: "General SHEQ Performance Indicators",
       kpis: [
-        { key: "TRIR", value: trir.toFixed(1), valueSuffix: "" },
-        { key: "NMFR", value: nmfr.toFixed(1), valueSuffix: "" },
-        { key: "SeverityRate", value: severityRate.toFixed(1), valueSuffix: "" },
+        { key: "TRIR", value: trir, valueSuffix: "" },
+        { key: "NMFR", value: nmfr, valueSuffix: "" },
+        { key: "SeverityRate", value: severityRate, valueSuffix: "" },
         { key: "MinorInjuries", value: minorInjuries, valueSuffix: "" },
         { key: "UnsafeActConditionReports", value: unsafeActConditionReports, valueSuffix: "" },
         { key: "IncidentClosureRate", value: incidentClosureRate, valueSuffix: "%" },
@@ -437,7 +433,7 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
       title: "Health Performance Indicators",
       kpis: [
         { key: "HealthSurveillanceCoverage", value: healthSurveillanceCoverage, valueSuffix: "%" },
-        { key: "WorkRelatedIllnessRate", value: workIllnessRate.toFixed(1), valueSuffix: "" },
+        { key: "WorkRelatedIllnessRate", value: workIllnessRate, valueSuffix: "" },
         { key: "HearingConservationCompliance", value: hearingConservationCompliance, valueSuffix: "%" },
         { key: "FitForDutyNonCompliance", value: fitForDutyNonCompliance, valueSuffix: "%" },
         { key: "HealthEducationCoverage", value: healthEducationCoverage, valueSuffix: "%" },
@@ -449,7 +445,7 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
         { key: "TrainingComplianceRate", value: trainingComplianceRate, valueSuffix: "%" },
         { key: "AuditScoreComplianceRate", value: auditScore, valueSuffix: "%" },
         { key: "BBSObservationRate", value: bbsObservationRate, valueSuffix: "%" },
-        { key: "SHESuggestionRate", value: sheSuggestionRate.toFixed(1), valueSuffix: "" },
+        { key: "SHESuggestionRate", value: sheSuggestionRate, valueSuffix: "" },
         { key: "LeadershipWalksRate", value: leadershipWalksRate, valueSuffix: "%" },
       ]
     }
