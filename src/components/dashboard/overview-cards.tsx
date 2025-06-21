@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, TrendingUp, BedDouble, HeartPulse, AlertTriangle, CheckCircle2, Users, ListChecks, UsersRound, Biohazard, Ear, UserX, Presentation, Hourglass, Skull, Car, GraduationCap, ClipboardCheck, Eye, Lightbulb, Footprints, BrainCircuit, Sparkles, Loader2 as KpiLoader, Settings } from "lucide-react"; 
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator"; 
@@ -158,7 +158,7 @@ export const kpiInfoMap: Record<string, { title: string; definition: string; rel
 interface KpiCardProps {
   title: string;
   value: string | number;
-  pieData?: Array<{ name: string; value: number; fill: string }>;
+  chartData?: Array<{ name: string; value: number; fill: string }>;
   valueSuffix?: string;
   kpiKey: string; 
   threshold?: number;
@@ -166,7 +166,7 @@ interface KpiCardProps {
   onGetAiRecommendation: (kpiDetails: KpiRecommendationInput) => void;
 }
 
-function KpiCard({ title, value, pieData, valueSuffix = "", kpiKey, threshold, targetDirection, onGetAiRecommendation }: KpiCardProps) {
+function KpiCard({ title, value, chartData, valueSuffix = "", kpiKey, threshold, targetDirection, onGetAiRecommendation }: KpiCardProps) {
   const { toast } = useToast();
 
   let isDesirable = true;
@@ -182,13 +182,13 @@ function KpiCard({ title, value, pieData, valueSuffix = "", kpiKey, threshold, t
   }
 
   let chartConfig: ChartConfig | undefined = undefined;
-  if (pieData && pieData.length > 0) {
-    chartConfig = pieData.reduce((acc, item) => {
+  if (chartData && chartData.length > 0) {
+    chartConfig = chartData.reduce((acc, item) => {
       acc[item.name] = { label: item.name, color: item.fill };
       return acc;
     }, {} as ChartConfig);
   }
-  const isDonut = pieData && pieData.length > 1;
+  const isPercentage = chartData && chartData.length > 1;
 
   const handleCardClick = () => {
     const details = kpiInfoMap[kpiKey];
@@ -253,34 +253,41 @@ function KpiCard({ title, value, pieData, valueSuffix = "", kpiKey, threshold, t
       <CardTitle className="text-sm font-medium">{title}</CardTitle>
     </CardHeader>
     <CardContent className="flex flex-row items-center justify-center gap-4 pt-4">
-      {pieData && pieData.length > 0 && chartConfig && (
+      {chartData && chartData.length > 0 && chartConfig && (
         <div className="h-[50px] w-[50px]">
           <ChartContainer config={chartConfig} className="w-full h-full">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={isDonut ? 12 : 0}
-                  outerRadius={23}
-                  paddingAngle={isDonut ? 2 : 0}
-                  labelLine={false}
-                  strokeWidth={pieData.length === 1 && pieData[0].value === 100 ? 0 : 1}
+              {isPercentage ? (
+                 <BarChart
+                    data={[{
+                        ...chartData.reduce((acc, item) => ({...acc, [item.name]: item.value}), {})
+                    }]}
+                    layout="vertical"
+                    stackOffset="expand"
+                    margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
                 >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-              </PieChart>
+                    <XAxis type="number" hide />
+                    <YAxis type="category" dataKey="name" hide />
+                    {chartData.map(item => (
+                        <Bar key={item.name} dataKey={item.name} fill={`var(--color-${item.name})`} stackId="a" radius={4} />
+                    ))}
+                </BarChart>
+              ) : (
+                <BarChart
+                    data={chartData}
+                    margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                >
+                    <XAxis dataKey="name" hide />
+                    <YAxis type="number" hide domain={[0, 'dataMax']} />
+                    <Bar dataKey="value" fill={`var(--color-${chartData[0].name})`} radius={4} />
+                </BarChart>
+              )}
             </ResponsiveContainer>
           </ChartContainer>
         </div>
       )}
       <div className="flex flex-col items-center">
-        <div className={`text-6xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
+        <div className={`text-5xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
         {!isDesirable && threshold !== undefined && (
           <Button
             variant="ghost"
@@ -415,37 +422,37 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
     {
       title: "General SHEQ Performance Indicators",
       kpis: [
-        { key: "TRIR", value: trir.toFixed(1), valueSuffix: "", pieData: [{ name: 'TRIR', value: 100, fill: 'hsl(var(--chart-1))' }] },
-        { key: "NMFR", value: nmfr.toFixed(1), valueSuffix: "", pieData: [{ name: 'NMFR', value: 100, fill: 'hsl(var(--chart-2))' }] },
-        { key: "SeverityRate", value: severityRate.toFixed(1), valueSuffix: "", pieData: [{ name: 'SeverityRate', value: 100, fill: 'hsl(var(--chart-3))' }] },
-        { key: "MinorInjuries", value: minorInjuries, valueSuffix: "", pieData: [{ name: 'MinorInjuries', value: 100, fill: 'hsl(var(--chart-4))' }] },
-        { key: "UnsafeActConditionReports", value: unsafeActConditionReports, valueSuffix: "", pieData: [{ name: 'UnsafeActConditionReports', value: 100, fill: 'hsl(var(--chart-5))' }] },
-        { key: "IncidentClosureRate", value: incidentClosureRate, pieData: incidentClosureRateData, valueSuffix: "%" },
-        { key: "ToolboxTalkAttendance", value: toolboxTalkAttendance, pieData: toolboxTalkAttendanceData, valueSuffix: "%" },
-        { key: "CorrectiveActionClosureRate", value: correctiveActionClosureRate, pieData: correctiveActionClosureRateData, valueSuffix: "%" },
-        { key: "ManHoursLostInjury", value: manHoursLostInjury, valueSuffix: "", pieData: [{ name: 'ManHoursLostInjury', value: 100, fill: 'hsl(var(--chart-1))' }] },
-        { key: "ManHoursLostFatality", value: manHoursLostFatality, valueSuffix: "", pieData: [{ name: 'ManHoursLostFatality', value: 100, fill: 'hsl(var(--chart-2))' }] },
-        { key: "MVAs", value: mvaCount, valueSuffix: "", pieData: [{ name: 'MVAs', value: 100, fill: 'hsl(var(--chart-3))' }] },
+        { key: "TRIR", value: trir.toFixed(1), valueSuffix: "", chartData: [{ name: 'TRIR', value: trir, fill: 'hsl(var(--chart-1))' }] },
+        { key: "NMFR", value: nmfr.toFixed(1), valueSuffix: "", chartData: [{ name: 'NMFR', value: nmfr, fill: 'hsl(var(--chart-2))' }] },
+        { key: "SeverityRate", value: severityRate.toFixed(1), valueSuffix: "", chartData: [{ name: 'SeverityRate', value: severityRate, fill: 'hsl(var(--chart-3))' }] },
+        { key: "MinorInjuries", value: minorInjuries, valueSuffix: "", chartData: [{ name: 'MinorInjuries', value: minorInjuries, fill: 'hsl(var(--chart-4))' }] },
+        { key: "UnsafeActConditionReports", value: unsafeActConditionReports, valueSuffix: "", chartData: [{ name: 'UnsafeActConditionReports', value: unsafeActConditionReports, fill: 'hsl(var(--chart-5))' }] },
+        { key: "IncidentClosureRate", value: incidentClosureRate, chartData: incidentClosureRateData, valueSuffix: "%" },
+        { key: "ToolboxTalkAttendance", value: toolboxTalkAttendance, chartData: toolboxTalkAttendanceData, valueSuffix: "%" },
+        { key: "CorrectiveActionClosureRate", value: correctiveActionClosureRate, chartData: correctiveActionClosureRateData, valueSuffix: "%" },
+        { key: "ManHoursLostInjury", value: manHoursLostInjury, valueSuffix: "", chartData: [{ name: 'ManHoursLostInjury', value: manHoursLostInjury, fill: 'hsl(var(--chart-1))' }] },
+        { key: "ManHoursLostFatality", value: manHoursLostFatality, valueSuffix: "", chartData: [{ name: 'ManHoursLostFatality', value: manHoursLostFatality, fill: 'hsl(var(--chart-2))' }] },
+        { key: "MVAs", value: mvaCount, valueSuffix: "", chartData: [{ name: 'MVAs', value: mvaCount, fill: 'hsl(var(--chart-3))' }] },
       ]
     },
     {
       title: "Health Performance Indicators",
       kpis: [
-        { key: "HealthSurveillanceCoverage", value: healthSurveillanceCoverage, pieData: healthSurveillanceCoverageData, valueSuffix: "%" },
-        { key: "WorkRelatedIllnessRate", value: workIllnessRate.toFixed(1), valueSuffix: "", pieData: [{ name: 'WorkRelatedIllnessRate', value: 100, fill: 'hsl(var(--chart-4))' }] },
-        { key: "HearingConservationCompliance", value: hearingConservationCompliance, pieData: hearingConservationData, valueSuffix: "%" },
-        { key: "FitForDutyNonCompliance", value: fitForDutyNonCompliance, pieData: fitForDutyData, valueSuffix: "%" },
-        { key: "HealthEducationCoverage", value: healthEducationCoverage, pieData: healthEducationData, valueSuffix: "%" },
+        { key: "HealthSurveillanceCoverage", value: healthSurveillanceCoverage, chartData: healthSurveillanceCoverageData, valueSuffix: "%" },
+        { key: "WorkRelatedIllnessRate", value: workIllnessRate.toFixed(1), valueSuffix: "", chartData: [{ name: 'WorkRelatedIllnessRate', value: workIllnessRate, fill: 'hsl(var(--chart-4))' }] },
+        { key: "HearingConservationCompliance", value: hearingConservationCompliance, chartData: hearingConservationData, valueSuffix: "%" },
+        { key: "FitForDutyNonCompliance", value: fitForDutyNonCompliance, chartData: fitForDutyData, valueSuffix: "%" },
+        { key: "HealthEducationCoverage", value: healthEducationCoverage, chartData: healthEducationData, valueSuffix: "%" },
       ]
     },
     {
       title: "SHEQ Process & Engagement KPIs",
       kpis: [
-        { key: "TrainingComplianceRate", value: trainingComplianceRate, pieData: trainingComplianceData, valueSuffix: "%" },
-        { key: "AuditScoreComplianceRate", value: auditScore, pieData: auditScoreData, valueSuffix: "%" },
-        { key: "BBSObservationRate", value: bbsObservationRate, pieData: bbsObservationData, valueSuffix: "%" },
-        { key: "SHESuggestionRate", value: sheSuggestionRate.toFixed(1), valueSuffix: "", pieData: [{ name: 'SHESuggestionRate', value: 100, fill: 'hsl(var(--chart-5))' }] },
-        { key: "LeadershipWalksRate", value: leadershipWalksRate, pieData: leadershipWalksData, valueSuffix: "%" },
+        { key: "TrainingComplianceRate", value: trainingComplianceRate, chartData: trainingComplianceData, valueSuffix: "%" },
+        { key: "AuditScoreComplianceRate", value: auditScore, chartData: auditScoreData, valueSuffix: "%" },
+        { key: "BBSObservationRate", value: bbsObservationRate, chartData: bbsObservationData, valueSuffix: "%" },
+        { key: "SHESuggestionRate", value: sheSuggestionRate.toFixed(1), valueSuffix: "", chartData: [{ name: 'SHESuggestionRate', value: sheSuggestionRate, fill: 'hsl(var(--chart-5))' }] },
+        { key: "LeadershipWalksRate", value: leadershipWalksRate, chartData: leadershipWalksData, valueSuffix: "%" },
       ]
     }
   ], []);
@@ -506,7 +513,7 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
                   title={kpiInfoMap[kpi.key].title}
                   kpiKey={kpi.key}
                   value={kpi.value}
-                  pieData={kpi.pieData}
+                  chartData={kpi.chartData}
                   valueSuffix={kpi.valueSuffix}
                   threshold={thresholdConfig?.value}
                   targetDirection={thresholdConfig?.targetDirection || kpiInfoMap[kpi.key].defaultTargetDirection}
