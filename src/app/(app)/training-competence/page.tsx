@@ -155,7 +155,7 @@ export default function TrainingCompetencePage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
-          <BookUser className="h-8 w-8 text-primary"/> Training &amp; Competence
+          <BookUser className="h-8 w-8"/> Training &amp; Competence
         </h1>
         <p className="text-muted-foreground mt-2">
             This module allows you to build a course catalog and maintain training records for employees. 
@@ -163,6 +163,8 @@ export default function TrainingCompetencePage() {
             All data is now stored securely in Firebase Firestore.
         </p>
       </div>
+      
+      <Separator />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
