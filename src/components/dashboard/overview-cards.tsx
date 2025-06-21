@@ -253,41 +253,30 @@ function KpiCard({ title, value, chartData, valueSuffix = "", kpiKey, threshold,
       <CardTitle className="text-sm font-medium">{title}</CardTitle>
     </CardHeader>
     <CardContent className="flex flex-row items-center justify-center gap-4 pt-4">
-      {chartData && chartData.length > 0 && chartConfig && (
+      {isPercentage && chartData && chartConfig && (
         <div className="h-[50px] w-[50px]">
           <ChartContainer config={chartConfig} className="w-full h-full">
             <ResponsiveContainer width="100%" height="100%">
-              {isPercentage ? (
-                 <BarChart
-                    data={[{
-                        ...chartData.reduce((acc, item) => ({...acc, [item.name]: item.value}), {})
-                    }]}
-                    layout="vertical"
-                    stackOffset="expand"
-                    margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                >
-                    <XAxis type="number" hide />
-                    <YAxis type="category" dataKey="name" hide />
-                    {chartData.map(item => (
-                        <Bar key={item.name} dataKey={item.name} fill={`var(--color-${item.name})`} stackId="a" radius={4} />
-                    ))}
-                </BarChart>
-              ) : (
-                <BarChart
-                    data={chartData}
-                    margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                >
-                    <XAxis dataKey="name" hide />
-                    <YAxis type="number" hide domain={[0, 'dataMax']} />
-                    <Bar dataKey="value" fill={`var(--color-${chartData[0].name})`} radius={4} />
-                </BarChart>
-              )}
+              <BarChart
+                  data={[{
+                      ...chartData.reduce((acc, item) => ({...acc, [item.name]: item.value}), {})
+                  }]}
+                  layout="vertical"
+                  stackOffset="expand"
+                  margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+              >
+                  <XAxis type="number" hide />
+                  <YAxis type="category" dataKey="name" hide />
+                  {chartData.map(item => (
+                      <Bar key={item.name} dataKey={item.name} fill={`var(--color-${item.name})`} stackId="a" radius={4} />
+                  ))}
+              </BarChart>
             </ResponsiveContainer>
           </ChartContainer>
         </div>
       )}
       <div className="flex flex-col items-center">
-        <div className={`text-5xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
+        <div className={`text-6xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
         {!isDesirable && threshold !== undefined && (
           <Button
             variant="ghost"
