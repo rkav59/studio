@@ -245,14 +245,15 @@ function KpiCard({ title, value, pieData, valueSuffix = "", kpiKey, threshold, t
 
   return (
     <Card onClick={handleCardClick} className="cursor-pointer hover:shadow-lg transition-shadow duration-200 relative">
-       {threshold !== undefined && targetDirection !== undefined && (
-        <div className={`absolute top-2 right-2 h-3 w-3 rounded-full ${isDesirable ? 'bg-green-500' : 'bg-red-500'}`} 
-             title={`Status: ${isDesirable ? 'Meeting target' : 'Needs attention'}`} />
-      )}
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col items-center pt-4 text-center">
+      {threshold !== undefined && targetDirection !== undefined && (
+      <div className={`absolute top-2 right-2 h-3 w-3 rounded-full ${isDesirable ? 'bg-green-500' : 'bg-red-500'}`} 
+            title={`Status: ${isDesirable ? 'Meeting target' : 'Needs attention'}`} />
+    )}
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">{title}</CardTitle>
+    </CardHeader>
+    <CardContent className="flex flex-col items-center justify-center pt-4">
+      <div className="flex flex-row items-center justify-center gap-4">
         {pieData && pieData.length > 0 && chartConfig && (
           <div className="h-[50px] w-[50px]">
             <ChartContainer config={chartConfig} className="w-full h-full">
@@ -279,20 +280,21 @@ function KpiCard({ title, value, pieData, valueSuffix = "", kpiKey, threshold, t
             </ChartContainer>
           </div>
         )}
-        <div className={`text-4xl font-bold ${valueColor} ${pieData && pieData.length > 0 ? 'mt-2' : 'mt-2 mb-2'}`}>{value}{valueSuffix}</div>
-        {!isDesirable && threshold !== undefined && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleRecommendationClick}
-            className="mt-2 text-xs text-accent hover:text-accent/90 h-auto p-1"
-            title="Get AI Recommendation"
-          >
-            <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+        <div className={`text-5xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
+      </div>
+      {!isDesirable && threshold !== undefined && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleRecommendationClick}
+          className="mt-2 text-xs text-accent hover:text-accent/90 h-auto p-1"
+          title="Get AI Recommendation"
+        >
+          <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
+        </Button>
+      )}
+    </CardContent>
+  </Card>
   );
 }
 
