@@ -1,17 +1,17 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
 import { AuditScheduler } from '@/components/sheq-audit/audit-scheduler';
 import { AuditExecutionForm } from '@/components/sheq-audit/audit-execution-form';
 import type { SheqAudit, AuditChecklistItem, ChecklistItemTemplate, NonConformance, AnalyzeAuditDataInput, AnalyzeAuditDataOutput, ChecklistTemplate, AuditObservationEntry } from '@/lib/types';
 import { defaultChecklistTemplates } from '@/lib/checklist-templates';
 import { Separator } from '@/components/ui/separator';
 import { format, isValid, parseISO } from 'date-fns';
-import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2, LinkIcon, Filter, BookCheck, SearchCheck, FileCheck2 } from "lucide-react";
+import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2, LinkIcon, Filter, BookCheck, SearchCheck, FileCheck2, Download } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -175,9 +175,12 @@ export default function SheqAuditPage() {
       return executedAudit;
     },
     onSuccess: (variables: SheqAudit) => {
-      queryClient.invalidateQueries({ queryKey: [SHEQ_AUDITS_COLLECTION, user?.uid] });
-      toast({ title: "Audit Updated", description: `Audit "${variables.auditName}" has been updated.` });
-      setCurrentAudit(null);
+        queryClient.invalidateQueries({ queryKey: [SHEQ_AUDITS_COLLECTION, user?.uid] });
+        toast({
+          title: "Audit Updated",
+          description: `Audit "${variables.auditName}" has been updated.`,
+        });
+        setCurrentAudit(null);
     },
     onError: (error: Error) => {
       toast({ title: "Error Updating Audit", description: error.message, variant: "destructive" });
@@ -319,6 +322,111 @@ export default function SheqAuditPage() {
                          (completedAuditFilterType === 'All' || a.auditType === completedAuditFilterType));
   }, [audits, completedAuditFilterType]);
 
+  const handleDownloadAuditReport = (audit: SheqAudit) => {
+    const formatIso = (dateString?: string) => dateString ? format(parseISO(dateString), 'PPP') : 'N/A';
+
+    const checklistHtml = audit.checklist?.map((item, index) => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top;">${index + 1}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top;">${item.text || ''}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top;">${item.status || 'Pending'}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top;">${item.evidenceNotes || ''}<br/><strong>Comments:</strong> ${item.comments || ''}</td>
+      </tr>
+    `).join('') || '<tr><td colspan="4">No checklist items found.</td></tr>';
+
+    const nonConformancesHtml = audit.nonConformances?.map((nc, index) => `
+      <div style="margin-bottom: 15px; page-break-inside: avoid;">
+        <h4>Non-Conformance #${index + 1}: ${nc.description}</h4>
+        <p><strong>Severity:</strong> ${nc.severity}</p>
+        <p><strong>Proposed Corrective Action:</strong> ${nc.correctiveActionsProposed || 'N/A'}</p>
+        <p><strong>Proposed Preventive Action:</strong> ${nc.preventiveActionsProposed || 'N/A'}</p>
+        <p><strong>Assigned To:</strong> ${nc.actionAssignedTo || 'N/A'}</p>
+        <p><strong>Due Date:</strong> ${formatIso(nc.actionDueDate)}</p>
+        <p><strong>Status:</strong> ${nc.actionStatus || 'Open'}</p>
+      </div>
+    `).join('') || '<p>No non-conformances recorded.</p>';
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <title>Audit Report: ${audit.auditName}</title>
+          <style>
+              body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.4; color: #333; }
+              h1, h2, h3, h4 { color: #2c3e50; }
+              h1 { font-size: 24px; border-bottom: 2px solid #3498DB; padding-bottom: 5px; }
+              h2 { font-size: 20px; margin-top: 30px; color: #3498DB; border-bottom: 1px solid #ccc; padding-bottom: 3px;}
+              h3 { font-size: 16px; margin-top: 20px; color: #E67E22; }
+              h4 { font-size: 14px; margin-top: 15px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10pt; page-break-inside: auto; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+              th { background-color: #f0f0f0; font-weight: bold; }
+              .section { margin-bottom: 25px; page-break-inside: avoid; }
+              .summary-box { background-color: #f9f9f9; border: 1px dashed #ccc; padding: 15px; margin-top: 10px; }
+          </style>
+      </head>
+      <body>
+          <h1>Audit Report</h1>
+          <div class="section">
+              <h2>Audit Details</h2>
+              <p><strong>Audit Title:</strong> ${audit.auditName}</p>
+              <p><strong>Audit Type:</strong> ${audit.auditType}</p>
+              <p><strong>Scope:</strong> ${audit.scope}</p>
+              <p><strong>Date:</strong> ${formatIso(audit.auditDate)}</p>
+              <p><strong>Auditor(s):</strong> ${audit.auditor}</p>
+              <p><strong>Status:</strong> ${audit.status}</p>
+          </div>
+
+          <div class="section">
+            <h2>Overall Summary</h2>
+            <div class="summary-box">
+              <h3>Overall Findings</h3>
+              <p>${audit.overallFindings || 'No overall findings recorded.'}</p>
+              <br/>
+              <h3>Recommendations</h3>
+              <p>${audit.recommendations || 'No recommendations recorded.'}</p>
+            </div>
+          </div>
+          
+          <div class="section">
+            <h2>Non-Conformances</h2>
+            ${nonConformancesHtml}
+          </div>
+
+          <div class="section">
+            <h2>Checklist Details</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:5%;">#</th>
+                  <th style="width:40%;">Checklist Item</th>
+                  <th style="width:15%;">Status</th>
+                  <th style="width:40%;">Evidence & Comments</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${checklistHtml}
+              </tbody>
+            </table>
+          </div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    const fileName = `Audit_Report_${audit.auditName.replace(/\s/g, '_')}_${formatIso(audit.auditDate)}.html`;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    toast({ title: "Report Downloaded", description: `${fileName} has been downloaded. You can open it with Microsoft Word.` });
+  };
+
 
   if (isLoadingAudits || isLoadingUserTemplates) {
     return (
@@ -403,9 +511,14 @@ export default function SheqAuditPage() {
                         <p className="text-xs text-muted-foreground">Date: {format(parseISO(audit.auditDate), "PPP")} | Auditor(s): {audit.auditor}</p>
                         <p className={`text-xs font-semibold ${getStatusColor(audit.status)}`}>Status: {audit.status}</p>
                       </div>
-                       <Button variant="outline" size="sm" onClick={() => setViewingAuditDetails(audit)} className="mt-2 sm:mt-0 self-start sm:self-auto">
-                        <Eye className="mr-2 h-4 w-4" /> View Details
-                      </Button>
+                      <div className="flex flex-wrap gap-2 mt-2 sm:mt-0 self-start sm:self-auto">
+                        <Button variant="outline" size="sm" onClick={() => setViewingAuditDetails(audit)}>
+                          <Eye className="mr-2 h-4 w-4" /> View Details
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDownloadAuditReport(audit)}>
+                          <Download className="mr-2 h-4 w-4" /> Download Report
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>
