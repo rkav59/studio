@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   ShieldCheck,
   ListChecks, // Inspections (now for Contractor Safety)
-  BarChartHorizontalBig, // Data Visualization
   Sparkles, // AI Safety Assist
   FileCheck2, // SHEQ Audit
   BookUser, // Training & Competence
@@ -36,7 +35,6 @@ const navItems = [
   { href: '/contractor-safety', label: 'Contractor Safety', icon: ListChecks },
   { href: '/health-monitoring', label: 'Health Monitoring', icon: HeartPulse },
   { href: '/she-meetings', label: 'SHE Meetings & Programs', icon: CalendarRange },
-  { href: '/data-visualization', label: 'Data Visualization', icon: BarChartHorizontalBig },
   { href: '/ai-recommendations', label: 'AI Safety Assist', icon: Sparkles },
 ];
 
