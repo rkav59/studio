@@ -338,7 +338,7 @@ export default function RiskManagementPage() {
     );
   }
   if (hazardsError || assessmentsError || riskRegisterError || incidentsError) {
-    return <div className="text-red-500 text-center py-10">Error loading data: {(hazardsError || assessmentsError || riskRegisterError || incidentsError)?.message}</div>;
+    return <div className="text-red-500 text-center py-10">Error loading data: ${(hazardsError || assessmentsError || riskRegisterError || incidentsError)?.message}</div>;
   }
 
 
@@ -436,7 +436,7 @@ export default function RiskManagementPage() {
       <Card className="shadow-md">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
-                <CardTitle className="flex items-center gap-2"><BookOpen className="h-6 w-6 text-green-600"/>Risk Register (Centralized Risk Recording & Reporting)</CardTitle>
+                <CardTitle className="flex items-center gap-2">Risk Register (Centralized Risk Recording & Reporting)</CardTitle>
                 <CardDescription>A central log of significant organizational risks, their owners, treatment plans, and review status (ISO 31000: Recording & Reporting). Provides an overview of the risk landscape.</CardDescription>
             </div>
             <div className="flex gap-2">
