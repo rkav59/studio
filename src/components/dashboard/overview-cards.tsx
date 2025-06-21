@@ -281,7 +281,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
       </CardContent>
        {hasThreshold && (
         <CardFooter className="pt-0 pb-2 px-4 justify-end">
-            <p className="text-xs text-muted-foreground">{threshold}</p>
+            <p className="text-xs text-muted-foreground font-bold">{threshold}</p>
         </CardFooter>
       )}
     </Card>
@@ -351,8 +351,8 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
   // Mock data for Process & Engagement KPIs
   const trainingComplianceRate = 90;
   const auditScore = 88;
-  const bbsObservationRate = 75; // e.g. % of target observations
-  const sheSuggestionRate = 2.5; // e.g. per 100 employees per month
+  const bbsObservationRate = 75; // e.g., % of target observations
+  const sheSuggestionRate = 2.5; // e.g., per 100 employees per month
   const leadershipWalksRate = 95;
   
   const kpiSections = useMemo(() => [
