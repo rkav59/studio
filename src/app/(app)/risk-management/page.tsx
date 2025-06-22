@@ -70,7 +70,10 @@ export default function RiskManagementPage() {
       queryClient.invalidateQueries({ queryKey: [INCIDENTS_COLLECTION, user?.uid] });
       toast({ title: "Incident Deleted", description: "The incident record has been deleted." });
     },
-    onError: (e:Error) => toast({title: "Error Deleting Incident", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
+    onError: (e:Error) => {
+        const userFriendlyMessage = "An unexpected error occurred while deleting the incident. Please try again.";
+        toast({title: "Error Deleting Incident", description: userFriendlyMessage, variant: "destructive"});
+    },
   });
 
 
@@ -139,7 +142,10 @@ export default function RiskManagementPage() {
       queryClient.invalidateQueries({ queryKey: [MANUAL_HAZARDS_COLLECTION, user?.uid] });
       toast({ title: "Hazard Deleted", description: "The hazard record has been deleted." });
     },
-    onError: (e:Error) => toast({title: "Error Deleting Hazard", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
+    onError: (e:Error) => {
+        const userFriendlyMessage = "An unexpected error occurred while deleting the hazard. Please try again.";
+        toast({title: "Error Deleting Hazard", description: userFriendlyMessage, variant: "destructive"});
+    },
   });
 
   const deleteAssessmentMutation = useMutation({
@@ -148,7 +154,10 @@ export default function RiskManagementPage() {
       queryClient.invalidateQueries({ queryKey: [MANUAL_RISK_ASSESSMENTS_COLLECTION, user?.uid] });
       toast({ title: "Assessment Deleted", description: "The risk assessment has been deleted." });
     },
-    onError: (e:Error) => toast({title: "Error Deleting Assessment", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
+    onError: (e:Error) => {
+        const userFriendlyMessage = "An unexpected error occurred while deleting the assessment. Please try again.";
+        toast({title: "Error Deleting Assessment", description: userFriendlyMessage, variant: "destructive"});
+    },
   });
 
   const deleteRiskRegisterEntryMutation = useMutation({
@@ -157,7 +166,10 @@ export default function RiskManagementPage() {
       queryClient.invalidateQueries({ queryKey: [RISK_REGISTER_ENTRIES_COLLECTION, user?.uid] });
       toast({ title: "Risk Register Entry Deleted", description: "The entry has been removed from the risk register." });
     },
-    onError: (e: Error) => toast({title: "Error Deleting Risk Entry", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
+    onError: (e: Error) => {
+        const userFriendlyMessage = "An unexpected error occurred while deleting the risk entry. Please try again.";
+        toast({title: "Error Deleting Risk Entry", description: userFriendlyMessage, variant: "destructive"});
+    },
   });
 
 
@@ -491,7 +503,6 @@ export default function RiskManagementPage() {
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-6 w-6 text-green-500" />
             Risk Treatment &amp; Control Monitoring
           </CardTitle>
           <CardDescription>
