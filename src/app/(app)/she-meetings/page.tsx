@@ -431,7 +431,7 @@ export default function SheMeetingsPage() {
       <Card>
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
-            <CardTitle className="flex items-center gap-2"><Activity className="h-6 w-6 text-primary"/>SHE Programs</CardTitle>
+            <CardTitle className="flex items-center gap-2">SHE Programs</CardTitle>
             <CardDescription>Manage ongoing and planned SHE initiatives and campaigns.</CardDescription>
           </div>
           <Button onClick={handleOpenNewProgramForm} className="bg-primary hover:bg-primary/90 text-primary-foreground">
