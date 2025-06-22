@@ -47,7 +47,7 @@ export default function NewIncidentPage() {
       toast({ title: "Incident Logged", description: "The new incident/event has been successfully recorded." });
       router.push('/risk-management');
     },
-    onError: (e: Error) => toast({ title: "Error Logging Incident", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Logging Incident", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveIncident = (data: IncidentFormValues) => {

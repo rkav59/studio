@@ -31,7 +31,7 @@ export default function NewSegPage() {
       toast({ title: "SEG Created", description: "The new Similar Exposure Group has been added." });
       router.push('/health-monitoring');
     },
-    onError: (e: Error) => toast({ title: "Error Creating SEG", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Creating SEG", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveSeg = (data: SegFormValues) => {

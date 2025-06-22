@@ -133,7 +133,7 @@ export default function ContractorSafetyPage() {
       if (!contractorToDelete) throw new Error("Contractor not found.");
 
       if (ptws.some(ptw => ptw.contractorId === contractorId)) {
-        throw new Error("Contractor is associated with PTWs. Delete PTWs first or reassign them.");
+        throw new Error("Cannot delete: Contractor is associated with existing Permits to Work.");
       }
 
       if (contractorToDelete.documents && contractorToDelete.documents.length > 0) {
@@ -149,7 +149,12 @@ export default function ContractorSafetyPage() {
       queryClient.invalidateQueries({ queryKey: [CONTRACTORS_COLLECTION, user?.uid] });
       toast({ title: "Contractor Deleted" });
     },
-    onError: (e: Error) => toast({ title: "Error Deleting Contractor", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => {
+        const userFriendlyMessage = e.message.includes("associated with existing Permits") 
+            ? e.message
+            : "An unexpected error occurred. Please try again.";
+        toast({ title: "Error Deleting Contractor", description: userFriendlyMessage, variant: "destructive" });
+    },
   });
 
   // PTW Deletion Mutation
@@ -158,7 +163,7 @@ export default function ContractorSafetyPage() {
       if (!user?.uid) throw new Error("User not authenticated.");
       // Check if PTW has supervision records
       if (ptwSupervisionRecords.some(sr => sr.ptwId === ptwId)) {
-        throw new Error("This PTW has associated supervision records. Please delete them first.");
+        throw new Error("Cannot delete: This PTW has associated supervision records. Please delete them first.");
       }
       await deleteDoc(doc(db, PTWS_COLLECTION, ptwId));
     },
@@ -166,7 +171,12 @@ export default function ContractorSafetyPage() {
       queryClient.invalidateQueries({ queryKey: [PTWS_COLLECTION, user?.uid] });
       toast({ title: "Permit Deleted" });
     },
-    onError: (e: Error) => toast({ title: "Error Deleting PTW", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => {
+        const userFriendlyMessage = e.message.includes("associated supervision records")
+            ? e.message
+            : "An unexpected error occurred. Please try again.";
+        toast({ title: "Error Deleting PTW", description: userFriendlyMessage, variant: "destructive" });
+    },
   });
 
   // Navigation Handlers
@@ -217,7 +227,7 @@ export default function ContractorSafetyPage() {
     );
   }
   if (contractorsError || ptwsError || supervisionError) {
-    return <div className="text-red-500 text-center py-10">Error loading data: {(contractorsError || ptwsError || supervisionError)?.message}</div>;
+    return <div className="text-red-500 text-center py-10">Error loading data. Please try again later.</div>;
   }
 
 

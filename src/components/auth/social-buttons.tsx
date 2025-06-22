@@ -41,23 +41,26 @@ export function SocialButtons({ isSignUp = false }: SocialButtonsProps) {
             errorMessage = "An account already exists with the same email address but different sign-in credentials. Try signing in with the original method.";
             break;
           case "auth/popup-closed-by-user":
-            errorMessage = "Sign-in popup was closed. Please try again.";
+            // This is a common, non-critical error, so we can be silent.
+            errorMessage = "";
             break;
           case "auth/cancelled-popup-request":
-             errorMessage = "Sign-in popup request was cancelled. Please try again.";
+            errorMessage = ""; // Also non-critical
             break;
           case "auth/popup-blocked":
              errorMessage = "Popup blocked by browser. Please allow popups for this site.";
              break;
           default:
-            errorMessage = error.message || "Failed to sign in with social provider.";
+            errorMessage = "Failed to sign in. Please try again later.";
         }
       }
-      toast({
-        title: "Sign In Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      if (errorMessage) {
+        toast({
+            title: "Sign In Failed",
+            description: errorMessage,
+            variant: "destructive",
+        });
+      }
     } finally {
       if (provider instanceof GoogleAuthProvider) setLoadingGoogle(false);
       if (provider instanceof FacebookAuthProvider) setLoadingFacebook(false);
@@ -101,14 +104,14 @@ export function SocialButtons({ isSignUp = false }: SocialButtonsProps) {
         variant="outline"
         className="w-full bg-blue-600 text-white hover:bg-blue-700"
         onClick={handleFacebookSignIn}
-        disabled={loadingGoogle || loadingFacebook}
+        disabled={true} // Disabling until implemented
       >
         {loadingFacebook ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : (
           <Facebook className="mr-2 h-4 w-4" />
         )}
-        {isSignUp ? "Sign up" : "Sign in"} with Facebook
+        {isSignUp ? "Sign up" : "Sign in"} with Facebook (Coming Soon)
       </Button>
     </div>
   );

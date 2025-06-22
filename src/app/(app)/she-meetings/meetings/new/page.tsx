@@ -56,7 +56,7 @@ export default function NewSheMeetingPage() {
       toast({ title: "SHE Meeting Created", description: "The new SHE meeting has been successfully logged." });
       router.push('/she-meetings');
     },
-    onError: (e: Error) => toast({ title: "Error Creating Meeting", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Creating Meeting", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveMeeting = (data: Omit<SheMeeting, 'id' | 'userId'>) => {
@@ -82,7 +82,7 @@ export default function NewSheMeetingPage() {
   }
 
   if (programsError) {
-     return <div className="text-red-500 text-center py-10">Error loading SHE programs: {programsError.message}</div>;
+     return <div className="text-red-500 text-center py-10">Error loading SHE programs. Please try again later.</div>;
   }
 
   return (

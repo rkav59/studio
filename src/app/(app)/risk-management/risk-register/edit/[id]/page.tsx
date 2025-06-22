@@ -88,7 +88,7 @@ export default function EditRiskRegisterEntryPage() {
       toast({ title: "Risk Entry Updated", description: `Risk "${variables.riskTitle}" has been updated.` });
       router.push('/risk-management');
     },
-    onError: (e: Error) => toast({ title: "Error Updating Risk Entry", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Updating Risk Entry", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveEntry = (formData: RiskRegisterEntryFormValues) => {
@@ -130,7 +130,7 @@ export default function EditRiskRegisterEntryPage() {
         <Button variant="outline" onClick={handleCancel}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
         <Card>
           <CardHeader><CardTitle>Error Loading Data</CardTitle></CardHeader>
-          <CardContent><p>{entryError?.message || sheqAuditsError?.message || "The risk entry or SHEQ audit data could not be found or you don't have permission to edit it."}</p></CardContent>
+          <CardContent><p>The risk entry or SHEQ audit data could not be found, or an error occurred.</p></CardContent>
         </Card>
       </div>
     );

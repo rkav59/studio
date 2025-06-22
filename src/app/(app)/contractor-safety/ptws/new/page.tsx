@@ -54,7 +54,7 @@ export default function NewPtwPage() {
       toast({ title: "Permit Created", description: "The new Permit to Work has been successfully created." });
       router.push('/contractor-safety');
     },
-    onError: (e: Error) => toast({ title: "Error Creating PTW", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Creating PTW", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSavePtw = (data: Omit<PermitToWork, 'id' | 'userId'>) => {
@@ -80,7 +80,7 @@ export default function NewPtwPage() {
   }
 
   if (contractorsError) {
-     return <div className="text-red-500 text-center py-10">Error loading contractors: {contractorsError.message}</div>;
+     return <div className="text-red-500 text-center py-10">Error loading contractors. Please try again later.</div>;
   }
   
   if (contractors.length === 0 && !isLoadingContractors) {
@@ -127,5 +127,3 @@ export default function NewPtwPage() {
     </div>
   );
 }
-
-    

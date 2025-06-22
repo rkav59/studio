@@ -38,7 +38,7 @@ export default function NewEmergencyResourcePage() {
       toast({ title: "Emergency Resource Added", description: "The new resource has been successfully added to inventory." });
       router.push('/emergency-preparedness');
     },
-    onError: (e: Error) => toast({ title: "Error Adding Resource", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Adding Resource", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveResource = (data: Omit<EmergencyResource, 'id' | 'userId'>) => {

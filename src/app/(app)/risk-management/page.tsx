@@ -70,7 +70,7 @@ export default function RiskManagementPage() {
       queryClient.invalidateQueries({ queryKey: [INCIDENTS_COLLECTION, user?.uid] });
       toast({ title: "Incident Deleted", description: "The incident record has been deleted." });
     },
-    onError: (e:Error) => toast({title: "Error Deleting Incident", description: e.message, variant: "destructive"}),
+    onError: (e:Error) => toast({title: "Error Deleting Incident", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
   });
 
 
@@ -139,7 +139,7 @@ export default function RiskManagementPage() {
       queryClient.invalidateQueries({ queryKey: [MANUAL_HAZARDS_COLLECTION, user?.uid] });
       toast({ title: "Hazard Deleted", description: "The hazard record has been deleted." });
     },
-    onError: (e:Error) => toast({title: "Error Deleting Hazard", description: e.message, variant: "destructive"}),
+    onError: (e:Error) => toast({title: "Error Deleting Hazard", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
   });
 
   const deleteAssessmentMutation = useMutation({
@@ -148,7 +148,7 @@ export default function RiskManagementPage() {
       queryClient.invalidateQueries({ queryKey: [MANUAL_RISK_ASSESSMENTS_COLLECTION, user?.uid] });
       toast({ title: "Assessment Deleted", description: "The risk assessment has been deleted." });
     },
-    onError: (e:Error) => toast({title: "Error Deleting Assessment", description: e.message, variant: "destructive"}),
+    onError: (e:Error) => toast({title: "Error Deleting Assessment", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
   });
 
   const deleteRiskRegisterEntryMutation = useMutation({
@@ -157,7 +157,7 @@ export default function RiskManagementPage() {
       queryClient.invalidateQueries({ queryKey: [RISK_REGISTER_ENTRIES_COLLECTION, user?.uid] });
       toast({ title: "Risk Register Entry Deleted", description: "The entry has been removed from the risk register." });
     },
-    onError: (e: Error) => toast({title: "Error Deleting Risk Entry", description: e.message, variant: "destructive"}),
+    onError: (e: Error) => toast({title: "Error Deleting Risk Entry", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
   });
 
 
@@ -338,7 +338,7 @@ export default function RiskManagementPage() {
     );
   }
   if (hazardsError || assessmentsError || riskRegisterError || incidentsError) {
-    return <div className="text-red-500 text-center py-10">Error loading data: ${(hazardsError || assessmentsError || riskRegisterError || incidentsError)?.message}</div>;
+    return <div className="text-red-500 text-center py-10">Error loading data. Please try again later.</div>;
   }
 
 

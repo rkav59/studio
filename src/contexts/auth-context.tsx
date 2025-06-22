@@ -1,3 +1,6 @@
+
+"use client"; // Add this directive
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
   getAuth,
@@ -12,9 +15,9 @@ import {
 import { auth } from '../lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
-interface AuthContextProps {
+interface AuthContextType { // Renamed for clarity
   user: User | null;
-  isLoading: boolean;
+  isAuthenticating: boolean; // Changed from isLoading to be more specific
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOutUser: () => Promise<void>;
@@ -22,7 +25,7 @@ interface AuthContextProps {
   resetPassword: (email: string) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -38,13 +41,13 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(true); // Start as true
   const { toast } = useToast();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      setIsLoading(false);
+      setIsAuthenticating(false);
     });
 
     return () => unsubscribe();
@@ -56,18 +59,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const user = userCredential.user;
 
       await updateProfile(user, { displayName });
-      setUser({ ...user, displayName });
+      setUser({ ...user, displayName }); // Update local state immediately
       toast({
         title: 'Success',
         description: 'Account created successfully.',
       });
     } catch (error: any) {
-      console.error("Signup failed:", error.message);
+      console.error("Signup failed:", error);
+      const userFriendlyMessage = error.code === 'auth/email-already-in-use'
+        ? "This email address is already registered. Please sign in or use a different email."
+        : "An unexpected error occurred during sign up. Please try again.";
       toast({
-        title: 'Error',
-        description: error.message,
+        title: 'Sign Up Failed',
+        description: userFriendlyMessage,
         variant: 'destructive',
       });
+      throw error; // Re-throw for form to handle
     }
   };
 
@@ -80,49 +87,46 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         description: 'Signed in successfully.',
       });
     } catch (error: any) {
-      console.error("Signin failed:", error.message);
+       console.error("Signin failed:", error);
+       const userFriendlyMessage = (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential')
+        ? "Invalid email or password. Please try again."
+        : "An unexpected error occurred during sign in. Please try again.";
       toast({
-        title: 'Error',
-        description: error.message,
+        title: 'Sign In Failed',
+        description: userFriendlyMessage,
         variant: 'destructive',
       });
+      throw error; // Re-throw for form to handle
     }
   };
 
   const signOutUser = async () => {
     try {
       await signOut(auth);
-      toast({
-        title: 'Success',
-        description: 'Signed out successfully.',
-      });
+      // No toast needed here as the user is redirected immediately
     } catch (error: any) {
-      console.error("Signout failed:", error.message);
+      console.error("Signout failed:", error);
       toast({
         title: 'Error',
-        description: error.message,
+        description: "Failed to sign out. Please try again.",
         variant: 'destructive',
       });
     }
   };
 
   const updateUserDisplayName = async (displayName: string) => {
-    if (!user) {
-      console.error("No user is currently signed in.");
+    if (!auth.currentUser) {
+      toast({ title: "Not Authenticated", description: "You must be signed in to update your profile.", variant: "destructive" });
       return;
     }
     try {
-      await updateProfile(user, { displayName: displayName });
-      setUser({ ...user, displayName: displayName });
-      toast({
-        title: 'Success',
-        description: 'Display name updated successfully.',
-      });
+      await updateProfile(auth.currentUser, { displayName: displayName });
+      setUser({ ...auth.currentUser, displayName: displayName }); // Update local state
     } catch (error: any) {
-      console.error("Failed to update display name:", error.message);
+      console.error("Failed to update display name:", error);
       toast({
         title: 'Error',
-        description: error.message,
+        description: "Failed to update display name. Please try again.",
         variant: 'destructive',
       });
     }
@@ -132,22 +136,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       await sendPasswordResetEmail(auth, email);
       toast({
-        title: 'Success',
-        description: 'Password reset email sent successfully. Please check your inbox.',
+        title: 'Password Reset Email Sent',
+        description: 'Please check your inbox for password reset instructions.',
       });
     } catch (error: any) {
-      console.error("Failed to send password reset email:", error.message);
+      console.error("Failed to send password reset email:", error);
+      const userFriendlyMessage = error.code === 'auth/user-not-found'
+        ? "No account found with this email address."
+        : "Failed to send password reset email. Please try again.";
       toast({
         title: 'Error',
-        description: error.message,
+        description: userFriendlyMessage,
         variant: 'destructive',
       });
+      throw error; // Re-throw for form to handle
     }
   };
 
-  const value: AuthContextProps = {
+  const value: AuthContextType = {
     user,
-    isLoading,
+    isAuthenticating,
     signUp,
     signIn,
     signOutUser,

@@ -71,7 +71,7 @@ export default function NewContractorPage() {
       toast({ title: "Contractor Added", description: "The new contractor has been successfully registered." });
       router.push('/contractor-safety');
     },
-    onError: (e: Error) => toast({ title: "Error Adding Contractor", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Adding Contractor", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveContractor = (data: ContractorFormDataWithFiles) => {
@@ -100,5 +100,3 @@ export default function NewContractorPage() {
     </div>
   );
 }
-
-    

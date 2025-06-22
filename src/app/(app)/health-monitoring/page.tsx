@@ -113,33 +113,38 @@ export default function HealthMonitoringPage() {
     mutationFn: async (id: string) => {
       if (!user?.uid) throw new Error("User not authenticated.");
       if (ihSamples.some(s => s.segId === id) || medicalTests.some(t => t.segId === id)) {
-        throw new Error("SEG linked to IH samples or medical tests. Reassign or delete them first.");
+        throw new Error("Cannot delete: This SEG is linked to existing IH samples or medical tests.");
       }
       await deleteDoc(doc(db, SEGS_COLLECTION, id));
     },
     onSuccess: () => { queryClient.invalidateQueries({queryKey: [SEGS_COLLECTION, user?.uid]}); toast({title:"SEG Deleted"}); },
-    onError: (e:Error) => toast({title:"Error Deleting SEG", description: e.message, variant:"destructive", duration: 7000}),
+    onError: (e:Error) => {
+        const userFriendlyMessage = e.message.includes("linked to existing") 
+            ? e.message
+            : "An unexpected error occurred. Please try again.";
+        toast({title:"Error Deleting SEG", description: userFriendlyMessage, variant:"destructive", duration: 7000});
+    },
   });
 
   // IH Sample Deletion Mutation (remains here)
   const deleteIhSampleMutation = useMutation({
     mutationFn: (id: string) => deleteDoc(doc(db, IH_SAMPLES_COLLECTION, id)),
     onSuccess: () => { queryClient.invalidateQueries({queryKey: [IH_SAMPLES_COLLECTION, user?.uid]}); toast({title:"IH Sample Deleted"}); },
-    onError: (e:Error) => toast({title:"Error Deleting IH Sample", description: e.message, variant:"destructive"}),
+    onError: (e:Error) => toast({title:"Error Deleting IH Sample", description: "An unexpected error occurred. Please try again.", variant:"destructive"}),
   });
 
   // Medical Test Deletion Mutation (remains here)
   const deleteMedicalTestMutation = useMutation({
     mutationFn: (id: string) => deleteDoc(doc(db, MEDICAL_TESTS_COLLECTION, id)),
     onSuccess: () => { queryClient.invalidateQueries({queryKey: [MEDICAL_TESTS_COLLECTION, user?.uid]}); toast({title:"Medical Test Deleted"});},
-    onError: (e:Error) => toast({title:"Error Deleting Medical Test", description: e.message, variant:"destructive"}),
+    onError: (e:Error) => toast({title:"Error Deleting Medical Test", description: "An unexpected error occurred. Please try again.", variant:"destructive"}),
   });
 
   // Wellness Program Deletion Mutation (remains here)
   const deleteWellnessProgramMutation = useMutation({
     mutationFn: (id: string) => deleteDoc(doc(db, WELLNESS_PROGRAMS_COLLECTION, id)),
     onSuccess: () => { queryClient.invalidateQueries({queryKey: [WELLNESS_PROGRAMS_COLLECTION, user?.uid]}); toast({title:"Wellness Program Deleted"});},
-    onError: (e:Error) => toast({title:"Error Deleting Wellness Program", description: e.message, variant:"destructive"}),
+    onError: (e:Error) => toast({title:"Error Deleting Wellness Program", description: "An unexpected error occurred. Please try again.", variant:"destructive"}),
   });
 
   // Navigation Handlers
@@ -198,7 +203,7 @@ export default function HealthMonitoringPage() {
   const anyError = segsError || ihSamplesError || medicalTestsError || wellnessProgramsError;
 
   if (isLoading) return (<div className="flex justify-center items-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" /><p className="ml-3 text-lg text-muted-foreground">Loading health data...</p></div>);
-  if (anyError) return <div className="text-red-500 text-center py-10">Error loading data: {anyError.message}</div>;
+  if (anyError) return <div className="text-red-500 text-center py-10">Error loading data. Please try again later.</div>;
 
   return (
     <div className="space-y-8">

@@ -95,7 +95,7 @@ export default function UserProfilePage() {
       toast({ title: "Success", description: successMessage });
     },
     onError: (error: Error) => {
-      toast({ title: "Update Failed", description: error.message, variant: "destructive" });
+      toast({ title: "Update Failed", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
     },
   });
 
@@ -116,7 +116,7 @@ export default function UserProfilePage() {
   }
 
   if (profileError) {
-    return <div className="text-red-500">Error loading profile: {profileError.message}</div>;
+    return <div className="text-red-500">Error loading profile. Please try again later.</div>;
   }
 
   if (!user || !userProfile) {

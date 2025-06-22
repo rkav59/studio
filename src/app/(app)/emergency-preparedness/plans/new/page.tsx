@@ -38,7 +38,7 @@ export default function NewEmergencyPlanPage() {
       toast({ title: "Emergency Plan Created", description: "The new emergency plan has been successfully added." });
       router.push('/emergency-preparedness');
     },
-    onError: (e: Error) => toast({ title: "Error Creating Plan", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Creating Plan", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSavePlan = (data: Omit<EmergencyPlan, 'id' | 'userId'>) => {

@@ -85,7 +85,7 @@ export default function EditPtwPage() {
     onError: (error: Error) => {
       toast({ 
         title: "Error Updating PTW", 
-        description: error.message, 
+        description: "An unexpected error occurred. Please try again.", 
         variant: "destructive" 
       });
     },
@@ -119,7 +119,7 @@ export default function EditPtwPage() {
         <Button variant="outline" onClick={handleCancel}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
         <Card>
           <CardHeader><CardTitle>Permit to Work Not Found</CardTitle></CardHeader>
-          <CardContent><p>{contractorsError?.message || ptwFetchError?.message || "The PTW could not be found or you don't have permission to edit it."}</p></CardContent>
+          <CardContent><p>The PTW could not be found or you don't have permission to edit it.</p></CardContent>
         </Card>
       </div>
     );
@@ -154,5 +154,3 @@ export default function EditPtwPage() {
     </div>
   );
 }
-
-    

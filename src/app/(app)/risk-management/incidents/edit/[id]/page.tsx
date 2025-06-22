@@ -75,7 +75,7 @@ export default function EditIncidentPage() {
       toast({ title: "Incident Updated", description: `Incident record has been updated.` });
       router.push('/risk-management');
     },
-    onError: (e: Error) => toast({ title: "Error Updating Incident", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Updating Incident", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveIncident = (formData: IncidentFormValues) => {
@@ -106,7 +106,7 @@ export default function EditIncidentPage() {
         <Button variant="outline" onClick={handleCancel}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
         <Card>
           <CardHeader><CardTitle>Incident Not Found</CardTitle></CardHeader>
-          <CardContent><p>{incidentError?.message || "The incident could not be found or you don't have permission to edit it."}</p></CardContent>
+          <CardContent><p>The incident could not be found or you don't have permission to edit it.</p></CardContent>
         </Card>
       </div>
     );

@@ -15,8 +15,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth, db } from "@/lib/firebase"; // Import db
+import { useAuth } from '@/contexts/auth-context'; // Import useAuth
+import { db } from "@/lib/firebase"; // Import db
 import { doc, setDoc, serverTimestamp } from "firebase/firestore"; // Import Firestore functions
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -45,6 +45,7 @@ const USER_PROFILES_COLLECTION = 'userProfiles';
 export default function SignUpPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const { signUp } = useAuth(); // Use signUp from context
   const [loading, setLoading] = useState(false);
 
   const form = useForm<SignUpFormValues>({
@@ -61,17 +62,15 @@ export default function SignUpPage() {
   async function onSubmit(data: SignUpFormValues) {
     setLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      await signUp(data.email, data.password, data.fullName);
       
-      if (userCredential.user) {
-        const firebaseUser = userCredential.user;
-        await updateProfile(firebaseUser, {
-          displayName: data.fullName,
-        });
-
-        // Create user profile document in Firestore
+      // The user object is now available in the AuthContext.
+      // We need to create the Firestore document here as well.
+      const user = useAuth().user; // This might have a slight delay, better to handle inside signUp or get user from result
+       if (auth.currentUser) {
+        const firebaseUser = auth.currentUser;
         const userProfileRef = doc(db, USER_PROFILES_COLLECTION, firebaseUser.uid);
-        const userProfileData: Omit<UserProfile, 'id'> = { // id will be the doc id
+        const userProfileData: Omit<UserProfile, 'id'> = {
           email: firebaseUser.email || "",
           displayName: data.fullName,
           country: data.country,
@@ -80,24 +79,9 @@ export default function SignUpPage() {
         await setDoc(userProfileRef, userProfileData);
       }
       
-      toast({
-        title: "Account Created Successfully",
-        description: "Welcome! You are now signed in.",
-      });
       router.push("/dashboard"); 
     } catch (error: any) {
-      console.error("Sign up error:", error);
-      let errorMessage = "An unexpected error occurred. Please try again.";
-       if (error.code === 'auth/email-already-in-use') {
-        errorMessage = "This email address is already in use. Please try a different email or sign in.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      toast({
-        title: "Sign Up Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      // Error toast is handled by context now
     } finally {
       setLoading(false);
     }

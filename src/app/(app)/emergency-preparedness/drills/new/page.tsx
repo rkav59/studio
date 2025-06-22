@@ -55,7 +55,7 @@ export default function NewMockDrillPage() {
       toast({ title: "Mock Drill Scheduled/Logged", description: "The new mock drill has been successfully added." });
       router.push('/emergency-preparedness');
     },
-    onError: (e: Error) => toast({ title: "Error Logging Drill", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Logging Drill", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveDrill = (data: Omit<MockDrill, 'id' | 'userId'>) => {
@@ -83,7 +83,7 @@ export default function NewMockDrillPage() {
   }
 
   if (plansError) {
-     return <div className="text-red-500 text-center py-10">Error loading emergency plans: {plansError.message}</div>;
+     return <div className="text-red-500 text-center py-10">Error loading emergency plans. Please try again later.</div>;
   }
   
   if (plans.length === 0 && !isLoadingPlans) {

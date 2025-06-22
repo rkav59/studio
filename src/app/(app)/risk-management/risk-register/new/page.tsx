@@ -60,7 +60,7 @@ export default function NewRiskRegisterEntryPage() {
       toast({ title: "Risk Entry Created", description: "The new risk has been added to the register." });
       router.push('/risk-management');
     },
-    onError: (e: Error) => toast({ title: "Error Creating Risk Entry", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Creating Risk Entry", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveEntry = (data: RiskRegisterEntryFormValues) => {
@@ -86,7 +86,7 @@ export default function NewRiskRegisterEntryPage() {
   }
 
   if (sheqAuditsError) {
-     return <div className="text-red-500 text-center py-10">Error loading SHEQ Audits: {sheqAuditsError.message}</div>;
+     return <div className="text-red-500 text-center py-10">Error loading SHEQ Audits. Please try again later.</div>;
   }
 
   return (

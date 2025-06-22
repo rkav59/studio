@@ -40,7 +40,7 @@ export default function NewPpeItemPage() {
     onError: (error: Error) => {
       toast({ 
         title: "Error Adding Item", 
-        description: error.message, 
+        description: "An unexpected error occurred. Please try again.", 
         variant: "destructive" 
       });
     },

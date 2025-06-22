@@ -38,7 +38,7 @@ export default function NewWellnessProgramPage() {
       toast({ title: "Wellness Program Added", description: "The new Wellness Program has been added." });
       router.push('/health-monitoring');
     },
-    onError: (e: Error) => toast({ title: "Error Adding Wellness Program", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Adding Wellness Program", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveWellnessProgram = (data: WellnessProgramFormValues) => {

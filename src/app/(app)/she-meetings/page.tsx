@@ -80,7 +80,7 @@ export default function SheMeetingsPage() {
     mutationFn: async (programId: string) => {
       if (!user?.uid) throw new Error("User not authenticated.");
       if (meetings.some(meeting => meeting.linkedProgramId === programId)) {
-        throw new Error("This program is linked to meetings. Please unlink or delete them first.");
+        throw new Error("Cannot delete: This program is linked to existing meetings.");
       }
       await deleteDoc(doc(db, PROGRAMS_COLLECTION, programId));
     },
@@ -88,7 +88,12 @@ export default function SheMeetingsPage() {
       queryClient.invalidateQueries({ queryKey: [PROGRAMS_COLLECTION, user?.uid] });
       toast({ title: "Program Deleted" });
     },
-    onError: (e: Error) => toast({ title: "Error Deleting Program", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => {
+        const userFriendlyMessage = e.message.includes("linked to existing meetings")
+            ? e.message
+            : "An unexpected error occurred. Please try again.";
+        toast({ title: "Error Deleting Program", description: userFriendlyMessage, variant: "destructive" });
+    },
   });
 
   const deleteMeetingMutation = useMutation({
@@ -97,7 +102,7 @@ export default function SheMeetingsPage() {
       queryClient.invalidateQueries({ queryKey: [MEETINGS_COLLECTION, user?.uid] });
       toast({ title: "Meeting Deleted" });
     },
-    onError: (e: Error) => toast({ title: "Error Deleting Meeting", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Deleting Meeting", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleOpenNewProgramForm = () => router.push('/she-meetings/programs/new');
@@ -326,7 +331,7 @@ export default function SheMeetingsPage() {
     );
   }
   if (anyError) {
-    return <div className="text-red-500 text-center py-10">Error loading data: {anyError.message}</div>;
+    return <div className="text-red-500 text-center py-10">Error loading data. Please try again later.</div>;
   }
 
   return (

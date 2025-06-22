@@ -63,7 +63,7 @@ export default function ChecklistTemplatesPage() {
       setTemplateToCopy(null);
     },
     onError: (error: Error) => {
-      toast({ title: "Error Creating Template", description: error.message, variant: "destructive" });
+      toast({ title: "Error Creating Template", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
     },
   });
 
@@ -83,7 +83,7 @@ export default function ChecklistTemplatesPage() {
       setTemplateToCopy(null);
     },
     onError: (error: Error) => {
-      toast({ title: "Error Updating Template", description: error.message, variant: "destructive" });
+      toast({ title: "Error Updating Template", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
     },
   });
 
@@ -99,7 +99,7 @@ export default function ChecklistTemplatesPage() {
       toast({ title: "Template Deleted", description: "The custom checklist template has been deleted." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error Deleting Template", description: error.message, variant: "destructive" });
+      toast({ title: "Error Deleting Template", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
     },
   });
 
@@ -181,7 +181,7 @@ export default function ChecklistTemplatesPage() {
   if (templatesError) {
     return (
       <div className="text-red-500 text-center py-8">
-        Error loading templates: {templatesError.message}
+        Error loading templates. Please try again later.
       </div>
     );
   }

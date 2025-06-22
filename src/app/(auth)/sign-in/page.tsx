@@ -15,8 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { useAuth } from '@/contexts/auth-context'; // Import useAuth
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
@@ -34,6 +33,7 @@ type SignInFormValues = z.infer<typeof signInFormSchema>;
 export default function SignInPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const { signIn, resetPassword } = useAuth(); // Use signIn from context
   const [loading, setLoading] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
@@ -50,19 +50,11 @@ export default function SignInPage() {
   async function onSubmit(data: SignInFormValues) {
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, data.email, data.password);
-      toast({
-        title: "Signed In Successfully",
-        description: "Welcome back!",
-      });
+      await signIn(data.email, data.password);
+      // No success toast here, context handles it.
       router.push("/dashboard"); // Redirect to dashboard after successful login
     } catch (error: any) {
-      console.error("Sign in error:", error);
-      toast({
-        title: "Sign In Failed",
-        description: error.message || "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
+      // Error toast is handled by the context now.
     } finally {
       setLoading(false);
     }
@@ -75,10 +67,10 @@ export default function SignInPage() {
     }
     setResetLoading(true);
     try {
-      await sendPasswordResetEmail(auth, resetEmail);
-      toast({ title: "Password Reset Email Sent", description: "Check your inbox for password reset instructions." });
-    } catch (error: any) {
-      toast({ title: "Error Sending Reset Email", description: error.message, variant: "destructive" });
+      await resetPassword(resetEmail);
+      // Success toast handled by context
+    } catch (error) {
+      // Error toast handled by context
     } finally {
       setResetLoading(false);
     }

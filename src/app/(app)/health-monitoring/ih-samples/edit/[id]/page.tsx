@@ -75,7 +75,7 @@ export default function EditIhSamplePage() {
       toast({ title: "IH Sample Updated", description: `Sample for "${variables.agent}" has been updated.` });
       router.push('/health-monitoring');
     },
-    onError: (e: Error) => toast({ title: "Error Updating IH Sample", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Updating IH Sample", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveIhSample = (formData: IhSampleFormValues) => {
@@ -112,7 +112,7 @@ export default function EditIhSamplePage() {
         <Button variant="outline" onClick={handleCancel}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
         <Card>
           <CardHeader><CardTitle>IH Sample Not Found</CardTitle></CardHeader>
-          <CardContent><p>{segsError?.message || sampleError?.message || "The IH Sample could not be found or you don't have permission to edit it."}</p></CardContent>
+          <CardContent><p>The IH Sample could not be found or you don't have permission to edit it.</p></CardContent>
         </Card>
       </div>
     );

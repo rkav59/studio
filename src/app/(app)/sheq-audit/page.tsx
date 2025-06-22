@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { AuditScheduler } from '@/components/sheq-audit/audit-scheduler';
 import { AuditExecutionForm } from '@/components/sheq-audit/audit-execution-form';
-import type { SheqAudit, AuditChecklistItem, ChecklistItemTemplate, NonConformance, AnalyzeAuditDataInput, AnalyzeAuditDataOutput, ChecklistTemplate, AuditObservationEntry } from '@/lib/types';
+import type { SheqAudit, AuditChecklistItem, ChecklistItemTemplate, NonConformance, AnalyzeAuditDataInput, AnalyzeAuditDataOutput, ChecklistTemplate, AuditObservationEntry } from "@/lib/types";
 import { defaultChecklistTemplates } from '@/lib/checklist-templates';
 import { Separator } from '@/components/ui/separator';
 import { format, isValid, parseISO } from 'date-fns';
@@ -145,7 +145,7 @@ export default function SheqAuditPage() {
       toast({ title: "Audit Scheduled", description: "The new audit has been added to the program." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error Scheduling Audit", description: error.message, variant: "destructive" });
+      toast({ title: "Error Scheduling Audit", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
     },
   });
 
@@ -185,7 +185,7 @@ export default function SheqAuditPage() {
         }
     },
     onError: (error: Error) => {
-      toast({ title: "Error Updating Audit", description: error.message, variant: "destructive" });
+      toast({ title: "Error Updating Audit", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
     },
   });
 
@@ -440,7 +440,7 @@ export default function SheqAuditPage() {
   }
 
   if (auditsError || userTemplatesError) {
-    return <div className="text-red-500 text-center py-10">Error loading data: ${(auditsError || userTemplatesError)?.message}</div>;
+    return <div className="text-red-500 text-center py-10">Error loading data. Please try again later.</div>;
   }
 
   return (
@@ -709,7 +709,7 @@ export default function SheqAuditPage() {
               )}
                <Alert variant="info" className="mt-4 text-xs">
                 <BrainCircuit className="h-4 w-4" />
-                <AlertTitle>Note on AI Insights</AlertTitle>
+                <UIAlertTitle>Note on AI Insights</UIAlertTitle>
                 <UIAlertDescription>
                   These insights are AI-generated based on a summary of audit data from Firestore.
                   Always use professional judgment when interpreting AI-generated information.

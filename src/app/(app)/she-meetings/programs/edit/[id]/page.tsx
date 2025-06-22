@@ -65,7 +65,7 @@ export default function EditSheProgramPage() {
       toast({ title: "Program Updated", description: `SHE Program "${variables.programName}" has been updated.` });
       router.push('/she-meetings');
     },
-    onError: (e: Error) => toast({ title: "Error Updating Program", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Updating Program", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveProgram = (formData: Omit<SheProgram, 'id' | 'userId'>) => {
@@ -101,7 +101,7 @@ export default function EditSheProgramPage() {
         <Button variant="outline" onClick={handleCancel}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
         <Card>
           <CardHeader><CardTitle>SHE Program Not Found</CardTitle></CardHeader>
-          <CardContent><p>{programError ? programError.message : "The program could not be found or you don't have permission to edit it."}</p></CardContent>
+          <CardContent><p>The program could not be found or you don't have permission to edit it.</p></CardContent>
         </Card>
       </div>
     );

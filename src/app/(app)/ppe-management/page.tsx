@@ -114,7 +114,7 @@ export default function PpeManagementPage() {
       if (ppeIssuances.some(issuance => issuance.ppeItemId === itemId) || 
           ppeInspections.some(insp => insp.ppeItemId === itemId) ||
           ppeJobRoleMatrix.some(matrix => matrix.requiredPpeItemIds.includes(itemId)) ) {
-        throw new Error("This PPE item is linked to issuance, inspection, or job role matrix records.");
+        throw new Error("Cannot delete: This PPE item is linked to existing issuance, inspection, or job role matrix records.");
       }
       await deleteDoc(doc(db, PPE_ITEMS_COLLECTION, itemId));
     },
@@ -122,7 +122,12 @@ export default function PpeManagementPage() {
       queryClient.invalidateQueries({ queryKey: [PPE_ITEMS_COLLECTION, user?.uid] });
       toast({ title: "PPE Item Deleted" });
     },
-    onError: (e: Error) => toast({ title: "Error Deleting PPE Item", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => {
+        const userFriendlyMessage = e.message.includes("linked to existing") 
+            ? e.message
+            : "An unexpected error occurred. Please try again.";
+        toast({ title: "Error Deleting PPE Item", description: userFriendlyMessage, variant: "destructive" });
+    },
   });
 
   const deletePpeIssuanceMutation = useMutation({
@@ -131,7 +136,7 @@ export default function PpeManagementPage() {
       queryClient.invalidateQueries({ queryKey: [PPE_ISSUANCES_COLLECTION, user?.uid] });
       toast({ title: "PPE Issuance Record Deleted" });
     },
-    onError: (e: Error) => toast({ title: "Error Deleting Issuance", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Deleting Issuance", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const deletePpeInspectionMutation = useMutation({
@@ -140,7 +145,7 @@ export default function PpeManagementPage() {
       queryClient.invalidateQueries({ queryKey: [PPE_INSPECTIONS_COLLECTION, user?.uid] });
       toast({ title: "PPE Inspection Record Deleted" });
     },
-    onError: (e: Error) => toast({ title: "Error Deleting Inspection", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Deleting Inspection", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
   
   const addJobRoleEntryMutation = useMutation({
@@ -153,7 +158,7 @@ export default function PpeManagementPage() {
       toast({ title: "Job Role PPE Defined" });
       setIsJobRoleFormOpen(false); setEditingJobRoleEntry(null);
     },
-    onError: (e:Error) => toast({title: "Error Defining Job Role PPE", description: e.message, variant: "destructive"}),
+    onError: (e:Error) => toast({title: "Error Defining Job Role PPE", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
   });
 
   const updateJobRoleEntryMutation = useMutation({
@@ -167,7 +172,7 @@ export default function PpeManagementPage() {
       toast({ title: "Job Role Matrix Updated", description: `Requirements for "${vars.jobRole}" updated.` });
       setIsJobRoleFormOpen(false); setEditingJobRoleEntry(null);
     },
-    onError: (e:Error) => toast({title: "Error Updating Job Role Matrix", description: e.message, variant: "destructive"}),
+    onError: (e:Error) => toast({title: "Error Updating Job Role Matrix", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
   });
   
   const deleteJobRoleEntryMutation = useMutation({
@@ -176,7 +181,7 @@ export default function PpeManagementPage() {
       queryClient.invalidateQueries({ queryKey: [PPE_JOB_ROLE_MATRIX_COLLECTION, user?.uid] });
       toast({ title: "Job Role Matrix Entry Deleted" });
     },
-    onError: (e:Error) => toast({title: "Error Deleting Job Role Entry", description: e.message, variant: "destructive"}),
+    onError: (e:Error) => toast({title: "Error Deleting Job Role Entry", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
   });
 
 
@@ -326,7 +331,7 @@ export default function PpeManagementPage() {
   }
 
   if (anyError) {
-    return <div className="text-red-500 text-center py-10">Error loading PPE data: {anyError.message}</div>;
+    return <div className="text-red-500 text-center py-10">Error loading PPE data. Please try again later.</div>;
   }
 
   return (

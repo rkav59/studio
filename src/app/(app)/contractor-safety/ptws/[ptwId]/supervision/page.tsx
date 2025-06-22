@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -86,7 +86,7 @@ export default function PtwSupervisionListPage() {
       queryClient.invalidateQueries({ queryKey: [PTW_SUPERVISION_RECORDS_COLLECTION, ptwId, user?.uid] });
       toast({ title: "Supervision Record Deleted" });
     },
-    onError: (e: Error) => toast({ title: "Error Deleting Record", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Deleting Record", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleNavigateBack = () => router.push('/contractor-safety');
@@ -125,7 +125,7 @@ export default function PtwSupervisionListPage() {
         <Button variant="outline" onClick={handleNavigateBack}><ArrowLeft className="mr-2 h-4 w-4" />Back to Contractor Safety</Button>
         <Card>
           <CardHeader><CardTitle>Error</CardTitle></CardHeader>
-          <CardContent><p>{ptwError?.message || supervisionError?.message || "PTW not found or an error occurred."}</p></CardContent>
+          <CardContent><p>PTW not found or an error occurred while loading data.</p></CardContent>
         </Card>
       </div>
     );
@@ -177,7 +177,7 @@ export default function PtwSupervisionListPage() {
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm" disabled={deleteSupervisionMutation.isPending}>
+                            <Button variant="destructive" size="sm" disabled={deleteSupervisionMutation.isPending && deleteSupervisionMutation.variables === record.id}>
                               {deleteSupervisionMutation.isPending && deleteSupervisionMutation.variables === record.id ? <Loader2 className="h-3 w-3 animate-spin mr-1"/> : <Trash2 className="mr-1 h-3 w-3" />} Delete
                             </Button>
                           </AlertDialogTrigger>
@@ -207,5 +207,3 @@ export default function PtwSupervisionListPage() {
 }
 // Placeholder for contractors if not passed directly - adjust as needed for actual data fetching for PTW's contractor name
 const contractors: Array<{ id: string, companyName: string }> = [];
-
-```

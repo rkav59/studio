@@ -68,7 +68,7 @@ export default function EditPpeItemPage() {
     onError: (error: Error) => {
       toast({ 
         title: "Error Updating Item", 
-        description: error.message, 
+        description: "An unexpected error occurred. Please try again.", 
         variant: "destructive" 
       });
     },
@@ -112,7 +112,7 @@ export default function EditPpeItemPage() {
       <div className="h-full flex items-center justify-center">
         <Card className="w-full max-w-md shadow-lg">
           <CardHeader><CardTitle>PPE Item Not Found</CardTitle></CardHeader>
-          <CardContent><p>{error ? error.message : "The PPE item could not be found or you don't have permission to edit it."}</p><Button onClick={() => router.push('/ppe-management')} className="mt-4">Back to PPE Management</Button></CardContent>
+          <CardContent><p>The PPE item could not be found or you don't have permission to edit it.</p><Button onClick={() => router.push('/ppe-management')} className="mt-4">Back to PPE Management</Button></CardContent>
         </Card>
       </div>
     );

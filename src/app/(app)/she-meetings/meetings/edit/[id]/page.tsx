@@ -85,7 +85,7 @@ export default function EditSheMeetingPage() {
       toast({ title: "Meeting Updated", description: `SHE Meeting "${variables.title}" has been updated.` });
       router.push('/she-meetings');
     },
-    onError: (e: Error) => toast({ title: "Error Updating Meeting", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Updating Meeting", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveMeeting = (formData: Omit<SheMeeting, 'id' | 'userId'>) => {
@@ -121,7 +121,7 @@ export default function EditSheMeetingPage() {
         <Button variant="outline" onClick={handleCancel}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
         <Card>
           <CardHeader><CardTitle>SHE Meeting Not Found</CardTitle></CardHeader>
-          <CardContent><p>{programsError?.message || meetingError?.message || "The meeting could not be found or you don't have permission to edit it."}</p></CardContent>
+          <CardContent><p>The meeting could not be found or you don't have permission to edit it.</p></CardContent>
         </Card>
       </div>
     );

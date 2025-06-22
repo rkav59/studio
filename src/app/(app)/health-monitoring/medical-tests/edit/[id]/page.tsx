@@ -77,7 +77,7 @@ export default function EditMedicalTestPage() {
       toast({ title: "Medical Test Updated", description: `Record for "${variables.employeeName}" has been updated.` });
       router.push('/health-monitoring');
     },
-    onError: (e: Error) => toast({ title: "Error Updating Medical Test", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Updating Medical Test", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveMedicalTest = (formData: MedicalTestFormValues) => {
@@ -115,7 +115,7 @@ export default function EditMedicalTestPage() {
         <Button variant="outline" onClick={handleCancel}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
         <Card>
           <CardHeader><CardTitle>Medical Test Record Not Found</CardTitle></CardHeader>
-          <CardContent><p>{segsError?.message || recordError?.message || "The Medical Test record could not be found or you don't have permission to edit it."}</p></CardContent>
+          <CardContent><p>The Medical Test record could not be found or you don't have permission to edit it.</p></CardContent>
         </Card>
       </div>
     );

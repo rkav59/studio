@@ -132,7 +132,7 @@ export default function EditContractorPage() {
       toast({ title: "Contractor Updated", description: `Details for ${contractorToEdit?.companyName || 'the contractor'} updated.` });
       router.push('/contractor-safety');
     },
-    onError: (e: Error) => toast({ title: "Error Updating Contractor", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Updating Contractor", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveContractor = (data: ContractorFormDataWithFiles) => {
@@ -163,7 +163,7 @@ export default function EditContractorPage() {
         <Button variant="outline" onClick={handleCancel}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
         <Card>
           <CardHeader><CardTitle>Contractor Not Found</CardTitle></CardHeader>
-          <CardContent><p>{contractorError ? contractorError.message : "The contractor could not be found or you don't have permission to edit it."}</p></CardContent>
+          <CardContent><p>The contractor could not be found or you don't have permission to edit it.</p></CardContent>
         </Card>
       </div>
     );
@@ -200,5 +200,3 @@ export default function EditContractorPage() {
     </div>
   );
 }
-
-    

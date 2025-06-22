@@ -65,7 +65,7 @@ export default function EditEmergencyPlanPage() {
       toast({ title: "Plan Updated", description: `Emergency Plan "${variables.planName}" has been updated.` });
       router.push('/emergency-preparedness');
     },
-    onError: (e: Error) => toast({ title: "Error Updating Plan", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Updating Plan", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSavePlan = (formData: Omit<EmergencyPlan, 'id' | 'userId'>) => {
@@ -103,7 +103,7 @@ export default function EditEmergencyPlanPage() {
         <Button variant="outline" onClick={handleCancel}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
         <Card>
           <CardHeader><CardTitle>Emergency Plan Not Found</CardTitle></CardHeader>
-          <CardContent><p>{planError ? planError.message : "The plan could not be found or you don't have permission to edit it."}</p></CardContent>
+          <CardContent><p>The plan could not be found or you don't have permission to edit it.</p></CardContent>
         </Card>
       </div>
     );

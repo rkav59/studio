@@ -38,7 +38,7 @@ export default function NewSheProgramPage() {
       toast({ title: "SHE Program Created", description: "The new SHE program has been successfully added." });
       router.push('/she-meetings');
     },
-    onError: (e: Error) => toast({ title: "Error Creating Program", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Creating Program", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveProgram = (data: Omit<SheProgram, 'id' | 'userId'>) => {

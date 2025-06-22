@@ -50,7 +50,7 @@ export default function NewIhSamplePage() {
       toast({ title: "IH Sample Logged", description: "The new Industrial Hygiene Sample has been added." });
       router.push('/health-monitoring');
     },
-    onError: (e: Error) => toast({ title: "Error Logging IH Sample", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Logging IH Sample", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveIhSample = (data: IhSampleFormValues) => {
@@ -76,7 +76,7 @@ export default function NewIhSamplePage() {
   }
 
   if (segsError) {
-     return <div className="text-red-500 text-center py-10">Error loading SEGs: {segsError.message}</div>;
+     return <div className="text-red-500 text-center py-10">Error loading SEGs. Please try again later.</div>;
   }
 
   return (

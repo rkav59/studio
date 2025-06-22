@@ -52,7 +52,7 @@ export default function EditSegPage() {
       toast({ title: "SEG Updated", description: `SEG "${variables.name}" has been updated.` });
       router.push('/health-monitoring');
     },
-    onError: (e: Error) => toast({ title: "Error Updating SEG", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: "Error Updating SEG", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
   const handleSaveSeg = (formData: SegFormValues) => {
@@ -88,7 +88,7 @@ export default function EditSegPage() {
         <Button variant="outline" onClick={handleCancel}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
         <Card>
           <CardHeader><CardTitle>SEG Not Found</CardTitle></CardHeader>
-          <CardContent><p>{segError ? segError.message : "The SEG could not be found or you don't have permission to edit it."}</p></CardContent>
+          <CardContent><p>The SEG could not be found or you don't have permission to edit it.</p></CardContent>
         </Card>
       </div>
     );

@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 // Removed form imports: EmergencyPlanForm, EmergencyResourceForm, MockDrillForm
 import { EmergencyResourceDetailsDialog } from '@/components/emergency-preparedness/emergency-resource-details-dialog';
 import { MockDrillDetailsDialog } from '@/components/emergency-preparedness/mock-drill-details-dialog';
-import type { EmergencyPlan, EmergencyResource, MockDrill, DrillActionItem } from '@/lib/types';
+import type { EmergencyPlan, EmergencyResource, MockDrill, DrillActionItem } from "@/lib/types";
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertTitle, AlertDescription as UiAlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/auth-context';
@@ -122,24 +122,29 @@ export default function EmergencyPreparednessPage() {
     mutationFn: async (planId: string) => {
       if (!user?.uid) throw new Error("User not authenticated.");
       if (drills.some(drill => drill.linkedPlanId === planId)) {
-        throw new Error("Plan is linked to mock drills. Delete those drills first.");
+        throw new Error("Cannot delete: This plan is linked to existing mock drills.");
       }
       await deleteDoc(doc(db, PLANS_COLLECTION, planId));
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: [PLANS_COLLECTION, user?.uid] }); toast({ title: "Plan Deleted" });},
-    onError: (e: Error) => toast({ title: "Error Deleting Plan", description: e.message, variant: "destructive", duration: 6000 }),
+    onError: (e: Error) => {
+        const userFriendlyMessage = e.message.includes("linked to existing mock drills") 
+            ? e.message
+            : "An unexpected error occurred. Please try again.";
+        toast({ title: "Error Deleting Plan", description: userFriendlyMessage, variant: "destructive", duration: 7000 });
+    },
   });
 
   const deleteResourceMutation = useMutation({
     mutationFn: (resourceId: string) => deleteDoc(doc(db, RESOURCES_COLLECTION, resourceId)),
     onSuccess: () => { queryClient.invalidateQueries({queryKey: [RESOURCES_COLLECTION, user?.uid]}); toast({title: "Resource Deleted"});},
-    onError: (e: Error) => toast({title: "Error Deleting Resource", description: e.message, variant: "destructive"}),
+    onError: (e: Error) => toast({title: "Error Deleting Resource", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
   });
 
   const deleteDrillMutation = useMutation({
     mutationFn: (drillId: string) => deleteDoc(doc(db, DRILLS_COLLECTION, drillId)),
     onSuccess: () => { queryClient.invalidateQueries({queryKey: [DRILLS_COLLECTION, user?.uid]}); toast({title: "Drill Deleted"});},
-    onError: (e: Error) => toast({title: "Error Deleting Drill", description: e.message, variant: "destructive"}),
+    onError: (e: Error) => toast({title: "Error Deleting Drill", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
   });
 
 
@@ -184,7 +189,7 @@ export default function EmergencyPreparednessPage() {
     return (<div className="flex justify-center items-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" /><p className="ml-3 text-lg text-muted-foreground">Loading emergency data...</p></div>);
   }
   if (anyError) {
-    return <div className="text-red-500 text-center py-10">Error loading data: {anyError.message}</div>;
+    return <div className="text-red-500 text-center py-10">Error loading data. Please try again later.</div>;
   }
 
   return (
@@ -244,6 +249,3 @@ export default function EmergencyPreparednessPage() {
     </div>
   );
 }
-    
-
-    
