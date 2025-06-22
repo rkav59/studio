@@ -1,6 +1,7 @@
 
 "use client";
 
+import React from 'react'; // Import React
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -21,6 +22,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   useSidebar,
+  SidebarSeparator, // Import SidebarSeparator
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { SheiqproLogo } from '../icons/sheiqpro-logo';
@@ -46,20 +48,23 @@ export function NavLinks() {
   return (
     <SidebarMenu>
       {navItems.map((item) => (
-        <SidebarMenuItem key={item.href}>
-          <Link href={item.href} passHref legacyBehavior>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith(item.href)}
-              tooltip={item.label}
-            >
-              <a> {/* <a> tag is required when asChild and legacyBehavior are used with Link */}
-                <item.icon className="h-5 w-5" />
-                <span>{item.label}</span>
-              </a>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
+        <React.Fragment key={item.href}>
+          <SidebarMenuItem>
+            <Link href={item.href} passHref legacyBehavior>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname.startsWith(item.href)}
+                tooltip={item.label}
+              >
+                <a> {/* <a> tag is required when asChild and legacyBehavior are used with Link */}
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </a>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+          {item.label === 'Dashboard' && <SidebarSeparator className="my-1" />}
+        </React.Fragment>
       ))}
     </SidebarMenu>
   );
@@ -80,8 +85,8 @@ export function AppLogo() {
       )}
       title="Toggle Sidebar"
     >
-      <SheiqproLogo className="h-8 w-8 text-primary group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7" />
-      <span className="text-xl font-medium text-primary-foreground group-data-[collapsible=icon]:hidden font-headline">
+      <SheiqproLogo className="h-8 w-8 text-white group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7" />
+      <span className="text-xl font-normal text-white group-data-[collapsible=icon]:hidden font-headline">
         SHEiQpro
       </span>
     </Button>
