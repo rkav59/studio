@@ -1,8 +1,7 @@
 
-
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react"; // Added useMemo
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import type { SheqAudit, ChecklistItemTemplate, ChecklistTemplate } from "@/lib/types";
-import { PlusCircle, CalendarDays, ListChecks, PlayCircle, Edit2, BookOpenCheck } from "lucide-react";
+import { PlusCircle, CalendarDays, ListChecks, PlayCircle, Edit2, BookOpenCheck, Search } from "lucide-react"; // Added Search
 import {
   Dialog,
   DialogContent,
@@ -41,6 +40,7 @@ export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onSched
   const [newAuditDate, setNewAuditDate] = useState("");
   const [newAuditor, setNewAuditor] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(allChecklistTemplates.find(t => t.name.includes('Blank'))?.id || (allChecklistTemplates.length > 0 ? allChecklistTemplates[0].id : ""));
+  const [searchTerm, setSearchTerm] = useState(""); // New state for search term
 
 
   const { toast } = useToast();
@@ -86,81 +86,113 @@ export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onSched
     }
   };
 
-  const pendingAudits = scheduledAudits.filter(audit => audit.status === 'Planned' || audit.status === 'In Progress');
+  const pendingAudits = useMemo(() => {
+    return scheduledAudits.filter(audit => audit.status === 'Planned' || audit.status === 'In Progress');
+  }, [scheduledAudits]);
+
+  const filteredPendingAudits = useMemo(() => {
+    if (!searchTerm) {
+      return pendingAudits;
+    }
+    const lowercasedTerm = searchTerm.toLowerCase();
+    return pendingAudits.filter(audit =>
+      audit.auditName.toLowerCase().includes(lowercasedTerm) ||
+      audit.auditType.toLowerCase().includes(lowercasedTerm) ||
+      audit.scope.toLowerCase().includes(lowercasedTerm) ||
+      audit.auditor.toLowerCase().includes(lowercasedTerm)
+    );
+  }, [pendingAudits, searchTerm]);
+
 
   return (
     <Card className="shadow-lg">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Audit Program</CardTitle>
-          <CardDescription>Schedule new audits and manage upcoming ones. Select a checklist template to start.</CardDescription>
-        </div>
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
-              <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Audit
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Schedule New SHEQ Audit</DialogTitle>
-              <DialogDescription>Enter details for the new audit and select a checklist template. Click schedule when you're done.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="auditName" className="text-right">Name/Title</Label>
-                <Input id="auditName" value={newAuditName} onChange={(e) => setNewAuditName(e.target.value)} className="col-span-3" placeholder="e.g., Q3 Warehouse Safety Audit" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="auditType" className="text-right">Type</Label>
-                <Select onValueChange={(value) => setNewAuditType(value as SheqAudit['auditType'])} value={newAuditType}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select audit type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {auditTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="auditScope" className="text-right">Scope</Label>
-                <Input id="auditScope" value={newAuditScope} onChange={(e) => setNewAuditScope(e.target.value)} className="col-span-3" placeholder="e.g., All warehouse operations" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="auditDate" className="text-right">Date</Label>
-                <Input id="auditDate" type="date" value={newAuditDate} onChange={(e) => setNewAuditDate(e.target.value)} className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="auditor" className="text-right">Auditor(s)</Label>
-                <Input id="auditor" value={newAuditor} onChange={(e) => setNewAuditor(e.target.value)} className="col-span-3" placeholder="e.g., John Doe, Lead Auditor" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="checklistTemplate" className="text-right">Checklist</Label>
-                <Select onValueChange={setSelectedTemplateId} value={selectedTemplateId}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select checklist template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allChecklistTemplates.map(template => (
-                      <SelectItem key={template.id} value={template.id}>{template.name} {template.isSystemDefault ? "(System)" : "(Custom)"}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+      <CardHeader>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+            <div>
+                <CardTitle>Audit Program</CardTitle>
+                <CardDescription>Schedule new audits and manage upcoming ones.</CardDescription>
             </div>
-            <DialogFooter>
-              <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-              <Button type="button" onClick={handleSchedule} className="bg-primary hover:bg-primary/90">Schedule</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <div className="relative w-full sm:w-auto">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search planned audits..."
+                        className="pl-8 w-full sm:w-[250px]"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                            <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Audit
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>Schedule New SHEQ Audit</DialogTitle>
+                        <DialogDescription>Enter details for the new audit and select a checklist template. Click schedule when you're done.</DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="auditName" className="text-right">Name/Title</Label>
+                          <Input id="auditName" value={newAuditName} onChange={(e) => setNewAuditName(e.target.value)} className="col-span-3" placeholder="e.g., Q3 Warehouse Safety Audit" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="auditType" className="text-right">Type</Label>
+                          <Select onValueChange={(value) => setNewAuditType(value as SheqAudit['auditType'])} value={newAuditType}>
+                            <SelectTrigger className="col-span-3">
+                              <SelectValue placeholder="Select audit type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {auditTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="auditScope" className="text-right">Scope</Label>
+                          <Input id="auditScope" value={newAuditScope} onChange={(e) => setNewAuditScope(e.target.value)} className="col-span-3" placeholder="e.g., All warehouse operations" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="auditDate" className="text-right">Date</Label>
+                          <Input id="auditDate" type="date" value={newAuditDate} onChange={(e) => setNewAuditDate(e.target.value)} className="col-span-3" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="auditor" className="text-right">Auditor(s)</Label>
+                          <Input id="auditor" value={newAuditor} onChange={(e) => setNewAuditor(e.target.value)} className="col-span-3" placeholder="e.g., John Doe, Lead Auditor" />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="checklistTemplate" className="text-right">Checklist</Label>
+                          <Select onValueChange={setSelectedTemplateId} value={selectedTemplateId}>
+                            <SelectTrigger className="col-span-3">
+                              <SelectValue placeholder="Select checklist template" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allChecklistTemplates.map(template => (
+                                <SelectItem key={template.id} value={template.id}>{template.name} {template.isSystemDefault ? "(System)" : "(Custom)"}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                        <Button type="button" onClick={handleSchedule} className="bg-primary hover:bg-primary/90">Schedule</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
+        </div>
       </CardHeader>
       <CardContent>
-        {pendingAudits.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">No audits currently planned or in progress.</p>
+        {filteredPendingAudits.length === 0 ? (
+          <p className="text-muted-foreground text-center py-8">
+            {searchTerm ? "No matching audits found." : "No audits currently planned or in progress."}
+          </p>
         ) : (
           <ul className="space-y-4">
-            {pendingAudits.map((audit) => (
+            {filteredPendingAudits.map((audit) => (
               <li key={audit.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow bg-secondary/30">
                 <div className="flex-grow mb-2 sm:mb-0">
                   <div className="flex items-center gap-2">
