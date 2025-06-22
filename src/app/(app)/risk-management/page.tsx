@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen, LayoutDashboard, Brain, Megaphone, Download, Landmark } from "lucide-react";
+import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen, LayoutDashboard, Brain, Download, Landmark } from "lucide-react";
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
@@ -433,12 +433,12 @@ export default function RiskManagementPage() {
 
       {/* Risk Register Section */}
       <Card className="shadow-md">
-        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+        <CardHeader className="flex flex-col gap-4">
             <div>
                 <CardTitle className="flex items-center gap-2">Risk Register (Centralized Risk Recording &amp; Reporting)</CardTitle>
                 <CardDescription>A central log of significant organizational risks, their owners, treatment plans, and review status (ISO 31000: Recording &amp; Reporting). Provides an overview of the risk landscape.</CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 self-end">
                 <Button onClick={handleDownloadRiskRegister} variant="outline">
                     <Download className="mr-2 h-4 w-4" /> Download as Excel
                 </Button>
