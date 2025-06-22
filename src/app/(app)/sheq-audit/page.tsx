@@ -11,7 +11,7 @@ import type { SheqAudit, AuditChecklistItem, ChecklistItemTemplate, NonConforman
 import { defaultChecklistTemplates } from '@/lib/checklist-templates';
 import { Separator } from '@/components/ui/separator';
 import { format, isValid, parseISO, isBefore } from 'date-fns';
-import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2, LinkIcon, Filter, BookCheck, SearchCheck, FileCheck2, Download, Archive, ArchiveRestore } from "lucide-react";
+import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2, LinkIcon, Filter, BookCheck, SearchCheck, FileCheck2, Download, Archive, ArchiveRestore, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +23,7 @@ import { collection, query, where, getDocs, addDoc, doc, updateDoc, Timestamp, o
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Input } from '@/components/ui/input';
 
 const SHEQ_AUDITS_COLLECTION = 'sheqAudits';
 const USER_CHECKLIST_TEMPLATES_COLLECTION = 'userChecklistTemplates';
@@ -63,6 +64,7 @@ export default function SheqAuditPage() {
   const [aiInsights, setAiInsights] = useState<AnalyzeAuditDataOutput | null>(null);
   const [isAiInsightsModalOpen, setIsAiInsightsModalOpen] = useState(false);
   const [completedAuditFilterType, setCompletedAuditFilterType] = useState<SheqAudit['auditType'] | 'All'>('All');
+  const [archivedSearchTerm, setArchivedSearchTerm] = useState("");
 
 
   // Fetch SHEQ Audits
@@ -366,6 +368,19 @@ export default function SheqAuditPage() {
     return { activeCompletedAudits: active.slice(0, 10), archivedAudits: archived };
   }, [audits, completedAuditFilterType, oneYearAgo]);
 
+  const filteredArchivedAudits = useMemo(() => {
+    if (!archivedSearchTerm) {
+      return archivedAudits;
+    }
+    const lowercasedTerm = archivedSearchTerm.toLowerCase();
+    return archivedAudits.filter(audit =>
+      audit.auditName.toLowerCase().includes(lowercasedTerm) ||
+      audit.auditType.toLowerCase().includes(lowercasedTerm) ||
+      audit.scope.toLowerCase().includes(lowercasedTerm) ||
+      audit.auditor.toLowerCase().includes(lowercasedTerm)
+    );
+  }, [archivedAudits, archivedSearchTerm]);
+
   const handleDownloadAuditReport = (audit: SheqAudit) => {
     const formatIso = (dateString?: string) => dateString ? format(parseISO(dateString), 'PPP') : 'N/A';
 
@@ -581,12 +596,25 @@ export default function SheqAuditPage() {
                   </AccordionTrigger>
                   <AccordionContent>
                     <CardContent>
-                        {archivedAudits.length === 0 ? (
-                            <p className="text-muted-foreground text-center py-4">No audits have been archived.</p>
+                        <div className="relative mb-4">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                type="search"
+                                placeholder="Search archived audits by name, type, scope..."
+                                className="pl-8"
+                                value={archivedSearchTerm}
+                                onChange={(e) => setArchivedSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        {filteredArchivedAudits.length === 0 ? (
+                            <p className="text-muted-foreground text-center py-4">
+                              {archivedSearchTerm ? "No matching archived audits found." : "No audits have been archived."}
+                            </p>
                         ) : (
                           <ScrollArea className="max-h-[60vh]">
                             <ul className="space-y-3 pr-4">
-                              {archivedAudits.map(audit => (
+                              {filteredArchivedAudits.map(audit => (
                                 <li key={audit.id} className="p-3 border rounded-md bg-muted/50 flex flex-col sm:flex-row justify-between items-start sm:items-center">
                                   <div className="flex-grow">
                                     <p className="font-medium">{audit.auditName} <span className="text-xs text-muted-foreground">({audit.auditType})</span></p>
