@@ -81,7 +81,7 @@ export function AppLogo() {
       title="Toggle Sidebar"
     >
       <SheiqproLogo className="h-8 w-8 text-primary group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7" />
-      <span className="text-xl font-semibold text-foreground group-data-[collapsible=icon]:hidden font-headline">
+      <span className="text-xl font-medium text-foreground group-data-[collapsible=icon]:hidden font-headline">
         SHEiQpro
       </span>
     </Button>
