@@ -1,5 +1,4 @@
 
-
 export interface Incident {
   id: string;
   userId?: string; // Added for data ownership
@@ -244,6 +243,7 @@ export interface SheqAudit {
   overallFindings?: string;
   recommendations?: string;
   templateIdUsed?: string; // Optional: to know which template was the origin
+  isArchived?: boolean;
 }
 
 
@@ -843,4 +843,5 @@ export interface GenerateLegalRegisterOutput {
 // --- End Global App Types ---
 
     
+
 

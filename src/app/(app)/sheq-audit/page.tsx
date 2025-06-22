@@ -10,8 +10,8 @@ import { AuditExecutionForm } from '@/components/sheq-audit/audit-execution-form
 import type { SheqAudit, AuditChecklistItem, ChecklistItemTemplate, NonConformance, AnalyzeAuditDataInput, AnalyzeAuditDataOutput, ChecklistTemplate, AuditObservationEntry } from "@/lib/types";
 import { defaultChecklistTemplates } from '@/lib/checklist-templates';
 import { Separator } from '@/components/ui/separator';
-import { format, isValid, parseISO } from 'date-fns';
-import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2, LinkIcon, Filter, BookCheck, SearchCheck, FileCheck2, Download } from "lucide-react";
+import { format, isValid, parseISO, isBefore } from 'date-fns';
+import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Loader2, LinkIcon, Filter, BookCheck, SearchCheck, FileCheck2, Download, Archive, ArchiveRestore } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -22,6 +22,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, doc, updateDoc, Timestamp, orderBy, writeBatch } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const SHEQ_AUDITS_COLLECTION = 'sheqAudits';
 const USER_CHECKLIST_TEMPLATES_COLLECTION = 'userChecklistTemplates';
@@ -76,6 +77,7 @@ export default function SheqAuditPage() {
         return { 
           id: doc.id, 
           ...data,
+          isArchived: data.isArchived || false, // Ensure isArchived exists
           auditDate: (data.auditDate as Timestamp)?.toDate().toISOString(),
           checklist: (data.checklist || []).map((item: any) => ({ 
             ...item,
@@ -121,6 +123,7 @@ export default function SheqAuditPage() {
         ...newAuditData,
         userId: user.uid,
         status: "Planned",
+        isArchived: false,
         auditDate: Timestamp.fromDate(parseISO(newAuditData.auditDate as string)),
         checklist: initialChecklistItemsFromTemplate.map(templateItem => ({
           id: crypto.randomUUID(), 
@@ -144,7 +147,7 @@ export default function SheqAuditPage() {
       queryClient.invalidateQueries({ queryKey: [SHEQ_AUDITS_COLLECTION, user?.uid] });
       toast({ title: "Audit Scheduled", description: "The new audit has been added to the program." });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({ title: "Error Scheduling Audit", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
     },
   });
@@ -184,11 +187,28 @@ export default function SheqAuditPage() {
             setCurrentAudit(null);
         }
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({ title: "Error Updating Audit", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
     },
   });
 
+  const archiveAuditMutation = useMutation({
+    mutationFn: async ({ auditId, archiveStatus }: { auditId: string, archiveStatus: boolean }) => {
+      if (!user?.uid) throw new Error("User not authenticated");
+      const auditRef = doc(db, SHEQ_AUDITS_COLLECTION, auditId);
+      await updateDoc(auditRef, { isArchived: archiveStatus });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [SHEQ_AUDITS_COLLECTION, user?.uid] });
+      toast({
+        title: `Audit ${variables.archiveStatus ? 'Archived' : 'Restored'}`,
+        description: `The audit has been successfully ${variables.archiveStatus ? 'archived' : 'restored'}.`,
+      });
+    },
+    onError: (error) => {
+      toast({ title: "Error Updating Audit", description: "An unexpected error occurred.", variant: "destructive" });
+    },
+  });
 
   const handleScheduleAudit = (
     newAuditData: Omit<SheqAudit, 'id' | 'status' | 'checklist' | 'nonConformances' | 'overallFindings' | 'recommendations' | 'userId'>,
@@ -319,10 +339,32 @@ export default function SheqAuditPage() {
     }
   };
   
-  const completedAudits = useMemo(() => {
-    return audits.filter(a => (a.status === 'Completed' || a.status === 'Closed') && 
-                         (completedAuditFilterType === 'All' || a.auditType === completedAuditFilterType));
-  }, [audits, completedAuditFilterType]);
+  const oneYearAgo = useMemo(() => {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() - 1);
+    return date;
+  }, []);
+
+  const { activeCompletedAudits, archivedAudits } = useMemo(() => {
+    const active: SheqAudit[] = [];
+    const archived: SheqAudit[] = [];
+    
+    audits
+      .filter(a => (a.status === 'Completed' || a.status === 'Closed') && 
+                   (completedAuditFilterType === 'All' || a.auditType === completedAuditFilterType))
+      .forEach(audit => {
+        const auditDate = parseISO(audit.auditDate);
+        if (audit.isArchived) { // Manually archived
+          archived.push(audit);
+        } else if (isValid(auditDate) && isBefore(auditDate, oneYearAgo)) { // Auto-archived by date
+          archived.push(audit);
+        } else { // Active completed
+          active.push(audit);
+        }
+      });
+      
+    return { activeCompletedAudits: active.slice(0, 10), archivedAudits: archived };
+  }, [audits, completedAuditFilterType, oneYearAgo]);
 
   const handleDownloadAuditReport = (audit: SheqAudit) => {
     const formatIso = (dateString?: string) => dateString ? format(parseISO(dateString), 'PPP') : 'N/A';
@@ -479,7 +521,7 @@ export default function SheqAuditPage() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <div>
                         <CardTitle className="flex items-center gap-2"><CheckSquare className="h-6 w-6 text-primary"/>Completed/Closed Audits</CardTitle>
-                        <CardDescription>Review past audit records. Filter by audit type.</CardDescription>
+                        <CardDescription>Review recent past audit records. Older audits are automatically archived.</CardDescription>
                     </div>
                     <div className="w-full sm:w-auto min-w-[200px]">
                         <Select value={completedAuditFilterType} onValueChange={(value) => setCompletedAuditFilterType(value as SheqAudit['auditType'] | 'All')}>
@@ -499,13 +541,13 @@ export default function SheqAuditPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                {completedAudits.length === 0 ? (
+                {activeCompletedAudits.length === 0 ? (
                     <p className="text-muted-foreground text-center py-4">
-                        {completedAuditFilterType === 'All' ? "No audits completed or closed yet." : `No ${completedAuditFilterType} audits completed or closed.`}
+                        {completedAuditFilterType === 'All' ? "No recent audits completed or closed." : `No recent ${completedAuditFilterType} audits completed or closed.`}
                     </p>
                 ) : (
                 <ul className="space-y-3">
-                  {completedAudits.slice(0, 10).map(audit => ( // Show up to 10, can add pagination later
+                  {activeCompletedAudits.map(audit => (
                     <li key={audit.id} className="p-3 border rounded-md bg-secondary/30 flex flex-col sm:flex-row justify-between items-start sm:items-center">
                       <div className="flex-grow">
                         <p className="font-medium">{audit.auditName} <span className="text-xs text-muted-foreground">({audit.auditType})</span></p>
@@ -517,21 +559,55 @@ export default function SheqAuditPage() {
                         <Button variant="outline" size="sm" onClick={() => setViewingAuditDetails(audit)}>
                           <Eye className="mr-2 h-4 w-4" /> View Details
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleDownloadAuditReport(audit)}>
-                          <Download className="mr-2 h-4 w-4" /> Download Report
+                         <Button variant="outline" size="sm" onClick={() => handleDownloadAuditReport(audit)}>
+                          <Download className="mr-2 h-4 w-4" /> Download
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => archiveAuditMutation.mutate({ auditId: audit.id, archiveStatus: true })} disabled={archiveAuditMutation.isPending && archiveAuditMutation.variables?.auditId === audit.id}>
+                          <Archive className="mr-2 h-4 w-4" /> Archive
                         </Button>
                       </div>
                     </li>
                   ))}
                 </ul>
                 )}
-                {completedAudits.length > 10 && (
-                    <p className="text-xs text-muted-foreground mt-3 text-center">And {completedAudits.length - 10} more...</p>
-                )}
               </CardContent>
             </Card>
-          
 
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="archived-audits">
+                <Card className="shadow-lg mt-6">
+                  <AccordionTrigger className="p-6 w-full">
+                      <CardTitle className="flex items-center gap-2 text-muted-foreground"><Archive className="h-6 w-6"/>Archived Audits ({archivedAudits.length})</CardTitle>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <CardContent>
+                        {archivedAudits.length === 0 ? (
+                            <p className="text-muted-foreground text-center py-4">No audits have been archived.</p>
+                        ) : (
+                          <ScrollArea className="max-h-[60vh]">
+                            <ul className="space-y-3 pr-4">
+                              {archivedAudits.map(audit => (
+                                <li key={audit.id} className="p-3 border rounded-md bg-muted/50 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                                  <div className="flex-grow">
+                                    <p className="font-medium">{audit.auditName} <span className="text-xs text-muted-foreground">({audit.auditType})</span></p>
+                                    <p className="text-xs text-muted-foreground">Date: {format(parseISO(audit.auditDate), "PPP")} | Auditor(s): {audit.auditor}</p>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2 mt-2 sm:mt-0 self-start sm:self-auto">
+                                    <Button variant="outline" size="sm" onClick={() => setViewingAuditDetails(audit)}><Eye className="mr-2 h-4 w-4" /> View</Button>
+                                    <Button variant="outline" size="sm" onClick={() => archiveAuditMutation.mutate({ auditId: audit.id, archiveStatus: false })} disabled={archiveAuditMutation.isPending && archiveAuditMutation.variables?.auditId === audit.id}>
+                                        <ArchiveRestore className="mr-2 h-4 w-4" /> Unarchive
+                                    </Button>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </ScrollArea>
+                        )}
+                    </CardContent>
+                  </AccordionContent>
+                </Card>
+              </AccordionItem>
+            </Accordion>
         </>
       ) : (
         <Card className="shadow-lg">
