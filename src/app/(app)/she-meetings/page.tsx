@@ -393,7 +393,7 @@ export default function SheMeetingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><ListChecks className="h-6 w-6 text-orange-500"/>Pending & Overdue Action Items</CardTitle>
+            <CardTitle className="flex items-center gap-2">Pending & Overdue Action Items</CardTitle>
           </CardHeader>
           <CardContent>
             {pendingActionItems.length === 0 ? (
@@ -479,7 +479,10 @@ export default function SheMeetingsPage() {
       <Card>
         <CardHeader className="flex flex-col gap-4">
           <div>
-            <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-accent"/>SHE Meetings</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+                <Users className="h-6 w-6 text-accent"/>
+                SHE Meetings
+            </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
               Schedule upcoming meetings, including agenda and attendees. After meetings, update them to log minutes, track outcomes, and manage action items.
             </p>
