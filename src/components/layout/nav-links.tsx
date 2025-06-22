@@ -31,6 +31,7 @@ import { Button } from '../ui/button';
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/risk-management', label: 'Risk Management', icon: AlertTriangle },
+  { href: '/she-meetings', label: 'SHE Meetings & Programs', icon: CalendarRange },
   { href: '/sheq-audit', label: 'SHEQ Audit', icon: FileCheck2 },
   { href: '/checklist-templates', label: 'Checklist Templates', icon: Library },
   { href: '/training-competence', label: 'Training & Competence', icon: BookUser },
@@ -38,7 +39,6 @@ const navItems = [
   { href: '/ppe-management', label: 'PPE Management', icon: HardHat },
   { href: '/contractor-safety', label: 'Contractor Safety', icon: ListChecks },
   { href: '/health-monitoring', label: 'Health Monitoring', icon: HeartPulse },
-  { href: '/she-meetings', label: 'SHE Meetings & Programs', icon: CalendarRange },
   { href: '/ai-recommendations', label: 'AI Safety Assist', icon: Sparkles },
 ];
 
