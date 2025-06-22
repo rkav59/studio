@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, CalendarRange, Users, ListChecks, Activity, Settings, Loader2, ClockIcon, AlertTriangle, CheckCircle, Download, RefreshCw } from "lucide-react"; // Added RefreshCw
+import { PlusCircle, Edit2, Trash2, Eye, CalendarRange, Users, ListChecks, Activity, Settings, Loader2, ClockIcon, AlertTriangle, CheckCircle, Download, RefreshCw, Search } from "lucide-react"; // Added Search
 import type { SheProgram, SheMeeting, MeetingActionItem, MeetingActionItemStatus } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid, isBefore, differenceInDays } from 'date-fns';
@@ -19,6 +19,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Input } from '@/components/ui/input';
 
 const PROGRAMS_COLLECTION = 'shePrograms';
 const MEETINGS_COLLECTION = 'sheMeetings';
@@ -34,6 +35,7 @@ export default function SheMeetingsPage() {
   const [viewingProgram, setViewingProgram] = useState<SheProgram | null>(null);
   const [viewingMeeting, setViewingMeeting] = useState<SheMeeting | null>(null);
   const [isRefreshingUpcomingMeetings, setIsRefreshingUpcomingMeetings] = useState(false); // State for upcoming meetings refresh
+  const [meetingSearchTerm, setMeetingSearchTerm] = useState("");
 
   // Fetch SHE Programs
   const { data: programs = [], isLoading: isLoadingPrograms, error: programsError } = useQuery<SheProgram[]>({
@@ -75,6 +77,20 @@ export default function SheMeetingsPage() {
     },
     enabled: !!user?.uid,
   });
+  
+  const filteredMeetings = useMemo(() => {
+    if (!meetingSearchTerm) {
+      return meetings;
+    }
+    const lowercasedTerm = meetingSearchTerm.toLowerCase();
+    return meetings.filter(meeting =>
+      meeting.title.toLowerCase().includes(lowercasedTerm) ||
+      meeting.meetingType.toLowerCase().includes(lowercasedTerm) ||
+      meeting.locationOrPlatform.toLowerCase().includes(lowercasedTerm) ||
+      (meeting.linkedProgramName && meeting.linkedProgramName.toLowerCase().includes(lowercasedTerm))
+    );
+  }, [meetings, meetingSearchTerm]);
+
 
   const deleteProgramMutation = useMutation({
     mutationFn: async (programId: string) => {
@@ -89,9 +105,7 @@ export default function SheMeetingsPage() {
       toast({ title: "Program Deleted" });
     },
     onError: (e: Error) => {
-        const userFriendlyMessage = e.message.includes("linked to existing meetings")
-            ? e.message
-            : "An unexpected error occurred. Please try again.";
+        const userFriendlyMessage = "An unexpected error occurred while deleting the program. Please try again.";
         toast({ title: "Error Deleting Program", description: userFriendlyMessage, variant: "destructive" });
     },
   });
@@ -444,7 +458,7 @@ export default function SheMeetingsPage() {
                         <AlertDialog>
                           <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteProgramMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
                           <AlertDialogContent>
-                            <AlertDialogHeader><AlertDialogTitle>Delete Program?</AlertDialogTitle><AlertDialogDescription>Delete "{program.programName}"? This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+                            <AlertDialogHeader><AlertDialogTitle>Delete Program?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. This will permanently delete the program "{program.programName}".</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteProgram(program.id)}>Delete</AlertDialogAction></AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
@@ -468,22 +482,36 @@ export default function SheMeetingsPage() {
             <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-accent"/>SHE Meetings</CardTitle>
             <CardDescription>Schedule upcoming meetings, including agenda and attendees. After meetings, update them to log minutes, track outcomes, and manage action items.</CardDescription>
           </div>
-          <div className="flex gap-2">
-             <Button onClick={handleDownloadMinutesTemplate} variant="outline">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+             <div className="relative w-full sm:w-auto">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Search meetings..."
+                    className="pl-8 w-full sm:w-[250px]"
+                    value={meetingSearchTerm}
+                    onChange={(e) => setMeetingSearchTerm(e.target.value)}
+                />
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+             <Button onClick={handleDownloadMinutesTemplate} variant="outline" className="w-full">
                 <Download className="mr-2 h-4 w-4" /> Download Minutes Template
              </Button>
-            <Button onClick={handleOpenNewMeetingForm} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Button onClick={handleOpenNewMeetingForm} className="bg-accent hover:bg-accent/90 text-accent-foreground w-full">
                 <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Meeting
             </Button>
           </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {meetings.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">No SHE meetings logged yet.</p>
+          {filteredMeetings.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">
+              {meetingSearchTerm ? "No matching meetings found." : "No SHE meetings logged yet."}
+            </p>
           ) : (
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
-                {meetings.map(meeting => (
+                {filteredMeetings.map(meeting => (
                   <Card key={meeting.id} className="p-4 shadow-sm">
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
@@ -499,7 +527,7 @@ export default function SheMeetingsPage() {
                         <AlertDialog>
                           <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteMeetingMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
                           <AlertDialogContent>
-                            <AlertDialogHeader><AlertDialogTitle>Delete Meeting?</AlertDialogTitle><AlertDialogDescription>Delete "{meeting.title}"? This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+                            <AlertDialogHeader><AlertDialogTitle>Delete Meeting?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. This will permanently delete the meeting "{meeting.title}".</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteMeeting(meeting.id)}>Delete</AlertDialogAction></AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
