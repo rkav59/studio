@@ -409,7 +409,7 @@ export default function RiskManagementPage() {
     {/* Section 1: Risk Identification & Assessment Tools */}
       <Card className="shadow-md">
         <CardHeader>
-            <CardTitle className="flex items-center gap-2"><ShieldAlert className="h-6 w-6 text-primary"/>Risk Identification, Analysis & Evaluation</CardTitle>
+            <CardTitle className="flex items-center gap-2">Risk Identification, Analysis &amp; Evaluation</CardTitle>
             <CardDescription>Manually log hazards and conduct detailed risk assessments to understand and prioritize risks based on likelihood and severity. These tools support the core ISO 31000 risk assessment process.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -435,8 +435,8 @@ export default function RiskManagementPage() {
       <Card className="shadow-md">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
-                <CardTitle className="flex items-center gap-2">Risk Register (Centralized Risk Recording & Reporting)</CardTitle>
-                <CardDescription>A central log of significant organizational risks, their owners, treatment plans, and review status (ISO 31000: Recording & Reporting). Provides an overview of the risk landscape.</CardDescription>
+                <CardTitle className="flex items-center gap-2">Risk Register (Centralized Risk Recording &amp; Reporting)</CardTitle>
+                <CardDescription>A central log of significant organizational risks, their owners, treatment plans, and review status (ISO 31000: Recording &amp; Reporting). Provides an overview of the risk landscape.</CardDescription>
             </div>
             <div className="flex gap-2">
                 <Button onClick={handleDownloadRiskRegister} variant="outline">
@@ -492,10 +492,10 @@ export default function RiskManagementPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="h-6 w-6 text-green-500" />
-            Risk Treatment & Control Monitoring
+            Risk Treatment &amp; Control Monitoring
           </CardTitle>
           <CardDescription>
-            Track the progress and effectiveness of control actions identified in risk assessments (ISO 31000: Risk Treatment, Monitoring & Review). Ensure treatments are implemented and risks are managed.
+            Track the progress and effectiveness of control actions identified in risk assessments (ISO 31000: Risk Treatment, Monitoring &amp; Review). Ensure treatments are implemented and risks are managed.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -549,7 +549,7 @@ export default function RiskManagementPage() {
         <Card className="shadow-md">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Brain className="h-6 w-6 text-indigo-500"/>Intelligent Risk Tools</CardTitle>
-                <CardDescription>Utilize AI for deeper insights and access relevant legal information (ISO 31000: Risk Analysis & Evaluation Support, Establishing Context).</CardDescription>
+                <CardDescription>Utilize AI for deeper insights and access relevant legal information (ISO 31000: Risk Analysis &amp; Evaluation Support, Establishing Context).</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Button onClick={() => router.push('/risk-management/ai-hazard-identification')} variant="outline" className="justify-start text-left h-auto py-3">
@@ -563,7 +563,7 @@ export default function RiskManagementPage() {
                     <ShieldQuestion className="h-5 w-5 mr-3 text-blue-500"/>
                      <div>
                         <span className="font-semibold">AI Risk Assessment Assist</span>
-                        <p className="text-xs text-muted-foreground">Get suggestions for controls & methods.</p>
+                        <p className="text-xs text-muted-foreground">Get suggestions for controls &amp; methods.</p>
                     </div>
                 </Button>
                  <Button onClick={() => router.push('/risk-management/ai-root-cause-suggestion')} variant="outline" className="justify-start text-left h-auto py-3">
@@ -592,7 +592,7 @@ export default function RiskManagementPage() {
 
        <Card className="mt-8">
         <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Settings className="h-6 w-6 text-muted-foreground" />Module Configuration & Continual Improvement (Future Development)</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Settings className="h-6 w-6 text-muted-foreground" />Module Configuration &amp; Continual Improvement (Future Development)</CardTitle>
         </CardHeader>
         <CardContent>
              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
