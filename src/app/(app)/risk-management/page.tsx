@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertTriangle, ListChecks, ShieldAlert, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen, LayoutDashboard, Brain, Download, Landmark } from "lucide-react";
+import { AlertTriangle, ListChecks, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, LinkIcon, BookOpen, LayoutDashboard, Brain, Download, Landmark } from "lucide-react";
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
@@ -559,7 +559,7 @@ export default function RiskManagementPage() {
       {/* AI Assisted Tools & Legal Register */}
         <Card className="shadow-md">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Brain className="h-6 w-6 text-indigo-500"/>Intelligent Risk Tools</CardTitle>
+                <CardTitle className="flex items-center gap-2">Intelligent Risk Tools</CardTitle>
                 <CardDescription>Utilize AI for deeper insights and access relevant legal information (ISO 31000: Risk Analysis &amp; Evaluation Support, Establishing Context).</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
