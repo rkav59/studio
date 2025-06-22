@@ -356,7 +356,7 @@ export default function RiskManagementPage() {
     <Card className="shadow-md">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
-                <CardTitle className="flex items-center gap-2"><Megaphone className="h-6 w-6 text-orange-500"/>Incident Log</CardTitle>
+                <CardTitle className="flex items-center gap-2">Incident Log</CardTitle>
                 <CardDescription>Record and track all workplace incidents, near misses, and hazards.</CardDescription>
             </div>
             <Button onClick={() => router.push('/risk-management/incidents/new')} className="bg-orange-500 hover:bg-orange-600 text-white">
