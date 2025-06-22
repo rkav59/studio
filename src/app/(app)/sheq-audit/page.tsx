@@ -65,6 +65,7 @@ export default function SheqAuditPage() {
   const [isAiInsightsModalOpen, setIsAiInsightsModalOpen] = useState(false);
   const [completedAuditFilterType, setCompletedAuditFilterType] = useState<SheqAudit['auditType'] | 'All'>('All');
   const [archivedSearchTerm, setArchivedSearchTerm] = useState("");
+  const [activeSearchTerm, setActiveSearchTerm] = useState("");
 
 
   // Fetch SHEQ Audits
@@ -150,7 +151,8 @@ export default function SheqAuditPage() {
       toast({ title: "Audit Scheduled", description: "The new audit has been added to the program." });
     },
     onError: (error) => {
-      toast({ title: "Error Scheduling Audit", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
+      const userFriendlyMessage = "An unexpected error occurred while scheduling the audit. Please try again.";
+      toast({ title: "Error Scheduling Audit", description: userFriendlyMessage, variant: "destructive" });
     },
   });
 
@@ -190,7 +192,8 @@ export default function SheqAuditPage() {
         }
     },
     onError: (error) => {
-      toast({ title: "Error Updating Audit", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
+      const userFriendlyMessage = "An unexpected error occurred while updating the audit. Please try again.";
+      toast({ title: "Error Updating Audit", description: userFriendlyMessage, variant: "destructive" });
     },
   });
 
@@ -208,7 +211,8 @@ export default function SheqAuditPage() {
       });
     },
     onError: (error) => {
-      toast({ title: "Error Updating Audit", description: "An unexpected error occurred.", variant: "destructive" });
+      const userFriendlyMessage = "An unexpected error occurred while updating the audit. Please try again.";
+      toast({ title: "Error Updating Audit", description: userFriendlyMessage, variant: "destructive" });
     },
   });
 
@@ -311,8 +315,9 @@ export default function SheqAuditPage() {
       setIsAiInsightsModalOpen(true);
       toast({ title: "AI Insights Generated", description: "Review the AI-powered analysis of your audit data."});
     } catch (error) {
+      const userFriendlyMessage = "Failed to generate insights. The AI service may be temporarily unavailable. Please try again.";
       console.error("Error generating AI audit insights:", error);
-      toast({ title: "AI Insights Error", description: "Failed to generate insights. Please try again.", variant: "destructive"});
+      toast({ title: "AI Insights Error", description: userFriendlyMessage, variant: "destructive"});
     } finally {
       setIsAiInsightsLoading(false);
     }
@@ -365,8 +370,21 @@ export default function SheqAuditPage() {
         }
       });
       
-    return { activeCompletedAudits: active.slice(0, 10), archivedAudits: archived };
+    return { activeCompletedAudits: active, archivedAudits: archived };
   }, [audits, completedAuditFilterType, oneYearAgo]);
+  
+  const filteredActiveCompletedAudits = useMemo(() => {
+    if (!activeSearchTerm) {
+      return activeCompletedAudits.slice(0, 10); // Limit to 10 by default
+    }
+    const lowercasedTerm = activeSearchTerm.toLowerCase();
+    return activeCompletedAudits.filter(audit =>
+      audit.auditName.toLowerCase().includes(lowercasedTerm) ||
+      audit.auditType.toLowerCase().includes(lowercasedTerm) ||
+      audit.scope.toLowerCase().includes(lowercasedTerm) ||
+      audit.auditor.toLowerCase().includes(lowercasedTerm)
+    );
+  }, [activeCompletedAudits, activeSearchTerm]);
 
   const filteredArchivedAudits = useMemo(() => {
     if (!archivedSearchTerm) {
@@ -533,36 +551,53 @@ export default function SheqAuditPage() {
           
             <Card className="shadow-lg mt-6">
               <CardHeader>
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
                     <div>
                         <CardTitle className="flex items-center gap-2"><CheckSquare className="h-6 w-6 text-primary"/>Completed/Closed Audits</CardTitle>
                         <CardDescription>Review recent past audit records. Older audits are automatically archived.</CardDescription>
                     </div>
-                    <div className="w-full sm:w-auto min-w-[200px]">
-                        <Select value={completedAuditFilterType} onValueChange={(value) => setCompletedAuditFilterType(value as SheqAudit['auditType'] | 'All')}>
-                            <SelectTrigger className="w-full">
-                                <div className="flex items-center gap-2">
-                                 <Filter className="h-4 w-4 text-muted-foreground"/>
-                                 <SelectValue placeholder="Filter by type..." />
-                                </div>
-                            </SelectTrigger>
-                            <SelectContent>
-                                {auditTypesForFilter.map(type => (
-                                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <div className="relative w-full sm:w-auto">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                type="search"
+                                placeholder="Search active audits..."
+                                className="pl-8 w-full sm:w-[250px]"
+                                value={activeSearchTerm}
+                                onChange={(e) => setActiveSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <div className="w-full sm:w-auto min-w-[200px]">
+                            <Select value={completedAuditFilterType} onValueChange={(value) => setCompletedAuditFilterType(value as SheqAudit['auditType'] | 'All')}>
+                                <SelectTrigger className="w-full">
+                                    <div className="flex items-center gap-2">
+                                     <Filter className="h-4 w-4 text-muted-foreground"/>
+                                     <SelectValue placeholder="Filter by type..." />
+                                    </div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {auditTypesForFilter.map(type => (
+                                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </div>
               </CardHeader>
               <CardContent>
-                {activeCompletedAudits.length === 0 ? (
+                {filteredActiveCompletedAudits.length === 0 ? (
                     <p className="text-muted-foreground text-center py-4">
-                        {completedAuditFilterType === 'All' ? "No recent audits completed or closed." : `No recent ${completedAuditFilterType} audits completed or closed.`}
+                        {activeSearchTerm 
+                            ? "No matching active audits found." 
+                            : completedAuditFilterType === 'All' 
+                                ? "No recent audits completed or closed." 
+                                : `No recent ${completedAuditFilterType} audits completed or closed.`
+                        }
                     </p>
                 ) : (
                 <ul className="space-y-3">
-                  {activeCompletedAudits.map(audit => (
+                  {filteredActiveCompletedAudits.map(audit => (
                     <li key={audit.id} className="p-3 border rounded-md bg-secondary/30 flex flex-col sm:flex-row justify-between items-start sm:items-center">
                       <div className="flex-grow">
                         <p className="font-medium">{audit.auditName} <span className="text-xs text-muted-foreground">({audit.auditType})</span></p>
