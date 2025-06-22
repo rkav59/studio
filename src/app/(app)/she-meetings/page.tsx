@@ -327,7 +327,7 @@ export default function SheMeetingsPage() {
       await queryClient.invalidateQueries({ queryKey: [MEETINGS_COLLECTION, user?.uid] });
       toast({ title: "Upcoming Meetings Refreshed", description: "The list of upcoming meetings has been updated." });
     } catch (e) {
-      toast({ title: "Error Refreshing Meetings", description: "Could not refresh upcoming meetings.", variant: "destructive" });
+      toast({ title: "Error Refreshing Meetings", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
     } finally {
       setIsRefreshingUpcomingMeetings(false);
     }
@@ -345,7 +345,7 @@ export default function SheMeetingsPage() {
     );
   }
   if (anyError) {
-    return <div className="text-red-500 text-center py-10">Error loading data. Please try again later.</div>;
+    return <div className="text-red-500 text-center py-10">An unexpected error occurred. Please try again later.</div>;
   }
 
   return (
@@ -477,14 +477,14 @@ export default function SheMeetingsPage() {
 
       {/* SHE Meetings Section */}
       <Card>
-        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+        <CardHeader className="flex flex-col gap-4">
           <div>
             <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-accent"/>SHE Meetings</CardTitle>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground mt-1">
               Schedule upcoming meetings, including agenda and attendees. After meetings, update them to log minutes, track outcomes, and manage action items.
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto md:self-end">
              <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
