@@ -63,7 +63,7 @@ export function NavLinks() {
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
-          {item.label === 'Dashboard' && <SidebarSeparator className="my-1" />}
+          {(item.label === 'Dashboard' || item.label === 'Checklist Templates') && <SidebarSeparator className="my-1" />}
         </React.Fragment>
       ))}
     </SidebarMenu>
