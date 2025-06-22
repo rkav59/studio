@@ -480,7 +480,9 @@ export default function SheMeetingsPage() {
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
             <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-accent"/>SHE Meetings</CardTitle>
-            <CardDescription>Schedule upcoming meetings, including agenda and attendees. After meetings, update them to log minutes, track outcomes, and manage action items.</CardDescription>
+            <p className="text-sm text-muted-foreground">
+              Schedule upcoming meetings, including agenda and attendees. After meetings, update them to log minutes, track outcomes, and manage action items.
+            </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
              <div className="relative w-full sm:w-auto">
