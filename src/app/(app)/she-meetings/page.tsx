@@ -365,7 +365,7 @@ export default function SheMeetingsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2"><CalendarRange className="h-6 w-6 text-blue-500"/>Upcoming Meetings (Next {UPCOMING_MEETING_DAYS_THRESHOLD} Days)</CardTitle>
+            <CardTitle className="flex items-center gap-2">Upcoming Meetings (Next {UPCOMING_MEETING_DAYS_THRESHOLD} Days)</CardTitle>
             <Button variant="ghost" size="icon" onClick={handleRefreshUpcomingMeetings} disabled={isRefreshingUpcomingMeetings} title="Refresh Upcoming Meetings">
                 {isRefreshingUpcomingMeetings ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
