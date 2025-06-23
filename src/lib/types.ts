@@ -555,6 +555,8 @@ export interface PpeJobRoleMatrixEntry {
   userId?: string;
   jobRole: string;
   requiredPpeItemIds: string[]; // Array of PpeItem IDs
+  linkedRiskAssessmentId?: string;
+  linkedRiskAssessmentName?: string;
 }
 // --- End PPE Job Role Matrix Specific Types ---
 

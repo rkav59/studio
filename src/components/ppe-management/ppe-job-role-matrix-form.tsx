@@ -2,7 +2,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,37 +18,65 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { PpeItem, PpeJobRoleMatrixEntry } from "@/lib/types";
-import { Save, XCircle, Users } from "lucide-react";
+import type { PpeItem, PpeJobRoleMatrixEntry, ManualRiskAssessment } from "@/lib/types";
+import { Save, XCircle, Users, Link as LinkIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../ui/select";
+import { useEffect } from "react";
+import { format, parseISO } from "date-fns";
+
 
 const ppeJobRoleMatrixFormSchema = z.object({
   jobRole: z.string().min(2, "Job role name is required.").max(150),
   requiredPpeItemIds: z.array(z.string()).min(1, "At least one PPE item must be selected."),
+  linkedRiskAssessmentId: z.string().optional(),
+  linkedRiskAssessmentName: z.string().optional(),
 });
 
 export type PpeJobRoleMatrixFormValues = z.infer<typeof ppeJobRoleMatrixFormSchema>;
 
 interface PpeJobRoleMatrixFormProps {
   ppeItems: PpeItem[];
+  riskAssessments: ManualRiskAssessment[];
   initialData?: PpeJobRoleMatrixEntry | null;
   onSave: (data: PpeJobRoleMatrixFormValues) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
 }
 
-export function PpeJobRoleMatrixForm({ ppeItems, initialData, onSave, onCancel, isSubmitting }: PpeJobRoleMatrixFormProps) {
+export function PpeJobRoleMatrixForm({ ppeItems, riskAssessments, initialData, onSave, onCancel, isSubmitting }: PpeJobRoleMatrixFormProps) {
   const isEditing = !!initialData;
   const form = useForm<PpeJobRoleMatrixFormValues>({
     resolver: zodResolver(ppeJobRoleMatrixFormSchema),
     defaultValues: {
       jobRole: initialData?.jobRole || "",
       requiredPpeItemIds: initialData?.requiredPpeItemIds || [],
+      linkedRiskAssessmentId: initialData?.linkedRiskAssessmentId || undefined,
+      linkedRiskAssessmentName: initialData?.linkedRiskAssessmentName || undefined,
     },
   });
 
+  const watchedLinkedRiskAssessmentId = useWatch({ control: form.control, name: 'linkedRiskAssessmentId' });
+
+  useEffect(() => {
+    if (watchedLinkedRiskAssessmentId) {
+      const selectedAssessment = riskAssessments.find(assessment => assessment.id === watchedLinkedRiskAssessmentId);
+      if (selectedAssessment) {
+        form.setValue("linkedRiskAssessmentName", `${selectedAssessment.activityOrProcess} (${format(parseISO(selectedAssessment.assessmentDate), "PPP")})`);
+      } else {
+        form.setValue("linkedRiskAssessmentName", undefined);
+      }
+    } else {
+      form.setValue("linkedRiskAssessmentName", undefined);
+    }
+  }, [watchedLinkedRiskAssessmentId, riskAssessments, form]);
+
   const onSubmit = (data: PpeJobRoleMatrixFormValues) => {
-    onSave(data);
+    const finalData = {
+        ...data,
+        linkedRiskAssessmentId: data.linkedRiskAssessmentId === "" ? undefined : data.linkedRiskAssessmentId,
+    };
+    onSave(finalData);
   };
 
   return (
@@ -119,6 +147,36 @@ export function PpeJobRoleMatrixForm({ ppeItems, initialData, onSave, onCancel, 
                   <FormMessage />
                 </FormItem>
               )}
+            />
+            
+            <FormField
+                control={form.control}
+                name="linkedRiskAssessmentId"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel className="flex items-center gap-1">
+                        <LinkIcon className="h-4 w-4"/>
+                        Link to Risk Assessment (Optional)
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a risk assessment to link..." />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value="">None</SelectItem>
+                            {riskAssessments.map(assessment => (
+                                <SelectItem key={assessment.id} value={assessment.id}>
+                                    {assessment.activityOrProcess} ({format(parseISO(assessment.assessmentDate), "PPP")})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <FormDescription>Link this job role to a relevant risk assessment for context.</FormDescription>
+                    <FormMessage />
+                </FormItem>
+                )}
             />
 
           </CardContent>
