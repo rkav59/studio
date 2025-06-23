@@ -89,54 +89,53 @@ export function EmergencyResourceForm({ initialData, onSave, onCancel, isSubmitt
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
             <ScrollArea className="flex-1 p-6 space-y-4">
-              <FormField control={form.control} name="name" render={({ field }) => (
-                <FormItem><FormLabel>Resource Name</FormLabel><FormControl><Input placeholder="e.g., Main Office First Aid Kit" {...field} /></FormControl><FormMessage /></FormItem>
-              )}/>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="type" render={({ field }) => (
-                    <FormItem><FormLabel>Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || undefined}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select resource type" /></SelectTrigger></FormControl>
-                        <SelectContent>{resourceTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
-                    </Select><FormMessage /></FormItem>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField control={form.control} name="name" render={({ field }) => (
+                        <FormItem><FormLabel>Resource Name</FormLabel><FormControl><Input placeholder="e.g., Main Office First Aid Kit" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                     <FormField control={form.control} name="type" render={({ field }) => (
+                        <FormItem><FormLabel>Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select resource type" /></SelectTrigger></FormControl>
+                            <SelectContent>{resourceTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
+                        </Select><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="location" render={({ field }) => (
+                        <FormItem><FormLabel>Location</FormLabel><FormControl><Input placeholder="e.g., Wall Mount, Corridor B, Level 1" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="quantity" render={({ field }) => (
+                        <FormItem><FormLabel>Quantity</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="status" render={({ field }) => (
+                        <FormItem><FormLabel>Status</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || undefined}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
+                            <SelectContent>{resourceStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent>
+                            </Select><FormMessage /></FormItem>
+                    )}/>
+                    <div></div>
+                    <FormField control={form.control} name="lastCheckedDate" render={({ field }) => (
+                        <FormItem className="flex flex-col"><FormLabel>Last Checked Date (Optional)</FormLabel>
+                        <Popover><PopoverTrigger asChild><FormControl>
+                            <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                            {field.value ? format(parseISO(field.value), "PPP") : <span>Pick a date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button></FormControl></PopoverTrigger>
+                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
+                        </Popover><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="nextCheckDate" render={({ field }) => (
+                        <FormItem className="flex flex-col"><FormLabel>Next Check Date (Optional)</FormLabel>
+                        <Popover><PopoverTrigger asChild><FormControl>
+                            <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                            {field.value ? format(parseISO(field.value), "PPP") : <span>Pick a date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button></FormControl></PopoverTrigger>
+                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
+                        </Popover><FormMessage /></FormItem>
+                    )}/>
+                </div>
+                 <FormField control={form.control} name="notes" render={({ field }) => (
+                    <FormItem className="mt-4"><FormLabel>Notes (Optional)</FormLabel><FormControl><Textarea placeholder="e.g., Serial number, specific maintenance notes" rows={3} {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
-                <FormField control={form.control} name="quantity" render={({ field }) => (
-                    <FormItem><FormLabel>Quantity</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
-              </div>
-              <FormField control={form.control} name="location" render={({ field }) => (
-                <FormItem><FormLabel>Location</FormLabel><FormControl><Input placeholder="e.g., Wall Mount, Corridor B, Level 1" {...field} /></FormControl><FormMessage /></FormItem>
-              )}/>
-              <FormField control={form.control} name="status" render={({ field }) => (
-                <FormItem><FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || undefined}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
-                    <SelectContent>{resourceStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent>
-                    </Select><FormMessage /></FormItem>
-              )}/>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="lastCheckedDate" render={({ field }) => (
-                    <FormItem className="flex flex-col"><FormLabel>Last Checked Date (Optional)</FormLabel>
-                    <Popover><PopoverTrigger asChild><FormControl>
-                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                        {field.value ? format(parseISO(field.value), "PPP") : <span>Pick a date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button></FormControl></PopoverTrigger>
-                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
-                    </Popover><FormMessage /></FormItem>
-                )}/>
-                <FormField control={form.control} name="nextCheckDate" render={({ field }) => (
-                    <FormItem className="flex flex-col"><FormLabel>Next Check Date (Optional)</FormLabel>
-                    <Popover><PopoverTrigger asChild><FormControl>
-                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                        {field.value ? format(parseISO(field.value), "PPP") : <span>Pick a date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button></FormControl></PopoverTrigger>
-                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
-                    </Popover><FormMessage /></FormItem>
-                )}/>
-              </div>
-              <FormField control={form.control} name="notes" render={({ field }) => (
-                <FormItem><FormLabel>Notes (Optional)</FormLabel><FormControl><Textarea placeholder="e.g., Serial number, specific maintenance notes" rows={3} {...field} /></FormControl><FormMessage /></FormItem>
-              )}/>
             </ScrollArea>
              <div className="p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
                 <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}><XCircle className="mr-2 h-4 w-4" /> Cancel</Button>
@@ -147,4 +146,3 @@ export function EmergencyResourceForm({ initialData, onSave, onCancel, isSubmitt
     </Card>
   );
 }
-
