@@ -6,7 +6,7 @@ import { PpeJobRoleMatrixForm, type PpeJobRoleMatrixFormValues } from "@/compone
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, updateDoc, query, where, getDocs, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, doc, getDoc, updateDoc, query, where, getDocs, Timestamp, orderBy, deleteField } from 'firebase/firestore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PpeItem, PpeJobRoleMatrixEntry, ManualRiskAssessment } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -73,7 +73,17 @@ export default function EditJobRoleMatrixPage() {
     mutationFn: async (entryToUpdate: PpeJobRoleMatrixEntry) => {
       if (!user?.uid || !entryToUpdate.id) throw new Error("Missing user or entry ID.");
       const { id, ...data } = entryToUpdate;
-      await updateDoc(doc(db, PPE_JOB_ROLE_MATRIX_COLLECTION, id), { ...data, userId: user.uid });
+      
+      const dataForFirestore: Record<string, any> = { ...data, userId: user.uid };
+      
+      // If the form sets riskAssessmentId to undefined, it means "None" was selected.
+      // We must explicitly delete the field from Firestore to remove it from the document.
+      if (data.riskAssessmentId === undefined) {
+        dataForFirestore.riskAssessmentId = deleteField();
+        dataForFirestore.riskAssessmentReference = deleteField();
+      }
+
+      await updateDoc(doc(db, PPE_JOB_ROLE_MATRIX_COLLECTION, id), dataForFirestore);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [PPE_JOB_ROLE_MATRIX_COLLECTION, user?.uid] });
