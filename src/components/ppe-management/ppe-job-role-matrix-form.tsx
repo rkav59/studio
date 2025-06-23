@@ -20,15 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { PpeItem, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { Save, XCircle, Users, Link as LinkIcon } from "lucide-react";
-import {
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ppeJobRoleMatrixFormSchema = z.object({
   jobRole: z.string().min(2, "Job role name is required.").max(150),
@@ -41,11 +33,12 @@ export type PpeJobRoleMatrixFormValues = z.infer<typeof ppeJobRoleMatrixFormSche
 interface PpeJobRoleMatrixFormProps {
   ppeItems: PpeItem[];
   initialData?: PpeJobRoleMatrixEntry | null;
-  onSave: (data: Omit<PpeJobRoleMatrixEntry, 'id'>) => void;
+  onSave: (data: PpeJobRoleMatrixFormValues) => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
-export function PpeJobRoleMatrixForm({ ppeItems, initialData, onSave, onCancel }: PpeJobRoleMatrixFormProps) {
+export function PpeJobRoleMatrixForm({ ppeItems, initialData, onSave, onCancel, isSubmitting }: PpeJobRoleMatrixFormProps) {
   const isEditing = !!initialData;
   const form = useForm<PpeJobRoleMatrixFormValues>({
     resolver: zodResolver(ppeJobRoleMatrixFormSchema),
@@ -61,19 +54,15 @@ export function PpeJobRoleMatrixForm({ ppeItems, initialData, onSave, onCancel }
   };
 
   return (
-    <DialogContent className="sm:max-w-xl">
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-            <Users className="h-6 w-6 text-indigo-600" />
-            {isEditing ? "Edit Job Role PPE Requirements" : "Define PPE for New Job Role"}
-        </DialogTitle>
-        <DialogDescription>
+    <Card className="shadow-lg">
+      <CardHeader>
+        <CardDescription>
           {isEditing ? "Update the required PPE for this job role." : "Specify the job role and select the standard PPE items required."}
-        </DialogDescription>
-      </DialogHeader>
+        </CardDescription>
+      </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="py-4">
-          <ScrollArea className="max-h-[65vh] pr-6 space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <CardContent className="space-y-6">
             <FormField control={form.control} name="jobRole" render={({ field }) => (
               <FormItem><FormLabel>Job Role</FormLabel><FormControl><Input placeholder="e.g., Electrician, Welder, Site Operative" {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
@@ -142,15 +131,13 @@ export function PpeJobRoleMatrixForm({ ppeItems, initialData, onSave, onCancel }
                 <FormMessage />
               </FormItem>
             )}/>
-          </ScrollArea>
-          <DialogFooter className="pt-6 border-t mt-4">
-            <DialogClose asChild>
-              <Button type="button" variant="outline" onClick={onCancel}><XCircle className="mr-2 h-4 w-4" />Cancel</Button>
-            </DialogClose>
-            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white"><Save className="mr-2 h-4 w-4" />{isEditing ? "Save Changes" : "Define Requirements"}</Button>
-          </DialogFooter>
+          </CardContent>
+          <div className="p-6 border-t flex justify-end gap-2 bg-background">
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}><XCircle className="mr-2 h-4 w-4" />Cancel</Button>
+            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={isSubmitting}><Save className="mr-2 h-4 w-4" />{isEditing ? "Save Changes" : "Define Requirements"}</Button>
+          </div>
         </form>
       </Form>
-    </DialogContent>
+    </Card>
   );
 }

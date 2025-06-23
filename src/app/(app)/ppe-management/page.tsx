@@ -6,7 +6,6 @@ import Image from "next/image";
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Dialog } from "@/components/ui/dialog"; 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PlusCircle, Edit2, Trash2, Eye, CheckCheck, ClipboardList, Settings2, AlertTriangle, ListFilter, Search, ShieldCheck, Activity, CalendarClock, ClockIcon, AlertCircle, Users, Loader2, HardHat } from "lucide-react";
 import type { PpeItem, PpeIssuanceRecord, PpeInspectionRecord, PpeItemStatus, PpeJobRoleMatrixEntry } from "@/lib/types";
@@ -27,7 +26,6 @@ import {
 import { PpeItemDetailsDialog } from '@/components/ppe-management/ppe-item-details-dialog';
 import { PpeIssuanceDetailsDialog } from '@/components/ppe-management/ppe-issuance-details-dialog';
 import { PpeInspectionDetailsDialog } from '@/components/ppe-management/ppe-inspection-details-dialog'; 
-import { PpeJobRoleMatrixForm } from '@/components/ppe-management/ppe-job-role-matrix-form';
 import { PpeJobRoleMatrixDetailsDialog } from '@/components/ppe-management/ppe-job-role-matrix-details-dialog';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
@@ -56,8 +54,6 @@ export default function PpeManagementPage() {
   const [viewingPpeItem, setViewingPpeItem] = useState<PpeItem | null>(null);
   const [viewingPpeIssuance, setViewingPpeIssuance] = useState<PpeIssuanceRecord | null>(null);
   const [viewingPpeInspection, setViewingPpeInspection] = useState<PpeInspectionRecord | null>(null);
-  const [isJobRoleFormOpen, setIsJobRoleFormOpen] = useState(false);
-  const [editingJobRoleEntry, setEditingJobRoleEntry] = useState<PpeJobRoleMatrixEntry | null>(null);
   const [viewingJobRoleEntry, setViewingJobRoleEntry] = useState<PpeJobRoleMatrixEntry | null>(null);
   const [inventorySearchTerm, setInventorySearchTerm] = useState("");
   const [issuanceSearchTerm, setIssuanceSearchTerm] = useState("");
@@ -110,7 +106,7 @@ export default function PpeManagementPage() {
           id: doc.id,
           ...data,
           inspectionDate: (data.inspectionDate as Timestamp)?.toDate().toISOString(),
-          nextInspectionDate: data.nextInspectionDate ? (data.nextInspectionDate as Timestamp).toDate().toISOString() : undefined,
+          nextInspectionDate: data.nextInspectionDate ? data.nextInspectionDate.toDate().toISOString() : undefined,
         } as PpeInspectionRecord
       });
     },
@@ -168,33 +164,6 @@ export default function PpeManagementPage() {
       toast({ title: "PPE Inspection Record Deleted" });
     },
     onError: (e: Error) => toast({ title: "Error Deleting Inspection", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
-  });
-  
-  const addJobRoleEntryMutation = useMutation({
-    mutationFn: (newEntryData: Omit<PpeJobRoleMatrixEntry, 'id' | 'userId'>) => {
-      if (!user?.uid) throw new Error("User not authenticated.");
-      return addDoc(collection(db, PPE_JOB_ROLE_MATRIX_COLLECTION), { ...newEntryData, userId: user.uid });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [PPE_JOB_ROLE_MATRIX_COLLECTION, user?.uid] });
-      toast({ title: "Job Role PPE Defined" });
-      setIsJobRoleFormOpen(false); setEditingJobRoleEntry(null);
-    },
-    onError: (e:Error) => toast({title: "Error Defining Job Role PPE", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
-  });
-
-  const updateJobRoleEntryMutation = useMutation({
-     mutationFn: (entryToUpdate: PpeJobRoleMatrixEntry) => {
-      if (!user?.uid || !entryToUpdate.id) throw new Error("Missing user or entry ID.");
-      const { id, ...data } = entryToUpdate;
-      return updateDoc(doc(db, PPE_JOB_ROLE_MATRIX_COLLECTION, id), { ...data, userId: user.uid });
-    },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: [PPE_JOB_ROLE_MATRIX_COLLECTION, user?.uid] });
-      toast({ title: "Job Role Matrix Updated", description: `Requirements for "${vars.jobRole}" updated.` });
-      setIsJobRoleFormOpen(false); setEditingJobRoleEntry(null);
-    },
-    onError: (e:Error) => toast({title: "Error Updating Job Role Matrix", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
   });
   
   const deleteJobRoleEntryMutation = useMutation({
@@ -291,21 +260,12 @@ export default function PpeManagementPage() {
         toast({title: "No PPE Items", description: "Please add PPE items to inventory first to define job role requirements.", variant: "destructive"});
         return;
     }
-    setEditingJobRoleEntry(null);
-    setIsJobRoleFormOpen(true);
+    router.push('/ppe-management/job-role-matrix/new');
   };
   const handleEditJobRoleEntry = (entry: PpeJobRoleMatrixEntry) => {
-    setEditingJobRoleEntry(entry);
-    setIsJobRoleFormOpen(true);
+    router.push(`/ppe-management/job-role-matrix/edit/${entry.id}`);
   };
   const handleDeleteJobRoleEntry = (entryId: string) => deleteJobRoleEntryMutation.mutate(entryId);
-  const handleSaveJobRoleEntry = (data: Omit<PpeJobRoleMatrixEntry, 'id'>) => {
-    if (editingJobRoleEntry) {
-      updateJobRoleEntryMutation.mutate({ ...editingJobRoleEntry, ...data });
-    } else {
-      addJobRoleEntryMutation.mutate(data);
-    }
-  };
 
   const getPpeItemName = (itemId: string) => ppeItems.find(item => item.id === itemId)?.name || "Unknown PPE";
   
@@ -596,7 +556,7 @@ export default function PpeManagementPage() {
           </div>
            <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search job roles..." className="pl-8 w-full sm:w-[200px]" value={jobRoleSearchTerm} onChange={(e) => setJobRoleSearchTerm(e.target.value)} /></div>
-            <Button onClick={handleOpenNewJobRoleForm} className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={ppeItems.length === 0 || addJobRoleEntryMutation.isPending || updateJobRoleEntryMutation.isPending}>
+            <Button onClick={handleOpenNewJobRoleForm} className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={ppeItems.length === 0}>
               <PlusCircle className="mr-2 h-4 w-4" /> Define Job Role
             </Button>
           </div>
@@ -619,7 +579,7 @@ export default function PpeManagementPage() {
                       </div>
                       <div className="flex gap-2 self-start sm:self-center shrink-0">
                         <Button variant="outline" size="sm" onClick={() => setViewingJobRoleEntry(entry)}><Eye className="mr-1 h-3 w-3" /> View</Button>
-                        <Button variant="secondary" size="sm" onClick={() => handleEditJobRoleEntry(entry)} disabled={updateJobRoleEntryMutation.isPending}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
+                        <Button variant="secondary" size="sm" onClick={() => handleEditJobRoleEntry(entry)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteJobRoleEntryMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
                           <AlertDialogContent>
@@ -636,17 +596,7 @@ export default function PpeManagementPage() {
           )}
         </CardContent>
       </Card>
-
-      {isJobRoleFormOpen && (
-        <Dialog open={isJobRoleFormOpen} onOpenChange={(isOpen) => { if(!isOpen) { setIsJobRoleFormOpen(false); setEditingJobRoleEntry(null); }}}>
-            <PpeJobRoleMatrixForm 
-                ppeItems={ppeItems} 
-                initialData={editingJobRoleEntry}
-                onSave={handleSaveJobRoleEntry}
-                onCancel={() => { setIsJobRoleFormOpen(false); setEditingJobRoleEntry(null); }}
-            />
-        </Dialog>
-      )}
+      
       {viewingJobRoleEntry && <PpeJobRoleMatrixDetailsDialog entry={viewingJobRoleEntry} ppeItems={ppeItems} onClose={() => setViewingJobRoleEntry(null)} />}
 
       <Separator />
@@ -658,3 +608,4 @@ export default function PpeManagementPage() {
     </div>
   );
 }
+
