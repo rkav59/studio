@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PlusCircle, Edit2, Trash2, Eye, Siren, FileText, Box, ShieldAlert, Activity, Users, CalendarClock, ClockIcon, AlertTriangle, ListChecksIcon, Loader2, Link } from "lucide-react";
 import { format, isValid, parseISO, differenceInDays, isBefore } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-// Removed form imports: EmergencyPlanForm, EmergencyResourceForm, MockDrillForm
+import { MockDrillForm } from '@/components/emergency-preparedness/mock-drill-form';
 import { EmergencyResourceDetailsDialog } from '@/components/emergency-preparedness/emergency-resource-details-dialog';
 import { MockDrillDetailsDialog } from '@/components/emergency-preparedness/mock-drill-details-dialog';
 import type { EmergencyPlan, EmergencyResource, MockDrill, DrillActionItem } from "@/lib/types";
@@ -49,9 +49,9 @@ export default function EmergencyPreparednessPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const router = useRouter(); // Initialize useRouter
-
-  // Removed dialog form states (isPlanFormOpen, editingPlan, etc.)
+  const router = useRouter(); 
+  
+  const [isDrillFormOpen, setIsDrillFormOpen] = useState(false);
   const [viewingPlan, setViewingPlan] = useState<EmergencyPlan | null>(null);
   const [viewingResource, setViewingResource] = useState<EmergencyResource | null>(null);
   const [viewingDrill, setViewingDrill] = useState<MockDrill | null>(null);
@@ -146,6 +146,29 @@ export default function EmergencyPreparednessPage() {
     onSuccess: () => { queryClient.invalidateQueries({queryKey: [DRILLS_COLLECTION, user?.uid]}); toast({title: "Drill Deleted"});},
     onError: (e: Error) => toast({title: "Error Deleting Drill", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
   });
+  
+  const addDrillMutation = useMutation({
+    mutationFn: async (newDrillData: Omit<MockDrill, 'id' | 'userId'>) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      const dataForDb = {
+        ...newDrillData, 
+        userId: user.uid,
+        scheduledDate: Timestamp.fromDate(parseISO(newDrillData.scheduledDate as string)),
+        actualDate: newDrillData.actualDate ? Timestamp.fromDate(parseISO(newDrillData.actualDate as string)) : null,
+        actionItems: (newDrillData.actionItems || []).map(ai => ({
+          ...ai,
+          dueDate: ai.dueDate ? Timestamp.fromDate(parseISO(ai.dueDate as string)) : null,
+        })),
+      };
+      return addDoc(collection(db, DRILLS_COLLECTION), dataForDb);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [DRILLS_COLLECTION, user?.uid] });
+      toast({ title: "Mock Drill Scheduled/Logged", description: "The new mock drill has been successfully added." });
+      setIsDrillFormOpen(false);
+    },
+    onError: (e: Error) => toast({ title: "Error Logging Drill", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
+  });
 
 
   // Navigation handlers for Add/Edit
@@ -162,10 +185,14 @@ export default function EmergencyPreparednessPage() {
         toast({title: "No Plans Available", description: "Please create an emergency plan before scheduling a drill.", variant: "destructive"});
         return;
     }
-    router.push('/emergency-preparedness/drills/new');
+    setIsDrillFormOpen(true);
   };
   const handleEditDrill = (drill: MockDrill) => router.push(`/emergency-preparedness/drills/edit/${drill.id}`);
   const handleDeleteDrill = (drillId: string) => deleteDrillMutation.mutate(drillId);
+  
+  const handleSaveDrill = (data: Omit<MockDrill, 'id' | 'userId'>) => {
+    addDrillMutation.mutate(data);
+  };
 
 
   const PlanDetailView = ({ plan }: { plan: EmergencyPlan }) => (
@@ -208,7 +235,7 @@ export default function EmergencyPreparednessPage() {
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <div><CardTitle className="flex items-center gap-2">Emergency Plans</CardTitle><CardDescription>Manage emergency plans. Monitor review dates.</CardDescription></div>
+          <div><CardTitle>Emergency Plans</CardTitle><CardDescription>Manage emergency plans. Monitor review dates.</CardDescription></div>
           <Button onClick={handleOpenNewPlanForm} className="bg-primary hover:bg-primary/90"><PlusCircle className="mr-2 h-4 w-4" /> Create Plan</Button>
         </CardHeader>
         <CardContent>{plans.length === 0 ? <p className="text-muted-foreground text-center py-4">No plans created.</p> : (
@@ -222,7 +249,7 @@ export default function EmergencyPreparednessPage() {
       <Separator className="my-8"/>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <div><CardTitle className="flex items-center gap-2">Resource Inventory</CardTitle><CardDescription>Track emergency equipment and check dates.</CardDescription></div>
+          <div><CardTitle>Resource Inventory</CardTitle><CardDescription>Track emergency equipment and check dates.</CardDescription></div>
           <Button onClick={handleOpenNewResourceForm} className="bg-accent hover:bg-accent/90"><PlusCircle className="mr-2 h-4 w-4" /> Add Resource</Button>
         </CardHeader>
         <CardContent>{resources.length === 0 ? <p className="text-muted-foreground text-center py-4">No resources logged.</p> : (
@@ -235,9 +262,14 @@ export default function EmergencyPreparednessPage() {
 
       <Separator className="my-8"/>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div><CardTitle className="flex items-center gap-2">Mock Drill Logbook</CardTitle><CardDescription>Schedule, log, and review mock drills.</CardDescription></div>
-          <Button onClick={handleOpenNewDrillForm} className="bg-teal-500 hover:bg-teal-600 text-white" disabled={plans.length === 0}><PlusCircle className="mr-2 h-4 w-4" /> Log/Schedule Drill</Button>
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+            <div>
+                <CardTitle>Mock Drill Logbook</CardTitle>
+                <CardDescription>Schedule, log, and review mock drills.</CardDescription>
+            </div>
+            <Button onClick={handleOpenNewDrillForm} className="bg-teal-500 hover:bg-teal-600 text-white" disabled={plans.length === 0 || addDrillMutation.isPending}>
+                <PlusCircle className="mr-2 h-4 w-4" /> Log/Schedule Drill
+            </Button>
         </CardHeader>
         <CardContent>{drills.length === 0 ? <p className="text-muted-foreground text-center py-4">No mock drills recorded.</p> : (
           <ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">{drills.map(drill => { const scheduledDateStatus = drill.status === 'Planned' ? getDateStatusInfo(drill.scheduledDate, 0) : null; return (
@@ -246,6 +278,20 @@ export default function EmergencyPreparednessPage() {
         )}</CardContent>
       </Card>
       {viewingDrill && <MockDrillDetailsDialog drill={viewingDrill} planName={viewingDrill.linkedPlanId ? plans.find(p=>p.id === viewingDrill.linkedPlanId)?.planName : undefined} onClose={() => setViewingDrill(null)} />}
+      
+      {isDrillFormOpen && (
+        <Dialog open={isDrillFormOpen} onOpenChange={(isOpen) => { if (!isOpen) setIsDrillFormOpen(false); }}>
+            <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
+                 <MockDrillForm 
+                    plans={plans} 
+                    onSave={handleSaveDrill} 
+                    onCancel={() => setIsDrillFormOpen(false)}
+                    isSubmitting={addDrillMutation.isPending}
+                />
+            </DialogContent>
+        </Dialog>
+      )}
+
     </div>
   );
 }
