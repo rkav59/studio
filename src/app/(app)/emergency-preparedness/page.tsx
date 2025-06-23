@@ -208,7 +208,7 @@ export default function EmergencyPreparednessPage() {
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <div><CardTitle className="flex items-center gap-2"><FileText className="h-6 w-6 text-primary"/>Emergency Plans</CardTitle><CardDescription>Manage emergency plans. Monitor review dates.</CardDescription></div>
+          <div><CardTitle className="flex items-center gap-2">Emergency Plans</CardTitle><CardDescription>Manage emergency plans. Monitor review dates.</CardDescription></div>
           <Button onClick={handleOpenNewPlanForm} className="bg-primary hover:bg-primary/90"><PlusCircle className="mr-2 h-4 w-4" /> Create Plan</Button>
         </CardHeader>
         <CardContent>{plans.length === 0 ? <p className="text-muted-foreground text-center py-4">No plans created.</p> : (
