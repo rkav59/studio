@@ -27,7 +27,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, PackagePlus } from "lucide-react";
+import { CalendarIcon, Save, XCircle, PackagePlus, RotateCcw, HelpCircle } from "lucide-react";
 import type { PpeItem, PpeIssuanceRecord, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -41,6 +41,12 @@ const ppeIssuanceFormSchema = z.object({
   issuedDate: z.date({ required_error: "Issued date is required." }),
   quantityIssued: z.coerce.number().min(1, "Quantity must be at least 1.").int(),
   notes: z.string().max(1000).optional(),
+  expectedReturnDate: z.date().nullable().optional(),
+  actualReturnDate: z.date().nullable().optional(),
+  returnNotes: z.string().max(1000).optional(),
+}).refine(data => !data.actualReturnDate || !data.expectedReturnDate || data.actualReturnDate >= data.expectedReturnDate, {
+    message: "Actual return date cannot be before the expected return date.",
+    path: ["actualReturnDate"],
 });
 
 
@@ -84,6 +90,9 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
       issuedDate: initialData?.issuedDate ? parseISO(initialData.issuedDate) : new Date(),
       quantityIssued: initialData?.quantityIssued || 1,
       notes: initialData?.notes || "",
+      expectedReturnDate: initialData?.expectedReturnDate ? parseISO(initialData.expectedReturnDate) : null,
+      actualReturnDate: initialData?.actualReturnDate ? parseISO(initialData.actualReturnDate) : null,
+      returnNotes: initialData?.returnNotes || "",
     },
   });
   
@@ -91,6 +100,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
 
   const availablePpeItems = useMemo(() => {
     return availableItemsForRole(watchedJobRole);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ppeItems, initialData?.ppeItemId, watchedJobRole, ppeJobRoleMatrix]);
 
   useEffect(() => {
@@ -183,6 +193,45 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
               <FormField control={form.control} name="notes" render={({ field }) => (
                 <FormItem><FormLabel>Notes (Optional)</FormLabel><FormControl><Textarea placeholder="Any additional notes for this issuance..." rows={2} {...field} /></FormControl><FormMessage /></FormItem>
               )}/>
+
+              <Separator className="my-4" />
+              <div>
+                <h3 className="text-md font-medium text-muted-foreground mb-2">Return Details (Optional)</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="expectedReturnDate" render={({ field }) => (
+                      <FormItem className="flex flex-col"><FormLabel>Expected Return Date</FormLabel>
+                      <Popover><PopoverTrigger asChild><FormControl>
+                        <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                          {field.value ? format(field.value, "PPP") : <span>Pick expected return date</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button></FormControl></PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
+                        </PopoverContent>
+                      </Popover><FormMessage /></FormItem>
+                    )}/>
+                     <FormField control={form.control} name="actualReturnDate" render={({ field }) => (
+                      <FormItem className="flex flex-col"><FormLabel>Actual Return Date</FormLabel>
+                      <Popover><PopoverTrigger asChild><FormControl>
+                        <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                          {field.value ? format(field.value, "PPP") : <span>Pick actual return date</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button></FormControl></PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
+                        </PopoverContent>
+                      </Popover><FormMessage /></FormItem>
+                    )}/>
+                  </div>
+                  <FormField control={form.control} name="returnNotes" render={({ field }) => (
+                      <FormItem><FormLabel>Return Notes (Optional)</FormLabel>
+                      <FormControl>
+                          <Textarea placeholder="Condition of returned item, any issues noted..." rows={2} {...field} />
+                      </FormControl><FormMessage /></FormItem>
+                  )}/>
+                </div>
+              </div>
             </CardContent>
           </ScrollArea>
           <div className="p-4 md:p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">

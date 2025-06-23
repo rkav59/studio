@@ -50,9 +50,25 @@ export default function NewPpeIssuancePage() {
   });
 
   const addIssuanceMutation = useMutation({
-    mutationFn: async (newIssuanceData: Omit<PpeIssuanceRecord, 'id'>) => {
+    mutationFn: async (newIssuanceData: PpeIssuanceFormValues) => {
       if (!user?.uid) throw new Error("User not authenticated.");
-      return addDoc(collection(db, PPE_ISSUANCES_COLLECTION), newIssuanceData);
+      
+      const dataForDb = {
+        userId: user.uid,
+        ppeItemId: newIssuanceData.ppeItemId,
+        employeeName: newIssuanceData.employeeName,
+        jobRole: newIssuanceData.jobRole,
+        issuedDate: Timestamp.fromDate(newIssuanceData.issuedDate),
+        quantityIssued: newIssuanceData.quantityIssued,
+        notes: newIssuanceData.notes,
+        expectedReturnDate: newIssuanceData.expectedReturnDate ? Timestamp.fromDate(newIssuanceData.expectedReturnDate) : null,
+        actualReturnDate: newIssuanceData.actualReturnDate ? Timestamp.fromDate(newIssuanceData.actualReturnDate) : null,
+        returnNotes: newIssuanceData.returnNotes,
+      };
+
+      const cleanedDataForDb = Object.fromEntries(Object.entries(dataForDb).filter(([_, v]) => v !== undefined));
+
+      return addDoc(collection(db, PPE_ISSUANCES_COLLECTION), cleanedDataForDb);
     },
     onSuccess: (docRef, variables) => {
       queryClient.invalidateQueries({ queryKey: [PPE_ISSUANCES_COLLECTION, user?.uid] });
@@ -72,14 +88,7 @@ export default function NewPpeIssuancePage() {
   });
 
   const handleSaveNewIssuance = (formData: PpeIssuanceFormValues) => {
-    if (!user?.uid) return;
-
-    const dataForDb: Omit<PpeIssuanceRecord, 'id'> = {
-      userId: user.uid,
-      ...formData,
-      issuedDate: formData.issuedDate.toISOString(),
-    };
-    addIssuanceMutation.mutate(dataForDb);
+    addIssuanceMutation.mutate(formData);
   };
 
   const handleCancel = () => {

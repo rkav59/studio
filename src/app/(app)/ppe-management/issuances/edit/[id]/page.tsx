@@ -12,6 +12,7 @@ import type { PpeIssuanceRecord, PpeItem, PpeJobRoleMatrixEntry } from "@/lib/ty
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { parseISO } from 'date-fns';
 
 const PPE_ISSUANCES_COLLECTION = 'ppeIssuances';
 const PPE_ITEMS_COLLECTION = 'ppeItems';
@@ -65,6 +66,8 @@ export default function EditPpeIssuancePage() {
           id: recordSnap.id,
           ...data,
           issuedDate: (data.issuedDate as Timestamp)?.toDate().toISOString(),
+          expectedReturnDate: data.expectedReturnDate ? (data.expectedReturnDate as Timestamp).toDate().toISOString() : null,
+          actualReturnDate: data.actualReturnDate ? (data.actualReturnDate as Timestamp).toDate().toISOString() : null,
         } as PpeIssuanceRecord;
       }
       return null;
@@ -73,18 +76,26 @@ export default function EditPpeIssuancePage() {
   });
 
   const updateIssuanceMutation = useMutation({
-    mutationFn: async (updatedData: PpeIssuanceRecord) => {
-      if (!user?.uid || !updatedData.id) throw new Error("User or issuance ID missing.");
-      const { id, ...dataToUpdate } = updatedData;
+    mutationFn: async (updatedData: PpeIssuanceFormValues) => {
+      if (!user?.uid || !issuanceId) throw new Error("User or issuance ID missing.");
       
       const dataForDb = {
-        ...dataToUpdate,
         userId: user.uid,
-        issuedDate: Timestamp.fromDate(new Date(dataToUpdate.issuedDate)),
+        ppeItemId: updatedData.ppeItemId,
+        employeeName: updatedData.employeeName,
+        jobRole: updatedData.jobRole,
+        issuedDate: Timestamp.fromDate(updatedData.issuedDate),
+        quantityIssued: updatedData.quantityIssued,
+        notes: updatedData.notes,
+        expectedReturnDate: updatedData.expectedReturnDate ? Timestamp.fromDate(updatedData.expectedReturnDate) : null,
+        actualReturnDate: updatedData.actualReturnDate ? Timestamp.fromDate(updatedData.actualReturnDate) : null,
+        returnNotes: updatedData.returnNotes,
       };
 
+      const cleanedDataForDb = Object.fromEntries(Object.entries(dataForDb).filter(([_, v]) => v !== undefined));
+
       const recordRef = doc(db, PPE_ISSUANCES_COLLECTION, issuanceId);
-      await updateDoc(recordRef, dataForDb);
+      await updateDoc(recordRef, cleanedDataForDb);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [PPE_ISSUANCES_COLLECTION, user?.uid] });
@@ -106,15 +117,7 @@ export default function EditPpeIssuancePage() {
 
 
   const handleSaveIssuance = (formData: PpeIssuanceFormValues) => {
-     if (!issuanceToEdit || !user?.uid) return;
-    
-    const dataToSave: PpeIssuanceRecord = {
-        id: issuanceToEdit.id,
-        userId: user.uid,
-        ...formData,
-        issuedDate: formData.issuedDate.toISOString(),
-    };
-    updateIssuanceMutation.mutate(dataToSave);
+    updateIssuanceMutation.mutate(formData);
   };
 
 

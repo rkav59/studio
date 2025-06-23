@@ -266,7 +266,7 @@ export interface TrainingRecord {
   trainingDate: string; // ISO date string
   expiryDate?: string | null; // ISO date string, optional
   trainer?: string;
-  status: TrainingRecordStatus; // User sets 'Planned' or 'Completed'; 'Expired'/'Requires Renewal' derived
+  status: TrainingRecordStatus; // User sets 'Planned' | 'Completed'; 'Expired'/'Requires Renewal' derived
   certificateUrl?: string; // Optional link to a certificate
   notes?: string;
 }
@@ -513,9 +513,12 @@ export interface PpeIssuanceRecord {
   ppeItemId: string;
   employeeName: string;
   jobRole?: string;
-  issuedDate: string;
+  issuedDate: string; // ISO string
   quantityIssued: number;
   notes?: string;
+  expectedReturnDate?: string | null; // ISO string
+  actualReturnDate?: string | null; // ISO string
+  returnNotes?: string;
 }
 
 // --- PPE Inspection Specific Types ---
@@ -841,5 +844,3 @@ export interface GenerateLegalRegisterOutput {
 // --- End Global App Types ---
 
     
-
-

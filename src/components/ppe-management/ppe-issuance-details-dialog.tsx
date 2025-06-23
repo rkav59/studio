@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { PpeIssuanceRecord } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { User, Package, Briefcase, CalendarCheck, RotateCcw, HelpCircle, StickyNote } from "lucide-react";
+import { Separator } from "../ui/separator";
 
 interface PpeIssuanceDetailsDialogProps {
   issuance: PpeIssuanceRecord;
@@ -47,8 +48,28 @@ export function PpeIssuanceDetailsDialog({ issuance, ppeItemName, onClose }: Ppe
                     <>
                         <div className="flex items-start pt-2"><StickyNote className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground shrink-0" />
                             <div>
-                                <strong>Notes:</strong>
+                                <strong>Issuance Notes:</strong>
                                 <p className="whitespace-pre-wrap text-muted-foreground bg-secondary/50 p-2 rounded-md text-xs">{issuance.notes}</p>
+                            </div>
+                        </div>
+                    </>
+                )}
+                
+                {(issuance.expectedReturnDate || issuance.actualReturnDate || issuance.returnNotes) && <Separator className="my-2"/>}
+
+                {issuance.expectedReturnDate && isValid(parseISO(issuance.expectedReturnDate)) && (
+                    <div className="flex items-center"><RotateCcw className="h-4 w-4 mr-2 text-muted-foreground" /><strong>Expected Return:</strong> <span className="ml-1">{format(parseISO(issuance.expectedReturnDate), "PPP")}</span></div>
+                )}
+                {issuance.actualReturnDate && isValid(parseISO(issuance.actualReturnDate)) && (
+                    <div className="flex items-center"><RotateCcw className="h-4 w-4 mr-2 text-green-500" /><strong>Actual Return:</strong> <span className="ml-1 font-semibold">{format(parseISO(issuance.actualReturnDate), "PPP")}</span></div>
+                )}
+
+                {issuance.returnNotes && (
+                    <>
+                        <div className="flex items-start pt-2"><HelpCircle className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground shrink-0" />
+                            <div>
+                                <strong>Return Notes:</strong>
+                                <p className="whitespace-pre-wrap text-muted-foreground bg-secondary/50 p-2 rounded-md text-xs">{issuance.returnNotes}</p>
                             </div>
                         </div>
                     </>
