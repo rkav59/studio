@@ -567,7 +567,6 @@ export default function PpeManagementPage() {
                       <div className="mb-2 sm:mb-0">
                         <h4 className="font-semibold text-lg">{entry.jobRole}</h4>
                         <p className="text-xs text-muted-foreground">Requires: {entry.requiredPpeItemIds.length} PPE item(s)</p>
-                        {entry.riskAssessmentReference && <p className="text-xs text-muted-foreground">RA Ref: {entry.riskAssessmentReference}</p>}
                       </div>
                       <div className="flex gap-2 self-start sm:self-center shrink-0">
                         <Button variant="outline" size="sm" onClick={() => setViewingJobRoleEntry(entry)}><Eye className="mr-1 h-3 w-3" /> View</Button>

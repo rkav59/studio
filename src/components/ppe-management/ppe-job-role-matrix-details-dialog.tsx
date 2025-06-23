@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { PpeJobRoleMatrixEntry, PpeItem } from "@/lib/types";
-import { Users, Package, Link as LinkIcon } from "lucide-react";
+import { Users, Package } from "lucide-react";
 
 interface PpeJobRoleMatrixDetailsDialogProps {
   entry: PpeJobRoleMatrixEntry;
@@ -63,15 +63,6 @@ export function PpeJobRoleMatrixDetailsDialog({ entry, ppeItems, onClose }: PpeJ
                     )}
                 </div>
 
-                {entry.riskAssessmentReference && (
-                    <>
-                        <Separator/>
-                        <div>
-                            <strong className="text-muted-foreground flex items-center gap-1"><LinkIcon className="h-4 w-4"/>Risk Assessment Reference:</strong>
-                            <p>{entry.riskAssessmentReference}</p>
-                        </div>
-                    </>
-                )}
             </div>
         </ScrollArea>
 

@@ -6,9 +6,9 @@ import { PpeJobRoleMatrixForm, type PpeJobRoleMatrixFormValues } from "@/compone
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, updateDoc, query, where, getDocs, Timestamp, orderBy, deleteField } from 'firebase/firestore';
+import { collection, doc, getDoc, updateDoc, query, where, getDocs } from 'firebase/firestore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { PpeItem, PpeJobRoleMatrixEntry, ManualRiskAssessment } from "@/lib/types";
+import type { PpeItem, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,7 +16,6 @@ import { ArrowLeft, Users } from 'lucide-react';
 
 const PPE_JOB_ROLE_MATRIX_COLLECTION = 'ppeJobRoleMatrix';
 const PPE_ITEMS_COLLECTION = 'ppeItems';
-const MANUAL_RISK_ASSESSMENTS_COLLECTION = 'manualRiskAssessments';
 
 
 export default function EditJobRoleMatrixPage() {
@@ -39,22 +38,6 @@ export default function EditJobRoleMatrixPage() {
     enabled: !!user?.uid,
   });
 
-  const { data: riskAssessments = [], isLoading: isLoadingRiskAssessments, error: riskAssessmentsError } = useQuery<ManualRiskAssessment[]>({
-    queryKey: [MANUAL_RISK_ASSESSMENTS_COLLECTION, user?.uid],
-    queryFn: async () => {
-      if (!user?.uid) return [];
-      const q = query(collection(db, MANUAL_RISK_ASSESSMENTS_COLLECTION), where("userId", "==", user.uid), orderBy("assessmentDate", "desc"));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ 
-        id: doc.id, 
-        ...doc.data(),
-        assessmentDate: (doc.data().assessmentDate as Timestamp)?.toDate().toISOString()
-      } as ManualRiskAssessment));
-    },
-    enabled: !!user?.uid,
-  });
-
-
   const { data: entryToEdit, isLoading: isLoadingEntry, error: entryError } = useQuery<PpeJobRoleMatrixEntry | null>({
     queryKey: [PPE_JOB_ROLE_MATRIX_COLLECTION, entryId, user?.uid],
     queryFn: async () => {
@@ -76,13 +59,6 @@ export default function EditJobRoleMatrixPage() {
       
       const dataForFirestore: Record<string, any> = { ...data, userId: user.uid };
       
-      // If the form sets riskAssessmentId to undefined, it means "None" was selected.
-      // We must explicitly delete the field from Firestore to remove it from the document.
-      if (data.riskAssessmentId === undefined) {
-        dataForFirestore.riskAssessmentId = deleteField();
-        dataForFirestore.riskAssessmentReference = deleteField();
-      }
-
       await updateDoc(doc(db, PPE_JOB_ROLE_MATRIX_COLLECTION, id), dataForFirestore);
     },
     onSuccess: (_, variables) => {
@@ -107,7 +83,7 @@ export default function EditJobRoleMatrixPage() {
     router.push('/ppe-management');
   };
 
-  const isLoading = isLoadingPpeItems || isLoadingEntry || isLoadingRiskAssessments;
+  const isLoading = isLoadingPpeItems || isLoadingEntry;
 
   if (isLoading) {
     return (
@@ -118,7 +94,7 @@ export default function EditJobRoleMatrixPage() {
     );
   }
 
-  if (entryError || ppeItemsError || !entryToEdit || riskAssessmentsError) {
+  if (entryError || ppeItemsError || !entryToEdit) {
     return (
       <div className="space-y-6">
         <Button variant="outline" onClick={handleCancel}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
@@ -139,7 +115,6 @@ export default function EditJobRoleMatrixPage() {
         </div>
         <PpeJobRoleMatrixForm
             ppeItems={ppeItems}
-            riskAssessments={riskAssessments}
             initialData={entryToEdit}
             onSave={handleSaveJobRoleEntry}
             onCancel={handleCancel}
