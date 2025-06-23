@@ -397,7 +397,7 @@ export default function PpeManagementPage() {
       <Card>
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
-            <CardTitle className="flex items-center gap-2"><Package className="h-6 w-6 text-primary" />PPE Inventory</CardTitle>
+            <CardTitle>PPE Inventory</CardTitle>
             <CardDescription>View and manage all PPE items, their status, and next inspection due dates.</CardDescription>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
