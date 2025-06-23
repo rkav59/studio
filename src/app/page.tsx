@@ -4,8 +4,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { Skeleton } from '@/components/ui/skeleton';
-
+import { SheiqproLogo } from '@/components/icons/sheiqpro-logo';
 
 export default function HomePage() {
   const { user, isAuthenticating } = useAuth();
@@ -24,11 +23,9 @@ export default function HomePage() {
   // Show a loading state while determining auth status
   if (isAuthenticating) {
     return (
-       <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
-        <Skeleton className="h-16 w-16 mb-4 rounded-full" />
-        <Skeleton className="h-10 w-48 mb-2" />
-        <Skeleton className="h-6 w-64 mb-8" />
-        <Skeleton className="h-10 w-full max-w-sm" />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <SheiqproLogo className="h-24 w-24 text-primary animate-pulse" />
+        <p className="mt-4 text-muted-foreground">Authenticating...</p>
       </div>
     );
   }
