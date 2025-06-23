@@ -222,7 +222,7 @@ export default function EmergencyPreparednessPage() {
       <Separator className="my-8"/>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <div><CardTitle className="flex items-center gap-2"><Box className="h-6 w-6 text-accent"/>Resource Inventory</CardTitle><CardDescription>Track emergency equipment and check dates.</CardDescription></div>
+          <div><CardTitle className="flex items-center gap-2">Resource Inventory</CardTitle><CardDescription>Track emergency equipment and check dates.</CardDescription></div>
           <Button onClick={handleOpenNewResourceForm} className="bg-accent hover:bg-accent/90"><PlusCircle className="mr-2 h-4 w-4" /> Add Resource</Button>
         </CardHeader>
         <CardContent>{resources.length === 0 ? <p className="text-muted-foreground text-center py-4">No resources logged.</p> : (
