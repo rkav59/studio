@@ -10,7 +10,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PlusCircle, Edit2, Trash2, Eye, Siren, FileText, Box, ShieldAlert, Activity, Users, CalendarClock, ClockIcon, AlertTriangle, ListChecksIcon, Loader2, Link } from "lucide-react";
 import { format, isValid, parseISO, differenceInDays, isBefore } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { MockDrillForm } from '@/components/emergency-preparedness/mock-drill-form';
 import { EmergencyResourceDetailsDialog } from '@/components/emergency-preparedness/emergency-resource-details-dialog';
 import { MockDrillDetailsDialog } from '@/components/emergency-preparedness/mock-drill-details-dialog';
 import type { EmergencyPlan, EmergencyResource, MockDrill, DrillActionItem } from "@/lib/types";
@@ -18,7 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertTitle, AlertDescription as UiAlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation'; // Added for navigation
 
@@ -51,7 +50,6 @@ export default function EmergencyPreparednessPage() {
   const queryClient = useQueryClient();
   const router = useRouter(); 
   
-  const [isDrillFormOpen, setIsDrillFormOpen] = useState(false);
   const [viewingPlan, setViewingPlan] = useState<EmergencyPlan | null>(null);
   const [viewingResource, setViewingResource] = useState<EmergencyResource | null>(null);
   const [viewingDrill, setViewingDrill] = useState<MockDrill | null>(null);
@@ -147,30 +145,6 @@ export default function EmergencyPreparednessPage() {
     onError: (e: Error) => toast({title: "Error Deleting Drill", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
   });
   
-  const addDrillMutation = useMutation({
-    mutationFn: async (newDrillData: Omit<MockDrill, 'id' | 'userId'>) => {
-      if (!user?.uid) throw new Error("User not authenticated.");
-      const dataForDb = {
-        ...newDrillData, 
-        userId: user.uid,
-        scheduledDate: Timestamp.fromDate(parseISO(newDrillData.scheduledDate as string)),
-        actualDate: newDrillData.actualDate ? Timestamp.fromDate(parseISO(newDrillData.actualDate as string)) : null,
-        actionItems: (newDrillData.actionItems || []).map(ai => ({
-          ...ai,
-          dueDate: ai.dueDate ? Timestamp.fromDate(parseISO(ai.dueDate as string)) : null,
-        })),
-      };
-      return addDoc(collection(db, DRILLS_COLLECTION), dataForDb);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [DRILLS_COLLECTION, user?.uid] });
-      toast({ title: "Mock Drill Scheduled/Logged", description: "The new mock drill has been successfully added." });
-      setIsDrillFormOpen(false);
-    },
-    onError: (e: Error) => toast({ title: "Error Logging Drill", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
-  });
-
-
   // Navigation handlers for Add/Edit
   const handleOpenNewPlanForm = () => router.push('/emergency-preparedness/plans/new');
   const handleEditPlan = (plan: EmergencyPlan) => router.push(`/emergency-preparedness/plans/edit/${plan.id}`);
@@ -185,14 +159,10 @@ export default function EmergencyPreparednessPage() {
         toast({title: "No Plans Available", description: "Please create an emergency plan before scheduling a drill.", variant: "destructive"});
         return;
     }
-    setIsDrillFormOpen(true);
+    router.push('/emergency-preparedness/drills/new');
   };
   const handleEditDrill = (drill: MockDrill) => router.push(`/emergency-preparedness/drills/edit/${drill.id}`);
   const handleDeleteDrill = (drillId: string) => deleteDrillMutation.mutate(drillId);
-  
-  const handleSaveDrill = (data: Omit<MockDrill, 'id' | 'userId'>) => {
-    addDrillMutation.mutate(data);
-  };
 
 
   const PlanDetailView = ({ plan }: { plan: EmergencyPlan }) => (
@@ -244,7 +214,7 @@ export default function EmergencyPreparednessPage() {
           );})}</div></ScrollArea>
         )}</CardContent>
       </Card>
-      {viewingPlan && <Dialog open={!!viewingPlan} onOpenChange={() => setViewingPlan(null)}><DialogContent className="sm:max-w-2xl"><DialogHeader><DialogTitle className="flex items-center gap-2 text-primary"><Siren className="h-6 w-6"/>{viewingPlan.planName}</DialogTitle><DialogDescription>Details of the plan.</DialogDescription></DialogHeader><PlanDetailView plan={viewingPlan} /><DialogFooter className="pt-4 border-t"><DialogClose asChild><Button variant="outline">Close</Button></DialogClose><Button onClick={() => { handleEditPlan(viewingPlan); setViewingPlan(null); }} className="bg-primary hover:bg-primary/90"><Edit2 className="mr-2 h-4 w-4"/>Edit</Button></DialogFooter></DialogContent></Dialog>}
+      {viewingPlan && <Dialog open={!!viewingPlan} onOpenChange={() => setViewingPlan(null)}><DialogContent className="sm:max-w-2xl"><DialogHeader><DialogTitle className="flex items-center gap-2 text-primary"><FileText className="h-6 w-6"/>{viewingPlan.planName}</DialogTitle><DialogDescription>Details of the plan.</DialogDescription></DialogHeader><PlanDetailView plan={viewingPlan} /><DialogFooter className="pt-4 border-t"><DialogClose asChild><Button variant="outline">Close</Button></DialogClose><Button onClick={() => { handleEditPlan(viewingPlan); setViewingPlan(null); }} className="bg-primary hover:bg-primary/90"><Edit2 className="mr-2 h-4 w-4"/>Edit</Button></DialogFooter></DialogContent></Dialog>}
 
       <Separator className="my-8"/>
       <Card>
@@ -267,7 +237,7 @@ export default function EmergencyPreparednessPage() {
                 <CardTitle>Mock Drill Logbook</CardTitle>
                 <CardDescription>Schedule, log, and review mock drills.</CardDescription>
             </div>
-            <Button onClick={handleOpenNewDrillForm} className="bg-teal-500 hover:bg-teal-600 text-white" disabled={plans.length === 0 || addDrillMutation.isPending}>
+            <Button onClick={handleOpenNewDrillForm} className="bg-teal-500 hover:bg-teal-600 text-white" disabled={plans.length === 0}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Log/Schedule Drill
             </Button>
         </CardHeader>
@@ -279,25 +249,6 @@ export default function EmergencyPreparednessPage() {
       </Card>
       {viewingDrill && <MockDrillDetailsDialog drill={viewingDrill} planName={viewingDrill.linkedPlanId ? plans.find(p=>p.id === viewingDrill.linkedPlanId)?.planName : undefined} onClose={() => setViewingDrill(null)} />}
       
-      {isDrillFormOpen && (
-        <Dialog open={isDrillFormOpen} onOpenChange={(isOpen) => { if (!isOpen) setIsDrillFormOpen(false); }}>
-            <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0">
-                <DialogHeader className="p-6 pb-0">
-                    <DialogTitle>Schedule/Log New Mock Drill</DialogTitle>
-                    <DialogDescription>
-                        Enter details for scheduling or logging a mock drill. This will be added to the logbook.
-                    </DialogDescription>
-                </DialogHeader>
-                 <MockDrillForm 
-                    plans={plans} 
-                    onSave={handleSaveDrill} 
-                    onCancel={() => setIsDrillFormOpen(false)}
-                    isSubmitting={addDrillMutation.isPending}
-                />
-            </DialogContent>
-        </Dialog>
-      )}
-
     </div>
   );
 }
