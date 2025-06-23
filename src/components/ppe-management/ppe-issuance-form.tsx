@@ -37,17 +37,29 @@ import { useMemo, useEffect } from "react";
 const ppeIssuanceFormSchema = z.object({
   ppeItemId: z.string({ required_error: "Please select a PPE item." }).min(1, "Please select a PPE item."),
   employeeName: z.string().min(2, "Employee name is required.").max(150),
-  jobRole: z.string().max(100).optional(),
+  jobRole: z.string().optional(),
   issuedDate: z.string().refine(val => isValid(parseISO(val)), { message: "Issued date is required." }),
   quantityIssued: z.coerce.number().min(1, "Quantity must be at least 1.").int(),
   expectedReturnDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid expected return date" }),
   actualReturnDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid actual return date" }),
   conditionOnReturn: z.enum(['Good', 'Damaged', 'Lost']).optional(),
   notes: z.string().max(1000).optional(),
-}).refine(data => !data.actualReturnDate || (data.actualReturnDate && data.issuedDate <= data.actualReturnDate), {
-  message: "Return date cannot be before issued date.",
-  path: ["actualReturnDate"],
+}).refine(data => {
+    if (!data.actualReturnDate || !data.issuedDate) {
+        return true; // No dates to compare or one is missing
+    }
+    const issueDate = parseISO(data.issuedDate);
+    const returnDate = parseISO(data.actualReturnDate);
+    // Let individual field validators handle invalid date strings
+    if (!isValid(issueDate) || !isValid(returnDate)) {
+        return true;
+    }
+    return returnDate >= issueDate;
+}, {
+    message: "Return date cannot be before issued date.",
+    path: ["actualReturnDate"],
 });
+
 
 export type PpeIssuanceFormValues = z.infer<typeof ppeIssuanceFormSchema>;
 
@@ -56,20 +68,19 @@ interface PpeIssuanceFormProps {
   ppeJobRoleMatrix: PpeJobRoleMatrixEntry[];
   initialData?: PpeIssuanceRecord | null;
   onSave: (data: PpeIssuanceFormValues) => void;
-  onCancel: () => void;
   isSubmitting?: boolean;
 }
 
 const NO_ROLE_VALUE = "__NONE__";
 
-export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSave, onCancel, isSubmitting }: PpeIssuanceFormProps) {
+export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSave, isSubmitting }: PpeIssuanceFormProps) {
   const isEditing = !!initialData;
   const form = useForm<PpeIssuanceFormValues>({
     resolver: zodResolver(ppeIssuanceFormSchema),
     defaultValues: {
       ppeItemId: initialData?.ppeItemId || undefined,
       employeeName: initialData?.employeeName || "",
-      jobRole: initialData?.jobRole || undefined,
+      jobRole: initialData?.jobRole || NO_ROLE_VALUE,
       issuedDate: initialData?.issuedDate ? format(parseISO(initialData.issuedDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       quantityIssued: initialData?.quantityIssued || 1,
       expectedReturnDate: initialData?.expectedReturnDate ? format(parseISO(initialData.expectedReturnDate), 'yyyy-MM-dd') : undefined,
@@ -102,7 +113,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
     // If not, reset it. This prevents an invalid state.
     const currentPpeId = form.getValues("ppeItemId");
     if (currentPpeId && !availablePpeItems.some(item => item.id === currentPpeId)) {
-        form.setValue("ppeItemId", "");
+        form.setValue("ppeItemId", undefined as any);
     }
   }, [watchedJobRole, availablePpeItems, form]);
 

@@ -76,22 +76,24 @@ export default function EditPpeIssuancePage() {
   });
 
   const updateIssuanceMutation = useMutation({
-    mutationFn: async (updatedData: PpeIssuanceRecord) => {
-      if (!user?.uid || !updatedData.id) throw new Error("User or issuance ID missing.");
-      const { id, ...dataToUpdate } = updatedData;
-      const recordRef = doc(db, PPE_ISSUANCES_COLLECTION, id);
+    mutationFn: async (formData: PpeIssuanceFormValues) => {
+      if (!user?.uid || !issuanceId) throw new Error("User or issuance ID missing.");
+      
       const dataForDb = {
-        ...dataToUpdate,
+        ...formData,
         userId: user.uid,
-        issuedDate: Timestamp.fromDate(parseISO(dataToUpdate.issuedDate as string)),
-        expectedReturnDate: dataToUpdate.expectedReturnDate ? Timestamp.fromDate(parseISO(dataToUpdate.expectedReturnDate as string)) : null,
-        actualReturnDate: dataToUpdate.actualReturnDate ? Timestamp.fromDate(parseISO(dataToUpdate.actualReturnDate as string)) : null,
+        issuedDate: Timestamp.fromDate(parseISO(formData.issuedDate)),
+        expectedReturnDate: formData.expectedReturnDate ? Timestamp.fromDate(parseISO(formData.expectedReturnDate)) : null,
+        actualReturnDate: formData.actualReturnDate ? Timestamp.fromDate(parseISO(formData.actualReturnDate)) : null,
       };
+
+      const recordRef = doc(db, PPE_ISSUANCES_COLLECTION, issuanceId);
       await updateDoc(recordRef, dataForDb);
+      return formData; // Pass form data to onSuccess
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [PPE_ISSUANCES_COLLECTION, user?.uid] });
-      queryClient.invalidateQueries({ queryKey: [PPE_ISSUANCES_COLLECTION, variables.id, user?.uid] });
+      queryClient.invalidateQueries({ queryKey: [PPE_ISSUANCES_COLLECTION, issuanceId, user?.uid] });
       toast({ 
         title: "PPE Issuance Updated", 
         description: `Issuance for ${variables.employeeName} has been successfully updated.` 
@@ -107,17 +109,11 @@ export default function EditPpeIssuancePage() {
     },
   });
 
+
   const handleSaveIssuance = (formData: PpeIssuanceFormValues) => {
-    if (!issuanceToEdit) return;
-    const updatedIssuance: PpeIssuanceRecord = {
-      ...issuanceToEdit,
-      ...formData,
-      issuedDate: parseISO(formData.issuedDate).toISOString(),
-      expectedReturnDate: formData.expectedReturnDate ? parseISO(formData.expectedReturnDate).toISOString() : undefined,
-      actualReturnDate: formData.actualReturnDate ? parseISO(formData.actualReturnDate).toISOString() : undefined,
-    };
-    updateIssuanceMutation.mutate(updatedIssuance);
+    updateIssuanceMutation.mutate(formData);
   };
+
 
   const handleCancel = () => {
     router.push('/ppe-management');
