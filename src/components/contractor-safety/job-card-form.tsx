@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,6 +30,7 @@ import { CalendarIcon, Save, XCircle, Trash2, PlusCircle, CheckSquare, Square } 
 import type { JobCard, Contractor, JobCardStatus, JobCardCheck } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const jobCardCheckSchema = z.object({
   id: z.string(),
