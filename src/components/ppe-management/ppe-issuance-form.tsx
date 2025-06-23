@@ -2,7 +2,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,10 +45,11 @@ const ppeIssuanceFormSchema = z.object({
   conditionOnReturn: z.enum(['Good', 'Damaged', 'Lost']).optional(),
   notes: z.string().max(1000).optional(),
 }).refine(data => {
-    if (!(data.actualReturnDate instanceof Date) || !(data.issuedDate instanceof Date)) {
-        return true;
+    // Only compare if both dates are valid Date objects
+    if (data.actualReturnDate && data.issuedDate) {
+        return data.actualReturnDate >= data.issuedDate;
     }
-    return data.actualReturnDate >= data.issuedDate;
+    return true; // Pass validation if one or both dates are missing
 }, {
     message: "Return date cannot be on or before the issued date.",
     path: ["actualReturnDate"],
@@ -73,7 +74,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
   const form = useForm<PpeIssuanceFormValues>({
     resolver: zodResolver(ppeIssuanceFormSchema),
     defaultValues: {
-      ppeItemId: initialData?.ppeItemId || undefined,
+      ppeItemId: initialData?.ppeItemId || "",
       employeeName: initialData?.employeeName || "",
       jobRole: initialData?.jobRole || NO_ROLE_VALUE,
       issuedDate: initialData?.issuedDate ? parseISO(initialData.issuedDate) : new Date(),
@@ -106,7 +107,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
   useEffect(() => {
     const currentPpeId = form.getValues("ppeItemId");
     if (currentPpeId && !availablePpeItems.some(item => item.id === currentPpeId)) {
-        form.setValue("ppeItemId", undefined as any);
+        form.setValue("ppeItemId", "");
     }
   }, [watchedJobRole, availablePpeItems, form]);
 
@@ -186,7 +187,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
                         <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
                         {field.value ? format(field.value, "PPP") : <span>Pick issued date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button></FormControl></PopoverTrigger>
-                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent>
+                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
                     </Popover><FormMessage /></FormItem>
                 )}/>
               </div>
