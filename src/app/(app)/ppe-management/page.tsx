@@ -457,7 +457,7 @@ export default function PpeManagementPage() {
       <Card>
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
-            <CardTitle className="flex items-center gap-2"><CheckCheck className="h-6 w-6 text-accent" />PPE Issuance & Return Log</CardTitle>
+            <CardTitle className="flex items-center gap-2">PPE Issuance & Return Log</CardTitle>
             <CardDescription>Track PPE issued to employees and its return.</CardDescription>
           </div>
            <div className="flex items-center gap-2 w-full sm:w-auto">
