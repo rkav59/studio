@@ -33,6 +33,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Input } from '@/components/ui/input';
 
 const PPE_ITEMS_COLLECTION = 'ppeItems';
 const PPE_ISSUANCES_COLLECTION = 'ppeIssuances';
@@ -58,6 +59,10 @@ export default function PpeManagementPage() {
   const [isJobRoleFormOpen, setIsJobRoleFormOpen] = useState(false);
   const [editingJobRoleEntry, setEditingJobRoleEntry] = useState<PpeJobRoleMatrixEntry | null>(null);
   const [viewingJobRoleEntry, setViewingJobRoleEntry] = useState<PpeJobRoleMatrixEntry | null>(null);
+  const [inventorySearchTerm, setInventorySearchTerm] = useState("");
+  const [issuanceSearchTerm, setIssuanceSearchTerm] = useState("");
+  const [inspectionSearchTerm, setInspectionSearchTerm] = useState("");
+  const [jobRoleSearchTerm, setJobRoleSearchTerm] = useState("");
 
   // Fetch PPE Items
   const { data: ppeItems = [], isLoading: isLoadingPpeItems, error: ppeItemsError } = useQuery<PpeItem[]>({
@@ -287,6 +292,13 @@ export default function PpeManagementPage() {
 
   const getPpeItemName = (itemId: string) => ppeItems.find(item => item.id === itemId)?.name || "Unknown PPE";
   
+  // Filtering Logic
+  const filteredPpeItems = useMemo(() => ppeItemsWithInspectionInfo.filter(item => item.name.toLowerCase().includes(inventorySearchTerm.toLowerCase()) || item.type.toLowerCase().includes(inventorySearchTerm.toLowerCase()) || item.category.toLowerCase().includes(inventorySearchTerm.toLowerCase())), [ppeItemsWithInspectionInfo, inventorySearchTerm]);
+  const filteredPpeIssuances = useMemo(() => ppeIssuances.filter(issuance => issuance.employeeName.toLowerCase().includes(issuanceSearchTerm.toLowerCase()) || getPpeItemName(issuance.ppeItemId).toLowerCase().includes(issuanceSearchTerm.toLowerCase())), [ppeIssuances, issuanceSearchTerm, ppeItems]);
+  const filteredPpeInspections = useMemo(() => ppeInspections.filter(insp => getPpeItemName(insp.ppeItemId).toLowerCase().includes(inspectionSearchTerm.toLowerCase()) || (insp.uniquePpeIdentifier && insp.uniquePpeIdentifier.toLowerCase().includes(inspectionSearchTerm.toLowerCase())) || insp.inspectorName.toLowerCase().includes(inspectionSearchTerm.toLowerCase())), [ppeInspections, inspectionSearchTerm, ppeItems]);
+  const filteredJobRoleMatrix = useMemo(() => ppeJobRoleMatrix.filter(entry => entry.jobRole.toLowerCase().includes(jobRoleSearchTerm.toLowerCase())), [ppeJobRoleMatrix, jobRoleSearchTerm]);
+
+
   const getPpeItemStatusColor = (status?: PpeItemStatus) => {
     switch (status) {
       case 'Available': return 'text-green-600 dark:text-green-400';
@@ -388,17 +400,20 @@ export default function PpeManagementPage() {
             <CardTitle className="flex items-center gap-2"><Package className="h-6 w-6 text-primary" />PPE Inventory</CardTitle>
             <CardDescription>View and manage all PPE items, their status, and next inspection due dates.</CardDescription>
           </div>
-          <Button onClick={handleOpenNewPpeItemForm} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            <PlusCircle className="mr-2 h-4 w-4" /> Add PPE to Inventory
-          </Button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search inventory..." className="pl-8 w-full sm:w-[200px]" value={inventorySearchTerm} onChange={(e) => setInventorySearchTerm(e.target.value)} /></div>
+            <Button onClick={handleOpenNewPpeItemForm} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <PlusCircle className="mr-2 h-4 w-4" /> Add Item
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          {ppeItemsWithInspectionInfo.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">No PPE items in inventory yet.</p>
+          {filteredPpeItems.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">{inventorySearchTerm ? "No matching items found." : "No PPE items in inventory yet."}</p>
           ) : (
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
-                {ppeItemsWithInspectionInfo.map(item => (
+                {filteredPpeItems.map(item => (
                   <Card key={item.id} className="p-4 shadow-sm">
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
@@ -445,19 +460,22 @@ export default function PpeManagementPage() {
             <CardTitle className="flex items-center gap-2"><CheckCheck className="h-6 w-6 text-accent" />PPE Issuance & Return Log</CardTitle>
             <CardDescription>Track PPE issued to employees and its return.</CardDescription>
           </div>
-          <Button onClick={handleOpenNewPpeIssuanceForm} className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={ppeItems.filter(i => (i.status || 'Available') === 'Available').length === 0}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Log New Issuance
-          </Button>
+           <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search issuances..." className="pl-8 w-full sm:w-[200px]" value={issuanceSearchTerm} onChange={(e) => setIssuanceSearchTerm(e.target.value)} /></div>
+            <Button onClick={handleOpenNewPpeIssuanceForm} className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={ppeItems.filter(i => (i.status || 'Available') === 'Available').length === 0}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Log Issuance
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {ppeItems.filter(i => (i.status || 'Available') === 'Available').length === 0 && ppeItems.length > 0 && <p className="text-center text-muted-foreground py-4">No PPE items currently marked 'Available' in inventory to log issuances.</p>}
-          {ppeIssuances.length === 0 && ppeItems.length > 0 && (
-            <p className="text-muted-foreground text-center py-4">No PPE issuances logged yet.</p>
+          {filteredPpeIssuances.length === 0 && ppeItems.length > 0 && (
+            <p className="text-muted-foreground text-center py-4">{issuanceSearchTerm ? "No matching issuances found." : "No PPE issuances logged yet."}</p>
           )}
-          {ppeIssuances.length > 0 && (
+          {filteredPpeIssuances.length > 0 && (
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
-                {ppeIssuances.map(issuance => (
+                {filteredPpeIssuances.map(issuance => (
                   <Card key={issuance.id} className="p-4 shadow-sm">
                      <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
@@ -500,19 +518,22 @@ export default function PpeManagementPage() {
             <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-6 w-6 text-teal-600" />PPE Inspection Log</CardTitle>
             <CardDescription>Record and track inspections of PPE items.</CardDescription>
           </div>
-          <Button onClick={handleOpenNewPpeInspectionForm} className="bg-teal-600 hover:bg-teal-700 text-white" disabled={ppeItems.length === 0}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Log New Inspection
-          </Button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search inspections..." className="pl-8 w-full sm:w-[200px]" value={inspectionSearchTerm} onChange={(e) => setInspectionSearchTerm(e.target.value)} /></div>
+            <Button onClick={handleOpenNewPpeInspectionForm} className="bg-teal-600 hover:bg-teal-700 text-white" disabled={ppeItems.length === 0}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Log Inspection
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {ppeItems.length === 0 && <p className="text-center text-muted-foreground py-4">Add PPE items to inventory first to log inspections.</p>}
-          {ppeInspections.length === 0 && ppeItems.length > 0 && (
-            <p className="text-muted-foreground text-center py-4">No PPE inspections logged yet.</p>
+          {filteredPpeInspections.length === 0 && ppeItems.length > 0 && (
+            <p className="text-muted-foreground text-center py-4">{inspectionSearchTerm ? "No matching inspections found." : "No PPE inspections logged yet."}</p>
           )}
-          {ppeInspections.length > 0 && (
+          {filteredPpeInspections.length > 0 && (
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
-                {ppeInspections.map(inspection => (
+                {filteredPpeInspections.map(inspection => (
                   <Card key={inspection.id} className="p-4 shadow-sm">
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
@@ -556,19 +577,22 @@ export default function PpeManagementPage() {
             <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-indigo-600" />PPE Job Role Matrix</CardTitle>
             <CardDescription>Define standard PPE requirements for different job roles.</CardDescription>
           </div>
-          <Button onClick={handleOpenNewJobRoleForm} className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={ppeItems.length === 0 || addJobRoleEntryMutation.isPending || updateJobRoleEntryMutation.isPending}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Define New Job Role PPE
-          </Button>
+           <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search job roles..." className="pl-8 w-full sm:w-[200px]" value={jobRoleSearchTerm} onChange={(e) => setJobRoleSearchTerm(e.target.value)} /></div>
+            <Button onClick={handleOpenNewJobRoleForm} className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={ppeItems.length === 0 || addJobRoleEntryMutation.isPending || updateJobRoleEntryMutation.isPending}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Define Job Role
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {ppeItems.length === 0 && <p className="text-center text-muted-foreground py-4">Add PPE items to inventory first to define job role requirements.</p>}
-          {ppeJobRoleMatrix.length === 0 && ppeItems.length > 0 && (
-            <p className="text-muted-foreground text-center py-4">No job role PPE requirements defined yet.</p>
+          {filteredJobRoleMatrix.length === 0 && ppeItems.length > 0 && (
+            <p className="text-muted-foreground text-center py-4">{jobRoleSearchTerm ? "No matching job roles found." : "No job role PPE requirements defined yet."}</p>
           )}
-          {ppeJobRoleMatrix.length > 0 && (
+          {filteredJobRoleMatrix.length > 0 && (
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
-                {ppeJobRoleMatrix.map(entry => (
+                {filteredJobRoleMatrix.map(entry => (
                   <Card key={entry.id} className="p-4 shadow-sm">
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">

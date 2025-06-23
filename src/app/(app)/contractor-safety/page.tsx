@@ -31,6 +31,7 @@ import { db, storage } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore'; // Added orderBy
 import { ref as storageRef, deleteObject } from "firebase/storage";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Input } from '@/components/ui/input';
 
 const CONTRACTORS_COLLECTION = 'contractors';
 const PTWS_COLLECTION = 'permitsToWork';
@@ -59,6 +60,9 @@ export default function ContractorSafetyPage() {
 
   const [viewingContractor, setViewingContractor] = useState<Contractor | null>(null);
   const [viewingPtw, setViewingPtw] = useState<PermitToWork | null>(null);
+  const [contractorSearchTerm, setContractorSearchTerm] = useState("");
+  const [ptwSearchTerm, setPtwSearchTerm] = useState("");
+
 
   // Fetch Contractors
   const { data: contractors = [], isLoading: isLoadingContractors, error: contractorsError } = useQuery<Contractor[]>({
@@ -179,6 +183,29 @@ export default function ContractorSafetyPage() {
     },
   });
 
+  const getContractorName = (contractorId: string) => contractors.find(c => c.id === contractorId)?.companyName || "Unknown Contractor";
+
+  const filteredContractors = useMemo(() => {
+    if (!contractorSearchTerm) return contractors;
+    const lowercasedTerm = contractorSearchTerm.toLowerCase();
+    return contractors.filter(c =>
+      c.companyName.toLowerCase().includes(lowercasedTerm) ||
+      c.tradeOrService.toLowerCase().includes(lowercasedTerm) ||
+      c.contactPerson.toLowerCase().includes(lowercasedTerm)
+    );
+  }, [contractors, contractorSearchTerm]);
+
+  const filteredPtws = useMemo(() => {
+    if (!ptwSearchTerm) return ptws;
+    const lowercasedTerm = ptwSearchTerm.toLowerCase();
+    return ptws.filter(ptw =>
+      ptw.ptwNumber.toLowerCase().includes(lowercasedTerm) ||
+      ptw.workDescription.toLowerCase().includes(lowercasedTerm) ||
+      getContractorName(ptw.contractorId).toLowerCase().includes(lowercasedTerm)
+    );
+  }, [ptws, ptwSearchTerm, contractors]);
+
+
   // Navigation Handlers
   const handleOpenNewContractorForm = () => router.push('/contractor-safety/contractors/new');
   const handleEditContractor = (contractorId: string) => router.push(`/contractor-safety/contractors/edit/${contractorId}`);
@@ -195,8 +222,6 @@ export default function ContractorSafetyPage() {
   const handleDeletePtw = (ptwId: string) => deletePtwMutation.mutate(ptwId);
   const handleManageSupervision = (ptwId: string) => router.push(`/contractor-safety/ptws/${ptwId}/supervision`);
   
-  const getContractorName = (contractorId: string) => contractors.find(c => c.id === contractorId)?.companyName || "Unknown Contractor";
-
   const getVettingStatusColor = (status: ContractorVettingStatus) => {
     switch (status) {
       case 'Approved': return 'text-green-600 dark:text-green-400';
@@ -259,17 +284,29 @@ export default function ContractorSafetyPage() {
                 <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-primary"/>Contractor Register</CardTitle>
                 <CardDescription>Manage contractor information, vetting status, and inductions.</CardDescription>
             </div>
-            <Button onClick={handleOpenNewContractorForm} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                <PlusCircle className="mr-2 h-4 w-4" /> Add New Contractor
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <div className="relative w-full sm:w-auto">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search contractors..."
+                        className="pl-8 w-full sm:w-[250px]"
+                        value={contractorSearchTerm}
+                        onChange={(e) => setContractorSearchTerm(e.target.value)}
+                    />
+                </div>
+                <Button onClick={handleOpenNewContractorForm} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add New Contractor
+                </Button>
+            </div>
         </CardHeader>
         <CardContent>
-            {contractors.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">No contractors registered yet.</p>
+            {filteredContractors.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">{contractorSearchTerm ? "No matching contractors found." : "No contractors registered yet."}</p>
             ) : (
                 <ScrollArea className="max-h-[400px] pr-3">
                     <div className="space-y-3">
-                        {contractors.map(contractor => (
+                        {filteredContractors.map(contractor => (
                             <Card key={contractor.id} className="p-4 shadow-sm">
                                 <div className="flex flex-col sm:flex-row justify-between items-start">
                                     <div className="mb-2 sm:mb-0">
@@ -319,19 +356,31 @@ export default function ContractorSafetyPage() {
                 <CardTitle className="flex items-center gap-2"><FileText className="h-6 w-6 text-accent"/>Permit to Work (PTW) Log</CardTitle>
                 <CardDescription>Manage PTWs and linked on-site supervision records.</CardDescription>
             </div>
-            <Button onClick={handleOpenNewPtwForm} className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={contractors.length === 0}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Create New PTW
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <div className="relative w-full sm:w-auto">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search PTWs..."
+                        className="pl-8 w-full sm:w-[250px]"
+                        value={ptwSearchTerm}
+                        onChange={(e) => setPtwSearchTerm(e.target.value)}
+                    />
+                </div>
+                <Button onClick={handleOpenNewPtwForm} className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={contractors.length === 0}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Create New PTW
+                </Button>
+            </div>
         </CardHeader>
         <CardContent>
             {contractors.length === 0 && <p className="text-center text-muted-foreground py-4">Please add a contractor first to enable PTW creation.</p>}
-            {ptws.length === 0 && contractors.length > 0 && (
-                <p className="text-muted-foreground text-center py-4">No Permits to Work logged yet.</p>
+            {filteredPtws.length === 0 && contractors.length > 0 && (
+                <p className="text-muted-foreground text-center py-4">{ptwSearchTerm ? "No matching PTWs found." : "No Permits to Work logged yet."}</p>
             )}
-            {ptws.length > 0 && (
+            {filteredPtws.length > 0 && (
                 <ScrollArea className="max-h-[400px] pr-3">
                     <div className="space-y-3">
-                        {ptws.map(ptw => {
+                        {filteredPtws.map(ptw => {
                           const supervisionCount = ptwSupervisionRecords.filter(sr => sr.ptwId === ptw.id).length;
                           return (
                             <Card key={ptw.id} className="p-4 shadow-sm">

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 // Removed Dialog import as forms are now on separate pages
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, BookOpen, UserCheck, CalendarClock, AlertTriangle, CheckCircle2, Loader2, BookUser } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, BookOpen, UserCheck, CalendarClock, AlertTriangle, CheckCircle2, Loader2, BookUser, Search } from "lucide-react";
 import type { TrainingCourse, TrainingRecord, TrainingRecordStatus } from "@/lib/types";
 // Removed CourseForm and TrainingRecordForm imports
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +18,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation'; // Added useRouter
+import { Input } from '@/components/ui/input';
 
 const COURSES_COLLECTION = 'trainingCourses';
 const RECORDS_COLLECTION = 'trainingRecords';
@@ -30,7 +31,8 @@ export default function TrainingCompetencePage() {
   const queryClient = useQueryClient();
   const router = useRouter(); // Initialize useRouter
 
-  // Removed useState for form dialogs and editing states
+  const [courseSearchTerm, setCourseSearchTerm] = useState("");
+  const [recordSearchTerm, setRecordSearchTerm] = useState("");
 
   // Fetch Courses
   const { data: courses = [], isLoading: isLoadingCourses, error: coursesError } = useQuery<TrainingCourse[]>({
@@ -90,6 +92,26 @@ export default function TrainingCompetencePage() {
     onError: (e: Error) => toast({ title: "Error Deleting Record", description: e.message, variant: "destructive" }),
   });
 
+  const getCourseName = (courseId: string) => courses.find(c => c.id === courseId)?.name || "Unknown Course";
+
+  const filteredCourses = useMemo(() => {
+    if (!courseSearchTerm) return courses;
+    const lowercasedTerm = courseSearchTerm.toLowerCase();
+    return courses.filter(c =>
+      c.name.toLowerCase().includes(lowercasedTerm) ||
+      (c.category && c.category.toLowerCase().includes(lowercasedTerm))
+    );
+  }, [courses, courseSearchTerm]);
+
+  const filteredTrainingRecords = useMemo(() => {
+    if (!recordSearchTerm) return trainingRecords;
+    const lowercasedTerm = recordSearchTerm.toLowerCase();
+    return trainingRecords.filter(r =>
+      r.employeeName.toLowerCase().includes(lowercasedTerm) ||
+      getCourseName(r.courseId).toLowerCase().includes(lowercasedTerm)
+    );
+  }, [trainingRecords, recordSearchTerm, courses]);
+
 
   // Navigation handlers
   const handleOpenNewCourseForm = () => router.push('/training-competence/courses/new');
@@ -106,7 +128,6 @@ export default function TrainingCompetencePage() {
   const handleEditRecord = (record: TrainingRecord) => router.push(`/training-competence/records/edit/${record.id}`);
   const handleDeleteRecord = (recordId: string) => deleteRecordMutation.mutate(recordId);
   
-  const getCourseName = (courseId: string) => courses.find(c => c.id === courseId)?.name || "Unknown Course";
   const getDerivedStatus = (record: TrainingRecord): TrainingRecordStatus => {
     if (record.status === 'Planned') return 'Planned';
     if (!record.expiryDate || !isValid(parseISO(record.expiryDate))) return 'Completed';
@@ -172,17 +193,20 @@ export default function TrainingCompetencePage() {
             <CardTitle className="flex items-center gap-2"><BookOpen className="h-6 w-6 text-primary"/>Course Catalog</CardTitle>
             <CardDescription>Define and manage your organization's training courses.</CardDescription>
           </div>
-          <Button onClick={handleOpenNewCourseForm} className="bg-primary hover:bg-primary/90">
-            <PlusCircle className="mr-2 h-4 w-4" /> Add New Course
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="relative"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search courses..." className="pl-8 w-full sm:w-[200px]" value={courseSearchTerm} onChange={(e) => setCourseSearchTerm(e.target.value)} /></div>
+            <Button onClick={handleOpenNewCourseForm} className="bg-primary hover:bg-primary/90">
+                <PlusCircle className="mr-2 h-4 w-4" /> Add New Course
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          {courses.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">No courses defined yet.</p>
+          {filteredCourses.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">{courseSearchTerm ? "No matching courses found." : "No courses defined yet."}</p>
           ) : (
             <ScrollArea className="max-h-[300px] pr-3">
               <ul className="space-y-3">
-                {courses.map(course => (
+                {filteredCourses.map(course => (
                   <li key={course.id} className="p-3 border rounded-md bg-secondary/30 flex justify-between items-start">
                     <div>
                       <h4 className="font-semibold">{course.name}</h4>
@@ -213,19 +237,22 @@ export default function TrainingCompetencePage() {
             <CardTitle className="flex items-center gap-2"><UserCheck className="h-6 w-6 text-accent"/>Training Records</CardTitle>
             <CardDescription>Log and track employee training. Status is automatically updated based on expiry dates.</CardDescription>
           </div>
-          <Button onClick={handleOpenNewRecordForm} className="bg-accent hover:bg-accent/90" disabled={courses.length === 0}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Add New Record
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="relative"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search records..." className="pl-8 w-full sm:w-[200px]" value={recordSearchTerm} onChange={(e) => setRecordSearchTerm(e.target.value)} /></div>
+            <Button onClick={handleOpenNewRecordForm} className="bg-accent hover:bg-accent/90" disabled={courses.length === 0}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Add New Record
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {courses.length === 0 && <p className="text-center text-muted-foreground py-4">Please add courses to the catalog first to log training records.</p>}
-          {trainingRecords.length === 0 && courses.length > 0 && (
-            <p className="text-muted-foreground text-center py-4">No training records logged yet.</p>
+          {filteredTrainingRecords.length === 0 && courses.length > 0 && (
+            <p className="text-muted-foreground text-center py-4">{recordSearchTerm ? "No matching records found." : "No training records logged yet."}</p>
           )}
-          {trainingRecords.length > 0 && (
+          {filteredTrainingRecords.length > 0 && (
             <ScrollArea className="max-h-[500px] pr-3">
               <div className="space-y-3">
-                {trainingRecords.map(record => {
+                {filteredTrainingRecords.map(record => {
                   const derivedStatus = getDerivedStatus(record);
                   return (
                     <Card key={record.id} className="p-4 shadow-sm border">

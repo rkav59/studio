@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 // Removed Dialog import
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Edit2, Trash2, Eye, Users, Thermometer, ShieldCheck, Award, UserPlus, FlaskConical, ClipboardPlus, Users2Icon, AlertTriangle, CalendarClock, ClockIcon, ShieldAlert, FilePlus, Loader2, HeartPulse } from "lucide-react";
+import { Edit2, Trash2, Eye, Users, Thermometer, ShieldCheck, Award, UserPlus, FlaskConical, ClipboardPlus, Users2Icon, AlertTriangle, CalendarClock, ClockIcon, ShieldAlert, FilePlus, Loader2, HeartPulse, Search } from "lucide-react";
 import type { SimilarExposureGroup, IndustrialHygieneSample, MedicalTestRecord, WellnessProgram, MedicalTestWithCertStatus, MedicalTestPrefillData, IndustrialHygieneSampleAgent, MedicalTestRecordType } from "@/lib/types";
 // Removed form imports: SegForm, IhSampleForm, MedicalTestForm, WellnessProgramForm
 import { SegDetailsDialog } from '@/components/health-monitoring/seg-details-dialog';
@@ -24,6 +24,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Input } from '@/components/ui/input';
 
 const SEGS_COLLECTION = 'similarExposureGroups';
 const IH_SAMPLES_COLLECTION = 'industrialHygieneSamples';
@@ -37,11 +38,15 @@ export default function HealthMonitoringPage() {
   const queryClient = useQueryClient();
   const router = useRouter(); // Initialize useRouter
 
-  // Removed form dialog states (isSegFormOpen, editingSeg, etc.)
   const [viewingSeg, setViewingSeg] = useState<SimilarExposureGroup | null>(null);
   const [viewingIhSample, setViewingIhSample] = useState<IndustrialHygieneSample | null>(null);
   const [viewingMedicalTest, setViewingMedicalTest] = useState<MedicalTestRecord | null>(null);
   const [viewingWellnessProgram, setViewingWellnessProgram] = useState<WellnessProgram | null>(null);
+  const [segSearchTerm, setSegSearchTerm] = useState("");
+  const [ihSampleSearchTerm, setIhSampleSearchTerm] = useState("");
+  const [medicalTestSearchTerm, setMedicalTestSearchTerm] = useState("");
+  const [wellnessProgramSearchTerm, setWellnessProgramSearchTerm] = useState("");
+
 
   // Fetch SEGs
   const { data: segs = [], isLoading: isLoadingSegs, error: segsError } = useQuery<SimilarExposureGroup[]>({
@@ -108,7 +113,7 @@ export default function HealthMonitoringPage() {
     enabled: !!user?.uid,
   });
 
-  // SEG Deletion Mutation (remains here)
+  // Deletion Mutations
   const deleteSegMutation = useMutation({
     mutationFn: async (id: string) => {
       if (!user?.uid) throw new Error("User not authenticated.");
@@ -126,21 +131,18 @@ export default function HealthMonitoringPage() {
     },
   });
 
-  // IH Sample Deletion Mutation (remains here)
   const deleteIhSampleMutation = useMutation({
     mutationFn: (id: string) => deleteDoc(doc(db, IH_SAMPLES_COLLECTION, id)),
     onSuccess: () => { queryClient.invalidateQueries({queryKey: [IH_SAMPLES_COLLECTION, user?.uid]}); toast({title:"IH Sample Deleted"}); },
     onError: (e:Error) => toast({title:"Error Deleting IH Sample", description: "An unexpected error occurred. Please try again.", variant:"destructive"}),
   });
 
-  // Medical Test Deletion Mutation (remains here)
   const deleteMedicalTestMutation = useMutation({
     mutationFn: (id: string) => deleteDoc(doc(db, MEDICAL_TESTS_COLLECTION, id)),
     onSuccess: () => { queryClient.invalidateQueries({queryKey: [MEDICAL_TESTS_COLLECTION, user?.uid]}); toast({title:"Medical Test Deleted"});},
     onError: (e:Error) => toast({title:"Error Deleting Medical Test", description: "An unexpected error occurred. Please try again.", variant:"destructive"}),
   });
 
-  // Wellness Program Deletion Mutation (remains here)
   const deleteWellnessProgramMutation = useMutation({
     mutationFn: (id: string) => deleteDoc(doc(db, WELLNESS_PROGRAMS_COLLECTION, id)),
     onSuccess: () => { queryClient.invalidateQueries({queryKey: [WELLNESS_PROGRAMS_COLLECTION, user?.uid]}); toast({title:"Wellness Program Deleted"});},
@@ -189,6 +191,13 @@ export default function HealthMonitoringPage() {
 
   const upcomingOrOverdueCerts = useMemo(() => medicalTestsWithCertStatus.filter(test => test.certificateStatus === 'Expired' || test.certificateStatus === 'Expiring Soon'), [medicalTestsWithCertStatus]);
 
+  // Filtering Logic
+  const filteredSegs = useMemo(() => segs.filter(seg => seg.name.toLowerCase().includes(segSearchTerm.toLowerCase())), [segs, segSearchTerm]);
+  const filteredIhSamples = useMemo(() => ihSamples.filter(s => s.agent.toLowerCase().includes(ihSampleSearchTerm.toLowerCase()) || (s.employeeName && s.employeeName.toLowerCase().includes(ihSampleSearchTerm.toLowerCase())) || s.location.toLowerCase().includes(ihSampleSearchTerm.toLowerCase()) ), [ihSamples, ihSampleSearchTerm]);
+  const filteredMedicalTests = useMemo(() => medicalTestsWithCertStatus.filter(t => t.employeeName.toLowerCase().includes(medicalTestSearchTerm.toLowerCase()) || t.testType.toLowerCase().includes(medicalTestSearchTerm.toLowerCase())), [medicalTestsWithCertStatus, medicalTestSearchTerm]);
+  const filteredWellnessPrograms = useMemo(() => wellnessPrograms.filter(p => p.programName.toLowerCase().includes(wellnessProgramSearchTerm.toLowerCase())), [wellnessPrograms, wellnessProgramSearchTerm]);
+
+
   const getCertStatusStyling = (status?: MedicalTestWithCertStatus['certificateStatus']) => {
     if (!status || status === 'N/A') return { textClass: 'text-muted-foreground', bgClass: 'bg-muted/50' };
     switch (status) {
@@ -229,29 +238,56 @@ export default function HealthMonitoringPage() {
       <Separator/>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between"><div><CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-primary"/>Similar Exposure Groups (SEGs)</CardTitle><CardDescription>Define and manage groups of employees with similar exposure profiles.</CardDescription></div><Button onClick={handleOpenNewSegForm} className="bg-primary hover:bg-primary/90"><UserPlus className="mr-2 h-4 w-4" />Add SEG</Button></CardHeader>
-        <CardContent>{segs.length === 0 ? <p className="text-muted-foreground text-center py-4">No SEGs defined.</p> : (<ScrollArea className="max-h-[300px] pr-3"><div className="space-y-3">{segs.map(seg => (<Card key={seg.id} className="p-3 shadow-sm"><div className="flex justify-between items-start"><div><h4 className="font-semibold">{seg.name}</h4><p className="text-xs text-muted-foreground truncate max-w-md">{seg.description || "No description"}</p></div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingSeg(seg)}><Eye className="h-3 w-3"/></Button><Button variant="secondary" size="sm" onClick={() => handleEditSeg(seg)}><Edit2 className="h-3 w-3"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteSegMutation.isPending && deleteSegMutation.variables === seg.id}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete SEG?</AlertDialogTitle><AlertDialogDescription>Delete "{seg.name}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteSeg(seg.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>))}</div></ScrollArea>)}</CardContent>
+        <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+                <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-primary"/>Similar Exposure Groups (SEGs)</CardTitle>
+                <CardDescription>Define and manage groups of employees with similar exposure profiles.</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+                <div className="relative"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search SEGs..." className="pl-8 w-full sm:w-[200px]" value={segSearchTerm} onChange={(e) => setSegSearchTerm(e.target.value)} /></div>
+                <Button onClick={handleOpenNewSegForm} className="bg-primary hover:bg-primary/90"><UserPlus className="mr-2 h-4 w-4" />Add SEG</Button>
+            </div>
+        </CardHeader>
+        <CardContent>{filteredSegs.length === 0 ? <p className="text-muted-foreground text-center py-4">{segSearchTerm ? "No matching SEGs found." : "No SEGs defined."}</p> : (<ScrollArea className="max-h-[300px] pr-3"><div className="space-y-3">{filteredSegs.map(seg => (<Card key={seg.id} className="p-3 shadow-sm"><div className="flex justify-between items-start"><div><h4 className="font-semibold">{seg.name}</h4><p className="text-xs text-muted-foreground truncate max-w-md">{seg.description || "No description"}</p></div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingSeg(seg)}><Eye className="h-3 w-3"/></Button><Button variant="secondary" size="sm" onClick={() => handleEditSeg(seg)}><Edit2 className="h-3 w-3"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteSegMutation.isPending && deleteSegMutation.variables === seg.id}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete SEG?</AlertDialogTitle><AlertDialogDescription>Delete "{seg.name}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteSeg(seg.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>))}</div></ScrollArea>)}</CardContent>
       </Card>
       {viewingSeg && <SegDetailsDialog seg={viewingSeg} onClose={() => setViewingSeg(null)} />}
       <Separator/>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between"><div><CardTitle className="flex items-center gap-2"><FlaskConical className="h-6 w-6 text-accent"/>Industrial Hygiene Sampling</CardTitle><CardDescription>Log and track exposure monitoring data.</CardDescription></div><Button onClick={handleOpenNewIhSampleForm} className="bg-accent hover:bg-accent/90"><FilePlus className="mr-2 h-4 w-4" />Log IH Sample</Button></CardHeader>
-        <CardContent>{ihSamples.length === 0 ? <p className="text-muted-foreground text-center py-4">No IH samples logged.</p> : (<ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">{ihSamples.map(sample => (<Card key={sample.id} className={`p-3 shadow-sm ${sample.oel !== undefined && sample.exposureLevel > sample.oel ? 'border-l-4 border-red-500' : ''}`}><div className="flex justify-between items-start"><div><h4 className="font-semibold">{sample.agent}{sample.specificAgentName ? ` (${sample.specificAgentName})` : ''} - {format(parseISO(sample.sampleDate), "PPP")}</h4><p className="text-xs text-muted-foreground">Level: {sample.exposureLevel} {sample.units} {sample.oel !== undefined && `(OEL: ${sample.oel} ${sample.oelUnits || sample.units})`} | SEG: {getSegName(sample.segId)}</p>{sample.oel !== undefined && sample.exposureLevel > sample.oel && <p className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertTriangle className="h-3 w-3"/>EXPOSURE EXCEEDS OEL!</p>}</div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingIhSample(sample)}><Eye className="h-3 w-3"/></Button><Button variant="secondary" size="sm" onClick={() => handleEditIhSample(sample)}><Edit2 className="h-3 w-3"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteIhSampleMutation.isPending && deleteIhSampleMutation.variables === sample.id}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete IH Sample?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteIhSample(sample.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>))}</div></ScrollArea>)}</CardContent>
+        <CardHeader className="flex flex-row items-center justify-between">
+            <div><CardTitle className="flex items-center gap-2"><FlaskConical className="h-6 w-6 text-accent"/>Industrial Hygiene Sampling</CardTitle><CardDescription>Log and track exposure monitoring data.</CardDescription></div>
+            <div className="flex items-center gap-2">
+                <div className="relative"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search samples..." className="pl-8 w-full sm:w-[200px]" value={ihSampleSearchTerm} onChange={(e) => setIhSampleSearchTerm(e.target.value)} /></div>
+                <Button onClick={handleOpenNewIhSampleForm} className="bg-accent hover:bg-accent/90"><FilePlus className="mr-2 h-4 w-4" />Log IH Sample</Button>
+            </div>
+        </CardHeader>
+        <CardContent>{filteredIhSamples.length === 0 ? <p className="text-muted-foreground text-center py-4">{ihSampleSearchTerm ? "No matching samples found." : "No IH samples logged."}</p> : (<ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">{filteredIhSamples.map(sample => (<Card key={sample.id} className={`p-3 shadow-sm ${sample.oel !== undefined && sample.exposureLevel > sample.oel ? 'border-l-4 border-red-500' : ''}`}><div className="flex justify-between items-start"><div><h4 className="font-semibold">{sample.agent}{sample.specificAgentName ? ` (${sample.specificAgentName})` : ''} - {format(parseISO(sample.sampleDate), "PPP")}</h4><p className="text-xs text-muted-foreground">Level: {sample.exposureLevel} {sample.units} {sample.oel !== undefined && `(OEL: ${sample.oel} ${sample.oelUnits || sample.units})`} | SEG: {getSegName(sample.segId)}</p>{sample.oel !== undefined && sample.exposureLevel > sample.oel && <p className="text-xs font-bold text-red-500 flex items-center gap-1"><AlertTriangle className="h-3 w-3"/>EXPOSURE EXCEEDS OEL!</p>}</div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingIhSample(sample)}><Eye className="h-3 w-3"/></Button><Button variant="secondary" size="sm" onClick={() => handleEditIhSample(sample)}><Edit2 className="h-3 w-3"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteIhSampleMutation.isPending && deleteIhSampleMutation.variables === sample.id}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete IH Sample?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteIhSample(sample.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>))}</div></ScrollArea>)}</CardContent>
       </Card>
       {viewingIhSample && <IhSampleDetailsDialog sample={viewingIhSample} segName={getSegName(viewingIhSample.segId)} onClose={() => setViewingIhSample(null)} />}
       <Separator/>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between"><div><CardTitle className="flex items-center gap-2"><ClipboardPlus className="h-6 w-6 text-teal-500"/>Medical Test & Screening Records</CardTitle><CardDescription>Track employee medical tests and certificate expiries.</CardDescription></div><Button onClick={handleOpenNewMedicalTestForm} className="bg-teal-500 hover:bg-teal-600 text-white"><FilePlus className="mr-2 h-4 w-4" />Log Medical Record</Button></CardHeader>
-        <CardContent>{medicalTestsWithCertStatus.length === 0 ? <p className="text-muted-foreground text-center py-4">No medical records logged.</p> : (<ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">{medicalTestsWithCertStatus.map(test => { const { textClass, bgClass } = getCertStatusStyling(test.certificateStatus); return (<Card key={test.id} className={`p-3 shadow-sm ${test.certificateStatus === 'Expired' ? 'border-l-4 border-red-500' : test.certificateStatus === 'Expiring Soon' ? 'border-l-4 border-yellow-500' : '' }`}><div className="flex justify-between items-start"><div><h4 className="font-semibold">{test.employeeName} - {test.testType}{test.specificTestName ? ` (${test.specificTestName})` : ''}</h4><p className="text-xs text-muted-foreground">Date: {format(parseISO(test.testDate), "PPP")} | Fit: {test.isFitForWork === undefined ? 'N/A' : test.isFitForWork ? 'Yes' : 'No'}</p>{test.certificateExpiryDate && (<p className={`text-xs flex items-center gap-1 ${textClass}`}><ClockIcon className="h-3 w-3"/>Cert. Expiry: {format(parseISO(test.certificateExpiryDate), "PPP")} {test.certificateStatus && test.certificateStatus !== 'N/A' && <span className={`px-1.5 py-0.5 rounded-full text-xs ${bgClass}`}>{test.certificateStatus}</span>}</p>)}{test.followUpRequired && <p className="text-xs text-yellow-600 font-semibold flex items-center gap-1"><AlertTriangle className="h-3 w-3"/>Follow-up Required</p>}</div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingMedicalTest(test)}><Eye className="h-3 w-3"/></Button><Button variant="secondary" size="sm" onClick={() => handleEditMedicalTest(test)}><Edit2 className="h-3 w-3"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteMedicalTestMutation.isPending && deleteMedicalTestMutation.variables === test.id}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Medical Test Record?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteMedicalTest(test.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>)})}</div></ScrollArea>)}</CardContent>
+        <CardHeader className="flex flex-row items-center justify-between">
+            <div><CardTitle className="flex items-center gap-2"><ClipboardPlus className="h-6 w-6 text-teal-500"/>Medical Test & Screening Records</CardTitle><CardDescription>Track employee medical tests and certificate expiries.</CardDescription></div>
+            <div className="flex items-center gap-2">
+                <div className="relative"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search records..." className="pl-8 w-full sm:w-[200px]" value={medicalTestSearchTerm} onChange={(e) => setMedicalTestSearchTerm(e.target.value)} /></div>
+                <Button onClick={handleOpenNewMedicalTestForm} className="bg-teal-500 hover:bg-teal-600 text-white"><FilePlus className="mr-2 h-4 w-4" />Log Medical Record</Button>
+            </div>
+        </CardHeader>
+        <CardContent>{filteredMedicalTests.length === 0 ? <p className="text-muted-foreground text-center py-4">{medicalTestSearchTerm ? "No matching records found." : "No medical records logged."}</p> : (<ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">{filteredMedicalTests.map(test => { const { textClass, bgClass } = getCertStatusStyling(test.certificateStatus); return (<Card key={test.id} className={`p-3 shadow-sm ${test.certificateStatus === 'Expired' ? 'border-l-4 border-red-500' : test.certificateStatus === 'Expiring Soon' ? 'border-l-4 border-yellow-500' : '' }`}><div className="flex justify-between items-start"><div><h4 className="font-semibold">{test.employeeName} - {test.testType}{test.specificTestName ? ` (${test.specificTestName})` : ''}</h4><p className="text-xs text-muted-foreground">Date: {format(parseISO(test.testDate), "PPP")} | Fit: {test.isFitForWork === undefined ? 'N/A' : test.isFitForWork ? 'Yes' : 'No'}</p>{test.certificateExpiryDate && (<p className={`text-xs flex items-center gap-1 ${textClass}`}><ClockIcon className="h-3 w-3"/>Cert. Expiry: {format(parseISO(test.certificateExpiryDate), "PPP")} {test.certificateStatus && test.certificateStatus !== 'N/A' && <span className={`px-1.5 py-0.5 rounded-full text-xs ${bgClass}`}>{test.certificateStatus}</span>}</p>)}{test.followUpRequired && <p className="text-xs text-yellow-600 font-semibold flex items-center gap-1"><AlertTriangle className="h-3 w-3"/>Follow-up Required</p>}</div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingMedicalTest(test)}><Eye className="h-3 w-3"/></Button><Button variant="secondary" size="sm" onClick={() => handleEditMedicalTest(test)}><Edit2 className="h-3 w-3"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteMedicalTestMutation.isPending && deleteMedicalTestMutation.variables === test.id}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Medical Test Record?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteMedicalTest(test.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>)})}</div></ScrollArea>)}</CardContent>
       </Card>
       {viewingMedicalTest && <MedicalTestDetailsDialog record={viewingMedicalTest} segName={getSegName(viewingMedicalTest.segId)} onClose={() => setViewingMedicalTest(null)} />}
       <Separator/>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between"><div><CardTitle className="flex items-center gap-2"><Users2Icon className="h-6 w-6 text-purple-500"/>Employee Wellness Programs</CardTitle><CardDescription>Manage and track wellness initiatives.</CardDescription></div><Button onClick={handleOpenNewWellnessProgramForm} className="bg-purple-500 hover:bg-purple-600 text-white"><Award className="mr-2 h-4 w-4" />Add Program</Button></CardHeader>
-        <CardContent>{wellnessPrograms.length === 0 ? <p className="text-muted-foreground text-center py-4">No wellness programs defined.</p> : (<ScrollArea className="max-h-[300px] pr-3"><div className="space-y-3">{wellnessPrograms.map(program => (<Card key={program.id} className="p-3 shadow-sm"><div className="flex justify-between items-start"><div><h4 className="font-semibold">{program.programName}</h4><p className="text-xs text-muted-foreground">Status: {program.status} | Start: {format(parseISO(program.startDate), "PPP")}</p></div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingWellnessProgram(program)}><Eye className="h-3 w-3"/></Button><Button variant="secondary" size="sm" onClick={() => handleEditWellnessProgram(program)}><Edit2 className="h-3 w-3"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteWellnessProgramMutation.isPending && deleteWellnessProgramMutation.variables === program.id}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Wellness Program?</AlertDialogTitle><AlertDialogDescription>Delete "{program.programName}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteWellnessProgram(program.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>))}</div></ScrollArea>)}</CardContent>
+        <CardHeader className="flex flex-row items-center justify-between">
+            <div><CardTitle className="flex items-center gap-2"><Users2Icon className="h-6 w-6 text-purple-500"/>Employee Wellness Programs</CardTitle><CardDescription>Manage and track wellness initiatives.</CardDescription></div>
+            <div className="flex items-center gap-2">
+                <div className="relative"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search programs..." className="pl-8 w-full sm:w-[200px]" value={wellnessProgramSearchTerm} onChange={(e) => setWellnessProgramSearchTerm(e.target.value)} /></div>
+                <Button onClick={handleOpenNewWellnessProgramForm} className="bg-purple-500 hover:bg-purple-600 text-white"><Award className="mr-2 h-4 w-4" />Add Program</Button>
+            </div>
+        </CardHeader>
+        <CardContent>{filteredWellnessPrograms.length === 0 ? <p className="text-muted-foreground text-center py-4">{wellnessProgramSearchTerm ? "No matching programs found." : "No wellness programs defined."}</p> : (<ScrollArea className="max-h-[300px] pr-3"><div className="space-y-3">{filteredWellnessPrograms.map(program => (<Card key={program.id} className="p-3 shadow-sm"><div className="flex justify-between items-start"><div><h4 className="font-semibold">{program.programName}</h4><p className="text-xs text-muted-foreground">Status: {program.status} | Start: {format(parseISO(program.startDate), "PPP")}</p></div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingWellnessProgram(program)}><Eye className="h-3 w-3"/></Button><Button variant="secondary" size="sm" onClick={() => handleEditWellnessProgram(program)}><Edit2 className="h-3 w-3"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteWellnessProgramMutation.isPending && deleteWellnessProgramMutation.variables === program.id}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Wellness Program?</AlertDialogTitle><AlertDialogDescription>Delete "{program.programName}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteWellnessProgram(program.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>))}</div></ScrollArea>)}</CardContent>
       </Card>
       {viewingWellnessProgram && <WellnessProgramDetailsDialog program={viewingWellnessProgram} onClose={() => setViewingWellnessProgram(null)} />}
     </div>
