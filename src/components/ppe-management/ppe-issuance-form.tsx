@@ -45,13 +45,12 @@ const ppeIssuanceFormSchema = z.object({
   conditionOnReturn: z.enum(['Good', 'Damaged', 'Lost']).optional(),
   notes: z.string().max(1000).optional(),
 }).refine(data => {
-    if (!data.actualReturnDate || !data.issuedDate) {
-        return true; // No dates to compare or one is missing
+    if (!(data.actualReturnDate instanceof Date) || !(data.issuedDate instanceof Date)) {
+        return true;
     }
-    // Dates are now Date objects, direct comparison works
     return data.actualReturnDate >= data.issuedDate;
 }, {
-    message: "Return date cannot be before issued date.",
+    message: "Return date cannot be on or before the issued date.",
     path: ["actualReturnDate"],
 });
 
