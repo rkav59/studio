@@ -37,7 +37,7 @@ import { useMemo, useEffect } from "react";
 const ppeIssuanceFormSchema = z.object({
   ppeItemId: z.string({ required_error: "Please select a PPE item." }).min(1, "Please select a PPE item."),
   employeeName: z.string().min(2, "Employee name is required.").max(150),
-  // jobRole: z.string().max(100).optional(), // This field is disabled
+  jobRole: z.string().max(100).optional(),
   issuedDate: z.string().refine(val => isValid(parseISO(val)), { message: "Issued date is required." }),
   quantityIssued: z.coerce.number().min(1, "Quantity must be at least 1.").int(),
   expectedReturnDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid expected return date" }),
@@ -53,21 +53,21 @@ export type PpeIssuanceFormValues = z.infer<typeof ppeIssuanceFormSchema>;
 
 interface PpeIssuanceFormProps {
   ppeItems: PpeItem[];
-  // ppeJobRoleMatrix: PpeJobRoleMatrixEntry[]; // Disabled prop
+  ppeJobRoleMatrix: PpeJobRoleMatrixEntry[];
   initialData?: PpeIssuanceRecord | null;
   onSave: (data: PpeIssuanceFormValues) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
 }
 
-export function PpeIssuanceForm({ ppeItems, initialData, onSave, onCancel, isSubmitting }: PpeIssuanceFormProps) {
+export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSave, onCancel, isSubmitting }: PpeIssuanceFormProps) {
   const isEditing = !!initialData;
   const form = useForm<PpeIssuanceFormValues>({
     resolver: zodResolver(ppeIssuanceFormSchema),
     defaultValues: {
       ppeItemId: initialData?.ppeItemId || "",
       employeeName: initialData?.employeeName || "",
-      // jobRole: initialData?.jobRole || "", // Disabled
+      jobRole: initialData?.jobRole || "",
       issuedDate: initialData?.issuedDate ? format(parseISO(initialData.issuedDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       quantityIssued: initialData?.quantityIssued || 1,
       expectedReturnDate: initialData?.expectedReturnDate ? format(parseISO(initialData.expectedReturnDate), 'yyyy-MM-dd') : undefined,
@@ -77,11 +77,33 @@ export function PpeIssuanceForm({ ppeItems, initialData, onSave, onCancel, isSub
     },
   });
   
+  const watchedJobRole = form.watch("jobRole");
+
   const availablePpeItems = useMemo(() => {
-    return ppeItems.filter(item => 
+    const baseAvailableItems = ppeItems.filter(item => 
         (item.status || 'Available') === 'Available' || item.id === initialData?.ppeItemId
     );
-  }, [ppeItems, initialData]);
+
+    if (watchedJobRole) {
+        const roleMatrixEntry = ppeJobRoleMatrix.find(role => role.jobRole === watchedJobRole);
+        if (roleMatrixEntry) {
+            const requiredIds = roleMatrixEntry.requiredPpeItemIds;
+            return baseAvailableItems.filter(item => requiredIds.includes(item.id));
+        }
+    }
+    
+    return baseAvailableItems;
+  }, [ppeItems, initialData?.ppeItemId, watchedJobRole, ppeJobRoleMatrix]);
+
+  useEffect(() => {
+    // When job role changes, check if the currently selected PPE item is still valid.
+    // If not, reset it. This prevents an invalid state.
+    const currentPpeId = form.getValues("ppeItemId");
+    if (currentPpeId && !availablePpeItems.some(item => item.id === currentPpeId)) {
+        form.setValue("ppeItemId", "");
+    }
+  }, [watchedJobRole, availablePpeItems, form]);
+
 
   const onSubmit = (data: PpeIssuanceFormValues) => {
     onSave(data);
@@ -105,11 +127,36 @@ export function PpeIssuanceForm({ ppeItems, initialData, onSave, onCancel, isSub
               <FormField control={form.control} name="employeeName" render={({ field }) => (
                 <FormItem><FormLabel>Employee Name</FormLabel><FormControl><Input placeholder="Employee's full name" {...field} /></FormControl><FormMessage /></FormItem>
               )}/>
+              
+              <FormField
+                control={form.control}
+                name="jobRole"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Job Role (Optional)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <FormControl>
+                        <SelectTrigger>
+                        <SelectValue placeholder="Select a job role to filter PPE" />
+                        </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        <SelectItem value="">None (Show All PPE)</SelectItem>
+                        {ppeJobRoleMatrix.map(role => (
+                        <SelectItem key={role.id} value={role.jobRole}>{role.jobRole}</SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                    <FormDescription>Filters the PPE list below.</FormDescription>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
 
               <FormField control={form.control} name="ppeItemId" render={({ field }) => (
                 <FormItem><FormLabel>PPE Item</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value} disabled={availablePpeItems.length === 0}>
-                    <FormControl><SelectTrigger><SelectValue placeholder={availablePpeItems.length === 0 ? "No available PPE items" : "Select PPE item"} /></SelectTrigger></FormControl>
+                    <FormControl><SelectTrigger><SelectValue placeholder={availablePpeItems.length === 0 ? "No available PPE items for this role" : "Select PPE item"} /></SelectTrigger></FormControl>
                     <SelectContent>
                         {availablePpeItems.map(item => <SelectItem key={item.id} value={item.id}>{item.name} (Stock: {item.currentStock})</SelectItem>)}
                     </SelectContent>

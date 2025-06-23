@@ -15,6 +15,8 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 const PPE_ISSUANCES_COLLECTION = 'ppeIssuances';
 const PPE_ITEMS_COLLECTION = 'ppeItems';
+const PPE_JOB_ROLE_MATRIX_COLLECTION = 'ppeJobRoleMatrix';
+
 
 export default function NewPpeIssuancePage() {
   const router = useRouter();
@@ -30,6 +32,18 @@ export default function NewPpeIssuancePage() {
       const q = query(collection(db, PPE_ITEMS_COLLECTION), where("userId", "==", user.uid));
       const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PpeItem));
+    },
+    enabled: !!user?.uid,
+  });
+
+  // Fetch PPE Job Role Matrix for dropdown
+  const { data: ppeJobRoleMatrix = [], isLoading: isLoadingJobRoleMatrix, error: jobRoleMatrixError } = useQuery<PpeJobRoleMatrixEntry[]>({
+    queryKey: [PPE_JOB_ROLE_MATRIX_COLLECTION, user?.uid],
+    queryFn: async () => {
+        if (!user?.uid) return [];
+        const q = query(collection(db, PPE_JOB_ROLE_MATRIX_COLLECTION), where("userId", "==", user.uid));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PpeJobRoleMatrixEntry));
     },
     enabled: !!user?.uid,
   });
@@ -72,7 +86,7 @@ export default function NewPpeIssuancePage() {
     router.push('/ppe-management');
   };
   
-  const isLoading = isLoadingPpeItems;
+  const isLoading = isLoadingPpeItems || isLoadingJobRoleMatrix;
 
   if (isLoading) {
     return (
@@ -85,7 +99,7 @@ export default function NewPpeIssuancePage() {
     );
   }
 
-  if (ppeItemsError) {
+  if (ppeItemsError || jobRoleMatrixError) {
     return <div className="text-red-500 text-center py-10">Error loading data. Please try again later.</div>;
   }
 
@@ -93,6 +107,7 @@ export default function NewPpeIssuancePage() {
     <div className="h-full flex flex-col">
       <PpeIssuanceForm
         ppeItems={ppeItems}
+        ppeJobRoleMatrix={ppeJobRoleMatrix}
         onSave={handleSaveNewIssuance}
         onCancel={handleCancel}
         isSubmitting={addIssuanceMutation.isPending}
