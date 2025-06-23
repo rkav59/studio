@@ -104,7 +104,15 @@ export default function PpeManagementPage() {
       if (!user?.uid) return [];
       const q = query(collection(db, PPE_INSPECTIONS_COLLECTION), where("userId", "==", user.uid));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PpeInspectionRecord));
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          inspectionDate: (data.inspectionDate as Timestamp)?.toDate().toISOString(),
+          nextInspectionDate: data.nextInspectionDate ? (data.nextInspectionDate as Timestamp).toDate().toISOString() : undefined,
+        } as PpeInspectionRecord
+      });
     },
     enabled: !!user?.uid,
   });
@@ -193,7 +201,7 @@ export default function PpeManagementPage() {
     mutationFn: (entryId: string) => deleteDoc(doc(db, PPE_JOB_ROLE_MATRIX_COLLECTION, entryId)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [PPE_JOB_ROLE_MATRIX_COLLECTION, user?.uid] });
-      toast({ title: "Job Role Matrix Entry Deleted" });
+      toast({ title: "Job Role Entry Deleted" });
     },
     onError: (e:Error) => toast({title: "Error Deleting Job Role Entry", description: "An unexpected error occurred. Please try again.", variant: "destructive"}),
   });
@@ -202,16 +210,16 @@ export default function PpeManagementPage() {
   const ppeItemsWithInspectionInfo = useMemo((): PpeItemWithInspectionInfo[] => {
     return ppeItems.map(item => {
       const itemInspections = ppeInspections
-        .filter(insp => insp.ppeItemId === item.id && insp.nextInspectionDate && isValid(parseISO(insp.nextInspectionDate)))
+        .filter(insp => insp.ppeItemId === item.id && insp.nextInspectionDueDate && isValid(parseISO(insp.nextInspectionDueDate)))
         .sort((a, b) => parseISO(b.inspectionDate).getTime() - parseISO(a.inspectionDate).getTime()); 
       
-      const latestRelevantInspection = itemInspections.find(insp => insp.nextInspectionDate); 
+      const latestRelevantInspection = itemInspections.find(insp => insp.nextInspectionDueDate); 
 
       let dueStatus: PpeItemWithInspectionInfo['dueStatus'] = 'OK';
       let nextDueDate: string | undefined = undefined;
 
-      if (latestRelevantInspection?.nextInspectionDate) {
-        nextDueDate = latestRelevantInspection.nextInspectionDate;
+      if (latestRelevantInspection?.nextInspectionDueDate) {
+        nextDueDate = latestRelevantInspection.nextInspectionDueDate;
         const dueDate = parseISO(nextDueDate);
         const today = new Date();
         today.setHours(0,0,0,0); 
