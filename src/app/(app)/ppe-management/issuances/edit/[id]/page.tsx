@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
@@ -58,14 +59,10 @@ export default function EditPpeIssuancePage() {
       const recordRef = doc(db, PPE_ISSUANCES_COLLECTION, issuanceId);
       const recordSnap = await getDoc(recordRef);
       if (recordSnap.exists() && recordSnap.data().userId === user.uid) {
-        const data = recordSnap.data();
-        // Convert Timestamps to ISO strings for form compatibility
+        // Data is now stored as ISO strings, no conversion needed here.
         return {
           id: recordSnap.id,
-          ...data,
-          issuedDate: data.issuedDate instanceof Timestamp ? data.issuedDate.toDate().toISOString() : data.issuedDate,
-          expectedReturnDate: data.expectedReturnDate instanceof Timestamp ? data.expectedReturnDate.toDate().toISOString() : data.expectedReturnDate,
-          actualReturnDate: data.actualReturnDate instanceof Timestamp ? data.actualReturnDate.toDate().toISOString() : data.actualReturnDate,
+          ...recordSnap.data(),
         } as PpeIssuanceRecord;
       }
       return null;
@@ -78,12 +75,10 @@ export default function EditPpeIssuancePage() {
       if (!user?.uid || !updatedData.id) throw new Error("User or issuance ID missing.");
       const { id, ...dataToUpdate } = updatedData;
       const recordRef = doc(db, PPE_ISSUANCES_COLLECTION, id);
+      // dataToUpdate has correct ISO strings from handleSaveIssuance, just need to ensure userId
       await updateDoc(recordRef, {
         ...dataToUpdate,
-        userId: user.uid, // Ensure userId is maintained
-        issuedDate: Timestamp.fromDate(parseISO(dataToUpdate.issuedDate)),
-        expectedReturnDate: dataToUpdate.expectedReturnDate ? Timestamp.fromDate(parseISO(dataToUpdate.expectedReturnDate)) : null,
-        actualReturnDate: dataToUpdate.actualReturnDate ? Timestamp.fromDate(parseISO(dataToUpdate.actualReturnDate)) : null,
+        userId: user.uid, 
       });
     },
     onSuccess: (_, variables) => {

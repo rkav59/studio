@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRouter } from 'next/navigation';
@@ -8,7 +9,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import type { PpeIssuanceRecord, PpeItem, PpeJobRoleMatrixEntry } from '@/lib/types';
+import type { PpeIssuanceRecord, PpeItem, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
@@ -52,10 +53,11 @@ export default function NewPpeIssuancePage() {
       const dataForDb = {
         ...newIssuanceData,
         userId: user.uid,
-        issuedDate: Timestamp.fromDate(parseISO(newIssuanceData.issuedDate)),
-        expectedReturnDate: newIssuanceData.expectedReturnDate ? Timestamp.fromDate(parseISO(newIssuanceData.expectedReturnDate)) : null,
-        actualReturnDate: newIssuanceData.actualReturnDate ? Timestamp.fromDate(parseISO(newIssuanceData.actualReturnDate)) : null,
+        issuedDate: parseISO(newIssuanceData.issuedDate).toISOString(),
+        expectedReturnDate: newIssuanceData.expectedReturnDate ? parseISO(newIssuanceData.expectedReturnDate).toISOString() : undefined,
+        actualReturnDate: newIssuanceData.actualReturnDate ? parseISO(newIssuanceData.actualReturnDate).toISOString() : undefined,
       };
+      // Firestore ignores undefined fields automatically
       return addDoc(collection(db, PPE_ISSUANCES_COLLECTION), dataForDb);
     },
     onSuccess: () => {
