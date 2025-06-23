@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PlusCircle, Edit2, Trash2, Eye, FileText, ArrowLeft, Search, Loader2 } from "lucide-react";
-import type { PtwSupervisionRecord, PermitToWork } from "@/lib/types";
+import type { PtwSupervisionRecord, PermitToWork, Contractor } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
@@ -29,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const PTW_SUPERVISION_RECORDS_COLLECTION = 'ptwSupervisionRecords';
 const PTWS_COLLECTION = 'permitsToWork';
+const CONTRACTORS_COLLECTION = 'contractors';
 
 export default function PtwSupervisionListPage() {
   const router = useRouter();
@@ -38,6 +39,18 @@ export default function PtwSupervisionListPage() {
   const queryClient = useQueryClient();
 
   const ptwId = params.ptwId as string;
+
+  const { data: contractors = [], isLoading: isLoadingContractors, error: contractorsError } = useQuery<Contractor[]>({
+    queryKey: [CONTRACTORS_COLLECTION, user?.uid],
+    queryFn: async () => {
+        if (!user?.uid) return [];
+        const q = query(collection(db, CONTRACTORS_COLLECTION), where("userId", "==", user.uid));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Contractor));
+    },
+    enabled: !!user?.uid,
+  });
+
 
   const { data: ptw, isLoading: isLoadingPtw, error: ptwError } = useQuery<PermitToWork | null>({
     queryKey: [PTWS_COLLECTION, ptwId, user?.uid],
@@ -105,7 +118,7 @@ export default function PtwSupervisionListPage() {
   };
 
 
-  if (isLoadingPtw || isLoadingSupervision) {
+  if (isLoadingPtw || isLoadingSupervision || isLoadingContractors) {
     return (
       <div className="space-y-6 p-4">
         <Skeleton className="h-10 w-64" />
@@ -119,7 +132,7 @@ export default function PtwSupervisionListPage() {
     );
   }
 
-  if (ptwError || supervisionError || !ptw) {
+  if (ptwError || supervisionError || contractorsError || !ptw) {
     return (
       <div className="space-y-6 p-4">
         <Button variant="outline" onClick={handleNavigateBack}><ArrowLeft className="mr-2 h-4 w-4" />Back to Contractor Safety</Button>
@@ -205,5 +218,3 @@ export default function PtwSupervisionListPage() {
     </div>
   );
 }
-// Placeholder for contractors if not passed directly - adjust as needed for actual data fetching for PTW's contractor name
-const contractors: Array<{ id: string, companyName: string }> = [];

@@ -117,15 +117,17 @@ export default function ContractorSafetyPage() {
     queryKey: [JOB_CARDS_COLLECTION, user?.uid],
     queryFn: async () => {
       if (!user?.uid) return [];
-      const q = query(collection(db, JOB_CARDS_COLLECTION), where("userId", "==", user.uid), orderBy("workDate", "desc"));
+      const q = query(collection(db, JOB_CARDS_COLLECTION), where("userId", "==", user.uid));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(docSnap => {
+      const data = snapshot.docs.map(docSnap => {
         const data = docSnap.data();
         return {
           id: docSnap.id, ...data,
           workDate: (data.workDate as Timestamp)?.toDate().toISOString(),
         } as JobCard;
       });
+      data.sort((a,b) => new Date(b.workDate).getTime() - new Date(a.workDate).getTime());
+      return data;
     },
     enabled: !!user?.uid,
   });
