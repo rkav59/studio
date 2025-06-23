@@ -2,16 +2,17 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { PpeIssuanceForm } from "@/components/ppe-management/ppe-issuance-form";
+import { PpeIssuanceForm, type PpeIssuanceFormValues } from "@/components/ppe-management/ppe-issuance-form";
 import { useToast } from '@/hooks/use-toast';
-import { parseISO } from 'date-fns';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import type { PpeItem, PpeIssuanceRecord, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 const PPE_ISSUANCES_COLLECTION = 'ppeIssuances';
 const PPE_ITEMS_COLLECTION = 'ppeItems';
@@ -49,19 +50,11 @@ export default function NewPpeIssuancePage() {
   });
 
   const addIssuanceMutation = useMutation({
-    mutationFn: async (newIssuanceData: Omit<PpeIssuanceRecord, 'id' | 'userId'>) => {
+    mutationFn: async (newIssuanceData: Omit<PpeIssuanceRecord, 'id'>) => {
       if (!user?.uid) throw new Error("User not authenticated.");
-      const dataForDb = {
-        ...newIssuanceData,
-        userId: user.uid,
-        issuedDate: Timestamp.fromDate(parseISO(newIssuanceData.issuedDate)),
-        expectedReturnDate: newIssuanceData.expectedReturnDate ? Timestamp.fromDate(parseISO(newIssuanceData.expectedReturnDate)) : null,
-        actualReturnDate: newIssuanceData.actualReturnDate ? Timestamp.fromDate(parseISO(newIssuanceData.actualReturnDate)) : null,
-      };
-      // Firestore handles null values, which is better than undefined for explicit field removal/setting
-      return addDoc(collection(db, PPE_ISSUANCES_COLLECTION), dataForDb);
+      return addDoc(collection(db, PPE_ISSUANCES_COLLECTION), newIssuanceData);
     },
-    onSuccess: () => {
+    onSuccess: (docRef, variables) => {
       queryClient.invalidateQueries({ queryKey: [PPE_ISSUANCES_COLLECTION, user?.uid] });
       toast({ 
         title: "PPE Issuance Logged", 
@@ -78,8 +71,17 @@ export default function NewPpeIssuancePage() {
     },
   });
 
-  const handleSaveNewIssuance = (formData: Omit<PpeIssuanceRecord, 'id' | 'userId'>) => {
-    addIssuanceMutation.mutate(formData);
+  const handleSaveNewIssuance = (formData: PpeIssuanceFormValues) => {
+    if (!user?.uid) return;
+
+    const dataForDb: Omit<PpeIssuanceRecord, 'id'> = {
+      userId: user.uid,
+      ...formData,
+      issuedDate: formData.issuedDate.toISOString(),
+      expectedReturnDate: formData.expectedReturnDate ? formData.expectedReturnDate.toISOString() : undefined,
+      actualReturnDate: formData.actualReturnDate ? formData.actualReturnDate.toISOString() : undefined,
+    };
+    addIssuanceMutation.mutate(dataForDb);
   };
 
   const handleCancel = () => {
@@ -102,6 +104,26 @@ export default function NewPpeIssuancePage() {
   if (ppeItemsError || jobRoleMatrixError) {
     return <div className="text-red-500 text-center py-10">Error loading data. Please try again later.</div>;
   }
+  
+  if (ppeItems.length === 0 && !isLoadingPpeItems) {
+    return (
+        <div className="space-y-6">
+             <div className="flex items-center gap-4">
+                <Button variant="outline" size="icon" onClick={handleCancel} aria-label="Back to PPE Management"><ArrowLeft className="h-4 w-4" /></Button>
+            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Cannot Log Issuance</CardTitle>
+                    <CardDescription>There are no PPE items in the inventory. Please add items before logging an issuance.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button onClick={() => router.push('/ppe-management/items/new')}>Add PPE Item</Button>
+                </CardContent>
+            </Card>
+        </div>
+    );
+  }
+
 
   return (
     <div className="h-full flex flex-col">

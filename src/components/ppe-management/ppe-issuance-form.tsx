@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,13 +45,12 @@ const ppeIssuanceFormSchema = z.object({
   conditionOnReturn: z.enum(['Good', 'Damaged', 'Lost']).optional(),
   notes: z.string().max(1000).optional(),
 }).refine(data => {
-    // Only compare if both dates are valid Date objects
     if (data.actualReturnDate && data.issuedDate) {
         return data.actualReturnDate >= data.issuedDate;
     }
-    return true; // Pass validation if one or both dates are missing
+    return true;
 }, {
-    message: "Return date cannot be on or before the issued date.",
+    message: "Return date cannot be before the issued date.",
     path: ["actualReturnDate"],
 });
 
@@ -61,7 +61,7 @@ interface PpeIssuanceFormProps {
   ppeItems: PpeItem[];
   ppeJobRoleMatrix: PpeJobRoleMatrixEntry[];
   initialData?: PpeIssuanceRecord | null;
-  onSave: (data: PpeIssuanceRecord) => void;
+  onSave: (data: PpeIssuanceFormValues) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
 }
@@ -70,10 +70,26 @@ const NO_ROLE_VALUE = "__NONE__";
 
 export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSave, onCancel, isSubmitting }: PpeIssuanceFormProps) {
   const isEditing = !!initialData?.id;
+
+  const availableItemsForRole = (role?: string) => {
+    const baseAvailableItems = ppeItems.filter(item => 
+        (item.status || 'Available') === 'Available' || item.id === initialData?.ppeItemId
+    );
+    if (role && role !== NO_ROLE_VALUE) {
+        const roleMatrixEntry = ppeJobRoleMatrix.find(r => r.jobRole === role);
+        if (roleMatrixEntry) {
+            const requiredIds = roleMatrixEntry.requiredPpeItemIds;
+            return baseAvailableItems.filter(item => requiredIds.includes(item.id));
+        }
+        return [];
+    }
+    return baseAvailableItems;
+  };
+  
   const form = useForm<PpeIssuanceFormValues>({
     resolver: zodResolver(ppeIssuanceFormSchema),
     defaultValues: {
-      ppeItemId: initialData?.ppeItemId || "",
+      ppeItemId: initialData?.ppeItemId || (availableItemsForRole(initialData?.jobRole).length > 0 ? availableItemsForRole(initialData?.jobRole)[0].id : ""),
       employeeName: initialData?.employeeName || "",
       jobRole: initialData?.jobRole || NO_ROLE_VALUE,
       issuedDate: initialData?.issuedDate ? parseISO(initialData.issuedDate) : new Date(),
@@ -88,37 +104,21 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
   const watchedJobRole = form.watch("jobRole");
 
   const availablePpeItems = useMemo(() => {
-    const baseAvailableItems = ppeItems.filter(item => 
-        (item.status || 'Available') === 'Available' || item.id === initialData?.ppeItemId
-    );
-
-    if (watchedJobRole && watchedJobRole !== NO_ROLE_VALUE) {
-        const roleMatrixEntry = ppeJobRoleMatrix.find(role => role.jobRole === watchedJobRole);
-        if (roleMatrixEntry) {
-            const requiredIds = roleMatrixEntry.requiredPpeItemIds;
-            return baseAvailableItems.filter(item => requiredIds.includes(item.id));
-        }
-    }
-    
-    return baseAvailableItems;
+    return availableItemsForRole(watchedJobRole);
   }, [ppeItems, initialData?.ppeItemId, watchedJobRole, ppeJobRoleMatrix]);
 
   useEffect(() => {
     const currentPpeId = form.getValues("ppeItemId");
-    if (currentPpeId && !availablePpeItems.some(item => item.id === currentPpeId)) {
+    if (!availablePpeItems.some(item => item.id === currentPpeId)) {
         form.setValue("ppeItemId", availablePpeItems.length > 0 ? availablePpeItems[0].id : "");
     }
   }, [watchedJobRole, availablePpeItems, form]);
 
 
   const onSubmit = (data: PpeIssuanceFormValues) => {
-    const dataToSave: PpeIssuanceRecord = {
-      ...(initialData || { id: "", userId: "" }), // Provide defaults for new records
-      ...data,
-      jobRole: data.jobRole === NO_ROLE_VALUE ? undefined : data.jobRole,
-      issuedDate: data.issuedDate.toISOString(),
-      expectedReturnDate: data.expectedReturnDate ? data.expectedReturnDate.toISOString() : undefined,
-      actualReturnDate: data.actualReturnDate ? data.actualReturnDate.toISOString() : undefined,
+    const dataToSave = {
+        ...data,
+        jobRole: data.jobRole === NO_ROLE_VALUE ? undefined : data.jobRole,
     };
     onSave(dataToSave);
   };
@@ -184,10 +184,10 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
                   <FormField control={form.control} name="issuedDate" render={({ field }) => (
                     <FormItem className="flex flex-col"><FormLabel>Issued Date</FormLabel>
                     <Popover><PopoverTrigger asChild><FormControl>
-                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                        <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
                         {field.value ? format(field.value, "PPP") : <span>Pick issued date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button></FormControl></PopoverTrigger>
-                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => field.onChange(date)} initialFocus /></PopoverContent>
+                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
                     </Popover><FormMessage /></FormItem>
                 )}/>
               </div>
@@ -198,7 +198,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
               <FormField control={form.control} name="expectedReturnDate" render={({ field }) => (
                 <FormItem className="flex flex-col"><FormLabel>Expected Return Date</FormLabel>
                 <Popover><PopoverTrigger asChild><FormControl>
-                    <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                    <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
                     {field.value ? format(field.value, "PPP") : <span>Pick expected return date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button></FormControl></PopoverTrigger>
                     <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => field.onChange(date)} /></PopoverContent>
@@ -207,7 +207,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
                <FormField control={form.control} name="actualReturnDate" render={({ field }) => (
                 <FormItem className="flex flex-col"><FormLabel>Actual Return Date</FormLabel>
                 <Popover><PopoverTrigger asChild><FormControl>
-                    <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                    <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
                     {field.value ? format(field.value, "PPP") : <span>Pick actual return date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button></FormControl></PopoverTrigger>
                     <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => field.onChange(date)} /></PopoverContent>

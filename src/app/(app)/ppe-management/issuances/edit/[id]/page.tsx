@@ -2,9 +2,8 @@
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
-import { PpeIssuanceForm } from "@/components/ppe-management/ppe-issuance-form";
+import { PpeIssuanceForm, type PpeIssuanceFormValues } from "@/components/ppe-management/ppe-issuance-form";
 import { useToast } from '@/hooks/use-toast';
-import { parseISO } from 'date-fns';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
@@ -83,9 +82,9 @@ export default function EditPpeIssuancePage() {
       const dataForDb = {
         ...dataToUpdate,
         userId: user.uid,
-        issuedDate: Timestamp.fromDate(parseISO(dataToUpdate.issuedDate)),
-        expectedReturnDate: dataToUpdate.expectedReturnDate ? Timestamp.fromDate(parseISO(dataToUpdate.expectedReturnDate)) : null,
-        actualReturnDate: dataToUpdate.actualReturnDate ? Timestamp.fromDate(parseISO(dataToUpdate.actualReturnDate)) : null,
+        issuedDate: Timestamp.fromDate(new Date(dataToUpdate.issuedDate)),
+        expectedReturnDate: dataToUpdate.expectedReturnDate ? Timestamp.fromDate(new Date(dataToUpdate.expectedReturnDate)) : null,
+        actualReturnDate: dataToUpdate.actualReturnDate ? Timestamp.fromDate(new Date(dataToUpdate.actualReturnDate)) : null,
       };
 
       const recordRef = doc(db, PPE_ISSUANCES_COLLECTION, issuanceId);
@@ -110,11 +109,16 @@ export default function EditPpeIssuancePage() {
   });
 
 
-  const handleSaveIssuance = (data: Omit<PpeIssuanceRecord, 'id' | 'userId'>) => {
-     if (!issuanceToEdit) return;
+  const handleSaveIssuance = (formData: PpeIssuanceFormValues) => {
+     if (!issuanceToEdit || !user?.uid) return;
+    
     const dataToSave: PpeIssuanceRecord = {
-        ...issuanceToEdit,
-        ...data
+        id: issuanceToEdit.id,
+        userId: user.uid,
+        ...formData,
+        issuedDate: formData.issuedDate.toISOString(),
+        expectedReturnDate: formData.expectedReturnDate ? formData.expectedReturnDate.toISOString() : undefined,
+        actualReturnDate: formData.actualReturnDate ? formData.actualReturnDate.toISOString() : undefined,
     };
     updateIssuanceMutation.mutate(dataToSave);
   };
