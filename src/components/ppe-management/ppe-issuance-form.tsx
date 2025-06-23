@@ -67,7 +67,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
   const form = useForm<PpeIssuanceFormValues>({
     resolver: zodResolver(ppeIssuanceFormSchema),
     defaultValues: {
-      ppeItemId: initialData?.ppeItemId || "",
+      ppeItemId: initialData?.ppeItemId || undefined,
       employeeName: initialData?.employeeName || "",
       jobRole: initialData?.jobRole || undefined,
       issuedDate: initialData?.issuedDate ? format(parseISO(initialData.issuedDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
@@ -140,7 +140,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>Job Role (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || NO_ROLE_VALUE}>
                     <FormControl>
                         <SelectTrigger>
                         <SelectValue placeholder="Select a job role to filter PPE" />
