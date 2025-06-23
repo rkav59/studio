@@ -186,6 +186,7 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitti
               <FormField control={form.control} name="drillName" render={({ field }) => (
                 <FormItem><FormLabel>Drill Name/Title</FormLabel><FormControl><Input placeholder="e.g., Q3 Fire Evacuation Drill - Main Office" {...field} /></FormControl><FormMessage /></FormItem>
               )}/>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="drillType" render={({ field }) => (
                     <FormItem><FormLabel>Drill Type</FormLabel>
@@ -193,6 +194,13 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitti
                         <FormControl><SelectTrigger><SelectValue placeholder="Select drill type" /></SelectTrigger></FormControl>
                         <SelectContent>{drillTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
                     </Select><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="status" render={({ field }) => (
+                    <FormItem><FormLabel>Drill Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
+                        <SelectContent>{drillStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent>
+                        </Select><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="linkedPlanId" render={({ field }) => (
                     <FormItem><FormLabel>Linked Emergency Plan (Optional)</FormLabel>
@@ -204,8 +212,9 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitti
                         </SelectContent>
                     </Select><FormMessage /></FormItem>
                 )}/>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="participants" render={({ field }) => (
+                    <FormItem><FormLabel>Participants (Optional)</FormLabel><FormControl><Input placeholder="e.g., All Warehouse Staff, ERT Members, Floor Wardens" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
                 <FormField control={form.control} name="scheduledDate" render={({ field }) => (
                     <FormItem className="flex flex-col"><FormLabel>Scheduled Date</FormLabel>
                     <Popover><PopoverTrigger asChild><FormControl>
@@ -225,13 +234,8 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitti
                     </Popover><FormMessage /></FormItem>
                 )}/>
               </div>
-              <FormField control={form.control} name="status" render={({ field }) => (
-                <FormItem><FormLabel>Drill Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || undefined}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
-                    <SelectContent>{drillStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent>
-                    </Select><FormMessage /></FormItem>
-              )}/>
+
+              <Separator />
               
               <FormField
                 control={form.control}
@@ -264,9 +268,6 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitti
                 )}
               />
 
-              <FormField control={form.control} name="participants" render={({ field }) => (
-                <FormItem><FormLabel>Participants (Optional)</FormLabel><FormControl><Input placeholder="e.g., All Warehouse Staff, ERT Members, Floor Wardens" {...field} /></FormControl><FormMessage /></FormItem>
-              )}/>
               <FormField control={form.control} name="observations" render={({ field }) => (
                 <FormItem><FormLabel>Observations during Drill (Optional)</FormLabel><FormControl><Textarea placeholder="Key observations, what went well, areas of confusion..." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
               )}/>
@@ -283,14 +284,11 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitti
                 <CardContent className="space-y-3">
                     {actionItemFields.map((item, index) => (
                         <Card key={item.id} className="p-3 bg-background shadow-sm space-y-3">
-                            <div className="flex justify-between items-center">
-                                <FormLabel className="text-sm font-medium">Action Item #{index + 1}</FormLabel>
-                                <Button type="button" variant="ghost" size="icon" onClick={() => removeActionItem(index)} className="text-destructive h-6 w-6"><Trash2 className="h-4 w-4"/></Button>
-                            </div>
+                            <div className="flex justify-between items-center"><FormLabel className="text-sm font-medium">Action Item #{index + 1}</FormLabel><Button type="button" variant="ghost" size="icon" onClick={() => removeActionItem(index)} className="text-destructive h-6 w-6"><Trash2 className="h-4 w-4"/></Button></div>
                             <FormField control={form.control} name={`actionItems.${index}.description`} render={({ field }) => (
                                 <FormItem><FormLabel className="text-xs">Description</FormLabel><FormControl><Textarea placeholder="Specific action required" rows={2} {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <FormField control={form.control} name={`actionItems.${index}.assignedTo`} render={({ field }) => (
                                     <FormItem><FormLabel className="text-xs">Assigned To</FormLabel><FormControl><Input placeholder="Name or Team" {...field} /></FormControl><FormMessage /></FormItem>
                                 )}/>
@@ -303,14 +301,14 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitti
                                         <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
                                     </Popover><FormMessage /></FormItem>
                                 )}/>
+                                <FormField control={form.control} name={`actionItems.${index}.status`} render={({ field }) => (
+                                    <FormItem><FormLabel className="text-xs">Status</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                        <FormControl><SelectTrigger className="text-xs"><SelectValue placeholder="Status" /></SelectTrigger></FormControl>
+                                        <SelectContent>{actionItemStatuses.map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}</SelectContent>
+                                    </Select><FormMessage /></FormItem>
+                                )}/>
                             </div>
-                            <FormField control={form.control} name={`actionItems.${index}.status`} render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs">Status</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value || undefined}>
-                                    <FormControl><SelectTrigger className="text-xs"><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
-                                    <SelectContent>{actionItemStatuses.map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}</SelectContent>
-                                </Select><FormMessage /></FormItem>
-                            )}/>
                         </Card>
                     ))}
                     <Button type="button" variant="outline" size="sm" onClick={() => appendActionItem(newActionItemDefault())}><PlusCircle className="mr-2 h-4 w-4"/>Add Action Item</Button>
@@ -328,4 +326,3 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitti
     </Card>
   );
 }
-
