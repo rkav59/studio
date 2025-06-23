@@ -43,6 +43,8 @@ interface PpeJobRoleMatrixFormProps {
   isSubmitting?: boolean;
 }
 
+const NO_ASSESSMENT_VALUE = "__NONE__"; // Define a constant for the 'None' option
+
 export function PpeJobRoleMatrixForm({ ppeItems, riskAssessments, initialData, onSave, onCancel, isSubmitting }: PpeJobRoleMatrixFormProps) {
   const isEditing = !!initialData;
   const form = useForm<PpeJobRoleMatrixFormValues>({
@@ -50,7 +52,7 @@ export function PpeJobRoleMatrixForm({ ppeItems, riskAssessments, initialData, o
     defaultValues: {
       jobRole: initialData?.jobRole || "",
       requiredPpeItemIds: initialData?.requiredPpeItemIds || [],
-      riskAssessmentId: initialData?.riskAssessmentId || "",
+      riskAssessmentId: initialData?.riskAssessmentId || undefined, // Set to undefined if null/undefined
       riskAssessmentReference: initialData?.riskAssessmentReference || "",
     },
   });
@@ -58,7 +60,7 @@ export function PpeJobRoleMatrixForm({ ppeItems, riskAssessments, initialData, o
   const watchedRiskAssessmentId = form.watch("riskAssessmentId");
 
   useEffect(() => {
-    if (watchedRiskAssessmentId) {
+    if (watchedRiskAssessmentId && watchedRiskAssessmentId !== NO_ASSESSMENT_VALUE) {
       const selectedAssessment = riskAssessments.find(ra => ra.id === watchedRiskAssessmentId);
       if (selectedAssessment) {
         form.setValue("riskAssessmentReference", selectedAssessment.activityOrProcess);
@@ -72,7 +74,12 @@ export function PpeJobRoleMatrixForm({ ppeItems, riskAssessments, initialData, o
 
 
   const onSubmit = (data: PpeJobRoleMatrixFormValues) => {
-    onSave(data);
+    // Before saving, convert the placeholder value back to undefined
+    const dataToSave = {
+      ...data,
+      riskAssessmentId: data.riskAssessmentId === NO_ASSESSMENT_VALUE ? undefined : data.riskAssessmentId
+    };
+    onSave(dataToSave);
   };
 
   return (
@@ -151,14 +158,14 @@ export function PpeJobRoleMatrixForm({ ppeItems, riskAssessments, initialData, o
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel className="flex items-center gap-1"><LinkIcon className="h-4 w-4"/>Risk Assessment Reference (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value || NO_ASSESSMENT_VALUE}>
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder="Select a risk assessment" />
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value={NO_ASSESSMENT_VALUE}>None</SelectItem>
                             {riskAssessments.map(ra => (
                                 <SelectItem key={ra.id} value={ra.id}>{ra.activityOrProcess} ({format(parseISO(ra.assessmentDate), 'PPP')})</SelectItem>
                             ))}
