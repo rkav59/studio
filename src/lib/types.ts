@@ -409,9 +409,10 @@ export interface SuggestRootCauseOutput {
 }
 
 
-// Contractor Safety Types
+// --- Contractor Safety & Job Card Types ---
 export type ContractorVettingStatus = 'Pending' | 'Approved' | 'Rejected' | 'Requires Review';
 export type PtwStatus = 'Requested' | 'Approved' | 'Active' | 'Closed' | 'Cancelled' | 'Expired';
+export type JobCardStatus = 'Draft' | 'Issued' | 'Completed' | 'Cancelled';
 
 export interface ContractorDocument {
   id: string; // UUID for the document entry
@@ -460,6 +461,28 @@ export interface PermitToWork {
   closedBy?: string;
   closureDate?: string;
   supervisorOnSite?: string;
+}
+
+export interface JobCardCheck {
+  id: string;
+  text: string;
+  isChecked: boolean;
+}
+
+export interface JobCard {
+  id: string;
+  userId?: string;
+  jobCardNumber: string;
+  contractorId: string;
+  workDate: string; // ISO
+  jobDescription: string;
+  location: string;
+  status: JobCardStatus;
+  safetyChecks: JobCardCheck[];
+  requiredPpe: string; 
+  supervisorSignOffName?: string;
+  clientSignOffName?: string;
+  notes?: string;
 }
 
 // --- PTW Supervision Types ---
@@ -842,5 +865,3 @@ export interface GenerateLegalRegisterOutput {
 // export interface UserProfile { ... }
 
 // --- End Global App Types ---
-
-    

@@ -7,10 +7,11 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, ClipboardList, FileText, CheckSquare, ShieldAlert, Loader2, Download, Users, Settings, Search, ListChecks } from "lucide-react"; // Added ListChecks
-import type { Contractor, PermitToWork, ContractorVettingStatus, PtwStatus, ContractorDocument, PtwSupervisionRecord } from "@/lib/types";
+import { PlusCircle, Edit2, Trash2, Eye, ClipboardList, FileText, CheckSquare, ShieldAlert, Loader2, Download, Users, Settings, Search, ListChecks, ClipboardCheck } from "lucide-react"; // Added ClipboardCheck
+import type { Contractor, PermitToWork, ContractorVettingStatus, PtwStatus, ContractorDocument, PtwSupervisionRecord, JobCard, JobCardStatus } from "@/lib/types"; // Added JobCard types
 import { ContractorDetailsDialog } from "@/components/contractor-safety/contractor-details-dialog";
 import { PtwDetailsDialog } from "@/components/contractor-safety/ptw-details-dialog";
+import { JobCardDetailsDialog } from "@/components/contractor-safety/job-card-details-dialog"; // New import
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
@@ -28,7 +29,7 @@ import {
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/auth-context';
 import { db, storage } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore'; // Added orderBy
+import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore'; 
 import { ref as storageRef, deleteObject } from "firebase/storage";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
@@ -36,6 +37,7 @@ import { Input } from '@/components/ui/input';
 const CONTRACTORS_COLLECTION = 'contractors';
 const PTWS_COLLECTION = 'permitsToWork';
 const PTW_SUPERVISION_RECORDS_COLLECTION = 'ptwSupervisionRecords';
+const JOB_CARDS_COLLECTION = 'jobCards'; // New collection constant
 
 
 // Helper function to delete a single document from storage
@@ -60,8 +62,10 @@ export default function ContractorSafetyPage() {
 
   const [viewingContractor, setViewingContractor] = useState<Contractor | null>(null);
   const [viewingPtw, setViewingPtw] = useState<PermitToWork | null>(null);
+  const [viewingJobCard, setViewingJobCard] = useState<JobCard | null>(null); // New state
   const [contractorSearchTerm, setContractorSearchTerm] = useState("");
   const [ptwSearchTerm, setPtwSearchTerm] = useState("");
+  const [jobCardSearchTerm, setJobCardSearchTerm] = useState(""); // New state
 
 
   // Fetch Contractors
@@ -108,6 +112,25 @@ export default function ContractorSafetyPage() {
     enabled: !!user?.uid,
   });
 
+  // Fetch Job Cards
+  const { data: jobCards = [], isLoading: isLoadingJobCards, error: jobCardsError } = useQuery<JobCard[]>({
+    queryKey: [JOB_CARDS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, JOB_CARDS_COLLECTION), where("userId", "==", user.uid), orderBy("workDate", "desc"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id, ...data,
+          workDate: (data.workDate as Timestamp)?.toDate().toISOString(),
+        } as JobCard;
+      });
+    },
+    enabled: !!user?.uid,
+  });
+
+
   // Fetch PTW Supervision Records
   const { data: ptwSupervisionRecords = [], isLoading: isLoadingSupervision, error: supervisionError } = useQuery<PtwSupervisionRecord[]>({
     queryKey: [PTW_SUPERVISION_RECORDS_COLLECTION, user?.uid],
@@ -136,8 +159,8 @@ export default function ContractorSafetyPage() {
       const contractorToDelete = contractors.find(c => c.id === contractorId);
       if (!contractorToDelete) throw new Error("Contractor not found.");
 
-      if (ptws.some(ptw => ptw.contractorId === contractorId)) {
-        throw new Error("Cannot delete: Contractor is associated with existing Permits to Work.");
+      if (ptws.some(ptw => ptw.contractorId === contractorId) || jobCards.some(jc => jc.contractorId === contractorId)) {
+        throw new Error("Cannot delete: Contractor is associated with existing Permits to Work or Job Cards.");
       }
 
       if (contractorToDelete.documents && contractorToDelete.documents.length > 0) {
@@ -154,7 +177,7 @@ export default function ContractorSafetyPage() {
       toast({ title: "Contractor Deleted" });
     },
     onError: (e: Error) => {
-        const userFriendlyMessage = e.message.includes("associated with existing Permits") 
+        const userFriendlyMessage = e.message.includes("associated with existing") 
             ? e.message
             : "An unexpected error occurred. Please try again.";
         toast({ title: "Error Deleting Contractor", description: userFriendlyMessage, variant: "destructive" });
@@ -183,6 +206,22 @@ export default function ContractorSafetyPage() {
     },
   });
 
+  // Job Card Deletion Mutation
+  const deleteJobCardMutation = useMutation({
+    mutationFn: async (jobCardId: string) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      await deleteDoc(doc(db, JOB_CARDS_COLLECTION, jobCardId));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [JOB_CARDS_COLLECTION, user?.uid] });
+      toast({ title: "Job Card Deleted" });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Error Deleting Job Card", description: "An unexpected error occurred.", variant: "destructive" });
+    },
+  });
+
+
   const getContractorName = (contractorId: string) => contractors.find(c => c.id === contractorId)?.companyName || "Unknown Contractor";
 
   const filteredContractors = useMemo(() => {
@@ -205,6 +244,17 @@ export default function ContractorSafetyPage() {
     );
   }, [ptws, ptwSearchTerm, contractors]);
 
+  const filteredJobCards = useMemo(() => {
+    if (!jobCardSearchTerm) return jobCards;
+    const lowercasedTerm = jobCardSearchTerm.toLowerCase();
+    return jobCards.filter(jc =>
+      jc.jobCardNumber.toLowerCase().includes(lowercasedTerm) ||
+      jc.jobDescription.toLowerCase().includes(lowercasedTerm) ||
+      getContractorName(jc.contractorId).toLowerCase().includes(lowercasedTerm)
+    );
+  }, [jobCards, jobCardSearchTerm, getContractorName]);
+
+
 
   // Navigation Handlers
   const handleOpenNewContractorForm = () => router.push('/contractor-safety/contractors/new');
@@ -222,6 +272,17 @@ export default function ContractorSafetyPage() {
   const handleDeletePtw = (ptwId: string) => deletePtwMutation.mutate(ptwId);
   const handleManageSupervision = (ptwId: string) => router.push(`/contractor-safety/ptws/${ptwId}/supervision`);
   
+  const handleOpenNewJobCardForm = () => {
+    if (contractors.length === 0) {
+      toast({ title: "No Contractors", description: "Please add a contractor before creating a Job Card.", variant: "destructive"});
+      return;
+    }
+    router.push('/contractor-safety/job-cards/new');
+  };
+  const handleEditJobCard = (jobCardId: string) => router.push(`/contractor-safety/job-cards/edit/${jobCardId}`);
+  const handleDeleteJobCard = (jobCardId: string) => deleteJobCardMutation.mutate(jobCardId);
+
+
   const getVettingStatusColor = (status: ContractorVettingStatus) => {
     switch (status) {
       case 'Approved': return 'text-green-600 dark:text-green-400';
@@ -242,8 +303,19 @@ export default function ContractorSafetyPage() {
       default: return 'text-muted-foreground';
     }
   };
+  const getJobCardStatusColor = (status: JobCardStatus) => {
+    switch (status) {
+      case 'Issued':
+      case 'In Progress': return 'text-green-600 dark:text-green-400';
+      case 'Draft': return 'text-yellow-600 dark:text-yellow-400';
+      case 'Completed': return 'text-gray-500 dark:text-gray-400';
+      case 'Cancelled': return 'text-red-600 dark:text-red-400';
+      default: return 'text-muted-foreground';
+    }
+  };
 
-  if (isLoadingContractors || isLoadingPtws || isLoadingSupervision) {
+
+  if (isLoadingContractors || isLoadingPtws || isLoadingSupervision || isLoadingJobCards) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -251,7 +323,7 @@ export default function ContractorSafetyPage() {
       </div>
     );
   }
-  if (contractorsError || ptwsError || supervisionError) {
+  if (contractorsError || ptwsError || supervisionError || jobCardsError) {
     return <div className="text-red-500 text-center py-10">Error loading data. Please try again later.</div>;
   }
 
@@ -348,6 +420,85 @@ export default function ContractorSafetyPage() {
       )}
 
       <Separator />
+
+      {/* Job Card Section */}
+      <Card>
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+            <div>
+                <CardTitle className="flex items-center gap-2"><ClipboardCheck className="h-6 w-6 text-indigo-500"/>Job Cards</CardTitle>
+                <CardDescription>Manage general work authorizations and safety checks.</CardDescription>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <div className="relative w-full sm:w-auto">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search job cards..."
+                        className="pl-8 w-full sm:w-[250px]"
+                        value={jobCardSearchTerm}
+                        onChange={(e) => setJobCardSearchTerm(e.target.value)}
+                    />
+                </div>
+                <Button onClick={handleOpenNewJobCardForm} className="bg-indigo-500 hover:bg-indigo-600 text-white" disabled={contractors.length === 0}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Create New Job Card
+                </Button>
+            </div>
+        </CardHeader>
+        <CardContent>
+          {contractors.length === 0 && <p className="text-center text-muted-foreground py-4">Please add a contractor first to enable Job Card creation.</p>}
+          {filteredJobCards.length === 0 && contractors.length > 0 && (
+              <p className="text-muted-foreground text-center py-4">{jobCardSearchTerm ? "No matching job cards found." : "No job cards logged yet."}</p>
+          )}
+          {filteredJobCards.length > 0 && (
+              <ScrollArea className="max-h-[400px] pr-3">
+                  <div className="space-y-3">
+                      {filteredJobCards.map(jc => (
+                          <Card key={jc.id} className="p-4 shadow-sm">
+                              <div className="flex flex-col sm:flex-row justify-between items-start">
+                                  <div className="mb-2 sm:mb-0">
+                                      <h4 className="font-semibold text-lg">Job Card #: {jc.jobCardNumber}</h4>
+                                      <p className="text-sm text-muted-foreground">For: {getContractorName(jc.contractorId)}</p>
+                                      <p className="text-xs text-muted-foreground truncate max-w-md">Job: {jc.jobDescription}</p>
+                                  </div>
+                                   <div className="flex flex-wrap gap-2 self-start sm:self-center shrink-0">
+                                      <Button variant="outline" size="sm" onClick={() => setViewingJobCard(jc)}><Eye className="mr-1 h-3 w-3" /> View</Button>
+                                      <Button variant="secondary" size="sm" onClick={() => handleEditJobCard(jc.id)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
+                                      <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                              <Button variant="destructive" size="sm" disabled={deleteJobCardMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                              <AlertDialogHeader><AlertDialogTitle>Delete Job Card?</AlertDialogTitle>
+                                              <AlertDialogDescription>Are you sure you want to delete Job Card #{jc.jobCardNumber}? This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+                                              <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteJobCard(jc.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                                          </AlertDialogContent>
+                                      </AlertDialog>
+                                  </div>
+                              </div>
+                              <Separator className="my-2" />
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                                  <p>Status: <span className={`font-semibold ${getJobCardStatusColor(jc.status)}`}>{jc.status}</span></p>
+                                  <p>Location: {jc.location}</p>
+                                  <p>Work Date: {format(parseISO(jc.workDate), "PPP")}</p>
+                              </div>
+                          </Card>
+                      ))}
+                  </div>
+              </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
+      
+      {viewingJobCard && (
+        <JobCardDetailsDialog 
+            jobCard={viewingJobCard} 
+            contractorName={getContractorName(viewingJobCard.contractorId)} 
+            onClose={() => setViewingJobCard(null)}
+        />
+      )}
+
+      <Separator />
+
 
       {/* Permit to Work (PTW) Section */}
       <Card>
