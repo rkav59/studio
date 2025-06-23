@@ -515,9 +515,6 @@ export interface PpeIssuanceRecord {
   jobRole?: string;
   issuedDate: string;
   quantityIssued: number;
-  expectedReturnDate?: string;
-  actualReturnDate?: string;
-  conditionOnReturn?: 'Good' | 'Damaged' | 'Lost';
   notes?: string;
 }
 
@@ -844,4 +841,5 @@ export interface GenerateLegalRegisterOutput {
 // --- End Global App Types ---
 
     
+
 

@@ -65,8 +65,6 @@ export default function EditPpeIssuancePage() {
           id: recordSnap.id,
           ...data,
           issuedDate: (data.issuedDate as Timestamp)?.toDate().toISOString(),
-          expectedReturnDate: data.expectedReturnDate ? (data.expectedReturnDate as Timestamp).toDate().toISOString() : undefined,
-          actualReturnDate: data.actualReturnDate ? (data.actualReturnDate as Timestamp).toDate().toISOString() : undefined,
         } as PpeIssuanceRecord;
       }
       return null;
@@ -83,8 +81,6 @@ export default function EditPpeIssuancePage() {
         ...dataToUpdate,
         userId: user.uid,
         issuedDate: Timestamp.fromDate(new Date(dataToUpdate.issuedDate)),
-        expectedReturnDate: dataToUpdate.expectedReturnDate ? Timestamp.fromDate(new Date(dataToUpdate.expectedReturnDate)) : null,
-        actualReturnDate: dataToUpdate.actualReturnDate ? Timestamp.fromDate(new Date(dataToUpdate.actualReturnDate)) : null,
       };
 
       const recordRef = doc(db, PPE_ISSUANCES_COLLECTION, issuanceId);
@@ -117,8 +113,6 @@ export default function EditPpeIssuancePage() {
         userId: user.uid,
         ...formData,
         issuedDate: formData.issuedDate.toISOString(),
-        expectedReturnDate: formData.expectedReturnDate ? formData.expectedReturnDate.toISOString() : undefined,
-        actualReturnDate: formData.actualReturnDate ? formData.actualReturnDate.toISOString() : undefined,
     };
     updateIssuanceMutation.mutate(dataToSave);
   };

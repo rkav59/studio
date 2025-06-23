@@ -78,8 +78,6 @@ export default function NewPpeIssuancePage() {
       userId: user.uid,
       ...formData,
       issuedDate: formData.issuedDate.toISOString(),
-      expectedReturnDate: formData.expectedReturnDate ? formData.expectedReturnDate.toISOString() : undefined,
-      actualReturnDate: formData.actualReturnDate ? formData.actualReturnDate.toISOString() : undefined,
     };
     addIssuanceMutation.mutate(dataForDb);
   };

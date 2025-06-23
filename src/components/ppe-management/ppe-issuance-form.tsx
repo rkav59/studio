@@ -40,18 +40,7 @@ const ppeIssuanceFormSchema = z.object({
   jobRole: z.string().optional(),
   issuedDate: z.date({ required_error: "Issued date is required." }),
   quantityIssued: z.coerce.number().min(1, "Quantity must be at least 1.").int(),
-  expectedReturnDate: z.date().nullable().optional(),
-  actualReturnDate: z.date().nullable().optional(),
-  conditionOnReturn: z.enum(['Good', 'Damaged', 'Lost']).optional(),
   notes: z.string().max(1000).optional(),
-}).refine(data => {
-    if (data.actualReturnDate && data.issuedDate) {
-        return data.actualReturnDate >= data.issuedDate;
-    }
-    return true;
-}, {
-    message: "Return date cannot be before the issued date.",
-    path: ["actualReturnDate"],
 });
 
 
@@ -94,9 +83,6 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
       jobRole: initialData?.jobRole || NO_ROLE_VALUE,
       issuedDate: initialData?.issuedDate ? parseISO(initialData.issuedDate) : new Date(),
       quantityIssued: initialData?.quantityIssued || 1,
-      expectedReturnDate: initialData?.expectedReturnDate ? parseISO(initialData.expectedReturnDate) : null,
-      actualReturnDate: initialData?.actualReturnDate ? parseISO(initialData.actualReturnDate) : null,
-      conditionOnReturn: initialData?.conditionOnReturn || undefined,
       notes: initialData?.notes || "",
     },
   });
@@ -193,39 +179,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
               </div>
 
               <Separator className="my-4" />
-              <h3 className="text-md font-medium text-muted-foreground">Return Details (Optional)</h3>
-
-              <FormField control={form.control} name="expectedReturnDate" render={({ field }) => (
-                <FormItem className="flex flex-col"><FormLabel>Expected Return Date</FormLabel>
-                <Popover><PopoverTrigger asChild><FormControl>
-                    <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                    {field.value ? format(field.value, "PPP") : <span>Pick expected return date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button></FormControl></PopoverTrigger>
-                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => field.onChange(date)} /></PopoverContent>
-                </Popover><FormMessage /></FormItem>
-              )}/>
-               <FormField control={form.control} name="actualReturnDate" render={({ field }) => (
-                <FormItem className="flex flex-col"><FormLabel>Actual Return Date</FormLabel>
-                <Popover><PopoverTrigger asChild><FormControl>
-                    <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                    {field.value ? format(field.value, "PPP") : <span>Pick actual return date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button></FormControl></PopoverTrigger>
-                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => field.onChange(date)} /></PopoverContent>
-                </Popover><FormMessage /></FormItem>
-              )}/>
-              {form.watch("actualReturnDate") && (
-                   <FormField control={form.control} name="conditionOnReturn" render={({ field }) => (
-                      <FormItem><FormLabel>Condition on Return</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Select condition" /></SelectTrigger></FormControl>
-                          <SelectContent>
-                              <SelectItem value="Good">Good</SelectItem>
-                              <SelectItem value="Damaged">Damaged</SelectItem>
-                              <SelectItem value="Lost">Lost</SelectItem>
-                          </SelectContent>
-                          </Select><FormMessage /></FormItem>
-                  )}/>
-              )}
+              
               <FormField control={form.control} name="notes" render={({ field }) => (
                 <FormItem><FormLabel>Notes (Optional)</FormLabel><FormControl><Textarea placeholder="Any additional notes for this issuance..." rows={2} {...field} /></FormControl><FormMessage /></FormItem>
               )}/>

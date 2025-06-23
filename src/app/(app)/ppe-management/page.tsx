@@ -85,8 +85,6 @@ export default function PpeManagementPage() {
             id: doc.id,
             ...data,
             issuedDate: (data.issuedDate as Timestamp)?.toDate().toISOString(),
-            expectedReturnDate: data.expectedReturnDate ? (data.expectedReturnDate as Timestamp).toDate().toISOString() : undefined,
-            actualReturnDate: data.actualReturnDate ? (data.actualReturnDate as Timestamp).toDate().toISOString() : undefined,
           } as PpeIssuanceRecord;
       });
     },
@@ -434,8 +432,8 @@ export default function PpeManagementPage() {
       <Card>
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
-            <CardTitle>PPE Issuance & Return Log</CardTitle>
-            <CardDescription>Track PPE issued to employees and its return.</CardDescription>
+            <CardTitle>PPE Issuance Log</CardTitle>
+            <CardDescription>Track PPE issued to employees.</CardDescription>
           </div>
            <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search issuances..." className="pl-8 w-full sm:w-[200px]" value={issuanceSearchTerm} onChange={(e) => setIssuanceSearchTerm(e.target.value)} /></div>
@@ -458,12 +456,6 @@ export default function PpeManagementPage() {
                       <div className="mb-2 sm:mb-0">
                         <h4 className="font-semibold text-lg">{issuance.employeeName} - {getPpeItemName(issuance.ppeItemId)} (x{issuance.quantityIssued})</h4>
                         <p className="text-xs text-muted-foreground">Issued: {format(parseISO(issuance.issuedDate), "PPP")}</p>
-                        {issuance.actualReturnDate ? 
-                           <p className="text-xs text-green-600">Returned: {format(parseISO(issuance.actualReturnDate), "PPP")} ({issuance.conditionOnReturn})</p>
-                           : issuance.expectedReturnDate ? 
-                           <p className="text-xs text-yellow-600">Expected Return: {format(parseISO(issuance.expectedReturnDate), "PPP")}</p>
-                           : <p className="text-xs text-muted-foreground">No return date set.</p>
-                        }
                       </div>
                       <div className="flex gap-2 self-start sm:self-center shrink-0">
                         <Button variant="outline" size="sm" onClick={() => setViewingPpeIssuance(issuance)}><Eye className="mr-1 h-3 w-3" /> View</Button>
@@ -608,4 +600,3 @@ export default function PpeManagementPage() {
     </div>
   );
 }
-
