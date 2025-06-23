@@ -4,6 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { z } from "zod";
+import { useEffect, useState } from "react"; 
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -22,7 +23,6 @@ import type { PpeItem, PpeJobRoleMatrixEntry, ManualRiskAssessment } from "@/lib
 import { Save, XCircle, Users, Link as LinkIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../ui/select";
-import { useEffect } from "react";
 import { format, parseISO } from "date-fns";
 
 
@@ -44,6 +44,8 @@ interface PpeJobRoleMatrixFormProps {
   isSubmitting?: boolean;
 }
 
+const NO_ASSESSMENT_VALUE = "__NONE__"; // Placeholder value for 'None' option
+
 export function PpeJobRoleMatrixForm({ ppeItems, riskAssessments, initialData, onSave, onCancel, isSubmitting }: PpeJobRoleMatrixFormProps) {
   const isEditing = !!initialData;
   const form = useForm<PpeJobRoleMatrixFormValues>({
@@ -59,7 +61,7 @@ export function PpeJobRoleMatrixForm({ ppeItems, riskAssessments, initialData, o
   const watchedLinkedRiskAssessmentId = useWatch({ control: form.control, name: 'linkedRiskAssessmentId' });
 
   useEffect(() => {
-    if (watchedLinkedRiskAssessmentId) {
+    if (watchedLinkedRiskAssessmentId && watchedLinkedRiskAssessmentId !== NO_ASSESSMENT_VALUE) {
       const selectedAssessment = riskAssessments.find(assessment => assessment.id === watchedLinkedRiskAssessmentId);
       if (selectedAssessment) {
         form.setValue("linkedRiskAssessmentName", `${selectedAssessment.activityOrProcess} (${format(parseISO(selectedAssessment.assessmentDate), "PPP")})`);
@@ -74,7 +76,7 @@ export function PpeJobRoleMatrixForm({ ppeItems, riskAssessments, initialData, o
   const onSubmit = (data: PpeJobRoleMatrixFormValues) => {
     const finalData = {
         ...data,
-        linkedRiskAssessmentId: data.linkedRiskAssessmentId === "" ? undefined : data.linkedRiskAssessmentId,
+        linkedRiskAssessmentId: data.linkedRiskAssessmentId === NO_ASSESSMENT_VALUE ? undefined : data.linkedRiskAssessmentId,
     };
     onSave(finalData);
   };
@@ -158,14 +160,14 @@ export function PpeJobRoleMatrixForm({ ppeItems, riskAssessments, initialData, o
                         <LinkIcon className="h-4 w-4"/>
                         Link to Risk Assessment (Optional)
                     </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value || NO_ASSESSMENT_VALUE}>
                         <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select a risk assessment to link..." />
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value={NO_ASSESSMENT_VALUE}>None</SelectItem>
                             {riskAssessments.map(assessment => (
                                 <SelectItem key={assessment.id} value={assessment.id}>
                                     {assessment.activityOrProcess} ({format(parseISO(assessment.assessmentDate), "PPP")})
