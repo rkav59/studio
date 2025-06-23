@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +11,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,13 +27,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Save, XCircle, PackagePlus } from "lucide-react";
-import type { PpeItem, PpeIssuanceRecord } from "@/lib/types";
+import type { PpeItem, PpeIssuanceRecord, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useMemo, useEffect } from "react";
 
 const ppeIssuanceFormSchema = z.object({
-  ppeItemId: z.string({ required_error: "Please select a PPE item." }),
+  ppeItemId: z.string({ required_error: "Please select a PPE item." }).min(1, "Please select a PPE item."),
   employeeName: z.string().min(2, "Employee name is required.").max(150),
   jobRole: z.string().max(100).optional(),
   issuedDate: z.string().refine(val => isValid(parseISO(val)), { message: "Issued date is required." }),
@@ -47,21 +48,23 @@ const ppeIssuanceFormSchema = z.object({
   path: ["actualReturnDate"],
 });
 
-export type PpeIssuanceFormValues = z.infer<typeof ppeIssuanceFormSchema>; // Export for use in pages
+export type PpeIssuanceFormValues = z.infer<typeof ppeIssuanceFormSchema>;
 
 interface PpeIssuanceFormProps {
   ppeItems: PpeItem[];
+  ppeJobRoleMatrix: PpeJobRoleMatrixEntry[]; // New prop
   initialData?: PpeIssuanceRecord | null;
   onSave: (data: PpeIssuanceFormValues) => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
-export function PpeIssuanceForm({ ppeItems, initialData, onSave, onCancel }: PpeIssuanceFormProps) {
+export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSave, onCancel, isSubmitting }: PpeIssuanceFormProps) {
   const isEditing = !!initialData;
   const form = useForm<PpeIssuanceFormValues>({
     resolver: zodResolver(ppeIssuanceFormSchema),
     defaultValues: {
-      ppeItemId: initialData?.ppeItemId || (ppeItems.length > 0 ? ppeItems[0].id : ""),
+      ppeItemId: initialData?.ppeItemId || "",
       employeeName: initialData?.employeeName || "",
       jobRole: initialData?.jobRole || "",
       issuedDate: initialData?.issuedDate ? format(parseISO(initialData.issuedDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
@@ -72,6 +75,34 @@ export function PpeIssuanceForm({ ppeItems, initialData, onSave, onCancel }: Ppe
       notes: initialData?.notes || "",
     },
   });
+  
+  const watchedJobRole = form.watch("jobRole");
+
+  const availablePpeItems = useMemo(() => {
+    return ppeItems.filter(item => 
+        (item.status || 'Available') === 'Available' || item.id === initialData?.ppeItemId
+    );
+  }, [ppeItems, initialData]);
+
+  const filteredPpeItems = useMemo(() => {
+    if (!watchedJobRole) {
+      return availablePpeItems;
+    }
+    const matrixEntry = ppeJobRoleMatrix.find(entry => entry.jobRole === watchedJobRole);
+    if (!matrixEntry) {
+      return availablePpeItems;
+    }
+    const requiredIds = new Set(matrixEntry.requiredPpeItemIds);
+    return availablePpeItems.filter(item => requiredIds.has(item.id));
+  }, [watchedJobRole, ppeJobRoleMatrix, availablePpeItems]);
+
+  useEffect(() => {
+    const currentPpeId = form.getValues('ppeItemId');
+    if (currentPpeId && filteredPpeItems.length > 0 && !filteredPpeItems.some(item => item.id === currentPpeId)) {
+      form.setValue('ppeItemId', '');
+    }
+  }, [filteredPpeItems, form]);
+
 
   const onSubmit = (data: PpeIssuanceFormValues) => {
     onSave(data);
@@ -92,33 +123,52 @@ export function PpeIssuanceForm({ ppeItems, initialData, onSave, onCancel }: Ppe
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
           <ScrollArea className="flex-1">
             <CardContent className="space-y-6 p-4 md:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="employeeName" render={({ field }) => (
+                    <FormItem><FormLabel>Employee Name</FormLabel><FormControl><Input placeholder="Employee's full name" {...field} /></FormControl><FormMessage /></FormItem>
+                  )}/>
+                  <FormField control={form.control} name="jobRole" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Job Role (Optional)</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select role to filter PPE" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                <SelectItem value="">None (Show All PPE)</SelectItem>
+                                {ppeJobRoleMatrix.map(entry => (
+                                    <SelectItem key={entry.id} value={entry.jobRole}>{entry.jobRole}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <FormDescription className="text-xs">Filters the PPE list below.</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+              </div>
+
               <FormField control={form.control} name="ppeItemId" render={({ field }) => (
                 <FormItem><FormLabel>PPE Item</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={ppeItems.length === 0}>
-                    <FormControl><SelectTrigger><SelectValue placeholder={ppeItems.length === 0 ? "No PPE items in inventory" : "Select PPE item"} /></SelectTrigger></FormControl>
-                    <SelectContent>{ppeItems.map(item => <SelectItem key={item.id} value={item.id}>{item.name} (Stock: {item.currentStock})</SelectItem>)}</SelectContent>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={filteredPpeItems.length === 0}>
+                    <FormControl><SelectTrigger><SelectValue placeholder={filteredPpeItems.length === 0 ? "No required/available PPE items" : "Select PPE item"} /></SelectTrigger></FormControl>
+                    <SelectContent>
+                        {filteredPpeItems.map(item => <SelectItem key={item.id} value={item.id}>{item.name} (Stock: {item.currentStock})</SelectItem>)}
+                    </SelectContent>
                   </Select><FormMessage /></FormItem>
               )}/>
-              <FormField control={form.control} name="employeeName" render={({ field }) => (
-                <FormItem><FormLabel>Employee Name</FormLabel><FormControl><Input placeholder="Employee's full name" {...field} /></FormControl><FormMessage /></FormItem>
-              )}/>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField control={form.control} name="jobRole" render={({ field }) => (
-                      <FormItem><FormLabel>Job Role (Optional)</FormLabel><FormControl><Input placeholder="e.g., Welder, Electrician" {...field} /></FormControl><FormMessage /></FormItem>
-                  )}/>
                   <FormField control={form.control} name="quantityIssued" render={({ field }) => (
                       <FormItem><FormLabel>Quantity Issued</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                   )}/>
+                  <FormField control={form.control} name="issuedDate" render={({ field }) => (
+                    <FormItem className="flex flex-col"><FormLabel>Issued Date</FormLabel>
+                    <Popover><PopoverTrigger asChild><FormControl>
+                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                        {field.value ? format(parseISO(field.value), "PPP") : <span>Pick issued date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button></FormControl></PopoverTrigger>
+                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")} /></PopoverContent>
+                    </Popover><FormMessage /></FormItem>
+                )}/>
               </div>
-              <FormField control={form.control} name="issuedDate" render={({ field }) => (
-                <FormItem className="flex flex-col"><FormLabel>Issued Date</FormLabel>
-                <Popover><PopoverTrigger asChild><FormControl>
-                    <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                    {field.value ? format(parseISO(field.value), "PPP") : <span>Pick issued date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button></FormControl></PopoverTrigger>
-                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")} /></PopoverContent>
-                </Popover><FormMessage /></FormItem>
-              )}/>
 
               <Separator className="my-4" />
               <h3 className="text-md font-medium text-muted-foreground">Return Details (Optional)</h3>
@@ -160,12 +210,11 @@ export function PpeIssuanceForm({ ppeItems, initialData, onSave, onCancel }: Ppe
             </CardContent>
           </ScrollArea>
           <div className="p-4 md:p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
-            <Button type="button" variant="outline" onClick={onCancel}><XCircle className="mr-2 h-4 w-4" />Cancel</Button>
-            <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground"><Save className="mr-2 h-4 w-4" />{isEditing ? "Save Changes" : "Log Issuance"}</Button>
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}><XCircle className="mr-2 h-4 w-4" />Cancel</Button>
+            <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isSubmitting}><Save className="mr-2 h-4 w-4" />{isEditing ? "Save Changes" : "Log Issuance"}</Button>
           </div>
         </form>
       </Form>
     </Card>
   );
 }
-    

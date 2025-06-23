@@ -1,123 +1,144 @@
-
 "use client";
 
-import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import type { PpeIssuanceRecord, PpeItem } from "@/lib/types";
 import { PpeIssuanceForm, type PpeIssuanceFormValues } from "@/components/ppe-management/ppe-issuance-form";
 import { useToast } from '@/hooks/use-toast';
-import { parseISO } from 'date-fns';
+import { parseISO, format } from 'date-fns';
+import { useAuth } from '@/contexts/auth-context';
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { PpeIssuanceRecord, PpeItem, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 
-const PPE_ISSUANCES_KEY = 'sheild-ppe-issuances-v1';
-const PPE_ITEMS_KEY = 'sheild-ppe-items-v1';
+const PPE_ISSUANCES_COLLECTION = 'ppeIssuances';
+const PPE_ITEMS_COLLECTION = 'ppeItems';
+const PPE_JOB_ROLE_MATRIX_COLLECTION = 'ppeJobRoleMatrix';
 
 export default function EditPpeIssuancePage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
-  const [issuanceToEdit, setIssuanceToEdit] = useState<PpeIssuanceRecord | null | undefined>(undefined);
-  const [ppeItems, setPpeItems] = useState<PpeItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  
   const issuanceId = params.id as string;
 
-  useEffect(() => {
-    if (issuanceId) {
-      try {
-        const storedPpeItems = localStorage.getItem(PPE_ITEMS_KEY);
-        if (storedPpeItems) setPpeItems(JSON.parse(storedPpeItems));
+  // Fetch PPE Items
+  const { data: ppeItems = [], isLoading: isLoadingPpeItems, error: ppeItemsError } = useQuery<PpeItem[]>({
+    queryKey: [PPE_ITEMS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, PPE_ITEMS_COLLECTION), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PpeItem));
+    },
+    enabled: !!user?.uid,
+  });
 
-        const storedIssuances = localStorage.getItem(PPE_ISSUANCES_KEY);
-        const issuances: PpeIssuanceRecord[] = storedIssuances ? JSON.parse(storedIssuances) : [];
-        const foundIssuance = issuances.find(iss => iss.id === issuanceId);
-        setIssuanceToEdit(foundIssuance || null);
-      } catch (error) {
-        console.error("Error loading PPE issuance for editing:", error);
-        setIssuanceToEdit(null);
-        toast({ title: "Error", description: "Could not load PPE issuance data.", variant: "destructive" });
+  // Fetch Job Role Matrix
+  const { data: ppeJobRoleMatrix = [], isLoading: isLoadingJobRoleMatrix, error: jobRoleMatrixError } = useQuery<PpeJobRoleMatrixEntry[]>({
+    queryKey: [PPE_JOB_ROLE_MATRIX_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, PPE_JOB_ROLE_MATRIX_COLLECTION), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PpeJobRoleMatrixEntry));
+    },
+    enabled: !!user?.uid,
+  });
+
+  // Fetch the specific issuance record to edit
+  const { data: issuanceToEdit, isLoading: isLoadingIssuance, error: issuanceError } = useQuery<PpeIssuanceRecord | null>({
+    queryKey: [PPE_ISSUANCES_COLLECTION, issuanceId, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid || !issuanceId) return null;
+      const recordRef = doc(db, PPE_ISSUANCES_COLLECTION, issuanceId);
+      const recordSnap = await getDoc(recordRef);
+      if (recordSnap.exists() && recordSnap.data().userId === user.uid) {
+        const data = recordSnap.data();
+        // Convert Timestamps to ISO strings for form compatibility
+        return {
+          id: recordSnap.id,
+          ...data,
+          issuedDate: data.issuedDate instanceof Timestamp ? data.issuedDate.toDate().toISOString() : data.issuedDate,
+          expectedReturnDate: data.expectedReturnDate instanceof Timestamp ? data.expectedReturnDate.toDate().toISOString() : data.expectedReturnDate,
+          actualReturnDate: data.actualReturnDate instanceof Timestamp ? data.actualReturnDate.toDate().toISOString() : data.actualReturnDate,
+        } as PpeIssuanceRecord;
       }
-    }
-    setIsLoading(false);
-  }, [issuanceId, toast]);
+      return null;
+    },
+    enabled: !!user?.uid && !!issuanceId,
+  });
+
+  const updateIssuanceMutation = useMutation({
+    mutationFn: async (updatedData: PpeIssuanceRecord) => {
+      if (!user?.uid || !updatedData.id) throw new Error("User or issuance ID missing.");
+      const { id, ...dataToUpdate } = updatedData;
+      const recordRef = doc(db, PPE_ISSUANCES_COLLECTION, id);
+      await updateDoc(recordRef, {
+        ...dataToUpdate,
+        userId: user.uid, // Ensure userId is maintained
+        issuedDate: Timestamp.fromDate(parseISO(dataToUpdate.issuedDate)),
+        expectedReturnDate: dataToUpdate.expectedReturnDate ? Timestamp.fromDate(parseISO(dataToUpdate.expectedReturnDate)) : null,
+        actualReturnDate: dataToUpdate.actualReturnDate ? Timestamp.fromDate(parseISO(dataToUpdate.actualReturnDate)) : null,
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [PPE_ISSUANCES_COLLECTION, user?.uid] });
+      queryClient.invalidateQueries({ queryKey: [PPE_ISSUANCES_COLLECTION, variables.id, user?.uid] });
+      toast({ 
+        title: "PPE Issuance Updated", 
+        description: `Issuance for ${variables.employeeName} has been successfully updated.` 
+      });
+      router.push('/ppe-management');
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Error Updating Issuance", 
+        description: "An unexpected error occurred. Please try again.", 
+        variant: "destructive" 
+      });
+    },
+  });
 
   const handleSaveIssuance = (formData: PpeIssuanceFormValues) => {
     if (!issuanceToEdit) return;
-    try {
-      const storedIssuances = localStorage.getItem(PPE_ISSUANCES_KEY);
-      const issuances: PpeIssuanceRecord[] = storedIssuances ? JSON.parse(storedIssuances) : [];
-      
-      const updatedIssuance: PpeIssuanceRecord = {
-        ...issuanceToEdit,
-        ppeItemId: formData.ppeItemId,
-        employeeName: formData.employeeName,
-        jobRole: formData.jobRole,
-        issuedDate: parseISO(formData.issuedDate).toISOString(),
-        quantityIssued: formData.quantityIssued,
-        expectedReturnDate: formData.expectedReturnDate ? parseISO(formData.expectedReturnDate).toISOString() : undefined,
-        actualReturnDate: formData.actualReturnDate ? parseISO(formData.actualReturnDate).toISOString() : undefined,
-        conditionOnReturn: formData.conditionOnReturn,
-        notes: formData.notes,
-      };
-
-      const updatedIssuances = issuances.map(i => (i.id === issuanceId ? updatedIssuance : i));
-      localStorage.setItem(PPE_ISSUANCES_KEY, JSON.stringify(updatedIssuances));
-      
-      toast({ 
-        title: "PPE Issuance Updated", 
-        description: `Issuance for ${updatedIssuance.employeeName} has been successfully updated.` 
-      });
-      router.push('/ppe-management');
-    } catch (error) {
-      console.error("Error updating PPE issuance:", error);
-      toast({ 
-        title: "Error Updating Issuance", 
-        description: "Could not update the PPE issuance.", 
-        variant: "destructive" 
-      });
-    }
+    const updatedIssuance: PpeIssuanceRecord = {
+      ...issuanceToEdit,
+      ...formData,
+      issuedDate: parseISO(formData.issuedDate).toISOString(),
+      expectedReturnDate: formData.expectedReturnDate ? parseISO(formData.expectedReturnDate).toISOString() : undefined,
+      actualReturnDate: formData.actualReturnDate ? parseISO(formData.actualReturnDate).toISOString() : undefined,
+    };
+    updateIssuanceMutation.mutate(updatedIssuance);
   };
 
   const handleCancel = () => {
     router.push('/ppe-management');
   };
 
-  if (isLoading || issuanceToEdit === undefined) {
+  const isLoading = isLoadingPpeItems || isLoadingJobRoleMatrix || isLoadingIssuance;
+
+  if (isLoading) {
     return (
       <div className="h-full flex flex-col">
         <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
-          <CardHeader>
-            <Skeleton className="h-8 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-          </CardHeader>
-          <CardContent className="space-y-6 p-4 md:p-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-4 w-1/4" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            ))}
-          </CardContent>
+          <CardHeader><Skeleton className="h-8 w-3/4" /><Skeleton className="h-4 w-1/2" /></CardHeader>
+          <CardContent className="space-y-6 p-4 md:p-6">{[...Array(6)].map((_, i) => (<div key={i} className="space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-10 w-full" /></div>))}</CardContent>
         </Card>
       </div>
     );
   }
 
-  if (issuanceToEdit === null) {
+  if (issuanceError || ppeItemsError || jobRoleMatrixError || !issuanceToEdit) {
     return (
       <div className="h-full flex items-center justify-center">
         <Card className="w-full max-w-md shadow-lg">
-          <CardHeader>
-            <CardTitle>PPE Issuance Record Not Found</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>The PPE issuance record you are trying to edit could not be found.</p>
-            <Button onClick={() => router.push('/ppe-management')} className="mt-4">
-              Back to PPE Management
-            </Button>
-          </CardContent>
+          <CardHeader><CardTitle>Record Not Found</CardTitle></CardHeader>
+          <CardContent><p>The PPE issuance record could not be found or required data is missing.</p><Button onClick={() => router.push('/ppe-management')} className="mt-4">Back to PPE Management</Button></CardContent>
         </Card>
       </div>
     );
@@ -127,11 +148,12 @@ export default function EditPpeIssuancePage() {
     <div className="h-full flex flex-col">
       <PpeIssuanceForm
         ppeItems={ppeItems}
+        ppeJobRoleMatrix={ppeJobRoleMatrix}
         initialData={issuanceToEdit}
         onSave={handleSaveIssuance}
         onCancel={handleCancel}
+        isSubmitting={updateIssuanceMutation.isPending}
       />
     </div>
   );
 }
-    
