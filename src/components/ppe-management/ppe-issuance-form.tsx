@@ -68,12 +68,13 @@ interface PpeIssuanceFormProps {
   ppeJobRoleMatrix: PpeJobRoleMatrixEntry[];
   initialData?: PpeIssuanceRecord | null;
   onSave: (data: PpeIssuanceFormValues) => void;
+  onCancel: () => void;
   isSubmitting?: boolean;
 }
 
 const NO_ROLE_VALUE = "__NONE__";
 
-export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSave, isSubmitting }: PpeIssuanceFormProps) {
+export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSave, onCancel, isSubmitting }: PpeIssuanceFormProps) {
   const isEditing = !!initialData;
   const form = useForm<PpeIssuanceFormValues>({
     resolver: zodResolver(ppeIssuanceFormSchema),

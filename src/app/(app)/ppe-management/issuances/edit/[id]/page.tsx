@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { PpeIssuanceRecord, PpeItem, PpeJobRoleMatrixEntry } from "@/lib/types";
+import type { PpeIssuanceRecord, PpeItem, PpeJobRoleMatrixEntry, TrainingRecordStatus } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -110,8 +110,8 @@ export default function EditPpeIssuancePage() {
   });
 
 
-  const handleSaveIssuance = (formData: PpeIssuanceFormValues) => {
-    updateIssuanceMutation.mutate(formData);
+  const handleSaveIssuance = (data: PpeIssuanceFormValues) => {
+    updateIssuanceMutation.mutate(data);
   };
 
 
