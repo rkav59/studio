@@ -59,10 +59,13 @@ export default function EditPpeIssuancePage() {
       const recordRef = doc(db, PPE_ISSUANCES_COLLECTION, issuanceId);
       const recordSnap = await getDoc(recordRef);
       if (recordSnap.exists() && recordSnap.data().userId === user.uid) {
-        // Data is now stored as ISO strings, no conversion needed here.
+        const data = recordSnap.data();
         return {
           id: recordSnap.id,
-          ...recordSnap.data(),
+          ...data,
+          issuedDate: (data.issuedDate as Timestamp)?.toDate().toISOString(),
+          expectedReturnDate: data.expectedReturnDate ? (data.expectedReturnDate as Timestamp).toDate().toISOString() : undefined,
+          actualReturnDate: data.actualReturnDate ? (data.actualReturnDate as Timestamp).toDate().toISOString() : undefined,
         } as PpeIssuanceRecord;
       }
       return null;
@@ -75,11 +78,14 @@ export default function EditPpeIssuancePage() {
       if (!user?.uid || !updatedData.id) throw new Error("User or issuance ID missing.");
       const { id, ...dataToUpdate } = updatedData;
       const recordRef = doc(db, PPE_ISSUANCES_COLLECTION, id);
-      // dataToUpdate has correct ISO strings from handleSaveIssuance, just need to ensure userId
-      await updateDoc(recordRef, {
+      const dataForDb = {
         ...dataToUpdate,
-        userId: user.uid, 
-      });
+        userId: user.uid,
+        issuedDate: Timestamp.fromDate(parseISO(dataToUpdate.issuedDate as string)),
+        expectedReturnDate: dataToUpdate.expectedReturnDate ? Timestamp.fromDate(parseISO(dataToUpdate.expectedReturnDate as string)) : null,
+        actualReturnDate: dataToUpdate.actualReturnDate ? Timestamp.fromDate(parseISO(dataToUpdate.actualReturnDate as string)) : null,
+      };
+      await updateDoc(recordRef, dataForDb);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [PPE_ISSUANCES_COLLECTION, user?.uid] });

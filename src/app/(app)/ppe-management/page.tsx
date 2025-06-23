@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog"; 
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, Package, CheckCheck, ClipboardList, Settings2, AlertTriangle, ListFilter, Search, ShieldCheck, Activity, CalendarClock, ClockIcon, AlertCircle, Users, Loader2, HardHat } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, Eye, CheckCheck, ClipboardList, Settings2, AlertTriangle, ListFilter, Search, ShieldCheck, Activity, CalendarClock, ClockIcon, AlertCircle, Users, Loader2, HardHat } from "lucide-react";
 import type { PpeItem, PpeIssuanceRecord, PpeInspectionRecord, PpeItemStatus, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid, differenceInDays, isBefore } from 'date-fns';
@@ -31,7 +31,7 @@ import { PpeJobRoleMatrixForm } from '@/components/ppe-management/ppe-job-role-m
 import { PpeJobRoleMatrixDetailsDialog } from '@/components/ppe-management/ppe-job-role-matrix-details-dialog';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 
@@ -83,7 +83,16 @@ export default function PpeManagementPage() {
       if (!user?.uid) return [];
       const q = query(collection(db, PPE_ISSUANCES_COLLECTION), where("userId", "==", user.uid));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PpeIssuanceRecord));
+      return snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            issuedDate: (data.issuedDate as Timestamp)?.toDate().toISOString(),
+            expectedReturnDate: data.expectedReturnDate ? (data.expectedReturnDate as Timestamp).toDate().toISOString() : undefined,
+            actualReturnDate: data.actualReturnDate ? (data.actualReturnDate as Timestamp).toDate().toISOString() : undefined,
+          } as PpeIssuanceRecord;
+      });
     },
     enabled: !!user?.uid,
   });
@@ -457,7 +466,7 @@ export default function PpeManagementPage() {
       <Card>
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
-            <CardTitle className="flex items-center gap-2">PPE Issuance & Return Log</CardTitle>
+            <CardTitle>PPE Issuance & Return Log</CardTitle>
             <CardDescription>Track PPE issued to employees and its return.</CardDescription>
           </div>
            <div className="flex items-center gap-2 w-full sm:w-auto">

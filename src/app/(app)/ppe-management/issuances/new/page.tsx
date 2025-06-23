@@ -53,11 +53,11 @@ export default function NewPpeIssuancePage() {
       const dataForDb = {
         ...newIssuanceData,
         userId: user.uid,
-        issuedDate: parseISO(newIssuanceData.issuedDate).toISOString(),
-        expectedReturnDate: newIssuanceData.expectedReturnDate ? parseISO(newIssuanceData.expectedReturnDate).toISOString() : undefined,
-        actualReturnDate: newIssuanceData.actualReturnDate ? parseISO(newIssuanceData.actualReturnDate).toISOString() : undefined,
+        issuedDate: Timestamp.fromDate(parseISO(newIssuanceData.issuedDate)),
+        expectedReturnDate: newIssuanceData.expectedReturnDate ? Timestamp.fromDate(parseISO(newIssuanceData.expectedReturnDate)) : null,
+        actualReturnDate: newIssuanceData.actualReturnDate ? Timestamp.fromDate(parseISO(newIssuanceData.actualReturnDate)) : null,
       };
-      // Firestore ignores undefined fields automatically
+      // Firestore handles null values, which is better than undefined for explicit field removal/setting
       return addDoc(collection(db, PPE_ISSUANCES_COLLECTION), dataForDb);
     },
     onSuccess: () => {
