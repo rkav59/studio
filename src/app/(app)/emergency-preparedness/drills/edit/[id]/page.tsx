@@ -131,14 +131,20 @@ export default function EditMockDrillPage() {
   
   return (
     <div className="space-y-6">
-       <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={handleCancel} aria-label="Back to Emergency Preparedness">
-                <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-                 Edit Mock Drill: {drillToEdit.drillName}
-            </h1>
-        </div>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-4">
+              <Button variant="outline" size="icon" onClick={handleCancel} aria-label="Back to Emergency Preparedness">
+                  <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <CardTitle>
+                  Edit Mock Drill: {drillToEdit.drillName}
+              </CardTitle>
+          </div>
+          <CardDescription className="pt-2 pl-14">
+            Modify the details for this mock drill.
+          </CardDescription>
+        </CardHeader>
         <MockDrillForm 
             plans={plans}
             initialData={drillToEdit} 
@@ -146,6 +152,7 @@ export default function EditMockDrillPage() {
             onCancel={handleCancel}
             isSubmitting={updateDrillMutation.isPending}
         />
+      </Card>
     </div>
   );
 }

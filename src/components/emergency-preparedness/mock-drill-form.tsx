@@ -174,148 +174,143 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitti
 
 
   return (
-    <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
-        <UiCardHeader>
-            <UiCardDescription>
-              {initialData ? "Update the details of this mock drill." : "Enter details for scheduling or logging a mock drill."}
-            </UiCardDescription>
-        </UiCardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
-            <ScrollArea className="flex-1 p-6 space-y-4">
-              <FormField control={form.control} name="drillName" render={({ field }) => (
-                <FormItem><FormLabel>Drill Name/Title</FormLabel><FormControl><Input placeholder="e.g., Q3 Fire Evacuation Drill - Main Office" {...field} /></FormControl><FormMessage /></FormItem>
-              )}/>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="drillType" render={({ field }) => (
-                    <FormItem><FormLabel>Drill Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || undefined}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select drill type" /></SelectTrigger></FormControl>
-                        <SelectContent>{drillTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
-                    </Select><FormMessage /></FormItem>
+            <ScrollArea className="flex-1">
+              <div className="p-6 space-y-4">
+                <FormField control={form.control} name="drillName" render={({ field }) => (
+                  <FormItem><FormLabel>Drill Name/Title</FormLabel><FormControl><Input placeholder="e.g., Q3 Fire Evacuation Drill - Main Office" {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
-                <FormField control={form.control} name="status" render={({ field }) => (
-                    <FormItem><FormLabel>Drill Status</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
-                        <SelectContent>{drillStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent>
-                        </Select><FormMessage /></FormItem>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="drillType" render={({ field }) => (
+                      <FormItem><FormLabel>Drill Type</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select drill type" /></SelectTrigger></FormControl>
+                          <SelectContent>{drillTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
+                      </Select><FormMessage /></FormItem>
+                  )}/>
+                  <FormField control={form.control} name="status" render={({ field }) => (
+                      <FormItem><FormLabel>Drill Status</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
+                          <SelectContent>{drillStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent>
+                          </Select><FormMessage /></FormItem>
+                  )}/>
+                  <FormField control={form.control} name="linkedPlanId" render={({ field }) => (
+                      <FormItem><FormLabel>Linked Emergency Plan (Optional)</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl><SelectTrigger><SelectValue placeholder={plans.length > 0 ? "Select plan" : "No plans available"} /></SelectTrigger></FormControl>
+                          <SelectContent>
+                              <SelectItem value={NO_PLAN_VALUE}>None</SelectItem>
+                              {plans.map(plan => <SelectItem key={plan.id} value={plan.id}>{plan.planName}</SelectItem>)}
+                          </SelectContent>
+                      </Select><FormMessage /></FormItem>
+                  )}/>
+                  <FormField control={form.control} name="participants" render={({ field }) => (
+                      <FormItem><FormLabel>Participants (Optional)</FormLabel><FormControl><Input placeholder="e.g., All Warehouse Staff, ERT Members, Floor Wardens" {...field} /></FormControl><FormMessage /></FormItem>
+                  )}/>
+                  <FormField control={form.control} name="scheduledDate" render={({ field }) => (
+                      <FormItem className="flex flex-col"><FormLabel>Scheduled Date</FormLabel>
+                      <Popover><PopoverTrigger asChild><FormControl>
+                          <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                          {field.value ? format(parseISO(field.value), "PPP") : <span>Pick date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button></FormControl></PopoverTrigger>
+                          <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
+                      </Popover><FormMessage /></FormItem>
+                  )}/>
+                  <FormField control={form.control} name="actualDate" render={({ field }) => (
+                      <FormItem className="flex flex-col"><FormLabel>Actual Date (if completed)</FormLabel>
+                      <Popover><PopoverTrigger asChild><FormControl>
+                          <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                          {field.value ? format(parseISO(field.value), "PPP") : <span>Pick date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button></FormControl></PopoverTrigger>
+                          <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
+                      </Popover><FormMessage /></FormItem>
+                  )}/>
+                </div>
+
+                <Separator />
+                
+                <FormField
+                  control={form.control}
+                  name="scenario"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex justify-between items-center">
+                        <FormLabel>Drill Scenario</FormLabel>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSuggestScenario}
+                          disabled={isScenarioLoading || !form.watch("drillType")}
+                          className="text-accent border-accent hover:bg-accent/10"
+                        >
+                          {isScenarioLoading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="mr-2 h-4 w-4" />
+                          )}
+                          Suggest with AI
+                        </Button>
+                      </div>
+                      <FormControl>
+                        <Textarea placeholder="Describe the scenario being simulated..." rows={3} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField control={form.control} name="observations" render={({ field }) => (
+                  <FormItem><FormLabel>Observations during Drill (Optional)</FormLabel><FormControl><Textarea placeholder="Key observations, what went well, areas of confusion..." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
-                <FormField control={form.control} name="linkedPlanId" render={({ field }) => (
-                    <FormItem><FormLabel>Linked Emergency Plan (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || undefined}>
-                        <FormControl><SelectTrigger><SelectValue placeholder={plans.length > 0 ? "Select plan" : "No plans available"} /></SelectTrigger></FormControl>
-                        <SelectContent>
-                            <SelectItem value={NO_PLAN_VALUE}>None</SelectItem>
-                            {plans.map(plan => <SelectItem key={plan.id} value={plan.id}>{plan.planName}</SelectItem>)}
-                        </SelectContent>
-                    </Select><FormMessage /></FormItem>
+                <FormField control={form.control} name="lessonsLearned" render={({ field }) => (
+                  <FormItem><FormLabel>Lessons Learned (Optional)</FormLabel><FormControl><Textarea placeholder="Key takeaways and improvement points from the drill..." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
-                <FormField control={form.control} name="participants" render={({ field }) => (
-                    <FormItem><FormLabel>Participants (Optional)</FormLabel><FormControl><Input placeholder="e.g., All Warehouse Staff, ERT Members, Floor Wardens" {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
-                <FormField control={form.control} name="scheduledDate" render={({ field }) => (
-                    <FormItem className="flex flex-col"><FormLabel>Scheduled Date</FormLabel>
-                    <Popover><PopoverTrigger asChild><FormControl>
-                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                        {field.value ? format(parseISO(field.value), "PPP") : <span>Pick date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button></FormControl></PopoverTrigger>
-                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
-                    </Popover><FormMessage /></FormItem>
-                )}/>
-                 <FormField control={form.control} name="actualDate" render={({ field }) => (
-                    <FormItem className="flex flex-col"><FormLabel>Actual Date (if completed)</FormLabel>
-                    <Popover><PopoverTrigger asChild><FormControl>
-                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                        {field.value ? format(parseISO(field.value), "PPP") : <span>Pick date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button></FormControl></PopoverTrigger>
-                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
-                    </Popover><FormMessage /></FormItem>
-                )}/>
+
+              {/* Action Items Section */}
+              <Card className="bg-muted/30">
+                  <UiCardHeader>
+                      <UiCardTitle className="flex items-center gap-2 text-base"><ClipboardCheck className="h-5 w-5"/>Action Items from Drill</UiCardTitle>
+                      <UiCardDescription>Document any follow-up actions identified during or after the drill.</UiCardDescription>
+                  </UiCardHeader>
+                  <CardContent className="space-y-3">
+                      {actionItemFields.map((item, index) => (
+                          <Card key={item.id} className="p-3 bg-background shadow-sm space-y-3">
+                              <div className="flex justify-between items-center"><FormLabel className="text-sm font-medium">Action Item #{index + 1}</FormLabel><Button type="button" variant="ghost" size="icon" onClick={() => removeActionItem(index)} className="text-destructive h-6 w-6"><Trash2 className="h-4 w-4"/></Button></div>
+                              <FormField control={form.control} name={`actionItems.${index}.description`} render={({ field }) => (
+                                  <FormItem><FormLabel className="text-xs">Description</FormLabel><FormControl><Textarea placeholder="Specific action required" rows={2} {...field} /></FormControl><FormMessage /></FormItem>
+                              )}/>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                  <FormField control={form.control} name={`actionItems.${index}.assignedTo`} render={({ field }) => (
+                                      <FormItem><FormLabel className="text-xs">Assigned To</FormLabel><FormControl><Input placeholder="Name or Team" {...field} /></FormControl><FormMessage /></FormItem>
+                                  )}/>
+                                  <FormField control={form.control} name={`actionItems.${index}.dueDate`} render={({ field }) => (
+                                      <FormItem className="flex flex-col"><FormLabel className="text-xs">Due Date (Optional)</FormLabel>
+                                      <Popover><PopoverTrigger asChild><FormControl>
+                                          <Button variant="outline" size="sm" className={cn("w-full pl-3 text-left font-normal text-xs", !field.value && "text-muted-foreground")}>
+                                          {field.value ? format(parseISO(field.value), "PPP") : <span>Pick due date</span>} <CalendarIcon className="ml-auto h-3 w-3 opacity-50" />
+                                          </Button></FormControl></PopoverTrigger>
+                                          <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
+                                      </Popover><FormMessage /></FormItem>
+                                  )}/>
+                                  <FormField control={form.control} name={`actionItems.${index}.status`} render={({ field }) => (
+                                      <FormItem><FormLabel className="text-xs">Status</FormLabel>
+                                      <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                          <FormControl><SelectTrigger className="text-xs"><SelectValue placeholder="Status" /></SelectTrigger></FormControl>
+                                          <SelectContent>{actionItemStatuses.map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}</SelectContent>
+                                      </Select><FormMessage /></FormItem>
+                                  )}/>
+                              </div>
+                          </Card>
+                      ))}
+                      <Button type="button" variant="outline" size="sm" onClick={() => appendActionItem(newActionItemDefault())}><PlusCircle className="mr-2 h-4 w-4"/>Add Action Item</Button>
+                      <FormField name="actionItems" control={form.control} render={() => <FormMessage />} />
+                  </CardContent>
+              </Card>
               </div>
-
-              <Separator />
-              
-              <FormField
-                control={form.control}
-                name="scenario"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex justify-between items-center">
-                      <FormLabel>Drill Scenario</FormLabel>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleSuggestScenario}
-                        disabled={isScenarioLoading || !form.watch("drillType")}
-                        className="text-accent border-accent hover:bg-accent/10"
-                      >
-                        {isScenarioLoading ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Sparkles className="mr-2 h-4 w-4" />
-                        )}
-                        Suggest with AI
-                      </Button>
-                    </div>
-                    <FormControl>
-                      <Textarea placeholder="Describe the scenario being simulated..." rows={3} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField control={form.control} name="observations" render={({ field }) => (
-                <FormItem><FormLabel>Observations during Drill (Optional)</FormLabel><FormControl><Textarea placeholder="Key observations, what went well, areas of confusion..." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
-              )}/>
-              <FormField control={form.control} name="lessonsLearned" render={({ field }) => (
-                <FormItem><FormLabel>Lessons Learned (Optional)</FormLabel><FormControl><Textarea placeholder="Key takeaways and improvement points from the drill..." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
-              )}/>
-
-            {/* Action Items Section */}
-            <Card className="bg-muted/30">
-                <UiCardHeader>
-                    <UiCardTitle className="flex items-center gap-2 text-base"><ClipboardCheck className="h-5 w-5"/>Action Items from Drill</UiCardTitle>
-                    <UiCardDescription>Document any follow-up actions identified during or after the drill.</UiCardDescription>
-                </UiCardHeader>
-                <CardContent className="space-y-3">
-                    {actionItemFields.map((item, index) => (
-                        <Card key={item.id} className="p-3 bg-background shadow-sm space-y-3">
-                            <div className="flex justify-between items-center"><FormLabel className="text-sm font-medium">Action Item #{index + 1}</FormLabel><Button type="button" variant="ghost" size="icon" onClick={() => removeActionItem(index)} className="text-destructive h-6 w-6"><Trash2 className="h-4 w-4"/></Button></div>
-                            <FormField control={form.control} name={`actionItems.${index}.description`} render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs">Description</FormLabel><FormControl><Textarea placeholder="Specific action required" rows={2} {...field} /></FormControl><FormMessage /></FormItem>
-                            )}/>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <FormField control={form.control} name={`actionItems.${index}.assignedTo`} render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs">Assigned To</FormLabel><FormControl><Input placeholder="Name or Team" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name={`actionItems.${index}.dueDate`} render={({ field }) => (
-                                    <FormItem className="flex flex-col"><FormLabel className="text-xs">Due Date (Optional)</FormLabel>
-                                    <Popover><PopoverTrigger asChild><FormControl>
-                                        <Button variant="outline" size="sm" className={cn("w-full pl-3 text-left font-normal text-xs", !field.value && "text-muted-foreground")}>
-                                        {field.value ? format(parseISO(field.value), "PPP") : <span>Pick due date</span>} <CalendarIcon className="ml-auto h-3 w-3 opacity-50" />
-                                        </Button></FormControl></PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
-                                    </Popover><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name={`actionItems.${index}.status`} render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs">Status</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value || undefined}>
-                                        <FormControl><SelectTrigger className="text-xs"><SelectValue placeholder="Status" /></SelectTrigger></FormControl>
-                                        <SelectContent>{actionItemStatuses.map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}</SelectContent>
-                                    </Select><FormMessage /></FormItem>
-                                )}/>
-                            </div>
-                        </Card>
-                    ))}
-                    <Button type="button" variant="outline" size="sm" onClick={() => appendActionItem(newActionItemDefault())}><PlusCircle className="mr-2 h-4 w-4"/>Add Action Item</Button>
-                    <FormField name="actionItems" control={form.control} render={() => <FormMessage />} />
-                </CardContent>
-            </Card>
-
             </ScrollArea>
             <div className="p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
                 <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}><XCircle className="mr-2 h-4 w-4" /> Cancel</Button>
@@ -323,6 +318,5 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitti
             </div>
         </form>
       </Form>
-    </Card>
   );
 }

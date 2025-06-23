@@ -281,7 +281,13 @@ export default function EmergencyPreparednessPage() {
       
       {isDrillFormOpen && (
         <Dialog open={isDrillFormOpen} onOpenChange={(isOpen) => { if (!isOpen) setIsDrillFormOpen(false); }}>
-            <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
+            <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0">
+                <DialogHeader className="p-6 pb-0">
+                    <DialogTitle>Schedule/Log New Mock Drill</DialogTitle>
+                    <DialogDescription>
+                        Enter details for scheduling or logging a mock drill. This will be added to the logbook.
+                    </DialogDescription>
+                </DialogHeader>
                  <MockDrillForm 
                     plans={plans} 
                     onSave={handleSaveDrill} 

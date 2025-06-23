@@ -112,20 +112,27 @@ export default function NewMockDrillPage() {
 
   return (
     <div className="space-y-6">
-        <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={handleCancel} aria-label="Back to Emergency Preparedness">
-                <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-                 Schedule/Log New Mock Drill
-            </h1>
-        </div>
+      <Card>
+        <CardHeader>
+           <div className="flex items-center gap-4">
+              <Button variant="outline" size="icon" onClick={handleCancel} aria-label="Back to Emergency Preparedness">
+                  <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <h1 className="text-2xl font-semibold tracking-tight">
+                  Schedule/Log New Mock Drill
+              </h1>
+          </div>
+          <CardDescription className="pt-2 pl-14"> 
+            Enter details for scheduling or logging a mock drill.
+          </CardDescription>
+        </CardHeader>
         <MockDrillForm 
           plans={plans} 
           onSave={handleSaveDrill} 
           onCancel={handleCancel}
           isSubmitting={addDrillMutation.isPending}
         />
+      </Card>
     </div>
   );
 }
