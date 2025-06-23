@@ -555,6 +555,7 @@ export interface PpeJobRoleMatrixEntry {
   userId?: string;
   jobRole: string;
   requiredPpeItemIds: string[]; // Array of PpeItem IDs
+  riskAssessmentId?: string; // ID of the linked risk assessment
   riskAssessmentReference?: string; // Optional reference to a RA document/ID
 }
 // --- End PPE Job Role Matrix Specific Types ---
@@ -843,5 +844,4 @@ export interface GenerateLegalRegisterOutput {
 // --- End Global App Types ---
 
     
-
 
