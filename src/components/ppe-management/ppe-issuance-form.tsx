@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -59,6 +60,8 @@ interface PpeIssuanceFormProps {
   isSubmitting?: boolean;
 }
 
+const NO_ROLE_VALUE = "__NO_ROLE_SELECTED__";
+
 export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSave, onCancel, isSubmitting }: PpeIssuanceFormProps) {
   const isEditing = !!initialData;
   const form = useForm<PpeIssuanceFormValues>({
@@ -85,7 +88,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
   }, [ppeItems, initialData]);
 
   const filteredPpeItems = useMemo(() => {
-    if (!watchedJobRole) {
+    if (!watchedJobRole || watchedJobRole === NO_ROLE_VALUE) {
       return availablePpeItems;
     }
     const matrixEntry = ppeJobRoleMatrix.find(entry => entry.jobRole === watchedJobRole);
@@ -105,7 +108,11 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
 
 
   const onSubmit = (data: PpeIssuanceFormValues) => {
-    onSave(data);
+    const dataToSave = {
+        ...data,
+        jobRole: data.jobRole === NO_ROLE_VALUE ? undefined : data.jobRole,
+    };
+    onSave(dataToSave);
   };
 
   return (
@@ -130,10 +137,10 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
                   <FormField control={form.control} name="jobRole" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Job Role (Optional)</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <Select onValueChange={field.onChange} value={field.value || NO_ROLE_VALUE}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Select role to filter PPE" /></SelectTrigger></FormControl>
                             <SelectContent>
-                                <SelectItem value="">None (Show All PPE)</SelectItem>
+                                <SelectItem value={NO_ROLE_VALUE}>None (Show All PPE)</SelectItem>
                                 {ppeJobRoleMatrix.map(entry => (
                                     <SelectItem key={entry.id} value={entry.jobRole}>{entry.jobRole}</SelectItem>
                                 ))}
