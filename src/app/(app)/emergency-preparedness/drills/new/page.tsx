@@ -94,7 +94,7 @@ export default function NewMockDrillPage() {
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-                    <Activity className="h-6 w-6 text-teal-500" /> Schedule/Log New Mock Drill
+                    Schedule/Log New Mock Drill
                 </h1>
             </div>
             <Card className="shadow-lg">
@@ -117,7 +117,7 @@ export default function NewMockDrillPage() {
                 <ArrowLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-                 <Activity className="h-6 w-6 text-teal-500" /> Schedule/Log New Mock Drill
+                 Schedule/Log New Mock Drill
             </h1>
         </div>
         <MockDrillForm 

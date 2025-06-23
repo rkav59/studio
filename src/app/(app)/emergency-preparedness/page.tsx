@@ -236,7 +236,7 @@ export default function EmergencyPreparednessPage() {
       <Separator className="my-8"/>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <div><CardTitle className="flex items-center gap-2"><Activity className="h-6 w-6 text-teal-500"/>Mock Drill Logbook</CardTitle><CardDescription>Schedule, log, and review mock drills.</CardDescription></div>
+          <div><CardTitle className="flex items-center gap-2">Mock Drill Logbook</CardTitle><CardDescription>Schedule, log, and review mock drills.</CardDescription></div>
           <Button onClick={handleOpenNewDrillForm} className="bg-teal-500 hover:bg-teal-600 text-white" disabled={plans.length === 0}><PlusCircle className="mr-2 h-4 w-4" /> Log/Schedule Drill</Button>
         </CardHeader>
         <CardContent>{drills.length === 0 ? <p className="text-muted-foreground text-center py-4">No mock drills recorded.</p> : (
