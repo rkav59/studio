@@ -60,6 +60,8 @@ interface PpeIssuanceFormProps {
   isSubmitting?: boolean;
 }
 
+const NO_ROLE_VALUE = "__NONE__";
+
 export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSave, onCancel, isSubmitting }: PpeIssuanceFormProps) {
   const isEditing = !!initialData;
   const form = useForm<PpeIssuanceFormValues>({
@@ -67,7 +69,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
     defaultValues: {
       ppeItemId: initialData?.ppeItemId || "",
       employeeName: initialData?.employeeName || "",
-      jobRole: initialData?.jobRole || "",
+      jobRole: initialData?.jobRole || undefined,
       issuedDate: initialData?.issuedDate ? format(parseISO(initialData.issuedDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       quantityIssued: initialData?.quantityIssued || 1,
       expectedReturnDate: initialData?.expectedReturnDate ? format(parseISO(initialData.expectedReturnDate), 'yyyy-MM-dd') : undefined,
@@ -84,7 +86,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
         (item.status || 'Available') === 'Available' || item.id === initialData?.ppeItemId
     );
 
-    if (watchedJobRole) {
+    if (watchedJobRole && watchedJobRole !== NO_ROLE_VALUE) {
         const roleMatrixEntry = ppeJobRoleMatrix.find(role => role.jobRole === watchedJobRole);
         if (roleMatrixEntry) {
             const requiredIds = roleMatrixEntry.requiredPpeItemIds;
@@ -106,7 +108,11 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
 
 
   const onSubmit = (data: PpeIssuanceFormValues) => {
-    onSave(data);
+    const dataToSave = {
+      ...data,
+      jobRole: data.jobRole === NO_ROLE_VALUE ? undefined : data.jobRole,
+    };
+    onSave(dataToSave);
   };
 
   return (
@@ -134,14 +140,14 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>Job Role (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                         <SelectTrigger>
                         <SelectValue placeholder="Select a job role to filter PPE" />
                         </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                        <SelectItem value="">None (Show All PPE)</SelectItem>
+                        <SelectItem value={NO_ROLE_VALUE}>None (Show All PPE)</SelectItem>
                         {ppeJobRoleMatrix.map(role => (
                         <SelectItem key={role.id} value={role.jobRole}>{role.jobRole}</SelectItem>
                         ))}
