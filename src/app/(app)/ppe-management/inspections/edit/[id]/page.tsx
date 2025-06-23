@@ -1,135 +1,127 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import type { PpeInspectionRecord, PpeItem, PpeItemStatus, PpeInspectionOverallStatus } from "@/lib/types";
-import { PpeInspectionForm, type PpeInspectionFormValues, DEFAULT_PPE_CHECKLIST_ITEMS_TEMPLATE } from "@/components/ppe-management/ppe-inspection-form";
+import { PpeInspectionForm, type PpeInspectionFormValues } from "@/components/ppe-management/ppe-inspection-form";
 import { useToast } from '@/hooks/use-toast';
-import { parseISO } from 'date-fns';
+import { parseISO, format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/auth-context';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-const PPE_INSPECTIONS_KEY = 'sheild-ppe-inspections-v1';
-const PPE_ITEMS_KEY = 'sheild-ppe-items-v1';
+
+const PPE_INSPECTIONS_COLLECTION = 'ppeInspections';
+const PPE_ITEMS_COLLECTION = 'ppeItems';
 
 export default function EditPpeInspectionPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
-  const [inspectionToEdit, setInspectionToEdit] = useState<PpeInspectionRecord | null | undefined>(undefined);
-  const [ppeItems, setPpeItems] = useState<PpeItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  
   const inspectionId = params.id as string;
 
-  useEffect(() => {
-    if (inspectionId) {
-      try {
-        const storedPpeItems = localStorage.getItem(PPE_ITEMS_KEY);
-        if (storedPpeItems) setPpeItems(JSON.parse(storedPpeItems));
+  const { data: ppeItems = [], isLoading: isLoadingPpeItems, error: ppeItemsError } = useQuery<PpeItem[]>({
+    queryKey: [PPE_ITEMS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, PPE_ITEMS_COLLECTION), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PpeItem));
+    },
+    enabled: !!user?.uid,
+  });
 
-        const storedInspections = localStorage.getItem(PPE_INSPECTIONS_KEY);
-        const inspections: PpeInspectionRecord[] = storedInspections ? JSON.parse(storedInspections) : [];
-        let foundInspection = inspections.find(insp => insp.id === inspectionId);
-        
-        if (foundInspection) {
-          // Ensure checklistItems exists, if not, populate with default
-          if (!foundInspection.checklistItems || foundInspection.checklistItems.length === 0) {
-            foundInspection = {
-              ...foundInspection,
-              checklistItems: DEFAULT_PPE_CHECKLIST_ITEMS_TEMPLATE.map(templateItem => ({
-                id: crypto.randomUUID(),
-                templateItemId: templateItem.templateItemId,
-                text: templateItem.text,
-                result: 'Pending',
-                remarks: '',
-              })),
-            };
-          }
-        }
-        setInspectionToEdit(foundInspection || null);
-      } catch (error) {
-        console.error("Error loading PPE inspection for editing:", error);
-        setInspectionToEdit(null);
-        toast({ title: "Error", description: "Could not load PPE inspection data.", variant: "destructive" });
+  const { data: inspectionToEdit, isLoading: isLoadingInspection, error: inspectionError } = useQuery<PpeInspectionRecord | null>({
+    queryKey: [PPE_INSPECTIONS_COLLECTION, inspectionId, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid || !inspectionId) return null;
+      const inspectionRef = doc(db, PPE_INSPECTIONS_COLLECTION, inspectionId);
+      const inspectionSnap = await getDoc(inspectionRef);
+      if (inspectionSnap.exists() && inspectionSnap.data().userId === user.uid) {
+        const data = inspectionSnap.data();
+        return { 
+          id: inspectionSnap.id, 
+          ...data,
+          inspectionDate: (data.inspectionDate as Timestamp)?.toDate().toISOString(),
+          nextInspectionDate: data.nextInspectionDate ? (data.nextInspectionDate as Timestamp).toDate().toISOString() : undefined,
+        } as PpeInspectionRecord;
       }
-    }
-    setIsLoading(false);
-  }, [inspectionId, toast]);
+      return null;
+    },
+    enabled: !!user?.uid && !!inspectionId,
+  });
 
-  const updatePpeItemStatus = (itemId: string, inspectionStatus: PpeInspectionOverallStatus) => {
-    const storedItems = localStorage.getItem(PPE_ITEMS_KEY);
-    let items: PpeItem[] = storedItems ? JSON.parse(storedItems) : [];
+
+  const updatePpeItemStatus = async (itemId: string, inspectionStatus: PpeInspectionOverallStatus) => {
+    if (!user?.uid) return;
+    const itemToUpdate = ppeItems.find(item => item.id === itemId);
+    if (!itemToUpdate) return;
     
-    let newPpeStatus: PpeItemStatus = 'Available'; 
+    let newPpeStatus: PpeItemStatus = 'Available';
     switch (inspectionStatus) {
-        case 'Pass':
-            newPpeStatus = 'Available';
-            break;
-        case 'Requires Repair':
-            newPpeStatus = 'Awaiting Repair';
-            break;
-        case 'To be Replaced':
-            newPpeStatus = 'Awaiting Replacement';
-            break;
-        case 'Action Pending':
-             newPpeStatus = 'Under Inspection';
-            break;
+        case 'Pass': newPpeStatus = 'Available'; break;
+        case 'Requires Repair': newPpeStatus = 'Awaiting Repair'; break;
+        case 'To be Replaced': newPpeStatus = 'Awaiting Replacement'; break;
+        case 'Action Pending': newPpeStatus = 'Under Inspection'; break;
     }
-
-    items = items.map(item => item.id === itemId ? { ...item, status: newPpeStatus } : item);
-    localStorage.setItem(PPE_ITEMS_KEY, JSON.stringify(items));
+    
+    const itemRef = doc(db, PPE_ITEMS_COLLECTION, itemId);
+    await updateDoc(itemRef, { status: newPpeStatus });
   };
 
-  const handleSaveInspection = (formData: PpeInspectionFormValues) => {
-    if (!inspectionToEdit) return;
-    try {
-      const storedInspections = localStorage.getItem(PPE_INSPECTIONS_KEY);
-      const inspections: PpeInspectionRecord[] = storedInspections ? JSON.parse(storedInspections) : [];
-      
-      const updatedInspection: PpeInspectionRecord = {
-        ...inspectionToEdit,
-        ppeItemId: formData.ppeItemId,
-        uniquePpeIdentifier: formData.uniquePpeIdentifier,
-        inspectionDate: parseISO(formData.inspectionDate).toISOString(),
-        inspectorName: formData.inspectorName,
-        overallStatus: formData.overallStatus,
-        checklistItems: formData.checklistItems.map(item => ({ // Ensure checklist items are saved
-          ...item,
-          id: item.id || crypto.randomUUID(), 
-        })),
-        notes: formData.notes,
-        followUpAction: formData.followUpAction,
-        nextInspectionDate: formData.nextInspectionDate ? parseISO(formData.nextInspectionDate).toISOString() : undefined,
+
+  const updateInspectionMutation = useMutation({
+    mutationFn: async (updatedData: PpeInspectionFormValues) => {
+      if (!user?.uid || !inspectionId) throw new Error("User or inspection ID missing.");
+      const dataForDb = {
+        ...updatedData,
+        userId: user.uid,
+        inspectionDate: Timestamp.fromDate(parseISO(updatedData.inspectionDate)),
+        nextInspectionDate: updatedData.nextInspectionDate ? Timestamp.fromDate(parseISO(updatedData.nextInspectionDate)) : null,
       };
-
-      const updatedInspections = inspections.map(i => (i.id === inspectionId ? updatedInspection : i));
-      localStorage.setItem(PPE_INSPECTIONS_KEY, JSON.stringify(updatedInspections));
-
-      updatePpeItemStatus(updatedInspection.ppeItemId, updatedInspection.overallStatus);
-      
+      const inspectionRef = doc(db, PPE_INSPECTIONS_COLLECTION, inspectionId);
+      await updateDoc(inspectionRef, dataForDb);
+      return updatedData; // Pass form data to onSuccess
+    },
+    onSuccess: async (variables) => {
+      await updatePpeItemStatus(variables.ppeItemId, variables.overallStatus);
+      queryClient.invalidateQueries({ queryKey: [PPE_INSPECTIONS_COLLECTION, user?.uid] });
+      queryClient.invalidateQueries({ queryKey: [PPE_ITEMS_COLLECTION, user?.uid] });
+      queryClient.invalidateQueries({ queryKey: [PPE_INSPECTIONS_COLLECTION, inspectionId, user?.uid] });
       toast({ 
         title: "PPE Inspection Updated", 
-        description: `Inspection record for PPE Item ID ${updatedInspection.ppeItemId} has been successfully updated.` 
+        description: `Inspection record for PPE Item ID ${variables.ppeItemId} has been successfully updated.` 
       });
       router.push('/ppe-management');
-    } catch (error) {
-      console.error("Error updating PPE inspection:", error);
+    },
+    onError: (error: Error) => {
       toast({ 
         title: "Error Updating Inspection", 
-        description: "Could not update the PPE inspection.", 
+        description: "An unexpected error occurred. Please try again.", 
         variant: "destructive" 
       });
-    }
+    },
+  });
+
+
+  const handleSaveInspection = (formData: PpeInspectionFormValues) => {
+    updateInspectionMutation.mutate(formData);
   };
 
   const handleCancel = () => {
     router.push('/ppe-management');
   };
 
-  if (isLoading || inspectionToEdit === undefined) {
+  const isLoading = isLoadingPpeItems || isLoadingInspection;
+
+  if (isLoading) {
     return (
       <div className="h-full flex flex-col">
         <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
@@ -138,7 +130,7 @@ export default function EditPpeInspectionPage() {
             <Skeleton className="h-4 w-1/2" />
           </CardHeader>
           <CardContent className="space-y-6 p-4 md:p-6">
-            {[...Array(8)].map((_, i) => ( // Increased skeleton items for checklist
+            {[...Array(8)].map((_, i) => (
               <div key={i} className="space-y-2">
                 <Skeleton className="h-4 w-1/4" />
                 <Skeleton className="h-10 w-full" />
@@ -150,15 +142,15 @@ export default function EditPpeInspectionPage() {
     );
   }
 
-  if (inspectionToEdit === null) {
+  if (inspectionError || !inspectionToEdit || ppeItemsError) {
     return (
       <div className="h-full flex items-center justify-center">
         <Card className="w-full max-w-md shadow-lg">
           <CardHeader>
-            <CardTitle>PPE Inspection Record Not Found</CardTitle>
+            <CardTitle>Error Loading Data</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>The PPE inspection record you are trying to edit could not be found.</p>
+            <p>The PPE inspection record or related data could not be found.</p>
             <Button onClick={() => router.push('/ppe-management')} className="mt-4">
               Back to PPE Management
             </Button>
@@ -175,8 +167,8 @@ export default function EditPpeInspectionPage() {
         initialData={inspectionToEdit}
         onSave={handleSaveInspection}
         onCancel={handleCancel}
+        isSubmitting={updateInspectionMutation.isPending}
       />
     </div>
   );
 }
-    
