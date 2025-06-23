@@ -38,23 +38,18 @@ const ppeIssuanceFormSchema = z.object({
   ppeItemId: z.string({ required_error: "Please select a PPE item." }).min(1, "Please select a PPE item."),
   employeeName: z.string().min(2, "Employee name is required.").max(150),
   jobRole: z.string().optional(),
-  issuedDate: z.string().refine(val => isValid(parseISO(val)), { message: "Issued date is required." }),
+  issuedDate: z.date({ required_error: "Issued date is required." }),
   quantityIssued: z.coerce.number().min(1, "Quantity must be at least 1.").int(),
-  expectedReturnDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid expected return date" }),
-  actualReturnDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid actual return date" }),
+  expectedReturnDate: z.date().nullable().optional(),
+  actualReturnDate: z.date().nullable().optional(),
   conditionOnReturn: z.enum(['Good', 'Damaged', 'Lost']).optional(),
   notes: z.string().max(1000).optional(),
 }).refine(data => {
     if (!data.actualReturnDate || !data.issuedDate) {
         return true; // No dates to compare or one is missing
     }
-    const issueDate = parseISO(data.issuedDate);
-    const returnDate = parseISO(data.actualReturnDate);
-    // Let individual field validators handle invalid date strings
-    if (!isValid(issueDate) || !isValid(returnDate)) {
-        return true;
-    }
-    return returnDate >= issueDate;
+    // Dates are now Date objects, direct comparison works
+    return data.actualReturnDate >= data.issuedDate;
 }, {
     message: "Return date cannot be before issued date.",
     path: ["actualReturnDate"],
@@ -67,7 +62,7 @@ interface PpeIssuanceFormProps {
   ppeItems: PpeItem[];
   ppeJobRoleMatrix: PpeJobRoleMatrixEntry[];
   initialData?: PpeIssuanceRecord | null;
-  onSave: (data: PpeIssuanceFormValues) => void;
+  onSave: (data: Omit<PpeIssuanceRecord, 'id' | 'userId'>) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
 }
@@ -82,10 +77,10 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
       ppeItemId: initialData?.ppeItemId || undefined,
       employeeName: initialData?.employeeName || "",
       jobRole: initialData?.jobRole || NO_ROLE_VALUE,
-      issuedDate: initialData?.issuedDate ? format(parseISO(initialData.issuedDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+      issuedDate: initialData?.issuedDate ? parseISO(initialData.issuedDate) : new Date(),
       quantityIssued: initialData?.quantityIssued || 1,
-      expectedReturnDate: initialData?.expectedReturnDate ? format(parseISO(initialData.expectedReturnDate), 'yyyy-MM-dd') : undefined,
-      actualReturnDate: initialData?.actualReturnDate ? format(parseISO(initialData.actualReturnDate), 'yyyy-MM-dd') : undefined,
+      expectedReturnDate: initialData?.expectedReturnDate ? parseISO(initialData.expectedReturnDate) : null,
+      actualReturnDate: initialData?.actualReturnDate ? parseISO(initialData.actualReturnDate) : null,
       conditionOnReturn: initialData?.conditionOnReturn || undefined,
       notes: initialData?.notes || "",
     },
@@ -110,8 +105,6 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
   }, [ppeItems, initialData?.ppeItemId, watchedJobRole, ppeJobRoleMatrix]);
 
   useEffect(() => {
-    // When job role changes, check if the currently selected PPE item is still valid.
-    // If not, reset it. This prevents an invalid state.
     const currentPpeId = form.getValues("ppeItemId");
     if (currentPpeId && !availablePpeItems.some(item => item.id === currentPpeId)) {
         form.setValue("ppeItemId", undefined as any);
@@ -120,9 +113,12 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
 
 
   const onSubmit = (data: PpeIssuanceFormValues) => {
-    const dataToSave = {
+    const dataToSave: Omit<PpeIssuanceRecord, 'id' | 'userId'> = {
       ...data,
       jobRole: data.jobRole === NO_ROLE_VALUE ? undefined : data.jobRole,
+      issuedDate: data.issuedDate.toISOString(),
+      expectedReturnDate: data.expectedReturnDate ? data.expectedReturnDate.toISOString() : undefined,
+      actualReturnDate: data.actualReturnDate ? data.actualReturnDate.toISOString() : undefined,
     };
     onSave(dataToSave);
   };
@@ -189,9 +185,9 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
                     <FormItem className="flex flex-col"><FormLabel>Issued Date</FormLabel>
                     <Popover><PopoverTrigger asChild><FormControl>
                         <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                        {field.value ? format(parseISO(field.value), "PPP") : <span>Pick issued date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        {field.value ? format(field.value, "PPP") : <span>Pick issued date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button></FormControl></PopoverTrigger>
-                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")} /></PopoverContent>
+                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent>
                     </Popover><FormMessage /></FormItem>
                 )}/>
               </div>
@@ -203,18 +199,18 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
                 <FormItem className="flex flex-col"><FormLabel>Expected Return Date</FormLabel>
                 <Popover><PopoverTrigger asChild><FormControl>
                     <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                    {field.value ? format(parseISO(field.value), "PPP") : <span>Pick expected return date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    {field.value ? format(field.value, "PPP") : <span>Pick expected return date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button></FormControl></PopoverTrigger>
-                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")} /></PopoverContent>
+                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent>
                 </Popover><FormMessage /></FormItem>
               )}/>
                <FormField control={form.control} name="actualReturnDate" render={({ field }) => (
                 <FormItem className="flex flex-col"><FormLabel>Actual Return Date</FormLabel>
                 <Popover><PopoverTrigger asChild><FormControl>
                     <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                    {field.value ? format(parseISO(field.value), "PPP") : <span>Pick actual return date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    {field.value ? format(field.value, "PPP") : <span>Pick actual return date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button></FormControl></PopoverTrigger>
-                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")} /></PopoverContent>
+                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent>
                 </Popover><FormMessage /></FormItem>
               )}/>
               {form.watch("actualReturnDate") && (

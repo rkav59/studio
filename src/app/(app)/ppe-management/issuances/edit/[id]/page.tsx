@@ -2,14 +2,14 @@
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
-import { PpeIssuanceForm, type PpeIssuanceFormValues } from "@/components/ppe-management/ppe-issuance-form";
+import { PpeIssuanceForm } from "@/components/ppe-management/ppe-issuance-form";
 import { useToast } from '@/hooks/use-toast';
-import { parseISO, format } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { PpeIssuanceRecord, PpeItem, PpeJobRoleMatrixEntry, TrainingRecordStatus } from "@/lib/types";
+import type { PpeIssuanceRecord, PpeItem, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -76,20 +76,20 @@ export default function EditPpeIssuancePage() {
   });
 
   const updateIssuanceMutation = useMutation({
-    mutationFn: async (formData: PpeIssuanceFormValues) => {
-      if (!user?.uid || !issuanceId) throw new Error("User or issuance ID missing.");
+    mutationFn: async (updatedData: PpeIssuanceRecord) => {
+      if (!user?.uid || !updatedData.id) throw new Error("User or issuance ID missing.");
+      const { id, ...dataToUpdate } = updatedData;
       
       const dataForDb = {
-        ...formData,
+        ...dataToUpdate,
         userId: user.uid,
-        issuedDate: Timestamp.fromDate(parseISO(formData.issuedDate)),
-        expectedReturnDate: formData.expectedReturnDate ? Timestamp.fromDate(parseISO(formData.expectedReturnDate)) : null,
-        actualReturnDate: formData.actualReturnDate ? Timestamp.fromDate(parseISO(formData.actualReturnDate)) : null,
+        issuedDate: Timestamp.fromDate(parseISO(dataToUpdate.issuedDate)),
+        expectedReturnDate: dataToUpdate.expectedReturnDate ? Timestamp.fromDate(parseISO(dataToUpdate.expectedReturnDate)) : null,
+        actualReturnDate: dataToUpdate.actualReturnDate ? Timestamp.fromDate(parseISO(dataToUpdate.actualReturnDate)) : null,
       };
 
       const recordRef = doc(db, PPE_ISSUANCES_COLLECTION, issuanceId);
       await updateDoc(recordRef, dataForDb);
-      return formData; // Pass form data to onSuccess
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [PPE_ISSUANCES_COLLECTION, user?.uid] });
@@ -110,8 +110,13 @@ export default function EditPpeIssuancePage() {
   });
 
 
-  const handleSaveIssuance = (data: PpeIssuanceFormValues) => {
-    updateIssuanceMutation.mutate(data);
+  const handleSaveIssuance = (data: Omit<PpeIssuanceRecord, 'id' | 'userId'>) => {
+     if (!issuanceToEdit) return;
+    const dataToSave: PpeIssuanceRecord = {
+        ...issuanceToEdit,
+        ...data
+    };
+    updateIssuanceMutation.mutate(dataToSave);
   };
 
 

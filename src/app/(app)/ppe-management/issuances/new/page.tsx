@@ -2,14 +2,14 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { PpeIssuanceForm, type PpeIssuanceFormValues } from "@/components/ppe-management/ppe-issuance-form";
+import { PpeIssuanceForm } from "@/components/ppe-management/ppe-issuance-form";
 import { useToast } from '@/hooks/use-toast';
 import { parseISO } from 'date-fns';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import type { PpeItem, PpeJobRoleMatrixEntry } from "@/lib/types";
+import type { PpeItem, PpeIssuanceRecord, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
@@ -49,7 +49,7 @@ export default function NewPpeIssuancePage() {
   });
 
   const addIssuanceMutation = useMutation({
-    mutationFn: async (newIssuanceData: PpeIssuanceFormValues) => {
+    mutationFn: async (newIssuanceData: Omit<PpeIssuanceRecord, 'id' | 'userId'>) => {
       if (!user?.uid) throw new Error("User not authenticated.");
       const dataForDb = {
         ...newIssuanceData,
@@ -78,7 +78,7 @@ export default function NewPpeIssuancePage() {
     },
   });
 
-  const handleSaveNewIssuance = (formData: PpeIssuanceFormValues) => {
+  const handleSaveNewIssuance = (formData: Omit<PpeIssuanceRecord, 'id' | 'userId'>) => {
     addIssuanceMutation.mutate(formData);
   };
 
