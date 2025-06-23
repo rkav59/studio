@@ -9,14 +9,13 @@ import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { PpeIssuanceRecord, PpeItem, PpeJobRoleMatrixEntry } from "@/lib/types";
+import type { PpeIssuanceRecord, PpeItem } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 
 const PPE_ISSUANCES_COLLECTION = 'ppeIssuances';
 const PPE_ITEMS_COLLECTION = 'ppeItems';
-const PPE_JOB_ROLE_MATRIX_COLLECTION = 'ppeJobRoleMatrix';
 
 export default function EditPpeIssuancePage() {
   const router = useRouter();
@@ -35,18 +34,6 @@ export default function EditPpeIssuancePage() {
       const q = query(collection(db, PPE_ITEMS_COLLECTION), where("userId", "==", user.uid));
       const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PpeItem));
-    },
-    enabled: !!user?.uid,
-  });
-
-  // Fetch Job Role Matrix
-  const { data: ppeJobRoleMatrix = [], isLoading: isLoadingJobRoleMatrix, error: jobRoleMatrixError } = useQuery<PpeJobRoleMatrixEntry[]>({
-    queryKey: [PPE_JOB_ROLE_MATRIX_COLLECTION, user?.uid],
-    queryFn: async () => {
-      if (!user?.uid) return [];
-      const q = query(collection(db, PPE_JOB_ROLE_MATRIX_COLLECTION), where("userId", "==", user.uid));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PpeJobRoleMatrixEntry));
     },
     enabled: !!user?.uid,
   });
@@ -121,7 +108,7 @@ export default function EditPpeIssuancePage() {
     router.push('/ppe-management');
   };
 
-  const isLoading = isLoadingPpeItems || isLoadingJobRoleMatrix || isLoadingIssuance;
+  const isLoading = isLoadingPpeItems || isLoadingIssuance;
 
   if (isLoading) {
     return (
@@ -134,7 +121,7 @@ export default function EditPpeIssuancePage() {
     );
   }
 
-  if (issuanceError || ppeItemsError || jobRoleMatrixError || !issuanceToEdit) {
+  if (issuanceError || ppeItemsError || !issuanceToEdit) {
     return (
       <div className="h-full flex items-center justify-center">
         <Card className="w-full max-w-md shadow-lg">
@@ -149,7 +136,6 @@ export default function EditPpeIssuancePage() {
     <div className="h-full flex flex-col">
       <PpeIssuanceForm
         ppeItems={ppeItems}
-        ppeJobRoleMatrix={ppeJobRoleMatrix}
         initialData={issuanceToEdit}
         onSave={handleSaveIssuance}
         onCancel={handleCancel}
