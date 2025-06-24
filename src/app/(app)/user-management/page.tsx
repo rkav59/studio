@@ -1,23 +1,31 @@
 
+
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { useQuery } from "@tanstack/react-query";
-import { collection, query, where, getDocs,getCountFromServer } from "firebase/firestore";
+import { collection, query, where, getDocs, getCountFromServer, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, UserPlus, Users, Crown, AlertTriangle } from "lucide-react";
-import { UserProfile } from "@/lib/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
+import { Loader2, UserPlus, Users, Crown, AlertTriangle, Search, Mail, KeyRound } from "lucide-react";
+import { UserProfile, UserRole } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 const USER_PROFILES_COLLECTION = 'userProfiles';
+const USER_ROLES: UserRole[] = ['admin', 'she_officer', 'authorizer', 'she_rep', 'visitor'];
 
 const planLimits: Record<UserProfile['planId'], number> = {
     free: 1,
-    trial: 10, // Assuming trial gives Pro level access
+    trial: 10,
     pro: 10,
     premium: 30,
     enterprise: 100,
@@ -25,6 +33,9 @@ const planLimits: Record<UserProfile['planId'], number> = {
 
 export default function UserManagementPage() {
     const { user } = useAuth();
+    const { toast } = useToast();
+    const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
 
     // Fetch current user's profile to get organizationId and planId
     const { data: userProfile, isLoading: isLoadingProfile } = useQuery<UserProfile | null>({
@@ -38,23 +49,51 @@ export default function UserManagementPage() {
         enabled: !!user?.uid,
     });
 
-    // Fetch user count for the organization
-    const { data: userCount, isLoading: isLoadingCount } = useQuery<number>({
-        queryKey: ['userCount', userProfile?.organizationId],
+    // Fetch all users in the organization
+    const { data: organizationUsers = [], isLoading: isLoadingOrgUsers } = useQuery<UserProfile[]>({
+        queryKey: ['organizationUsers', userProfile?.organizationId],
         queryFn: async () => {
-            if (!userProfile?.organizationId) return 0;
+            if (!userProfile?.organizationId) return [];
             const q = query(collection(db, USER_PROFILES_COLLECTION), where("organizationId", "==", userProfile.organizationId));
-            const snapshot = await getCountFromServer(q);
-            return snapshot.data().count;
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
         },
         enabled: !!userProfile?.organizationId,
     });
 
-    const isLoading = isLoadingProfile || isLoadingCount;
+    const userCount = organizationUsers.length;
+    const isLoading = isLoadingProfile || isLoadingOrgUsers;
     const currentPlan = userProfile?.planId || 'free';
     const limit = planLimits[currentPlan];
-    const canAddUsers = (userCount ?? 0) < limit;
+    const canAddUsers = userCount < limit;
 
+    const filteredUsers = useMemo(() => {
+        if (!searchTerm) return organizationUsers;
+        return organizationUsers.filter(u =>
+            u.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            u.email.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [organizationUsers, searchTerm]);
+    
+    const handleSendInvite = () => {
+        toast({
+            title: "Feature Under Development",
+            description: "Sending user invitations requires a backend service (Cloud Function) which will be implemented in a future step.",
+            variant: "default",
+            duration: 8000,
+        });
+        setIsInviteDialogOpen(false);
+    }
+
+    if (isLoadingProfile) {
+        return (
+             <div className="space-y-6">
+                <Skeleton className="h-10 w-64" />
+                <Card><CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader><CardContent><Skeleton className="h-16 w-full" /></CardContent></Card>
+            </div>
+        );
+    }
+    
     if (userProfile?.role !== 'admin') {
         return (
              <Card className="shadow-lg">
@@ -75,7 +114,7 @@ export default function UserManagementPage() {
                     <Users className="h-8 w-8"/> User Management
                 </h1>
                 <p className="text-muted-foreground">
-                    Invite and manage users in your organization. Role assignments coming soon.
+                    Invite and manage users in your organization. Role-based access will be enforced in future updates.
                 </p>
             </div>
             
@@ -102,28 +141,120 @@ export default function UserManagementPage() {
             <Separator/>
             
             <Card>
-                <CardHeader>
-                    <CardTitle>Invite New User</CardTitle>
-                     <CardDescription>Invite a new user to join your organization via email.</CardDescription>
+                <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div>
+                        <CardTitle>Organization Users</CardTitle>
+                        <CardDescription>Manage users in your organization.</CardDescription>
+                    </div>
+                     <div className="flex w-full md:w-auto items-center gap-2">
+                        <div className="relative flex-grow">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input placeholder="Search by name or email..." className="pl-8" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                        </div>
+                        <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button disabled={!canAddUsers || isLoading}>
+                                    <UserPlus className="mr-2 h-4 w-4"/>
+                                    Invite User
+                                </Button>
+                            </DialogTrigger>
+                             <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Invite New User</DialogTitle>
+                                    <DialogDescription>
+                                        Enter the user's email and assign them a role. They will receive an email to create their account and join your organization.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email" className="flex items-center gap-1"><Mail className="h-4 w-4"/>Email</Label>
+                                        <Input id="email" type="email" placeholder="new.user@example.com" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="role" className="flex items-center gap-1"><KeyRound className="h-4 w-4"/>Role</Label>
+                                        <Select>
+                                            <SelectTrigger id="role">
+                                                <SelectValue placeholder="Select a role" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {USER_ROLES.map(role => (
+                                                    <SelectItem key={role} value={role} className="capitalize">
+                                                        {role.replace('_', ' ')}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <DialogClose asChild>
+                                        <Button variant="outline">Cancel</Button>
+                                    </DialogClose>
+                                    <Button onClick={handleSendInvite} disabled={true}>
+                                        Send Invite (Coming Soon)
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                        <div className="flex-grow">
-                            <p className="text-sm text-muted-foreground">
-                                This feature is under development. Soon you will be able to invite users and assign them specific roles like SHE Officer, Representative, or Visitor.
-                            </p>
-                            {!canAddUsers && !isLoading && (
-                                <p className="text-sm text-destructive font-semibold mt-2">
-                                    You have reached your user limit for the {currentPlan} plan. Please upgrade your subscription to add more users.
-                                </p>
-                            )}
-                        </div>
-                        <Button disabled={true || !canAddUsers || isLoading}>
-                            <UserPlus className="mr-2 h-4 w-4"/>
-                            Invite User (Coming Soon)
-                        </Button>
+                    {!canAddUsers && (
+                        <Alert variant="destructive" className="mb-4">
+                            <AlertTriangle className="h-4 w-4" />
+                            <CardTitle>User Limit Reached</CardTitle>
+                            <CardDescription>
+                                You have reached the user limit for the <span className="font-semibold capitalize">{currentPlan}</span> plan. Please upgrade your subscription to add more users.
+                            </CardDescription>
+                        </Alert>
+                    )}
+                    <div className="border rounded-md">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>User</TableHead>
+                                    <TableHead>Role</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {isLoading ? (
+                                    [...Array(2)].map((_, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell><Skeleton className="h-5 w-48"/></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-24"/></TableCell>
+                                        <TableCell className="text-right"><Skeleton className="h-8 w-20 inline-block"/></TableCell>
+                                    </TableRow>
+                                    ))
+                                ) : filteredUsers.length > 0 ? (
+                                    filteredUsers.map((orgUser) => (
+                                        <TableRow key={orgUser.id}>
+                                            <TableCell>
+                                                <div className="font-medium">{orgUser.displayName || 'Unnamed User'}</div>
+                                                <div className="text-sm text-muted-foreground">{orgUser.email}</div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="secondary" className="capitalize">{orgUser.role.replace('_', ' ')}</Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button variant="ghost" size="sm" disabled>Manage</Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="h-24 text-center">
+                                            No users found.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
                     </div>
                 </CardContent>
+                 <CardFooter>
+                    <p className="text-xs text-muted-foreground">User editing and removal will be enabled in a future update.</p>
+                </CardFooter>
             </Card>
         </div>
     );
