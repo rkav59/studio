@@ -24,8 +24,12 @@ export function CustomPricingTable() {
             toast({ title: "Authentication Required", description: "Please sign in to upgrade.", variant: "destructive" });
             return;
         }
-        if (!proPriceId) {
-            toast({ title: "Configuration Error", description: "Pricing is not configured correctly. Please contact support.", variant: "destructive" });
+        if (!proPriceId || proPriceId.includes("price_...")) {
+            toast({ 
+                title: "Stripe Price ID Needed", 
+                description: "Please provide a valid Stripe Price ID in the environment settings to enable checkout.", 
+                variant: "destructive" 
+            });
             return;
         }
 
