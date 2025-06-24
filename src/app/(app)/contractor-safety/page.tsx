@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, ClipboardList, FileText, CheckSquare, ShieldAlert, Loader2, Download, Users, Settings, Search, ListChecks, ClipboardCheck } from "lucide-react"; // Added ClipboardCheck
+import { PlusCircle, Edit2, Trash2, Eye, ClipboardList, FileText, CheckSquare, ShieldAlert, Loader2, Download, Users, Settings, Search, ListChecks, ClipboardCheck, ArrowDown } from "lucide-react"; // Added ClipboardCheck
 import type { Contractor, PermitToWork, ContractorVettingStatus, PtwStatus, ContractorDocument, PtwSupervisionRecord, JobCard, JobCardStatus } from "@/lib/types"; // Added JobCard types
 import { ContractorDetailsDialog } from "@/components/contractor-safety/contractor-details-dialog";
 import { PtwDetailsDialog } from "@/components/contractor-safety/ptw-details-dialog";
@@ -33,6 +33,7 @@ import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy }
 import { ref as storageRef, deleteObject } from "firebase/storage";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
+import Link from 'next/link';
 
 const CONTRACTORS_COLLECTION = 'contractors';
 const PTWS_COLLECTION = 'permitsToWork';
@@ -349,10 +350,27 @@ export default function ContractorSafetyPage() {
         </Alert>
       </div>
 
+       <Card>
+        <CardHeader>
+          <CardTitle>Quick Access</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="#contractor-register"><ArrowDown className="mr-2 h-4 w-4"/>Contractor Register</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#job-cards"><ArrowDown className="mr-2 h-4 w-4"/>Job Cards</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#ptw-log"><ArrowDown className="mr-2 h-4 w-4"/>Permit to Work Log</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
       <Separator />
 
       {/* Contractor Management Section */}
-      <Card>
+      <Card id="contractor-register">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
                 <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-primary"/>Contractor Register</CardTitle>
@@ -424,7 +442,7 @@ export default function ContractorSafetyPage() {
       <Separator />
 
       {/* Job Card Section */}
-      <Card>
+      <Card id="job-cards">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
                 <CardTitle className="flex items-center gap-2"><ClipboardCheck className="h-6 w-6 text-indigo-500"/>Job Cards</CardTitle>
@@ -503,7 +521,7 @@ export default function ContractorSafetyPage() {
 
 
       {/* Permit to Work (PTW) Section */}
-      <Card>
+      <Card id="ptw-log">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
                 <CardTitle className="flex items-center gap-2"><FileText className="h-6 w-6 text-accent"/>Permit to Work (PTW) Log</CardTitle>

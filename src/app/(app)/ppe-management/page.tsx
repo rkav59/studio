@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, CheckCheck, ClipboardList, Settings2, AlertTriangle, ListFilter, Search, ShieldCheck, Activity, CalendarClock, ClockIcon, AlertCircle, Users, Loader2, HardHat } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, Eye, CheckCheck, ClipboardList, Settings2, AlertTriangle, ListFilter, Search, ShieldCheck, Activity, CalendarClock, ClockIcon, AlertCircle, Users, Loader2, HardHat, ArrowDown } from "lucide-react";
 import type { PpeItem, PpeIssuanceRecord, PpeInspectionRecord, PpeItemStatus, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid, differenceInDays, isBefore } from 'date-fns';
@@ -32,6 +32,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
+import Link from 'next/link';
 
 const PPE_ITEMS_COLLECTION = 'ppeItems';
 const PPE_ISSUANCES_COLLECTION = 'ppeIssuances';
@@ -332,9 +333,32 @@ export default function PpeManagementPage() {
         </p>
       </div>
 
+       <Card>
+        <CardHeader>
+          <CardTitle>Quick Access</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="#upcoming-inspections"><ArrowDown className="mr-2 h-4 w-4"/>Upcoming Inspections</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#ppe-inventory"><ArrowDown className="mr-2 h-4 w-4"/>PPE Inventory</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#issuance-log"><ArrowDown className="mr-2 h-4 w-4"/>Issuance Log</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#inspection-log"><ArrowDown className="mr-2 h-4 w-4"/>Inspection Log</Link>
+          </Button>
+           <Button asChild variant="outline" size="sm">
+            <Link href="#job-role-matrix"><ArrowDown className="mr-2 h-4 w-4"/>Job Role Matrix</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
       <Separator/>
 
-      <Card>
+      <Card id="upcoming-inspections">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><CalendarClock className="h-6 w-6 text-orange-500"/>Upcoming/Overdue Inspections</CardTitle>
           <CardDescription>PPE items requiring inspection soon or currently overdue.</CardDescription>
@@ -369,7 +393,7 @@ export default function PpeManagementPage() {
       </Card>
       <Separator/>
 
-      <Card>
+      <Card id="ppe-inventory">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
             <CardTitle>PPE Inventory</CardTitle>
@@ -429,7 +453,7 @@ export default function PpeManagementPage() {
 
       <Separator />
 
-      <Card>
+      <Card id="issuance-log">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
             <CardTitle>PPE Issuance Log</CardTitle>
@@ -481,7 +505,7 @@ export default function PpeManagementPage() {
 
       <Separator />
 
-      <Card>
+      <Card id="inspection-log">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
             <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-6 w-6 text-teal-600" />PPE Inspection Log</CardTitle>
@@ -540,7 +564,7 @@ export default function PpeManagementPage() {
       <Separator />
 
       {/* PPE Job Role Matrix Section */}
-      <Card>
+      <Card id="job-role-matrix">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
             <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-indigo-600" />PPE Job Role Matrix</CardTitle>

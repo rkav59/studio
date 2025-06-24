@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { PlusCircle, Edit2, Trash2, Eye, Siren, FileText, Box, ShieldAlert, Activity, Users, CalendarClock, ClockIcon, AlertTriangle, ListChecksIcon, Loader2, Link } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, Eye, Siren, FileText, Box, ShieldAlert, Activity, Users, CalendarClock, ClockIcon, AlertTriangle, ListChecksIcon, Loader2, Link as LinkIcon, ArrowDown } from "lucide-react";
 import { format, isValid, parseISO, differenceInDays, isBefore } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { EmergencyResourceDetailsDialog } from '@/components/emergency-preparedness/emergency-resource-details-dialog';
@@ -20,6 +20,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation'; // Added for navigation
+import Link from 'next/link';
 
 const PLANS_COLLECTION = 'emergencyPlans';
 const RESOURCES_COLLECTION = 'emergencyResources';
@@ -199,11 +200,29 @@ export default function EmergencyPreparednessPage() {
           This module assists in creating emergency plans, managing resources, and tracking drills to ensure readiness for any situation. All data is stored securely in Firebase Firestore.
         </p>
       </div>
+
+       <Card>
+        <CardHeader>
+          <CardTitle>Quick Access</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="#emergency-plans"><ArrowDown className="mr-2 h-4 w-4"/>Emergency Plans</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#resource-inventory"><ArrowDown className="mr-2 h-4 w-4"/>Resource Inventory</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#drill-logbook"><ArrowDown className="mr-2 h-4 w-4"/>Mock Drill Logbook</Link>
+          </Button>
+        </CardContent>
+      </Card>
+      
       <Separator />
 
       {pendingDrillActions > 0 && (<Alert variant="info" className="shadow-md"><ListChecksIcon className="h-4 w-4" /><AlertTitle>Pending Drill Actions</AlertTitle><UiAlertDescription>There are <strong className="text-accent">{pendingDrillActions}</strong> pending action items from mock drills.</UiAlertDescription></Alert>)}
       
-      <Card>
+      <Card id="emergency-plans">
         <CardHeader className="flex flex-row items-center justify-between">
           <div><CardTitle>Emergency Plans</CardTitle><CardDescription>Manage emergency plans. Monitor review dates.</CardDescription></div>
           <Button onClick={handleOpenNewPlanForm} className="bg-primary hover:bg-primary/90"><PlusCircle className="mr-2 h-4 w-4" /> Create Plan</Button>
@@ -217,7 +236,7 @@ export default function EmergencyPreparednessPage() {
       {viewingPlan && <Dialog open={!!viewingPlan} onOpenChange={() => setViewingPlan(null)}><DialogContent className="sm:max-w-2xl"><DialogHeader><DialogTitle className="flex items-center gap-2 text-primary"><FileText className="h-6 w-6"/>{viewingPlan.planName}</DialogTitle><DialogDescription>Details of the plan.</DialogDescription></DialogHeader><PlanDetailView plan={viewingPlan} /><DialogFooter className="pt-4 border-t"><DialogClose asChild><Button variant="outline">Close</Button></DialogClose><Button onClick={() => { handleEditPlan(viewingPlan); setViewingPlan(null); }} className="bg-primary hover:bg-primary/90"><Edit2 className="mr-2 h-4 w-4"/>Edit</Button></DialogFooter></DialogContent></Dialog>}
 
       <Separator className="my-8"/>
-      <Card>
+      <Card id="resource-inventory">
         <CardHeader className="flex flex-row items-center justify-between">
           <div><CardTitle>Resource Inventory</CardTitle><CardDescription>Track emergency equipment and check dates.</CardDescription></div>
           <Button onClick={handleOpenNewResourceForm} className="bg-accent hover:bg-accent/90"><PlusCircle className="mr-2 h-4 w-4" /> Add Resource</Button>
@@ -231,7 +250,7 @@ export default function EmergencyPreparednessPage() {
       {viewingResource && <EmergencyResourceDetailsDialog resource={viewingResource} onClose={() => setViewingResource(null)} />}
 
       <Separator className="my-8"/>
-      <Card>
+      <Card id="drill-logbook">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
                 <CardTitle>Mock Drill Logbook</CardTitle>

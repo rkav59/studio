@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 // Removed Dialog import
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Edit2, Trash2, Eye, Users, Thermometer, ShieldCheck, Award, UserPlus, FlaskConical, ClipboardPlus, Users2Icon, AlertTriangle, CalendarClock, ClockIcon, ShieldAlert, FilePlus, Loader2, HeartPulse, Search } from "lucide-react";
+import { Edit2, Trash2, Eye, Users, Thermometer, ShieldCheck, Award, UserPlus, FlaskConical, ClipboardPlus, Users2Icon, AlertTriangle, CalendarClock, ClockIcon, ShieldAlert, FilePlus, Loader2, HeartPulse, Search, ArrowDown } from "lucide-react";
 import type { SimilarExposureGroup, IndustrialHygieneSample, MedicalTestRecord, WellnessProgram, MedicalTestWithCertStatus, MedicalTestPrefillData, IndustrialHygieneSampleAgent, MedicalTestRecordType } from "@/lib/types";
 // Removed form imports: SegForm, IhSampleForm, MedicalTestForm, WellnessProgramForm
 import { SegDetailsDialog } from '@/components/health-monitoring/seg-details-dialog';
@@ -25,6 +25,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
+import Link from 'next/link';
 
 const SEGS_COLLECTION = 'similarExposureGroups';
 const IH_SAMPLES_COLLECTION = 'industrialHygieneSamples';
@@ -224,10 +225,33 @@ export default function HealthMonitoringPage() {
           Monitor occupational health, exposure data, medical screenings, and wellness. This module facilitates health monitoring including SEGs, IH sampling, medical tests, and wellness programs. Data is stored in Firebase Firestore.
         </p>
       </div>
+
+       <Card>
+        <CardHeader>
+          <CardTitle>Quick Access</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="#certificate-expiries"><ArrowDown className="mr-2 h-4 w-4"/>Certificate Expiries</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#segs"><ArrowDown className="mr-2 h-4 w-4"/>Similar Exposure Groups</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#ih-sampling"><ArrowDown className="mr-2 h-4 w-4"/>IH Sampling</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#medical-tests"><ArrowDown className="mr-2 h-4 w-4"/>Medical Tests</Link>
+          </Button>
+           <Button asChild variant="outline" size="sm">
+            <Link href="#wellness-programs"><ArrowDown className="mr-2 h-4 w-4"/>Wellness Programs</Link>
+          </Button>
+        </CardContent>
+      </Card>
       
       <Separator/>
 
-      <Card>
+      <Card id="certificate-expiries">
         <CardHeader><CardTitle className="flex items-center gap-2"><CalendarClock className="h-6 w-6 text-orange-500"/>Upcoming/Overdue Certificate Expiries</CardTitle><CardDescription>Medical test certificates requiring attention.</CardDescription></CardHeader>
         <CardContent>{upcomingOrOverdueCerts.length === 0 ? <p className="text-muted-foreground text-center py-4">No certificates currently due or overdue.</p> : (
             <ScrollArea className="max-h-[300px] pr-3"><div className="space-y-3">{upcomingOrOverdueCerts.map(test => { const { textClass } = getCertStatusStyling(test.certificateStatus); return (
@@ -237,7 +261,7 @@ export default function HealthMonitoringPage() {
       </Card>
       <Separator/>
 
-      <Card>
+      <Card id="segs">
         <CardHeader className="flex flex-row items-center justify-between">
             <div>
                 <CardTitle className="flex items-center gap-2"><Users className="h-6 w-6 text-primary"/>Similar Exposure Groups (SEGs)</CardTitle>
@@ -253,7 +277,7 @@ export default function HealthMonitoringPage() {
       {viewingSeg && <SegDetailsDialog seg={viewingSeg} onClose={() => setViewingSeg(null)} />}
       <Separator/>
 
-      <Card>
+      <Card id="ih-sampling">
         <CardHeader className="flex flex-row items-center justify-between">
             <div><CardTitle className="flex items-center gap-2"><FlaskConical className="h-6 w-6 text-accent"/>Industrial Hygiene Sampling</CardTitle><CardDescription>Log and track exposure monitoring data.</CardDescription></div>
             <div className="flex items-center gap-2">
@@ -266,7 +290,7 @@ export default function HealthMonitoringPage() {
       {viewingIhSample && <IhSampleDetailsDialog sample={viewingIhSample} segName={getSegName(viewingIhSample.segId)} onClose={() => setViewingIhSample(null)} />}
       <Separator/>
 
-      <Card>
+      <Card id="medical-tests">
         <CardHeader className="flex flex-row items-center justify-between">
             <div><CardTitle className="flex items-center gap-2"><ClipboardPlus className="h-6 w-6 text-teal-500"/>Medical Test & Screening Records</CardTitle><CardDescription>Track employee medical tests and certificate expiries.</CardDescription></div>
             <div className="flex items-center gap-2">
@@ -279,7 +303,7 @@ export default function HealthMonitoringPage() {
       {viewingMedicalTest && <MedicalTestDetailsDialog record={viewingMedicalTest} segName={getSegName(viewingMedicalTest.segId)} onClose={() => setViewingMedicalTest(null)} />}
       <Separator/>
 
-      <Card>
+      <Card id="wellness-programs">
         <CardHeader className="flex flex-row items-center justify-between">
             <div><CardTitle className="flex items-center gap-2"><Users2Icon className="h-6 w-6 text-purple-500"/>Employee Wellness Programs</CardTitle><CardDescription>Manage and track wellness initiatives.</CardDescription></div>
             <div className="flex items-center gap-2">
