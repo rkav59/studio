@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -28,14 +27,6 @@ const USER_PROFILES_COLLECTION = 'userProfiles';
 const MAIL_COLLECTION = 'mail'; // Collection for the firestore-send-email extension
 const USER_ROLES: UserRole[] = ['admin', 'she_officer', 'authorizer', 'she_rep', 'visitor'];
 
-const planLimits: Record<UserProfile['planId'], number> = {
-    free: 1,
-    trial: 10,
-    pro: 10,
-    premium: 30,
-    enterprise: 100,
-};
-
 export default function UserManagementPage() {
     const { user, userProfile } = useAuth();
     const { toast } = useToast();
@@ -61,11 +52,7 @@ export default function UserManagementPage() {
         enabled: !!userProfile?.organizationId,
     });
 
-    const userCount = organizationUsers.length;
     const isLoading = !userProfile || isLoadingOrgUsers;
-    const currentPlan = userProfile?.planId || 'free';
-    const limit = planLimits[currentPlan];
-    const canAddUsers = userCount < limit;
 
     const filteredUsers = useMemo(() => {
         if (!searchTerm) return organizationUsers;
@@ -170,28 +157,6 @@ export default function UserManagementPage() {
                 </p>
             </div>
             
-            <Card className="shadow-lg">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Crown className="h-5 w-5 text-yellow-500"/>Subscription Overview</CardTitle>
-                    <CardDescription>Your current plan determines the number of users you can have in your organization.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                            <Skeleton className="h-8 w-48" />
-                            <Skeleton className="h-8 w-64" />
-                        </div>
-                    ) : (
-                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm">
-                            <p>Your current plan: <strong className="capitalize font-semibold text-primary">{currentPlan}</strong></p>
-                            <p>User limit: <strong className="font-semibold">{userCount ?? '...'} / {limit}</strong> users</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-            
-            <Separator/>
-            
             <Alert variant="info">
                 <Mail className="h-4 w-4" />
                 <AlertTitle>Email Invitations</AlertTitle>
@@ -216,7 +181,7 @@ export default function UserManagementPage() {
                             <TooltipTrigger asChild>
                               <div tabIndex={0} className={cn(!canInviteUsers && "cursor-not-allowed")}>
                                 <DialogTrigger asChild>
-                                    <Button disabled={!canAddUsers || !canInviteUsers}>
+                                    <Button disabled={!canInviteUsers}>
                                         <UserPlus className="mr-2 h-4 w-4"/>
                                         Invite User
                                     </Button>
@@ -267,15 +232,6 @@ export default function UserManagementPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    {!canAddUsers && (
-                        <Alert variant="destructive" className="mb-4">
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>User Limit Reached</AlertTitle>
-                            <AlertDescription>
-                                You have reached the user limit for the <span className="font-semibold capitalize">{currentPlan}</span> plan. Please upgrade your subscription to add more users.
-                            </AlertDescription>
-                        </Alert>
-                    )}
                     <div className="border rounded-md">
                         <Table>
                             <TableHeader>

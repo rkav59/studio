@@ -21,17 +21,17 @@ export default function WelcomePage() {
                         Welcome to SHEiQpro, {user?.displayName || 'User'}!
                     </CardTitle>
                     <CardDescription className="text-lg text-muted-foreground pt-2">
-                        Your account has been created and your 14-day free trial has started.
+                        Your account has been created.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="p-6 bg-secondary/50 rounded-lg">
                         <h3 className="text-xl font-semibold flex items-center justify-center gap-2">
                             <Sparkles className="h-5 w-5 text-accent"/>
-                            What's Included in Your Trial?
+                            Get Started
                         </h3>
                         <p className="text-muted-foreground mt-2 max-w-prose mx-auto">
-                            For the next 14 days, you have full access to all Pro features, including unlimited risk assessments, AI-powered safety insights, contractor management, and more. Explore everything SHEiQpro has to offer to streamline your SHEQ processes.
+                           You now have full access to all features. Explore the dashboard to start managing your safety program, conduct risk assessments, log incidents, and more.
                         </p>
                     </div>
 
@@ -44,18 +44,18 @@ export default function WelcomePage() {
                             </Button>
                         </Card>
                          <Card className="flex-1 text-left p-4">
-                            <h4 className="font-semibold">Want to Secure Your Plan?</h4>
-                            <p className="text-sm text-muted-foreground">You can upgrade to our Pro plan at any time to ensure uninterrupted access.</p>
-                            <Button className="mt-4 w-full sm:w-auto" variant="outline" onClick={() => router.push('/payments')}>
-                                View Plans & Upgrade
+                            <h4 className="font-semibold">Need to Change Your Details?</h4>
+                            <p className="text-sm text-muted-foreground">You can update your display name and other settings in your user profile.</p>
+                            <Button className="mt-4 w-full sm:w-auto" variant="outline" onClick={() => router.push('/user-profile')}>
+                                Go to Profile
                             </Button>
                         </Card>
                     </div>
 
                 </CardContent>
-                <CardFooter>
+                 <CardFooter>
                     <p className="text-xs text-muted-foreground mx-auto">
-                        Your trial will end in 14 days. We'll remind you before it expires.
+                       Thank you for choosing SHEiQpro.
                     </p>
                 </CardFooter>
             </Card>

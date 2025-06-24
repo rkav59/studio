@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React from 'react'; // Import React
@@ -45,7 +44,7 @@ const navItems = [
   { href: '/contractor-safety', label: 'Contractor Safety', icon: ListChecks },
   { href: '/health-monitoring', label: 'Health Monitoring', icon: HeartPulse },
   { href: '/user-management', label: 'User Management', icon: Users, requiredRole: 'admin' },
-  { href: '/payments', label: 'Billing', icon: CreditCard },
+  // { href: '/payments', label: 'Billing', icon: CreditCard }, // Removed billing link
   { href: '/ai-recommendations', label: 'AI Safety Assist', icon: Sparkles },
 ];
 

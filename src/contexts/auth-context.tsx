@@ -17,7 +17,6 @@ import { auth, db } from '../lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { doc, setDoc, getDoc } from 'firebase/firestore'; 
 import type { UserProfile } from '@/lib/types';
-import { add } from 'date-fns';
 import { useQuery } from '@tanstack/react-query'; 
 
 interface AuthContextType { 
@@ -77,7 +76,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           if (!userProfileSnap.exists()) {
             // This is a new user signing up via social provider.
             const now = new Date();
-            const trialEndDate = add(now, { days: 14 });
             const organizationId = `org_${user.uid.substring(0, 8)}_${Date.now()}`;
             
             const userProfileData: Omit<UserProfile, 'id'> = {
@@ -87,14 +85,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               createdAt: now.toISOString(),
               organizationId: organizationId,
               role: 'admin',
-              planId: 'trial',
-              trialStartDate: now.toISOString(),
-              trialEndDate: trialEndDate.toISOString(),
+              planId: 'premium', // Default to premium plan, no trial
             };
             await setDoc(userProfileRef, userProfileData);
             toast({
               title: 'Account Created',
-              description: 'Welcome! Your 14-day trial has begun.',
+              description: 'Welcome! All features are enabled.',
             });
             // The onAuthStateChanged listener will handle the redirect to the dashboard.
           } else {
@@ -143,7 +139,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       const userProfileRef = doc(db, 'userProfiles', user.uid);
       const now = new Date();
-      const trialEndDate = add(now, { days: 14 });
       const organizationId = `org_${user.uid.substring(0, 8)}_${Date.now()}`;
 
       const userProfileData: Omit<UserProfile, 'id'> = {
@@ -153,15 +148,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         createdAt: now.toISOString(),
         organizationId: organizationId,
         role: 'admin', 
-        planId: 'trial',
-        trialStartDate: now.toISOString(),
-        trialEndDate: trialEndDate.toISOString(),
+        planId: 'premium', // Default to premium plan, no trial
       };
       await setDoc(userProfileRef, userProfileData);
 
       toast({
         title: 'Success',
-        description: 'Account created successfully. Your 14-day trial has begun!',
+        description: 'Account created successfully. All features are enabled.',
       });
     } catch (error: any) {
       console.error("Signup failed:", error);
