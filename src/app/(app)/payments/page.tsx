@@ -1,42 +1,76 @@
 
+
 "use client";
 
-import { CreditCard, ShieldCheck } from "lucide-react";
+import { CreditCard, ShieldCheck, Clock } from "lucide-react";
 import React from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useQuery } from '@tanstack/react-query';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { UserProfile } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomPricingTable } from '@/components/billing/custom-pricing-table';
+import { formatDistanceToNow } from "date-fns";
 
 const USER_PROFILES_COLLECTION = 'userProfiles';
 
-function CurrentPlanCard({ subscriptionId, currentPeriodEnd }: { subscriptionId?: string, currentPeriodEnd?: string }) {
-    if (!subscriptionId) {
+function CurrentPlanCard({ subscriptionId, currentPeriodEnd, trialEndDate }: { subscriptionId?: string, currentPeriodEnd?: string, trialEndDate?: string }) {
+    if (subscriptionId) {
         return (
             <Card className="max-w-md mx-auto lg:mx-0">
                 <CardHeader>
-                    <CardTitle>Current Plan</CardTitle>
+                    <CardTitle className="text-green-600 flex items-center gap-2"><ShieldCheck/>Pro Plan Active</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-muted-foreground">You are currently on the Free plan.</p>
+                    <p className="text-muted-foreground">Your subscription is active.</p>
+                    {currentPeriodEnd && <p className="text-xs text-muted-foreground mt-1">Renews on: {new Date(currentPeriodEnd).toLocaleDateString()}</p>}
+                    {/* Note: A 'Manage Billing' button would redirect to a Stripe customer portal session, which is a separate API call */}
                 </CardContent>
             </Card>
         );
     }
     
+    if (trialEndDate) {
+        const trialEndDateObj = new Date(trialEndDate);
+        const isTrialExpired = new Date() > trialEndDateObj;
+
+        if (isTrialExpired) {
+            return (
+                <Card className="max-w-md mx-auto lg:mx-0 border-destructive">
+                    <CardHeader>
+                        <CardTitle className="text-destructive flex items-center gap-2"><Clock/>Trial Expired</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">Your 14-day free trial has ended. Please upgrade to Pro to continue using all features.</p>
+                    </CardContent>
+                </Card>
+            );
+        } else {
+             return (
+                <Card className="max-w-md mx-auto lg:mx-0 border-primary/50">
+                    <CardHeader>
+                        <CardTitle className="text-primary flex items-center gap-2"><ShieldCheck/>Free Trial Active</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">You are currently on the 14-day Pro trial.</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Your trial ends in {formatDistanceToNow(trialEndDateObj, { addSuffix: true })}.
+                        </p>
+                    </CardContent>
+                </Card>
+            );
+        }
+    }
+
     return (
-         <Card className="max-w-md mx-auto lg:mx-0">
+        <Card className="max-w-md mx-auto lg:mx-0">
             <CardHeader>
-                <CardTitle className="text-green-600 flex items-center gap-2"><ShieldCheck/>Pro Plan Active</CardTitle>
+                <CardTitle>Current Plan</CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-muted-foreground">Your subscription is active.</p>
-                {currentPeriodEnd && <p className="text-xs text-muted-foreground mt-1">Renews on: {new Date(currentPeriodEnd).toLocaleDateString()}</p>}
-                {/* Note: A 'Manage Billing' button would redirect to a Stripe customer portal session, which is a separate API call */}
+                <p className="text-muted-foreground">You are currently on the Free plan.</p>
             </CardContent>
         </Card>
     );
@@ -72,15 +106,23 @@ export default function PaymentsPage() {
             {isLoadingProfile ? (
                  <Card className="max-w-md mx-auto lg:mx-0"><CardHeader><Skeleton className="h-6 w-1/2"/></CardHeader><CardContent><Skeleton className="h-4 w-3/4"/></CardContent></Card>
             ) : (
-                <CurrentPlanCard subscriptionId={userProfile?.stripeSubscriptionId} currentPeriodEnd={userProfile?.stripeCurrentPeriodEnd} />
+                <CurrentPlanCard 
+                    subscriptionId={userProfile?.stripeSubscriptionId} 
+                    currentPeriodEnd={userProfile?.stripeCurrentPeriodEnd}
+                    trialEndDate={userProfile?.trialEndDate}
+                />
             )}
         </div>
         
         <div className="space-y-4">
-             <h2 className="text-xl font-semibold text-center lg:text-left">Upgrade</h2>
+             <h2 className="text-xl font-semibold text-center lg:text-left">Upgrade to Pro</h2>
             { !hasActiveSubscription && <CustomPricingTable /> }
             { hasActiveSubscription && 
-                <p className="text-muted-foreground text-center lg:text-left">You already have an active subscription.</p> 
+                <Card className="max-w-md mx-auto lg:mx-0">
+                    <CardContent className="pt-6">
+                        <p className="text-muted-foreground text-center lg:text-left">Thank you for being a Pro member!</p>
+                    </CardContent>
+                </Card>
             }
         </div>
       </div>
