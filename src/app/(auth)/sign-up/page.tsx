@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/auth-context'; // Import useAuth
-import { db } from "@/lib/firebase"; // Import db
+import { db, auth } from "@/lib/firebase"; // Import db and auth
 import { doc, setDoc, serverTimestamp } from "firebase/firestore"; // Import Firestore functions
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -66,7 +66,7 @@ export default function SignUpPage() {
       
       // The user object is now available in the AuthContext.
       // We need to create the Firestore document here as well.
-      const user = useAuth().user; // This might have a slight delay, better to handle inside signUp or get user from result
+      // const user = useAuth().user; // This might have a slight delay, better to handle inside signUp or get user from result
        if (auth.currentUser) {
         const firebaseUser = auth.currentUser;
         const userProfileRef = doc(db, USER_PROFILES_COLLECTION, firebaseUser.uid);
