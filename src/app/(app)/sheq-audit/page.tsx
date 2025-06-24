@@ -68,8 +68,8 @@ export default function SheqAuditPage() {
   const [archivedSearchTerm, setArchivedSearchTerm] = useState("");
   const [activeSearchTerm, setActiveSearchTerm] = useState("");
 
-  const canScheduleAndManage = useMemo(() => userProfile && ['admin', 'she_officer'].includes(userProfile.role), [userProfile]);
-  const canExecute = useMemo(() => userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role), [userProfile]);
+  const canScheduleAndManage = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [user, userProfile]);
+  const canExecute = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [user, userProfile]);
 
 
   // Fetch SHEQ Audits

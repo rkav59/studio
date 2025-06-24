@@ -33,6 +33,8 @@ import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, T
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from '@/lib/utils';
 
 const PPE_ITEMS_COLLECTION = 'ppeItems';
 const PPE_ISSUANCES_COLLECTION = 'ppeIssuances';
@@ -49,7 +51,7 @@ interface PpeItemWithInspectionInfo extends PpeItem {
 export default function PpeManagementPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const queryClient = useQueryClient();
 
   const [viewingPpeItem, setViewingPpeItem] = useState<PpeItem | null>(null);
@@ -60,6 +62,9 @@ export default function PpeManagementPage() {
   const [issuanceSearchTerm, setIssuanceSearchTerm] = useState("");
   const [inspectionSearchTerm, setInspectionSearchTerm] = useState("");
   const [jobRoleSearchTerm, setJobRoleSearchTerm] = useState("");
+
+  const canManage = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [user, userProfile]);
+  const disabledTooltipContent = "You do not have permission to perform this action.";
 
   // Fetch PPE Items
   const { data: ppeItems = [], isLoading: isLoadingPpeItems, error: ppeItemsError } = useQuery<PpeItem[]>({
@@ -323,6 +328,7 @@ export default function PpeManagementPage() {
   }
 
   return (
+    <TooltipProvider>
     <div className="space-y-8">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
@@ -380,9 +386,7 @@ export default function PpeManagementPage() {
                         </p>
                         <p className="text-xs text-muted-foreground">Last Inspected: {item.latestInspection ? format(parseISO(item.latestInspection.inspectionDate), "PPP") : "N/A"}</p>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => router.push(`/ppe-management/inspections/new?ppeItemId=${item.id}`)}>
-                         Inspect Now
-                      </Button>
+                      <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button variant="outline" size="sm" onClick={() => canManage && router.push(`/ppe-management/inspections/new?ppeItemId=${item.id}`)} disabled={!canManage}>Inspect Now</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
                     </div>
                   </Card>
                 ))}
@@ -401,9 +405,7 @@ export default function PpeManagementPage() {
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search inventory..." className="pl-8 w-full sm:w-[200px]" value={inventorySearchTerm} onChange={(e) => setInventorySearchTerm(e.target.value)} /></div>
-            <Button onClick={handleOpenNewPpeItemForm} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Item
-            </Button>
+            <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button onClick={() => canManage && handleOpenNewPpeItemForm()} disabled={!canManage} className="bg-primary hover:bg-primary/90 text-primary-foreground"><PlusCircle className="mr-2 h-4 w-4" /> Add Item</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
           </div>
         </CardHeader>
         <CardContent>
@@ -431,9 +433,8 @@ export default function PpeManagementPage() {
                       </div>
                       <div className="flex gap-2 self-start sm:self-center shrink-0">
                         <Button variant="outline" size="sm" onClick={() => setViewingPpeItem(item)}><Eye className="mr-1 h-3 w-3" /> View</Button>
-                        <Button variant="secondary" size="sm" onClick={() => handleEditPpeItem(item)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deletePpeItemMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
+                        <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button variant="secondary" size="sm" onClick={() => canManage && handleEditPpeItem(item)} disabled={!canManage}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
+                        <AlertDialog><Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={!canManage || deletePpeItemMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Delete PPE Item?</AlertDialogTitle><AlertDialogDescription>Delete "{item.name}"? This action cannot be undone. Ensure it's not linked to active records.</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePpeItem(item.id)}>Delete</AlertDialogAction></AlertDialogFooter>
@@ -461,9 +462,7 @@ export default function PpeManagementPage() {
           </div>
            <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search issuances..." className="pl-8 w-full sm:w-[200px]" value={issuanceSearchTerm} onChange={(e) => setIssuanceSearchTerm(e.target.value)} /></div>
-            <Button onClick={handleOpenNewPpeIssuanceForm} className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={ppeItems.filter(i => (i.status || 'Available') === 'Available').length === 0}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Log Issuance
-            </Button>
+            <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button onClick={() => canManage && handleOpenNewPpeIssuanceForm()} disabled={!canManage || ppeItems.filter(i => (i.status || 'Available') === 'Available').length === 0} className="bg-accent hover:bg-accent/90 text-accent-foreground"><PlusCircle className="mr-2 h-4 w-4" /> Log Issuance</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
           </div>
         </CardHeader>
         <CardContent>
@@ -483,9 +482,8 @@ export default function PpeManagementPage() {
                       </div>
                       <div className="flex gap-2 self-start sm:self-center shrink-0">
                         <Button variant="outline" size="sm" onClick={() => setViewingPpeIssuance(issuance)}><Eye className="mr-1 h-3 w-3" /> View</Button>
-                        <Button variant="secondary" size="sm" onClick={() => handleEditPpeIssuance(issuance)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deletePpeIssuanceMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
+                        <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button variant="secondary" size="sm" onClick={() => canManage && handleEditPpeIssuance(issuance)} disabled={!canManage}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
+                        <AlertDialog><Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={!canManage || deletePpeIssuanceMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Delete Issuance Record?</AlertDialogTitle><AlertDialogDescription>Delete this record? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePpeIssuance(issuance.id)}>Delete</AlertDialogAction></AlertDialogFooter>
@@ -513,9 +511,7 @@ export default function PpeManagementPage() {
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search inspections..." className="pl-8 w-full sm:w-[200px]" value={inspectionSearchTerm} onChange={(e) => setInspectionSearchTerm(e.target.value)} /></div>
-            <Button onClick={handleOpenNewPpeInspectionForm} className="bg-teal-600 hover:bg-teal-700 text-white" disabled={ppeItems.length === 0}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Log Inspection
-            </Button>
+            <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button onClick={() => canManage && handleOpenNewPpeInspectionForm()} disabled={!canManage || ppeItems.length === 0} className="bg-teal-600 hover:bg-teal-700 text-white"><PlusCircle className="mr-2 h-4 w-4" /> Log Inspection</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
           </div>
         </CardHeader>
         <CardContent>
@@ -539,9 +535,8 @@ export default function PpeManagementPage() {
                       </div>
                       <div className="flex gap-2 self-start sm:self-center shrink-0">
                         <Button variant="outline" size="sm" onClick={() => setViewingPpeInspection(inspection)}><Eye className="mr-1 h-3 w-3" /> View</Button>
-                        <Button variant="secondary" size="sm" onClick={() => handleEditPpeInspection(inspection)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deletePpeInspectionMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
+                        <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button variant="secondary" size="sm" onClick={() => canManage && handleEditPpeInspection(inspection)} disabled={!canManage}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
+                        <AlertDialog><Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={!canManage || deletePpeInspectionMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Delete Inspection Record?</AlertDialogTitle><AlertDialogDescription>Delete this inspection record? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePpeInspection(inspection.id)}>Delete</AlertDialogAction></AlertDialogFooter>
@@ -572,9 +567,7 @@ export default function PpeManagementPage() {
           </div>
            <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search job roles..." className="pl-8 w-full sm:w-[200px]" value={jobRoleSearchTerm} onChange={(e) => setJobRoleSearchTerm(e.target.value)} /></div>
-            <Button onClick={handleOpenNewJobRoleForm} className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={ppeItems.length === 0}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Define Job Role
-            </Button>
+            <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button onClick={() => canManage && handleOpenNewJobRoleForm()} disabled={!canManage || ppeItems.length === 0} className="bg-indigo-600 hover:bg-indigo-700 text-white"><PlusCircle className="mr-2 h-4 w-4" /> Define Job Role</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
           </div>
         </CardHeader>
         <CardContent>
@@ -594,9 +587,8 @@ export default function PpeManagementPage() {
                       </div>
                       <div className="flex gap-2 self-start sm:self-center shrink-0">
                         <Button variant="outline" size="sm" onClick={() => setViewingJobRoleEntry(entry)}><Eye className="mr-1 h-3 w-3" /> View</Button>
-                        <Button variant="secondary" size="sm" onClick={() => handleEditJobRoleEntry(entry)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteJobRoleEntryMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
+                        <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button variant="secondary" size="sm" onClick={() => canManage && handleEditJobRoleEntry(entry)} disabled={!canManage}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
+                        <AlertDialog><Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={!canManage || deleteJobRoleEntryMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Delete Job Role Entry?</AlertDialogTitle><AlertDialogDescription>Delete requirements for "{entry.jobRole}"? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteJobRoleEntry(entry.id)}>Delete</AlertDialogAction></AlertDialogFooter>
@@ -621,5 +613,6 @@ export default function PpeManagementPage() {
       </Card>
 
     </div>
+    </TooltipProvider>
   );
 }

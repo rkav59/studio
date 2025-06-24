@@ -21,6 +21,8 @@ import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, Timestamp
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation'; // Added for navigation
 import Link from 'next/link';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from '@/lib/utils';
 
 const PLANS_COLLECTION = 'emergencyPlans';
 const RESOURCES_COLLECTION = 'emergencyResources';
@@ -47,13 +49,16 @@ function getDateStatusInfo(dateString?: string, leadDays: number = REMINDER_LEAD
 
 export default function EmergencyPreparednessPage() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const queryClient = useQueryClient();
   const router = useRouter(); 
   
   const [viewingPlan, setViewingPlan] = useState<EmergencyPlan | null>(null);
   const [viewingResource, setViewingResource] = useState<EmergencyResource | null>(null);
   const [viewingDrill, setViewingDrill] = useState<MockDrill | null>(null);
+
+  const canManage = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [user, userProfile]);
+  const disabledTooltipContent = "You do not have permission to perform this action.";
 
   // Fetch Plans
   const { data: plans = [], isLoading: isLoadingPlans, error: plansError } = useQuery<EmergencyPlan[]>({
@@ -191,6 +196,7 @@ export default function EmergencyPreparednessPage() {
   }
 
   return (
+    <TooltipProvider>
     <div className="space-y-8">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
@@ -225,25 +231,39 @@ export default function EmergencyPreparednessPage() {
       <Card id="emergency-plans">
         <CardHeader className="flex flex-row items-center justify-between">
           <div><CardTitle>Emergency Plans</CardTitle><CardDescription>Manage emergency plans. Monitor review dates.</CardDescription></div>
-          <Button onClick={handleOpenNewPlanForm} className="bg-primary hover:bg-primary/90"><PlusCircle className="mr-2 h-4 w-4" /> Create Plan</Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+                <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
+                    <Button onClick={() => canManage && handleOpenNewPlanForm()} disabled={!canManage} className="bg-primary hover:bg-primary/90"><PlusCircle className="mr-2 h-4 w-4" /> Create Plan</Button>
+                </div>
+            </TooltipTrigger>
+            {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+          </Tooltip>
         </CardHeader>
         <CardContent>{plans.length === 0 ? <p className="text-muted-foreground text-center py-4">No plans created.</p> : (
           <ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">{plans.map(plan => { const reviewDateStatus = getDateStatusInfo(plan.nextReviewDate); return (
-            <Card key={plan.id} className="p-3 shadow-sm"><div className="flex justify-between items-start"><div><h4 className="font-semibold">{plan.planName}</h4><p className="text-xs text-muted-foreground">{plan.planType} - {plan.scope}</p>{reviewDateStatus && <p className={`text-xs flex items-center ${reviewDateStatus.textClass}`}>{reviewDateStatus.icon} Next Review: {reviewDateStatus.displayText}</p>}</div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingPlan(plan)}><Eye className="h-3 w-3"/></Button><Button variant="secondary" size="sm" onClick={() => handleEditPlan(plan)}><Edit2 className="h-3 w-3"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deletePlanMutation.isPending && deletePlanMutation.variables === plan.id}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Plan?</AlertDialogTitle><AlertDialogDescription>Delete "{plan.planName}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePlan(plan.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>
+            <Card key={plan.id} className="p-3 shadow-sm"><div className="flex justify-between items-start"><div><h4 className="font-semibold">{plan.planName}</h4><p className="text-xs text-muted-foreground">{plan.planType} - {plan.scope}</p>{reviewDateStatus && <p className={`text-xs flex items-center ${reviewDateStatus.textClass}`}>{reviewDateStatus.icon} Next Review: {reviewDateStatus.displayText}</p>}</div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingPlan(plan)}><Eye className="h-3 w-3"/></Button><Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button variant="secondary" size="sm" onClick={() => canManage && handleEditPlan(plan)} disabled={!canManage}><Edit2 className="h-3 w-3"/></Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip><AlertDialog><Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={!canManage || (deletePlanMutation.isPending && deletePlanMutation.variables === plan.id)}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Plan?</AlertDialogTitle><AlertDialogDescription>Delete "{plan.planName}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePlan(plan.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>
           );})}</div></ScrollArea>
         )}</CardContent>
       </Card>
-      {viewingPlan && <Dialog open={!!viewingPlan} onOpenChange={() => setViewingPlan(null)}><DialogContent className="sm:max-w-2xl"><DialogHeader><DialogTitle className="flex items-center gap-2 text-primary"><FileText className="h-6 w-6"/>{viewingPlan.planName}</DialogTitle><DialogDescription>Details of the plan.</DialogDescription></DialogHeader><PlanDetailView plan={viewingPlan} /><DialogFooter className="pt-4 border-t"><DialogClose asChild><Button variant="outline">Close</Button></DialogClose><Button onClick={() => { handleEditPlan(viewingPlan); setViewingPlan(null); }} className="bg-primary hover:bg-primary/90"><Edit2 className="mr-2 h-4 w-4"/>Edit</Button></DialogFooter></DialogContent></Dialog>}
+      {viewingPlan && <Dialog open={!!viewingPlan} onOpenChange={() => setViewingPlan(null)}><DialogContent className="sm:max-w-2xl"><DialogHeader><DialogTitle className="flex items-center gap-2 text-primary"><FileText className="h-6 w-6"/>{viewingPlan.planName}</DialogTitle><DialogDescription>Details of the plan.</DialogDescription></DialogHeader><PlanDetailView plan={viewingPlan} /><DialogFooter className="pt-4 border-t"><DialogClose asChild><Button variant="outline">Close</Button></DialogClose><Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button onClick={() => { if(canManage) {handleEditPlan(viewingPlan); setViewingPlan(null);} }} disabled={!canManage} className="bg-primary hover:bg-primary/90"><Edit2 className="mr-2 h-4 w-4"/>Edit</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip></DialogFooter></DialogContent></Dialog>}
 
       <Separator className="my-8"/>
       <Card id="resource-inventory">
         <CardHeader className="flex flex-row items-center justify-between">
           <div><CardTitle>Resource Inventory</CardTitle><CardDescription>Track emergency equipment and check dates.</CardDescription></div>
-          <Button onClick={handleOpenNewResourceForm} className="bg-accent hover:bg-accent/90"><PlusCircle className="mr-2 h-4 w-4" /> Add Resource</Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+                <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
+                    <Button onClick={() => canManage && handleOpenNewResourceForm()} disabled={!canManage} className="bg-accent hover:bg-accent/90"><PlusCircle className="mr-2 h-4 w-4" /> Add Resource</Button>
+                </div>
+            </TooltipTrigger>
+            {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+          </Tooltip>
         </CardHeader>
         <CardContent>{resources.length === 0 ? <p className="text-muted-foreground text-center py-4">No resources logged.</p> : (
           <ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">{resources.map(resource => { const checkDateStatus = getDateStatusInfo(resource.nextCheckDate); return(
-            <Card key={resource.id} className="p-3 shadow-sm"><div className="flex justify-between items-start"><div><h4 className="font-semibold">{resource.name} <span className="text-xs text-muted-foreground">({resource.type})</span></h4><p className="text-xs text-muted-foreground">Location: {resource.location} | Qty: {resource.quantity}</p><p className={`text-xs font-semibold ${getResourceStatusColor(resource.status)}`}>Status: {resource.status}</p>{checkDateStatus && <p className={`text-xs flex items-center ${checkDateStatus.textClass}`}>{checkDateStatus.icon} Next Check: {checkDateStatus.displayText}</p>}</div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingResource(resource)}><Eye className="h-3 w-3"/></Button><Button variant="secondary" size="sm" onClick={() => handleEditResource(resource)}><Edit2 className="h-3 w-3"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteResourceMutation.isPending && deleteResourceMutation.variables === resource.id}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Resource?</AlertDialogTitle><AlertDialogDescription>Delete "{resource.name}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteResource(resource.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>
+            <Card key={resource.id} className="p-3 shadow-sm"><div className="flex justify-between items-start"><div><h4 className="font-semibold">{resource.name} <span className="text-xs text-muted-foreground">({resource.type})</span></h4><p className="text-xs text-muted-foreground">Location: {resource.location} | Qty: {resource.quantity}</p><p className={`text-xs font-semibold ${getResourceStatusColor(resource.status)}`}>Status: {resource.status}</p>{checkDateStatus && <p className={`text-xs flex items-center ${checkDateStatus.textClass}`}>{checkDateStatus.icon} Next Check: {checkDateStatus.displayText}</p>}</div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingResource(resource)}><Eye className="h-3 w-3"/></Button><Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button variant="secondary" size="sm" onClick={() => canManage && handleEditResource(resource)} disabled={!canManage}><Edit2 className="h-3 w-3"/></Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip><AlertDialog><Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={!canManage || (deleteResourceMutation.isPending && deleteResourceMutation.variables === resource.id)}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Resource?</AlertDialogTitle><AlertDialogDescription>Delete "{resource.name}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteResource(resource.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>
           );})}</div></ScrollArea>
         )}</CardContent>
       </Card>
@@ -256,18 +276,26 @@ export default function EmergencyPreparednessPage() {
                 <CardTitle>Mock Drill Logbook</CardTitle>
                 <CardDescription>Schedule, log, and review mock drills.</CardDescription>
             </div>
-            <Button onClick={handleOpenNewDrillForm} className="bg-teal-500 hover:bg-teal-600 text-white" disabled={plans.length === 0}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Log/Schedule Drill
-            </Button>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
+                         <Button onClick={() => canManage && handleOpenNewDrillForm()} disabled={!canManage || plans.length === 0} className="bg-teal-500 hover:bg-teal-600 text-white">
+                            <PlusCircle className="mr-2 h-4 w-4" /> Log/Schedule Drill
+                        </Button>
+                    </div>
+                </TooltipTrigger>
+                {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+            </Tooltip>
         </CardHeader>
         <CardContent>{drills.length === 0 ? <p className="text-muted-foreground text-center py-4">No mock drills recorded.</p> : (
           <ScrollArea className="max-h-[400px] pr-3"><div className="space-y-3">{drills.map(drill => { const scheduledDateStatus = drill.status === 'Planned' ? getDateStatusInfo(drill.scheduledDate, 0) : null; return (
-            <Card key={drill.id} className="p-3 shadow-sm"><div className="flex justify-between items-start"><div><h4 className="font-semibold">{drill.drillName} <span className="text-xs text-muted-foreground">({drill.drillType})</span></h4><p className={`text-xs font-semibold ${getDrillStatusColor(drill.status)}`}>Status: {drill.status}</p>{scheduledDateStatus?.status === 'Overdue' ? <p className={`text-xs flex items-center ${scheduledDateStatus.textClass}`}>{scheduledDateStatus.icon} Scheduled: {scheduledDateStatus.displayText}</p> : <p className="text-xs text-muted-foreground">Scheduled: {format(parseISO(drill.scheduledDate), "PPP")}</p>}</div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingDrill(drill)}><Eye className="h-3 w-3"/></Button><Button variant="secondary" size="sm" onClick={() => handleEditDrill(drill)}><Edit2 className="h-3 w-3"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteDrillMutation.isPending && deleteDrillMutation.variables === drill.id}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Drill?</AlertDialogTitle><AlertDialogDescription>Delete "{drill.drillName}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteDrill(drill.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>
+            <Card key={drill.id} className="p-3 shadow-sm"><div className="flex justify-between items-start"><div><h4 className="font-semibold">{drill.drillName} <span className="text-xs text-muted-foreground">({drill.drillType})</span></h4><p className={`text-xs font-semibold ${getDrillStatusColor(drill.status)}`}>Status: {drill.status}</p>{scheduledDateStatus?.status === 'Overdue' ? <p className={`text-xs flex items-center ${scheduledDateStatus.textClass}`}>{scheduledDateStatus.icon} Scheduled: {scheduledDateStatus.displayText}</p> : <p className="text-xs text-muted-foreground">Scheduled: {format(parseISO(drill.scheduledDate), "PPP")}</p>}</div><div className="flex gap-1 shrink-0"><Button variant="outline" size="sm" onClick={() => setViewingDrill(drill)}><Eye className="h-3 w-3"/></Button><Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button variant="secondary" size="sm" onClick={() => canManage && handleEditDrill(drill)} disabled={!canManage}><Edit2 className="h-3 w-3"/></Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip><AlertDialog><Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={!canManage || (deleteDrillMutation.isPending && deleteDrillMutation.variables === drill.id)}><Trash2 className="h-3 w-3"/></Button></AlertDialogTrigger></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Drill?</AlertDialogTitle><AlertDialogDescription>Delete "{drill.drillName}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteDrill(drill.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></div></Card>
           );})}</div></ScrollArea>
         )}</CardContent>
       </Card>
       {viewingDrill && <MockDrillDetailsDialog drill={viewingDrill} planName={viewingDrill.linkedPlanId ? plans.find(p=>p.id === viewingDrill.linkedPlanId)?.planName : undefined} onClose={() => setViewingDrill(null)} />}
       
     </div>
+    </TooltipProvider>
   );
 }

@@ -56,8 +56,8 @@ export default function RiskManagementPage() {
   const [viewingIncident, setViewingIncident] = useState<Incident | null>(null); 
 
   // --- Role-Based Access Control ---
-  const canCreate = useMemo(() => userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role), [userProfile]);
-  const canManageRegister = useMemo(() => userProfile && ['admin', 'she_officer'].includes(userProfile.role), [userProfile]);
+  const canCreate = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [user, userProfile]);
+  const canManageRegister = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [user, userProfile]);
   const disabledTooltipContent = "You do not have permission to perform this action.";
 
   // Fetch Incidents

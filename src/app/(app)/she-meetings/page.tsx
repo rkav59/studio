@@ -40,8 +40,8 @@ export default function SheMeetingsPage() {
   const [isRefreshingUpcomingMeetings, setIsRefreshingUpcomingMeetings] = useState(false); // State for upcoming meetings refresh
   const [meetingSearchTerm, setMeetingSearchTerm] = useState("");
 
-  const canCreate = useMemo(() => userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role), [userProfile]);
-  const canManage = useMemo(() => userProfile && ['admin', 'she_officer'].includes(userProfile.role), [userProfile]);
+  const canCreate = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [user, userProfile]);
+  const canManage = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [user, userProfile]);
   const disabledTooltipContent = "You do not have permission to perform this action.";
 
   // Fetch SHE Programs

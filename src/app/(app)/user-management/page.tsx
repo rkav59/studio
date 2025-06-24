@@ -45,7 +45,7 @@ export default function UserManagementPage() {
     const [inviteRole, setInviteRole] = useState<UserRole>("visitor");
     const [isInviting, setIsInviting] = useState(false);
 
-    const canInviteUsers = useMemo(() => userProfile?.role === 'admin', [userProfile]);
+    const canInviteUsers = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile?.role === 'admin'), [user, userProfile]);
     const disabledTooltipContent = "You do not have permission to perform this action.";
 
 
@@ -335,4 +335,3 @@ export default function UserManagementPage() {
         </TooltipProvider>
     );
 }
-

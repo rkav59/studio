@@ -71,7 +71,7 @@ export default function ContractorSafetyPage() {
   const [ptwSearchTerm, setPtwSearchTerm] = useState("");
   const [jobCardSearchTerm, setJobCardSearchTerm] = useState(""); // New state
 
-  const canManage = useMemo(() => userProfile && ['admin', 'she_officer'].includes(userProfile.role), [userProfile]);
+  const canManage = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [user, userProfile]);
   const disabledTooltipContent = "You do not have permission to perform this action.";
 
 
