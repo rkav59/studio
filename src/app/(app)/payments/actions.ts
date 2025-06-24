@@ -1,6 +1,5 @@
 'use server';
 
-import { auth } from '@/lib/firebase';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { headers } from 'next/headers';
@@ -10,9 +9,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 const USER_PROFILES_COLLECTION = 'userProfiles';
 
-export async function createCheckoutSession() {
-  const user = auth.currentUser;
-  if (!user) {
+export async function createCheckoutSession(userData: { uid: string, email: string | null }) {
+  const user = userData;
+  if (!user || !user.uid) {
     throw new Error('User not authenticated');
   }
 
@@ -26,9 +25,11 @@ export async function createCheckoutSession() {
   let customerId = userProfileSnap.data()?.stripeCustomerId;
 
   if (!customerId) {
+    if (!user.email) {
+        throw new Error("User email is required to create a Stripe customer.");
+    }
     const customer = await stripe.customers.create({
-      email: user.email!,
-      name: user.displayName || undefined,
+      email: user.email,
       metadata: {
         firebaseUID: user.uid,
       },

@@ -10,6 +10,7 @@ import { CreditCard, Wallet, History, Download, Check, Loader2 } from "lucide-re
 import { Separator } from "@/components/ui/separator";
 import { useToast } from '@/hooks/use-toast';
 import { createCheckoutSession } from './actions'; // The new server action
+import { useAuth } from '@/contexts/auth-context';
 
 // Initialize Stripe.js. In a real app, this MUST be in environment variables.
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string);
@@ -17,11 +18,23 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
 export default function PaymentsPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
+    const { user } = useAuth();
 
     const handleUpgradeClick = async () => {
         setIsSubmitting(true);
+        if (!user) {
+            toast({
+                title: "Not Authenticated",
+                description: "You must be signed in to upgrade your plan.",
+                variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+        }
+
         try {
-            const { sessionId } = await createCheckoutSession();
+            // Pass user data to the server action
+            const { sessionId } = await createCheckoutSession({ uid: user.uid, email: user.email });
             const stripe = await stripePromise;
             if (!stripe) {
                 throw new Error("Stripe.js has not loaded yet.");
