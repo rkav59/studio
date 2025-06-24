@@ -1,3 +1,8 @@
 {
-  "firebase_hosting": {}
+  "firebase_hosting": {},
+  "cloud_run_deploy": {
+    "region": "africa-south1",
+    "sourceFlag": "--source .",
+    "allowUnauthenticatedInvocationsFlag": "--allow-unauthenticated"
+  }
 }

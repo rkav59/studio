@@ -5,7 +5,7 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { useQuery } from "@tanstack/react-query";
-import { collection, query, where, getDocs, getCountFromServer, doc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, getCountFromServer, doc, getDoc, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { useToast } from "@/hooks/use-toast";
 
 const USER_PROFILES_COLLECTION = 'userProfiles';
+const MAIL_COLLECTION = 'mail'; // Collection for the firestore-send-email extension
 const USER_ROLES: UserRole[] = ['admin', 'she_officer', 'authorizer', 'she_rep', 'visitor'];
 
 const planLimits: Record<UserProfile['planId'], number> = {
@@ -92,31 +93,44 @@ export default function UserManagementPage() {
         
         setIsInviting(true);
         
-        // This is where you would call a backend Cloud Function
-        // For now, we will simulate the process and explain the next steps.
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
+        // This function now writes a document to the 'mail' collection.
+        // The `firestore-send-email` extension should be configured to watch this collection.
+        try {
+            await addDoc(collection(db, MAIL_COLLECTION), {
+                to: [inviteEmail],
+                message: {
+                    subject: `You're invited to join ${userProfile?.organizationId || 'an organization'} on SHEiQpro!`,
+                    html: `
+                        <p>Hello,</p>
+                        <p>You have been invited to join an organization on SHEiQpro with the role of <strong>${inviteRole.replace('_', ' ')}</strong>.</p>
+                        <p>Please click the following link to sign up and create your account:</p>
+                        <a href="${window.location.origin}/sign-up">Create Your Account</a>
+                        <p>During sign-up, please use this email address: ${inviteEmail}</p>
+                        <p>Thank you,</p>
+                        <p>The SHEiQpro Team</p>
+                    `,
+                },
+            });
 
-        toast({
-            title: "Next Step: Backend Invitation Logic",
-            duration: 15000,
-            description: (
-                <div className="text-xs">
-                    <p>The 'Send Invite' button is now active!</p>
-                    <p className="mt-2">In a real application, clicking this would trigger a secure backend process (like a Firebase Cloud Function) to:</p>
-                    <ul className="list-disc pl-4 mt-1 space-y-1">
-                        <li>Create a temporary user record or an invitation document in Firestore.</li>
-                        <li>Securely send an invitation email with a unique sign-up link.</li>
-                        <li>Handle the new user's registration, automatically assigning them the correct role and organization.</li>
-                    </ul>
-                    <p className="mt-2 font-semibold">Since I can only modify the frontend code, this final backend step needs to be implemented separately in your Firebase project.</p>
-                </div>
-            ),
-        });
+            toast({
+                title: "Invitation Sent",
+                description: `An invitation has been sent to ${inviteEmail}.`,
+            });
+            
+            setIsInviteDialogOpen(false);
+            setInviteEmail("");
+            setInviteRole("visitor");
 
-        setIsInviting(false);
-        setIsInviteDialogOpen(false);
-        setInviteEmail("");
-        setInviteRole("visitor");
+        } catch (error) {
+            console.error("Error creating invitation document:", error);
+            toast({
+                title: "Invitation Failed",
+                description: "Could not create the invitation record. Please check console for errors.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsInviting(false);
+        }
     };
 
     if (isLoadingProfile) {
@@ -196,7 +210,7 @@ export default function UserManagementPage() {
                                 <DialogHeader>
                                     <DialogTitle>Invite New User</DialogTitle>
                                     <DialogDescription>
-                                        Enter the user's email and assign them a role. They will receive an email to create their account and join your organization.
+                                        Enter the user's email and assign them a role. An invitation email will be sent automatically.
                                     </DialogDescription>
                                 </DialogHeader>
                                 <div className="space-y-4 py-4">
