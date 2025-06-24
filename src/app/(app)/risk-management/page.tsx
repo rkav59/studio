@@ -31,6 +31,7 @@ import { IncidentDetailsDialog } from "@/components/risk-management/incident-det
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 
 const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
