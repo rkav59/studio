@@ -1,5 +1,4 @@
 
-
 "use client"; // Add this directive
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -11,20 +10,21 @@ import {
   onAuthStateChanged,
   updateProfile,
   sendPasswordResetEmail,
-  User
+  User,
+  getRedirectResult // Added for redirect flow
 } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { doc, setDoc, getDoc } from 'firebase/firestore'; // Import getDoc
+import { doc, setDoc, getDoc } from 'firebase/firestore'; 
 import type { UserProfile } from '@/lib/types';
 import { add } from 'date-fns';
-import { useQuery } from '@tanstack/react-query'; // Import useQuery
+import { useQuery } from '@tanstack/react-query'; 
 
-interface AuthContextType { // Renamed for clarity
+interface AuthContextType { 
   user: User | null;
-  isAuthenticating: boolean; // Changed from isLoading to be more specific
-  userProfile: UserProfile | null; // Added
-  isLoadingProfile: boolean; // Added
+  isAuthenticating: boolean; 
+  userProfile: UserProfile | null; 
+  isLoadingProfile: boolean; 
   signUp: (email: string, password: string, displayName: string, country: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOutUser: () => Promise<void>;
@@ -50,16 +50,76 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticating, setIsAuthenticating] = useState(true); // Start as true
+  const [isAuthenticating, setIsAuthenticating] = useState(true); 
   const { toast } = useToast();
 
   useEffect(() => {
+    // This handles both initial auth state check and subsequent changes.
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setIsAuthenticating(false);
     });
     return () => unsubscribe();
   }, []);
+
+  // This new useEffect handles the result of a sign-in redirect.
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        setIsAuthenticating(true); // Show loading while processing redirect
+        const result = await getRedirectResult(auth);
+        if (result) {
+          // User successfully signed in or signed up via redirect.
+          const user = result.user;
+          const userProfileRef = doc(db, 'userProfiles', user.uid);
+          const userProfileSnap = await getDoc(userProfileRef);
+
+          if (!userProfileSnap.exists()) {
+            // This is a new user signing up via social provider.
+            const now = new Date();
+            const trialEndDate = add(now, { days: 14 });
+            const organizationId = `org_${user.uid.substring(0, 8)}_${Date.now()}`;
+            
+            const userProfileData: Omit<UserProfile, 'id'> = {
+              email: user.email || "",
+              displayName: user.displayName || user.email?.split('@')[0] || "User",
+              country: "Not Set", // Social sign-in doesn't provide this. User must set it.
+              createdAt: now.toISOString(),
+              organizationId: organizationId,
+              role: 'admin',
+              planId: 'trial',
+              trialStartDate: now.toISOString(),
+              trialEndDate: trialEndDate.toISOString(),
+            };
+            await setDoc(userProfileRef, userProfileData);
+            toast({
+              title: 'Account Created',
+              description: 'Welcome! Your 14-day trial has begun.',
+            });
+            // The onAuthStateChanged listener will handle the redirect to the dashboard.
+          } else {
+            // This is a returning user.
+            toast({
+              title: 'Signed In Successfully',
+              description: `Welcome back, ${user.displayName || user.email}!`,
+            });
+          }
+        }
+      } catch (error: any) {
+        console.error("Redirect sign-in error:", error);
+        toast({
+          title: 'Sign In Failed',
+          description: "Could not complete sign-in via redirect. Please try again.",
+          variant: 'destructive',
+        });
+      } finally {
+        setIsAuthenticating(false); // Finished processing, hide loading state
+      }
+    };
+
+    handleRedirectResult();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run this check once on component mount.
 
   const { data: userProfile, isLoading: isLoadingProfile } = useQuery<UserProfile | null>({
     queryKey: [USER_PROFILES_COLLECTION, user?.uid],
@@ -70,7 +130,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return profileSnap.exists() ? { id: profileSnap.id, ...profileSnap.data() } as UserProfile : null;
     },
     enabled: !!user?.uid,
-    staleTime: Infinity, // Profile data is stable, don't refetch automatically
+    staleTime: Infinity, 
     cacheTime: Infinity,
   });
 
@@ -80,9 +140,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const user = userCredential.user;
 
       await updateProfile(user, { displayName });
-      // setUser is handled by onAuthStateChanged listener
 
-      // Create user profile in Firestore with trial period
       const userProfileRef = doc(db, 'userProfiles', user.uid);
       const now = new Date();
       const trialEndDate = add(now, { days: 14 });
@@ -94,7 +152,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         country: country,
         createdAt: now.toISOString(),
         organizationId: organizationId,
-        role: 'admin', // First user is always admin
+        role: 'admin', 
         planId: 'trial',
         trialStartDate: now.toISOString(),
         trialEndDate: trialEndDate.toISOString(),
@@ -115,7 +173,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         description: userFriendlyMessage,
         variant: 'destructive',
       });
-      throw error; // Re-throw for form to handle
+      throw error; 
     }
   };
 
@@ -136,14 +194,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         description: userFriendlyMessage,
         variant: 'destructive',
       });
-      throw error; // Re-throw for form to handle
+      throw error; 
     }
   };
 
   const signOutUser = async () => {
     try {
       await signOut(auth);
-      // No toast needed here as the user is redirected immediately
     } catch (error: any) {
       console.error("Signout failed:", error);
       toast({
@@ -161,7 +218,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
     try {
       await updateProfile(auth.currentUser, { displayName: displayName });
-      setUser({ ...auth.currentUser, displayName: displayName }); // Update local state
+      setUser({ ...auth.currentUser, displayName: displayName }); 
     } catch (error: any) {
       console.error("Failed to update display name:", error);
       toast({
@@ -189,7 +246,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         description: userFriendlyMessage,
         variant: 'destructive',
       });
-      throw error; // Re-throw for form to handle
+      throw error; 
     }
   };
 

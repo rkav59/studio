@@ -3,10 +3,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Chrome, Facebook } from "lucide-react"; // Using Chrome as a generic Google icon
-import { signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, type UserCredential } from "firebase/auth";
+import { signInWithRedirect, GoogleAuthProvider, FacebookAuthProvider } from "firebase/auth"; // Changed to signInWithRedirect
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -16,7 +15,6 @@ interface SocialButtonsProps {
 
 export function SocialButtons({ isSignUp = false }: SocialButtonsProps) {
   const { toast } = useToast();
-  const router = useRouter();
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingFacebook, setLoadingFacebook] = useState(false);
 
@@ -25,46 +23,30 @@ export function SocialButtons({ isSignUp = false }: SocialButtonsProps) {
     if (provider instanceof FacebookAuthProvider) setLoadingFacebook(true);
 
     try {
-      const result: UserCredential = await signInWithPopup(auth, provider);
-      // User is signed in.
-      toast({
-        title: "Signed In Successfully",
-        description: `Welcome, ${result.user.displayName || result.user.email}!`,
-      });
-      router.push("/dashboard");
+      // This will navigate the user away from the app to the Google sign-in page.
+      // The result is handled by getRedirectResult in AuthProvider after the user returns.
+      await signInWithRedirect(auth, provider);
     } catch (error: any) {
-      console.error("Social sign-in error:", error);
+      console.error("Social sign-in redirect initiation error:", error);
       let errorMessage = "An unexpected error occurred. Please try again.";
       if (error.code) {
         switch (error.code) {
-          case "auth/account-exists-with-different-credential":
-            errorMessage = "An account already exists with the same email address but different sign-in credentials. Try signing in with the original method.";
-            break;
-          case "auth/popup-closed-by-user":
-            // This is a common, non-critical error, so we can be silent.
-            errorMessage = "";
-            break;
-          case "auth/cancelled-popup-request":
-            errorMessage = ""; // Also non-critical
-            break;
           case "auth/popup-blocked":
              errorMessage = "Popup blocked by browser. Please allow popups for this site.";
              break;
           default:
-            errorMessage = "Failed to sign in. Please try again later.";
+            errorMessage = "Failed to start sign-in process. Please try again later.";
         }
       }
-      if (errorMessage) {
-        toast({
-            title: "Sign In Failed",
+      toast({
+            title: 'Sign In Failed',
             description: errorMessage,
             variant: "destructive",
-        });
-      }
-    } finally {
+      });
       if (provider instanceof GoogleAuthProvider) setLoadingGoogle(false);
       if (provider instanceof FacebookAuthProvider) setLoadingFacebook(false);
     }
+    // No router.push or success toast here, as the page redirects.
   };
 
   const handleGoogleSignIn = () => {
@@ -74,15 +56,11 @@ export function SocialButtons({ isSignUp = false }: SocialButtonsProps) {
 
   const handleFacebookSignIn = () => {
     const provider = new FacebookAuthProvider();
-    // Note: Facebook login requires extensive setup on developer.facebook.com
-    // and enabling it in Firebase console with App ID and App Secret.
-    // This client-side code assumes that setup is complete.
     toast({
         title: "Facebook Sign-In (Note)",
         description: "Facebook sign-in requires prior setup in Firebase console and Facebook Developer portal. This is a client-side placeholder.",
         duration: 7000,
     });
-    // handleSocialSignIn(provider); // Uncomment when Facebook setup is done
   };
 
   return (
