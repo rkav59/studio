@@ -8,38 +8,102 @@ import { useToast } from "@/hooks/use-toast";
 import { createCheckoutSession } from "@/app/(app)/payments/actions";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Loader2, Zap } from "lucide-react";
+import type { UserProfile } from "@/lib/types";
+import { useQuery } from "@tanstack/react-query";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
+const USER_PROFILES_COLLECTION = 'userProfiles';
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string);
+
+interface PlanDetails {
+    id: 'free' | 'pro' | 'premium';
+    title: string;
+    price: string;
+    priceId?: string;
+    priceDescription: string;
+    features: string[];
+    isFeatured?: boolean;
+}
+
+const plans: PlanDetails[] = [
+    {
+        id: 'free',
+        title: 'Free',
+        price: '$0',
+        priceDescription: '/month',
+        features: [
+            '1 User',
+            '5 Risk Assessments',
+            'Basic Incident Logging',
+            'Community Support'
+        ],
+    },
+    {
+        id: 'pro',
+        title: 'Pro',
+        price: '$49',
+        priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
+        priceDescription: '/month',
+        features: [
+            'Up to 10 Users',
+            'Unlimited Risk Assessments',
+            'AI-Powered Safety Assist',
+            'Advanced Reporting',
+            'Email Support'
+        ],
+        isFeatured: true,
+    },
+    {
+        id: 'premium',
+        title: 'Premium',
+        price: '$99',
+        priceId: process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID,
+        priceDescription: '/month',
+        features: [
+            'Unlimited Users',
+            'All Pro Features',
+            'Enterprise SSO',
+            'Dedicated Phone Support',
+            'Audit Trail'
+        ],
+    }
+];
 
 export function CustomPricingTable() {
     const { user } = useAuth();
     const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState<string | null>(null);
 
-    const proPriceId = process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID as string;
-    
-    const handleUpgradeClick = async () => {
+    const { data: userProfile } = useQuery<UserProfile | null>({
+        queryKey: [USER_PROFILES_COLLECTION, user?.uid],
+        queryFn: async () => {
+            if (!user?.uid) return null;
+            const profileRef = doc(db, USER_PROFILES_COLLECTION, user.uid);
+            const profileSnap = await getDoc(profileRef);
+            return profileSnap.exists() ? { id: profileSnap.id, ...profileSnap.data() } as UserProfile : null;
+        },
+        enabled: !!user?.uid,
+    });
+
+    const handleUpgradeClick = async (priceId?: string, planName?: string) => {
+        if (!priceId) {
+            toast({ title: "Plan Unavailable", description: `The ${planName} plan is not available for purchase at this time.`, variant: "destructive"});
+            return;
+        }
         if (!user) {
             toast({ title: "Authentication Required", description: "Please sign in to upgrade.", variant: "destructive" });
             return;
         }
-        if (!proPriceId || !proPriceId.startsWith("price_")) {
-            toast({ 
-                title: "Stripe Price ID Needed", 
-                description: "Please provide a valid Stripe Price ID in your environment settings (should start with 'price_...'). The current ID is invalid.", 
-                variant: "destructive" 
-            });
-            return;
-        }
 
-        setIsLoading(true);
+        setIsLoading(priceId);
 
         try {
             const { sessionId } = await createCheckoutSession({
                 userId: user.uid,
                 userEmail: user.email!,
-                priceId: proPriceId
+                priceId: priceId
             });
 
             const stripe = await stripePromise;
@@ -58,34 +122,58 @@ export function CustomPricingTable() {
             console.error("Failed to create checkout session:", error);
             toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
         } finally {
-            setIsLoading(false);
+            setIsLoading(null);
         }
     };
 
+    const currentPlanId = userProfile?.planId;
+
     return (
-        <Card className="max-w-md mx-auto lg:mx-0 shadow-lg border-primary border-2">
-            <CardHeader className="text-center">
-                <CardTitle className="text-2xl font-bold">Pro Plan</CardTitle>
-                <CardDescription>Unlock all advanced features</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="text-center">
-                    <p className="text-4xl font-extrabold">$49<span className="text-lg font-normal text-muted-foreground">/mo</span></p>
-                </div>
-                <ul className="space-y-3 text-sm">
-                    <li className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /> Unlimited Risk Assessments</li>
-                    <li className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /> Unlimited SHEQ Audits</li>
-                    <li className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /> AI-Powered Safety Assist</li>
-                    <li className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /> Advanced Reporting</li>
-                    <li className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /> Priority Support</li>
-                </ul>
-            </CardContent>
-            <CardFooter>
-                <Button onClick={handleUpgradeClick} disabled={isLoading} className="w-full">
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {isLoading ? "Redirecting..." : "Upgrade to Pro"}
-                </Button>
-            </CardFooter>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {plans.map(plan => (
+                <Card key={plan.id} className={`flex flex-col ${plan.isFeatured ? 'border-primary border-2 shadow-lg' : ''}`}>
+                    <CardHeader className="text-center">
+                        {plan.isFeatured && (
+                            <div className="flex justify-center mb-2">
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary text-primary-foreground">
+                                    <Zap className="h-4 w-4 mr-1.5" /> Most Popular
+                                </span>
+                            </div>
+                        )}
+                        <CardTitle className="text-2xl font-bold">{plan.title}</CardTitle>
+                        <CardDescription>{plan.priceDescription}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-1 space-y-6">
+                        <div className="text-center">
+                            <p className="text-4xl font-extrabold">{plan.price}<span className="text-lg font-normal text-muted-foreground">{plan.price === '$0' ? '' : '/mo'}</span></p>
+                        </div>
+                        <ul className="space-y-3 text-sm">
+                            {plan.features.map((feature, index) => (
+                                <li key={index} className="flex items-center gap-2">
+                                    <CheckCircle className="h-5 w-5 text-green-500" />
+                                    <span>{feature}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </CardContent>
+                    <CardFooter>
+                        {plan.id === 'free' ? (
+                            <Button disabled className="w-full">Free Plan</Button>
+                        ) : currentPlanId === plan.id ? (
+                            <Button disabled className="w-full">Current Plan</Button>
+                        ) : (
+                            <Button 
+                                onClick={() => handleUpgradeClick(plan.priceId, plan.title)} 
+                                disabled={isLoading === plan.priceId}
+                                className={`w-full ${plan.isFeatured ? '' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}`}
+                            >
+                                {isLoading === plan.priceId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                {isLoading === plan.priceId ? "Redirecting..." : `Upgrade to ${plan.title}`}
+                            </Button>
+                        )}
+                    </CardFooter>
+                </Card>
+            ))}
+        </div>
     );
 }

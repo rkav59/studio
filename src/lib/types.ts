@@ -833,7 +833,7 @@ export interface UserProfile {
     displayName?: string;
     country: string;
     createdAt: string; // ISO string
-    planId: 'free' | 'trial' | 'pro';
+    planId: 'free' | 'trial' | 'pro' | 'premium';
     trialStartDate?: string; // ISO string
     trialEndDate?: string; // ISO string
 
