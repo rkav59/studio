@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
@@ -36,6 +37,10 @@ export default function UserManagementPage() {
     const { toast } = useToast();
     const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+    const [inviteEmail, setInviteEmail] = useState("");
+    const [inviteRole, setInviteRole] = useState<UserRole>("visitor");
+    const [isInviting, setIsInviting] = useState(false);
+
 
     // Fetch current user's profile to get organizationId and planId
     const { data: userProfile, isLoading: isLoadingProfile } = useQuery<UserProfile | null>({
@@ -75,15 +80,44 @@ export default function UserManagementPage() {
         );
     }, [organizationUsers, searchTerm]);
     
-    const handleSendInvite = () => {
+    const handleSendInvite = async () => {
+        if (!inviteEmail || !inviteRole) {
+            toast({
+                title: "Missing Information",
+                description: "Please provide an email and select a role.",
+                variant: "destructive",
+            });
+            return;
+        }
+        
+        setIsInviting(true);
+        
+        // This is where you would call a backend Cloud Function
+        // For now, we will simulate the process and explain the next steps.
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
+
         toast({
-            title: "Feature Under Development",
-            description: "Sending user invitations requires a backend service (Cloud Function) which will be implemented in a future step.",
-            variant: "default",
-            duration: 8000,
+            title: "Next Step: Backend Invitation Logic",
+            duration: 15000,
+            description: (
+                <div className="text-xs">
+                    <p>The 'Send Invite' button is now active!</p>
+                    <p className="mt-2">In a real application, clicking this would trigger a secure backend process (like a Firebase Cloud Function) to:</p>
+                    <ul className="list-disc pl-4 mt-1 space-y-1">
+                        <li>Create a temporary user record or an invitation document in Firestore.</li>
+                        <li>Securely send an invitation email with a unique sign-up link.</li>
+                        <li>Handle the new user's registration, automatically assigning them the correct role and organization.</li>
+                    </ul>
+                    <p className="mt-2 font-semibold">Since I can only modify the frontend code, this final backend step needs to be implemented separately in your Firebase project.</p>
+                </div>
+            ),
         });
+
+        setIsInviting(false);
         setIsInviteDialogOpen(false);
-    }
+        setInviteEmail("");
+        setInviteRole("visitor");
+    };
 
     if (isLoadingProfile) {
         return (
@@ -168,11 +202,11 @@ export default function UserManagementPage() {
                                 <div className="space-y-4 py-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="email" className="flex items-center gap-1"><Mail className="h-4 w-4"/>Email</Label>
-                                        <Input id="email" type="email" placeholder="new.user@example.com" />
+                                        <Input id="email" type="email" placeholder="new.user@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="role" className="flex items-center gap-1"><KeyRound className="h-4 w-4"/>Role</Label>
-                                        <Select>
+                                        <Select value={inviteRole} onValueChange={(value: UserRole) => setInviteRole(value)}>
                                             <SelectTrigger id="role">
                                                 <SelectValue placeholder="Select a role" />
                                             </SelectTrigger>
@@ -190,8 +224,9 @@ export default function UserManagementPage() {
                                     <DialogClose asChild>
                                         <Button variant="outline">Cancel</Button>
                                     </DialogClose>
-                                    <Button onClick={handleSendInvite} disabled={true}>
-                                        Send Invite (Coming Soon)
+                                    <Button onClick={handleSendInvite} disabled={isInviting}>
+                                        {isInviting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Send Invite
                                     </Button>
                                 </DialogFooter>
                             </DialogContent>
