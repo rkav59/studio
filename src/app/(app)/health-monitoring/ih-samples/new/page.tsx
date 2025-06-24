@@ -3,7 +3,7 @@
 
 import { useRouter } from 'next/navigation';
 import { IhSampleForm, type IhSampleFormValues } from "@/components/health-monitoring/ih-sample-form";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
