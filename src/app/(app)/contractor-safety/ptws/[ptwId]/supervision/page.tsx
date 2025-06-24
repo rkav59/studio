@@ -60,7 +60,14 @@ export default function PtwSupervisionListPage() {
       const ptwSnap = await getDoc(ptwRef);
       if (ptwSnap.exists() && ptwSnap.data().userId === user.uid) {
         const data = ptwSnap.data();
-        return { id: ptwSnap.id, ...data } as PermitToWork;
+        return { 
+          id: ptwSnap.id, 
+          ...data,
+          startDate: (data.startDate as Timestamp)?.toDate().toISOString(),
+          endDate: (data.endDate as Timestamp)?.toDate().toISOString(),
+          authorizationDate: data.authorizationDate ? (data.authorizationDate as Timestamp).toDate().toISOString() : undefined,
+          closureDate: data.closureDate ? (data.closureDate as Timestamp).toDate().toISOString() : undefined,
+        } as PermitToWork;
       }
       return null;
     },
@@ -218,3 +225,5 @@ export default function PtwSupervisionListPage() {
     </div>
   );
 }
+
+    

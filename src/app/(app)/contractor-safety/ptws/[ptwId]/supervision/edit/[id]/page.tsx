@@ -34,7 +34,18 @@ export default function EditPtwSupervisionPage() {
       if (!user?.uid || !ptwId) return null;
       const ptwRef = doc(db, PTWS_COLLECTION, ptwId);
       const ptwSnap = await getDoc(ptwRef);
-      return ptwSnap.exists() && ptwSnap.data().userId === user.uid ? { id: ptwSnap.id, ...ptwSnap.data() } as PermitToWork : null;
+      if (ptwSnap.exists() && ptwSnap.data().userId === user.uid) {
+        const data = ptwSnap.data();
+        return { 
+          id: ptwSnap.id, 
+          ...data,
+          startDate: (data.startDate as Timestamp)?.toDate().toISOString(),
+          endDate: (data.endDate as Timestamp)?.toDate().toISOString(),
+          authorizationDate: data.authorizationDate ? (data.authorizationDate as Timestamp).toDate().toISOString() : undefined,
+          closureDate: data.closureDate ? (data.closureDate as Timestamp).toDate().toISOString() : undefined,
+        } as PermitToWork;
+      }
+      return null;
     },
     enabled: !!user?.uid && !!ptwId,
   });
@@ -124,3 +135,5 @@ export default function EditPtwSupervisionPage() {
     </div>
   );
 }
+
+    
