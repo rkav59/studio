@@ -1,5 +1,4 @@
 
-
 // --- User Profile & Auth Types ---
 export type UserRole = 'admin' | 'she_officer' | 'authorizer' | 'she_rep' | 'visitor';
 export type PlanId = 'free' | 'trial' | 'pro' | 'premium' | 'enterprise';
@@ -526,6 +525,25 @@ export interface JobCard {
   clientSignOffName?: string;
   notes?: string;
 }
+
+// --- Online Induction Types ---
+export interface QuizQuestion {
+  questionId: string;
+  answer: string;
+}
+
+export interface InductionRecord {
+  id: string;
+  userId: string;
+  organizationId: string;
+  contractorId: string;
+  contractorName: string;
+  traineeName: string;
+  inductionDate: string; // ISO string
+  quizAnswers: QuizQuestion[];
+}
+// --- End Online Induction Types ---
+
 
 // --- PTW Supervision Types ---
 export type SupervisionChecklistItemResult = 'Satisfactory' | 'Needs Improvement' | 'Unsatisfactory' | 'N/A';

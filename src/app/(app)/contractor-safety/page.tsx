@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, ClipboardList, FileText, CheckSquare, ShieldAlert, Loader2, Download, Users, Settings, Search, ListChecks, ClipboardCheck } from "lucide-react"; // Added ClipboardCheck
+import { PlusCircle, Edit2, Trash2, Eye, ClipboardList, FileText, CheckSquare, ShieldAlert, Loader2, Download, Users, Settings, Search, ListChecks, ClipboardCheck, GraduationCap } from "lucide-react"; // Added ClipboardCheck, GraduationCap
 import type { Contractor, PermitToWork, ContractorVettingStatus, PtwStatus, ContractorDocument, PtwSupervisionRecord, JobCard, JobCardStatus } from "@/lib/types"; // Added JobCard types
 import { ContractorDetailsDialog } from "@/components/contractor-safety/contractor-details-dialog";
 import { PtwDetailsDialog } from "@/components/contractor-safety/ptw-details-dialog";
@@ -365,6 +365,9 @@ export default function ContractorSafetyPage() {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
+            <Link href="#online-induction">Online Induction</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
             <Link href="#contractor-register">Contractor Register</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
@@ -377,6 +380,20 @@ export default function ContractorSafetyPage() {
       </Card>
 
       <Separator />
+      
+      {/* Online Safety Induction Section */}
+      <Card id="online-induction">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><GraduationCap className="h-6 w-6 text-primary"/>Online Safety Induction</CardTitle>
+            <CardDescription>A streamlined process for contractor safety inductions. Contractors can view training content and complete a quiz to be marked as inducted.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Button onClick={() => router.push('/contractor-safety/induction')}>
+                Go to Online Induction Module
+            </Button>
+        </CardContent>
+      </Card>
+
 
       {/* Contractor Management Section */}
       <Card id="contractor-register">
