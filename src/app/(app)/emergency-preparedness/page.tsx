@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { PlusCircle, Edit2, Trash2, Eye, Siren, FileText, Box, ShieldAlert, Activity, Users, CalendarClock, ClockIcon, AlertTriangle, ListChecksIcon, Loader2, Link as LinkIcon, ArrowDown } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, Eye, Siren, FileText, Box, ShieldAlert, Activity, Users, CalendarClock, ClockIcon, AlertTriangle, ListChecksIcon, Loader2, Link as LinkIcon } from "lucide-react";
 import { format, isValid, parseISO, differenceInDays, isBefore } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { EmergencyResourceDetailsDialog } from '@/components/emergency-preparedness/emergency-resource-details-dialog';
@@ -207,13 +207,13 @@ export default function EmergencyPreparednessPage() {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link href="#emergency-plans"><ArrowDown className="mr-2 h-4 w-4"/>Emergency Plans</Link>
+            <Link href="#emergency-plans">Emergency Plans</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href="#resource-inventory"><ArrowDown className="mr-2 h-4 w-4"/>Resource Inventory</Link>
+            <Link href="#resource-inventory">Resource Inventory</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href="#drill-logbook"><ArrowDown className="mr-2 h-4 w-4"/>Mock Drill Logbook</Link>
+            <Link href="#drill-logbook">Mock Drill Logbook</Link>
           </Button>
         </CardContent>
       </Card>

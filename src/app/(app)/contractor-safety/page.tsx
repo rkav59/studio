@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, ClipboardList, FileText, CheckSquare, ShieldAlert, Loader2, Download, Users, Settings, Search, ListChecks, ClipboardCheck, ArrowDown } from "lucide-react"; // Added ClipboardCheck
+import { PlusCircle, Edit2, Trash2, Eye, ClipboardList, FileText, CheckSquare, ShieldAlert, Loader2, Download, Users, Settings, Search, ListChecks, ClipboardCheck } from "lucide-react"; // Added ClipboardCheck
 import type { Contractor, PermitToWork, ContractorVettingStatus, PtwStatus, ContractorDocument, PtwSupervisionRecord, JobCard, JobCardStatus } from "@/lib/types"; // Added JobCard types
 import { ContractorDetailsDialog } from "@/components/contractor-safety/contractor-details-dialog";
 import { PtwDetailsDialog } from "@/components/contractor-safety/ptw-details-dialog";
@@ -356,13 +356,13 @@ export default function ContractorSafetyPage() {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link href="#contractor-register"><ArrowDown className="mr-2 h-4 w-4"/>Contractor Register</Link>
+            <Link href="#contractor-register">Contractor Register</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href="#job-cards"><ArrowDown className="mr-2 h-4 w-4"/>Job Cards</Link>
+            <Link href="#job-cards">Job Cards</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href="#ptw-log"><ArrowDown className="mr-2 h-4 w-4"/>Permit to Work Log</Link>
+            <Link href="#ptw-log">Permit to Work Log</Link>
           </Button>
         </CardContent>
       </Card>

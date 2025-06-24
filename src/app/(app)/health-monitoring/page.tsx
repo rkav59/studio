@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 // Removed Dialog import
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Edit2, Trash2, Eye, Users, Thermometer, ShieldCheck, Award, UserPlus, FlaskConical, ClipboardPlus, Users2Icon, AlertTriangle, CalendarClock, ClockIcon, ShieldAlert, FilePlus, Loader2, HeartPulse, Search, ArrowDown } from "lucide-react";
+import { Edit2, Trash2, Eye, Users, Thermometer, ShieldCheck, Award, UserPlus, FlaskConical, ClipboardPlus, Users2Icon, AlertTriangle, CalendarClock, ClockIcon, ShieldAlert, FilePlus, Loader2, HeartPulse, Search } from "lucide-react";
 import type { SimilarExposureGroup, IndustrialHygieneSample, MedicalTestRecord, WellnessProgram, MedicalTestWithCertStatus, MedicalTestPrefillData, IndustrialHygieneSampleAgent, MedicalTestRecordType } from "@/lib/types";
 // Removed form imports: SegForm, IhSampleForm, MedicalTestForm, WellnessProgramForm
 import { SegDetailsDialog } from '@/components/health-monitoring/seg-details-dialog';
@@ -232,19 +232,19 @@ export default function HealthMonitoringPage() {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link href="#certificate-expiries"><ArrowDown className="mr-2 h-4 w-4"/>Certificate Expiries</Link>
+            <Link href="#certificate-expiries">Certificate Expiries</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href="#segs"><ArrowDown className="mr-2 h-4 w-4"/>Similar Exposure Groups</Link>
+            <Link href="#segs">Similar Exposure Groups</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href="#ih-sampling"><ArrowDown className="mr-2 h-4 w-4"/>IH Sampling</Link>
+            <Link href="#ih-sampling">IH Sampling</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href="#medical-tests"><ArrowDown className="mr-2 h-4 w-4"/>Medical Tests</Link>
+            <Link href="#medical-tests">Medical Tests</Link>
           </Button>
            <Button asChild variant="outline" size="sm">
-            <Link href="#wellness-programs"><ArrowDown className="mr-2 h-4 w-4"/>Wellness Programs</Link>
+            <Link href="#wellness-programs">Wellness Programs</Link>
           </Button>
         </CardContent>
       </Card>

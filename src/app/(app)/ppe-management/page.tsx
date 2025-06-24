@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, CheckCheck, ClipboardList, Settings2, AlertTriangle, ListFilter, Search, ShieldCheck, Activity, CalendarClock, ClockIcon, AlertCircle, Users, Loader2, HardHat, ArrowDown } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, Eye, CheckCheck, ClipboardList, Settings2, AlertTriangle, ListFilter, Search, ShieldCheck, Activity, CalendarClock, ClockIcon, AlertCircle, Users, Loader2, HardHat } from "lucide-react";
 import type { PpeItem, PpeIssuanceRecord, PpeInspectionRecord, PpeItemStatus, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid, differenceInDays, isBefore } from 'date-fns';
@@ -339,19 +339,19 @@ export default function PpeManagementPage() {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link href="#upcoming-inspections"><ArrowDown className="mr-2 h-4 w-4"/>Upcoming Inspections</Link>
+            <Link href="#upcoming-inspections">Upcoming Inspections</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href="#ppe-inventory"><ArrowDown className="mr-2 h-4 w-4"/>PPE Inventory</Link>
+            <Link href="#ppe-inventory">PPE Inventory</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href="#issuance-log"><ArrowDown className="mr-2 h-4 w-4"/>Issuance Log</Link>
+            <Link href="#issuance-log">Issuance Log</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href="#inspection-log"><ArrowDown className="mr-2 h-4 w-4"/>Inspection Log</Link>
+            <Link href="#inspection-log">Inspection Log</Link>
           </Button>
            <Button asChild variant="outline" size="sm">
-            <Link href="#job-role-matrix"><ArrowDown className="mr-2 h-4 w-4"/>Job Role Matrix</Link>
+            <Link href="#job-role-matrix">Job Role Matrix</Link>
           </Button>
         </CardContent>
       </Card>
