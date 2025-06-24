@@ -16,6 +16,7 @@ import {
   Library, // For Checklist Templates
   AlertTriangle, // For Risk Management
   CalendarRange, // For SHE Meetings & Programs
+  CreditCard, // For Billing
 } from 'lucide-react';
 import {
   SidebarMenu,
@@ -39,6 +40,7 @@ const navItems = [
   { href: '/ppe-management', label: 'PPE Management', icon: HardHat },
   { href: '/contractor-safety', label: 'Contractor Safety', icon: ListChecks },
   { href: '/health-monitoring', label: 'Health Monitoring', icon: HeartPulse },
+  { href: '/payments', label: 'Billing', icon: CreditCard },
   { href: '/ai-recommendations', label: 'AI Safety Assist', icon: Sparkles },
 ];
 
@@ -63,7 +65,7 @@ export function NavLinks() {
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
-          {(item.label === 'Dashboard' || item.label === 'Checklist Templates') && <SidebarSeparator className="my-1" />}
+          {(item.label === 'Dashboard' || item.label === 'Checklist Templates' || item.label === 'Health Monitoring') && <SidebarSeparator className="my-1" />}
         </React.Fragment>
       ))}
     </SidebarMenu>

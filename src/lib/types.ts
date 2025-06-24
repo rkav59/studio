@@ -1,4 +1,5 @@
 
+
 export interface Incident {
   id: string;
   userId?: string; // Added for data ownership
@@ -412,7 +413,7 @@ export interface SuggestRootCauseOutput {
 // --- Contractor Safety & Job Card Types ---
 export type ContractorVettingStatus = 'Pending' | 'Approved' | 'Rejected' | 'Requires Review';
 export type PtwStatus = 'Requested' | 'Approved' | 'Active' | 'Closed' | 'Cancelled' | 'Expired';
-export type JobCardStatus = 'Draft' | 'Issued' | 'Completed' | 'Cancelled';
+export type JobCardStatus = 'Draft' | 'Issued' | 'In Progress' | 'Completed' | 'Cancelled';
 
 export interface ContractorDocument {
   id: string; // UUID for the document entry
@@ -856,6 +857,24 @@ export interface GenerateLegalRegisterOutput {
     disclaimer: string;
 }
 // --- End Legal Register Types ---
+
+// --- Billing & Payments Types ---
+export interface SubscriptionPlan {
+    id: string;
+    name: string;
+    price: number;
+    currency: string;
+    features: string[];
+}
+
+export interface PaymentHistory {
+    id: string;
+    date: string; // ISO string
+    amount: number;
+    status: 'Paid' | 'Failed' | 'Pending';
+    invoiceUrl?: string;
+}
+// --- End Billing & Payments Types ---
 
 
 
