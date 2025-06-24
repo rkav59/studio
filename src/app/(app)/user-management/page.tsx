@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const USER_PROFILES_COLLECTION = 'userProfiles';
 const MAIL_COLLECTION = 'mail'; // Collection for the firestore-send-email extension
@@ -188,6 +189,14 @@ export default function UserManagementPage() {
             
             <Separator/>
             
+            <Alert variant="info">
+                <Mail className="h-4 w-4" />
+                <AlertTitle>Email Invitations</AlertTitle>
+                <AlertDescription>
+                    This feature adds an invitation document to the 'mail' collection in Firestore. For emails to be sent, you must install and configure the official <strong>`Send an email from Firestore`</strong> (ID: `firestore-send-email`) extension from the Firebase Extensions marketplace.
+                </AlertDescription>
+            </Alert>
+            
             <Card>
                 <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
@@ -251,10 +260,10 @@ export default function UserManagementPage() {
                     {!canAddUsers && (
                         <Alert variant="destructive" className="mb-4">
                             <AlertTriangle className="h-4 w-4" />
-                            <CardTitle>User Limit Reached</CardTitle>
-                            <CardDescription>
+                            <AlertTitle>User Limit Reached</AlertTitle>
+                            <AlertDescription>
                                 You have reached the user limit for the <span className="font-semibold capitalize">{currentPlan}</span> plan. Please upgrade your subscription to add more users.
-                            </CardDescription>
+                            </AlertDescription>
                         </Alert>
                     )}
                     <div className="border rounded-md">
