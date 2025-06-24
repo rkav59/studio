@@ -21,6 +21,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 const USER_PROFILES_COLLECTION = 'userProfiles';
 const MAIL_COLLECTION = 'mail'; // Collection for the firestore-send-email extension
@@ -35,7 +37,7 @@ const planLimits: Record<UserProfile['planId'], number> = {
 };
 
 export default function UserManagementPage() {
-    const { user } = useAuth();
+    const { user, userProfile } = useAuth();
     const { toast } = useToast();
     const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
@@ -43,18 +45,9 @@ export default function UserManagementPage() {
     const [inviteRole, setInviteRole] = useState<UserRole>("visitor");
     const [isInviting, setIsInviting] = useState(false);
 
+    const canInviteUsers = useMemo(() => userProfile?.role === 'admin', [userProfile]);
+    const disabledTooltipContent = "You do not have permission to perform this action.";
 
-    // Fetch current user's profile to get organizationId and planId
-    const { data: userProfile, isLoading: isLoadingProfile } = useQuery<UserProfile | null>({
-        queryKey: [USER_PROFILES_COLLECTION, user?.uid],
-        queryFn: async () => {
-            if (!user?.uid) return null;
-            const profileRef = doc(db, USER_PROFILES_COLLECTION, user.uid);
-            const profileSnap = await getDoc(profileRef);
-            return profileSnap.exists() ? { id: profileSnap.id, ...profileSnap.data() } as UserProfile : null;
-        },
-        enabled: !!user?.uid,
-    });
 
     // Fetch all users in the organization
     const { data: organizationUsers = [], isLoading: isLoadingOrgUsers } = useQuery<UserProfile[]>({
@@ -69,7 +62,7 @@ export default function UserManagementPage() {
     });
 
     const userCount = organizationUsers.length;
-    const isLoading = isLoadingProfile || isLoadingOrgUsers;
+    const isLoading = !userProfile || isLoadingOrgUsers;
     const currentPlan = userProfile?.planId || 'free';
     const limit = planLimits[currentPlan];
     const canAddUsers = userCount < limit;
@@ -83,6 +76,15 @@ export default function UserManagementPage() {
     }, [organizationUsers, searchTerm]);
     
     const handleSendInvite = async () => {
+        if (!canInviteUsers) {
+             toast({
+                title: "Permission Denied",
+                description: "Only administrators can invite new users.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         if (!inviteEmail || !inviteRole) {
             toast({
                 title: "Missing Information",
@@ -147,7 +149,7 @@ export default function UserManagementPage() {
         }
     };
 
-    if (isLoadingProfile) {
+    if (isLoading) {
         return (
              <div className="space-y-6">
                 <Skeleton className="h-10 w-64" />
@@ -156,20 +158,8 @@ export default function UserManagementPage() {
         );
     }
     
-    if (userProfile?.role !== 'admin') {
-        return (
-             <Card className="shadow-lg">
-                <CardHeader>
-                    <CardTitle className="text-destructive flex items-center gap-2"><AlertTriangle/>Access Denied</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p>You do not have permission to manage users. This feature is available to account administrators only.</p>
-                </CardContent>
-            </Card>
-        );
-    }
-
     return (
+        <TooltipProvider>
         <div className="space-y-6">
             <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
@@ -222,12 +212,19 @@ export default function UserManagementPage() {
                             <Input placeholder="Search by name or email..." className="pl-8" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                         </div>
                         <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button disabled={!canAddUsers || isLoading}>
-                                    <UserPlus className="mr-2 h-4 w-4"/>
-                                    Invite User
-                                </Button>
-                            </DialogTrigger>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div tabIndex={0} className={cn(!canInviteUsers && "cursor-not-allowed")}>
+                                <DialogTrigger asChild>
+                                    <Button disabled={!canAddUsers || !canInviteUsers}>
+                                        <UserPlus className="mr-2 h-4 w-4"/>
+                                        Invite User
+                                    </Button>
+                                </DialogTrigger>
+                              </div>
+                            </TooltipTrigger>
+                            {!canInviteUsers && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                          </Tooltip>
                              <DialogContent>
                                 <DialogHeader>
                                     <DialogTitle>Invite New User</DialogTitle>
@@ -308,7 +305,14 @@ export default function UserManagementPage() {
                                                 <Badge variant="secondary" className="capitalize">{orgUser.role.replace('_', ' ')}</Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <Button variant="ghost" size="sm" disabled>Manage</Button>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div tabIndex={0} className={cn(!canInviteUsers && "cursor-not-allowed")}>
+                                                            <Button variant="ghost" size="sm" disabled={!canInviteUsers}>Manage</Button>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    {!canInviteUsers && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                                                </Tooltip>
                                             </TableCell>
                                         </TableRow>
                                     ))
@@ -328,6 +332,7 @@ export default function UserManagementPage() {
                 </CardFooter>
             </Card>
         </div>
+        </TooltipProvider>
     );
 }
 

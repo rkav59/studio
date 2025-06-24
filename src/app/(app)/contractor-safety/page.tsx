@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,9 @@ import { ref as storageRef, deleteObject } from "firebase/storage";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from '@/lib/utils';
+
 
 const CONTRACTORS_COLLECTION = 'contractors';
 const PTWS_COLLECTION = 'permitsToWork';
@@ -57,7 +60,7 @@ async function deleteContractorDocumentFile(filePath: string) {
 
 export default function ContractorSafetyPage() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -67,6 +70,9 @@ export default function ContractorSafetyPage() {
   const [contractorSearchTerm, setContractorSearchTerm] = useState("");
   const [ptwSearchTerm, setPtwSearchTerm] = useState("");
   const [jobCardSearchTerm, setJobCardSearchTerm] = useState(""); // New state
+
+  const canManage = useMemo(() => userProfile && ['admin', 'she_officer'].includes(userProfile.role), [userProfile]);
+  const disabledTooltipContent = "You do not have permission to perform this action.";
 
 
   // Fetch Contractors
@@ -260,29 +266,31 @@ export default function ContractorSafetyPage() {
 
 
   // Navigation Handlers
-  const handleOpenNewContractorForm = () => router.push('/contractor-safety/contractors/new');
-  const handleEditContractor = (contractorId: string) => router.push(`/contractor-safety/contractors/edit/${contractorId}`);
+  const handleOpenNewContractorForm = () => canManage && router.push('/contractor-safety/contractors/new');
+  const handleEditContractor = (contractorId: string) => canManage && router.push(`/contractor-safety/contractors/edit/${contractorId}`);
   const handleDeleteContractor = (contractorId: string) => deleteContractorMutation.mutate(contractorId);
 
   const handleOpenNewPtwForm = () => {
+    if (!canManage) return;
     if (contractors.length === 0) {
         toast({ title: "No Contractors", description: "Please add a contractor before creating a Permit to Work.", variant: "destructive"});
         return;
     }
     router.push('/contractor-safety/ptws/new');
   };
-  const handleEditPtw = (ptwId: string) => router.push(`/contractor-safety/ptws/edit/${ptwId}`);
+  const handleEditPtw = (ptwId: string) => canManage && router.push(`/contractor-safety/ptws/edit/${ptwId}`);
   const handleDeletePtw = (ptwId: string) => deletePtwMutation.mutate(ptwId);
   const handleManageSupervision = (ptwId: string) => router.push(`/contractor-safety/ptws/${ptwId}/supervision`);
   
   const handleOpenNewJobCardForm = () => {
+    if (!canManage) return;
     if (contractors.length === 0) {
       toast({ title: "No Contractors", description: "Please add a contractor before creating a Job Card.", variant: "destructive"});
       return;
     }
     router.push('/contractor-safety/job-cards/new');
   };
-  const handleEditJobCard = (jobCardId: string) => router.push(`/contractor-safety/job-cards/edit/${jobCardId}`);
+  const handleEditJobCard = (jobCardId: string) => canManage && router.push(`/contractor-safety/job-cards/edit/${jobCardId}`);
   const handleDeleteJobCard = (jobCardId: string) => deleteJobCardMutation.mutate(jobCardId);
 
 
@@ -332,6 +340,7 @@ export default function ContractorSafetyPage() {
 
 
   return (
+    <TooltipProvider>
     <div className="space-y-8">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
@@ -387,9 +396,16 @@ export default function ContractorSafetyPage() {
                         onChange={(e) => setContractorSearchTerm(e.target.value)}
                     />
                 </div>
-                <Button onClick={handleOpenNewContractorForm} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add New Contractor
-                </Button>
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
+                            <Button onClick={handleOpenNewContractorForm} disabled={!canManage} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add New Contractor
+                            </Button>
+                        </div>
+                    </TooltipTrigger>
+                    {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                 </Tooltip>
             </div>
         </CardHeader>
         <CardContent>
@@ -408,11 +424,15 @@ export default function ContractorSafetyPage() {
                                     </div>
                                     <div className="flex gap-2 self-start sm:self-center shrink-0">
                                         <Button variant="outline" size="sm" onClick={() => setViewingContractor(contractor)}><Eye className="mr-1 h-3 w-3" /> View</Button>
-                                        <Button variant="secondary" size="sm" onClick={() => handleEditContractor(contractor.id)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button variant="secondary" size="sm" onClick={() => handleEditContractor(contractor.id)} disabled={!canManage}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button></div></TooltipTrigger>
+                                            {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                                        </Tooltip>
                                         <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="destructive" size="sm" disabled={deleteContractorMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button>
-                                            </AlertDialogTrigger>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={!canManage || deleteContractorMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger></div></TooltipTrigger>
+                                            {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                                        </Tooltip>
                                             <AlertDialogContent>
                                                 <AlertDialogHeader><AlertDialogTitle>Delete Contractor?</AlertDialogTitle>
                                                 <AlertDialogDescription>Are you sure you want to delete {contractor.companyName}? This will also delete associated documents from storage. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
@@ -459,9 +479,16 @@ export default function ContractorSafetyPage() {
                         onChange={(e) => setJobCardSearchTerm(e.target.value)}
                     />
                 </div>
-                <Button onClick={handleOpenNewJobCardForm} className="bg-indigo-500 hover:bg-indigo-600 text-white" disabled={contractors.length === 0}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Create New Job Card
-                </Button>
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
+                           <Button onClick={handleOpenNewJobCardForm} className="bg-indigo-500 hover:bg-indigo-600 text-white" disabled={!canManage || contractors.length === 0}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Create New Job Card
+                           </Button>
+                        </div>
+                    </TooltipTrigger>
+                    {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                 </Tooltip>
             </div>
         </CardHeader>
         <CardContent>
@@ -482,11 +509,15 @@ export default function ContractorSafetyPage() {
                                   </div>
                                    <div className="flex flex-wrap gap-2 self-start sm:self-center shrink-0">
                                       <Button variant="outline" size="sm" onClick={() => setViewingJobCard(jc)}><Eye className="mr-1 h-3 w-3" /> View</Button>
-                                      <Button variant="secondary" size="sm" onClick={() => handleEditJobCard(jc.id)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
+                                       <Tooltip>
+                                            <TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button variant="secondary" size="sm" onClick={() => handleEditJobCard(jc.id)} disabled={!canManage}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button></div></TooltipTrigger>
+                                            {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                                        </Tooltip>
                                       <AlertDialog>
-                                          <AlertDialogTrigger asChild>
-                                              <Button variant="destructive" size="sm" disabled={deleteJobCardMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button>
-                                          </AlertDialogTrigger>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={!canManage || deleteJobCardMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger></div></TooltipTrigger>
+                                            {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                                        </Tooltip>
                                           <AlertDialogContent>
                                               <AlertDialogHeader><AlertDialogTitle>Delete Job Card?</AlertDialogTitle>
                                               <AlertDialogDescription>Are you sure you want to delete Job Card #{jc.jobCardNumber}? This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
@@ -538,9 +569,16 @@ export default function ContractorSafetyPage() {
                         onChange={(e) => setPtwSearchTerm(e.target.value)}
                     />
                 </div>
-                <Button onClick={handleOpenNewPtwForm} className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={contractors.length === 0}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Create New PTW
-                </Button>
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
+                           <Button onClick={handleOpenNewPtwForm} className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={!canManage || contractors.length === 0}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Create New PTW
+                           </Button>
+                        </div>
+                    </TooltipTrigger>
+                    {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                 </Tooltip>
             </div>
         </CardHeader>
         <CardContent>
@@ -566,11 +604,15 @@ export default function ContractorSafetyPage() {
                                         <Button variant="outline" size="sm" onClick={() => handleManageSupervision(ptw.id)}>
                                             <Search className="mr-1 h-3 w-3" /> Supervision ({supervisionCount})
                                         </Button>
-                                        <Button variant="secondary" size="sm" onClick={() => handleEditPtw(ptw.id)}><Edit2 className="mr-1 h-3 w-3" /> Edit PTW</Button>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button variant="secondary" size="sm" onClick={() => handleEditPtw(ptw.id)} disabled={!canManage}><Edit2 className="mr-1 h-3 w-3" /> Edit PTW</Button></div></TooltipTrigger>
+                                            {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                                        </Tooltip>
                                         <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="destructive" size="sm" disabled={deletePtwMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete PTW</Button>
-                                            </AlertDialogTrigger>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={!canManage || deletePtwMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete PTW</Button></AlertDialogTrigger></div></TooltipTrigger>
+                                                {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                                            </Tooltip>
                                             <AlertDialogContent>
                                                 <AlertDialogHeader><AlertDialogTitle>Delete PTW?</AlertDialogTitle>
                                                 <AlertDialogDescription>Are you sure you want to delete PTW #{ptw.ptwNumber}? This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
@@ -626,5 +668,6 @@ export default function ContractorSafetyPage() {
       </Card>
 
     </div>
+    </TooltipProvider>
   );
 }
