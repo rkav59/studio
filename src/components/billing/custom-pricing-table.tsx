@@ -13,17 +13,19 @@ import type { UserProfile } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import Link from "next/link"; // Added for Enterprise plan
 
 const USER_PROFILES_COLLECTION = 'userProfiles';
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string);
 
 interface PlanDetails {
-    id: 'free' | 'pro' | 'premium';
+    id: 'free' | 'pro' | 'premium' | 'enterprise';
     title: string;
     price: string;
     priceId?: string;
     priceDescription: string;
     features: string[];
+    userLimit: string;
     isFeatured?: boolean;
 }
 
@@ -32,27 +34,29 @@ const plans: PlanDetails[] = [
         id: 'free',
         title: 'Free',
         price: '$0',
-        priceDescription: '/month',
+        priceDescription: 'For solo testing or evaluation.',
         features: [
-            '1 User',
-            '5 Risk Assessments',
             'Basic Incident Logging',
+            '5 Risk Assessments/month',
+            'Limited AI Assist',
             'Community Support'
         ],
+        userLimit: '1 User'
     },
     {
         id: 'pro',
         title: 'Pro',
         price: '$49',
         priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
-        priceDescription: '/month',
+        priceDescription: '/month, for small teams.',
         features: [
-            'Up to 10 Users',
+            'All Free features',
+            'Full AI-Powered Safety Assist',
             'Unlimited Risk Assessments',
-            'AI-Powered Safety Assist',
             'Advanced Reporting',
             'Email Support'
         ],
+        userLimit: 'Up to 10 Users',
         isFeatured: true,
     },
     {
@@ -60,14 +64,29 @@ const plans: PlanDetails[] = [
         title: 'Premium',
         price: '$99',
         priceId: process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID,
-        priceDescription: '/month',
+        priceDescription: '/month, for growing businesses.',
         features: [
-            'Unlimited Users',
-            'All Pro Features',
-            'Enterprise SSO',
+            'All Pro features',
+            'SHEQ Audit Module',
+            'Contractor Safety Module',
             'Dedicated Phone Support',
-            'Audit Trail'
+            'Basic Audit Trail'
         ],
+        userLimit: 'Up to 30 Users'
+    },
+    {
+        id: 'enterprise',
+        title: 'Enterprise',
+        price: 'Custom',
+        priceDescription: 'For large-scale deployments.',
+        features: [
+            'All Premium features',
+            'Enterprise SSO',
+            'Dedicated Account Manager',
+            'Advanced User Roles',
+            'Custom Integrations'
+        ],
+        userLimit: '100+ Users'
     }
 ];
 
@@ -89,7 +108,7 @@ export function CustomPricingTable() {
 
     const handleUpgradeClick = async (priceId?: string, planName?: string) => {
         if (!priceId) {
-            toast({ title: "Plan Unavailable", description: `The ${planName} plan is not available for purchase at this time.`, variant: "destructive"});
+            toast({ title: "Plan Unavailable", description: `The ${planName} plan is not available for online purchase at this time. Please contact us.`, variant: "destructive"});
             return;
         }
         if (!user) {
@@ -129,7 +148,7 @@ export function CustomPricingTable() {
     const currentPlanId = userProfile?.planId;
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {plans.map(plan => (
                 <Card key={plan.id} className={`flex flex-col ${plan.isFeatured ? 'border-primary border-2 shadow-lg' : ''}`}>
                     <CardHeader className="text-center">
@@ -145,12 +164,13 @@ export function CustomPricingTable() {
                     </CardHeader>
                     <CardContent className="flex-1 space-y-6">
                         <div className="text-center">
-                            <p className="text-4xl font-extrabold">{plan.price}<span className="text-lg font-normal text-muted-foreground">{plan.price === '$0' ? '' : '/mo'}</span></p>
+                            <p className="text-4xl font-extrabold">{plan.price}<span className="text-lg font-normal text-muted-foreground">{plan.price.startsWith('$') ? '/mo' : ''}</span></p>
+                            <p className="text-sm font-semibold text-primary mt-1">{plan.userLimit}</p>
                         </div>
                         <ul className="space-y-3 text-sm">
                             {plan.features.map((feature, index) => (
-                                <li key={index} className="flex items-center gap-2">
-                                    <CheckCircle className="h-5 w-5 text-green-500" />
+                                <li key={index} className="flex items-start gap-2">
+                                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
                                     <span>{feature}</span>
                                 </li>
                             ))}
@@ -159,6 +179,10 @@ export function CustomPricingTable() {
                     <CardFooter>
                         {plan.id === 'free' ? (
                             <Button disabled className="w-full">Free Plan</Button>
+                        ) : plan.id === 'enterprise' ? (
+                            <Button asChild className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                                <Link href="/contact-support">Contact Sales</Link>
+                            </Button>
                         ) : currentPlanId === plan.id ? (
                             <Button disabled className="w-full">Current Plan</Button>
                         ) : (

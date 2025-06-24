@@ -88,5 +88,5 @@ export default function ProtectedAppLayout({ children }: { children: ReactNode }
 
 
   // If authenticated and not on welcome page, render the actual app layout and children
-  return <AppLayoutInternal>{children}</AppLayoutInternal>;
+  return <AppLayoutInternal userProfile={userProfile}>{children}</AppLayoutInternal>;
 }

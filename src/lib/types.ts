@@ -1,8 +1,36 @@
 
 
+// --- User Profile & Auth Types ---
+export type UserRole = 'admin' | 'she_officer' | 'authorizer' | 'she_rep' | 'visitor';
+export type PlanId = 'free' | 'trial' | 'pro' | 'premium' | 'enterprise';
+
+export interface UserProfile {
+    id: string; // Firebase User UID
+    email: string;
+    displayName?: string;
+    country: string;
+    createdAt: string; // ISO string
+    
+    // New RBAC and Organization fields
+    organizationId: string;
+    role: UserRole;
+
+    // Subscription fields
+    planId: PlanId;
+    trialStartDate?: string; // ISO string
+    trialEndDate?: string; // ISO string
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+    stripePriceId?: string;
+    stripeCurrentPeriodEnd?: string; // ISO string
+}
+// --- End User Profile & Auth Types ---
+
+
 export interface Incident {
   id: string;
   userId?: string; // Added for data ownership
+  organizationId?: string; // For data scoping
   type: 'Incident' | 'Near Miss' | 'Hazard';
   description: string;
   location: string;
@@ -46,6 +74,7 @@ export type RiskRegisterStatus = 'Open' | 'In Progress' | 'Mitigated' | 'Closed'
 export interface ManualHazard {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   activityDescription: string;
   hazardDescription: string;
   dateIdentified: string; // ISO Date string
@@ -65,6 +94,7 @@ export interface RiskAssessmentControl {
 export interface ManualRiskAssessment {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   activityOrProcess: string;
   assessmentDate: string; // ISO Date string
   assessedBy: string;
@@ -93,6 +123,7 @@ export interface ManualRiskAssessment {
 export interface RiskRegisterEntry {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   riskTitle: string;
   riskDescription: string;
   dateIdentified: string; // ISO
@@ -233,6 +264,7 @@ export interface ChecklistTemplate {
 export interface SheqAudit {
   id: string;
   userId?: string; // Ensure userId is part of the type
+  organizationId?: string; // For data scoping
   auditName: string;
   auditType: 'Safety' | 'Health' | 'Environment' | 'Quality' | 'Integrated';
   scope: string;
@@ -252,6 +284,7 @@ export interface SheqAudit {
 export interface TrainingCourse {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   name: string;
   description?: string;
   category?: string;
@@ -262,6 +295,7 @@ export type TrainingRecordStatus = 'Planned' | 'Completed' | 'Requires Renewal' 
 export interface TrainingRecord {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   employeeName: string;
   courseId: string; // Links to TrainingCourse.id
   trainingDate: string; // ISO date string
@@ -277,6 +311,7 @@ export interface TrainingRecord {
 export interface EmergencyPlan {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   planName: string;
   planType: 'Evacuation' | 'Fire Response' | 'Medical Emergency' | 'Spill Response' | 'Other';
   scope: string;
@@ -296,6 +331,7 @@ export type EmergencyResourceStatus = 'Operational' | 'Requires Maintenance' | '
 export interface EmergencyResource {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   name: string;
   type: EmergencyResourceType;
   location: string;
@@ -318,6 +354,7 @@ export interface DrillActionItem {
 export interface MockDrill {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   drillName: string;
   drillType: 'Evacuation' | 'Fire' | 'Medical' | 'Spill' | 'Security' | 'Tabletop' | 'Other';
   linkedPlanId?: string; // ID of an EmergencyPlan
@@ -384,6 +421,7 @@ export interface CorrectiveAction {
 
 export interface IncidentInvestigation {
   id: string;
+  organizationId?: string; // For data scoping
   incidentId: string; // Link to an Incident (for now, manually entered ID)
   investigationTitle: string; // User-defined title for the investigation
   investigationDate: string; // ISO string
@@ -432,6 +470,7 @@ export interface ContractorDocument {
 export interface Contractor {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   companyName: string;
   contactPerson: string;
   contactEmail?: string;
@@ -448,6 +487,7 @@ export interface Contractor {
 export interface PermitToWork {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   ptwNumber: string;
   contractorId: string;
   workDescription: string;
@@ -473,6 +513,7 @@ export interface JobCardCheck {
 export interface JobCard {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   jobCardNumber: string;
   contractorId: string;
   workDate: string; // ISO
@@ -501,6 +542,7 @@ export type PtwPerformanceRating = 'Excellent' | 'Good' | 'Fair' | 'Poor';
 export interface PtwSupervisionRecord {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   ptwId: string; // Link to the PermitToWork
   ptwNumber: string; // For display convenience
   supervisionDate: string; // ISO Date string
@@ -519,6 +561,7 @@ export type PpeItemStatus = 'Available' | 'Under Inspection' | 'Awaiting Repair'
 export interface PpeItem {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   name: string;
   type: string;
   category: string;
@@ -534,6 +577,7 @@ export interface PpeItem {
 export interface PpeIssuanceRecord {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   ppeItemId: string;
   employeeName: string;
   jobRole?: string;
@@ -560,6 +604,7 @@ export interface PpeInspectionChecklistItemInstance {
 export interface PpeInspectionRecord {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   ppeItemId: string; // ID of the PpeItem being inspected
   uniquePpeIdentifier?: string; // Optional: For serialized/uniquely tracked PPE items
   inspectionDate: string; // ISO Date string
@@ -577,6 +622,7 @@ export interface PpeInspectionRecord {
 export interface PpeJobRoleMatrixEntry {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   jobRole: string;
   requiredPpeItemIds: string[]; // Array of PpeItem IDs
   linkedRiskAssessmentId?: string;
@@ -608,6 +654,7 @@ export interface PpeComplianceAudit {
 export interface SimilarExposureGroup {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   name: string; // e.g., "Welders - Workshop A", "Office Admin Staff - Building C"
   description?: string; // Brief description of the group
   riskProfileNotes?: string; // Notes on typical exposures or health risks
@@ -618,6 +665,7 @@ export type IndustrialHygieneSampleAgent = 'Noise' | 'Dust (Respirable)' | 'Dust
 export interface IndustrialHygieneSample {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   segId?: string; // Optional link to SimilarExposureGroup
   employeeName?: string; // If personal sample not linked to SEG
   sampleDate: string; // ISO Date string
@@ -642,6 +690,7 @@ export type MedicalScreeningPurpose = 'Pre-employment' | 'Periodic' | 'Exit' | '
 export interface MedicalTestRecord {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   employeeName: string;
   employeeId?: string; // Optional employee ID
   testType: MedicalTestRecordType;
@@ -663,6 +712,7 @@ export type WellnessProgramStatus = 'Planned' | 'Active' | 'Completed' | 'On Hol
 export interface WellnessProgram {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   programName: string;
   description?: string;
   startDate: string; // ISO Date string
@@ -743,6 +793,7 @@ export type SheMeetingType = 'Safety Committee' | 'Management Review' | 'Toolbox
 export interface SheMeeting {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   title: string;
   meetingDate: string; // ISO Date string
   meetingType: SheMeetingType;
@@ -761,6 +812,7 @@ export type SheProgramStatus = 'Planned' | 'Ongoing' | 'Completed' | 'On Hold' |
 export interface SheProgram {
   id: string;
   userId?: string;
+  organizationId?: string; // For data scoping
   programName: string;
   objective: string;
   programType: SheProgramType;
@@ -826,24 +878,6 @@ export interface KpiRecommendationOutput {
 // --- End KPI AI Recommendation Types ---
 
 
-// --- User Profile Type ---
-export interface UserProfile {
-    id: string; // Firebase User UID
-    email: string;
-    displayName?: string;
-    country: string;
-    createdAt: string; // ISO string
-    planId: 'free' | 'trial' | 'pro' | 'premium';
-    trialStartDate?: string; // ISO string
-    trialEndDate?: string; // ISO string
-
-    // Stripe fields
-    stripeCustomerId?: string;
-    stripeSubscriptionId?: string;
-    stripePriceId?: string;
-    stripeCurrentPeriodEnd?: string; // ISO string
-}
-// --- End User Profile Type ---
 
 // --- Legal Register Types ---
 export interface LegalRegisterItem {

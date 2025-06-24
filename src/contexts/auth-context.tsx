@@ -69,12 +69,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const userProfileRef = doc(db, 'userProfiles', user.uid);
       const now = new Date();
       const trialEndDate = add(now, { days: 14 });
+      const organizationId = `org_${user.uid.substring(0, 8)}_${Date.now()}`;
+
 
       const userProfileData: Omit<UserProfile, 'id'> = {
         email: user.email || "",
         displayName: displayName,
         country: country,
         createdAt: now.toISOString(),
+        organizationId: organizationId,
+        role: 'admin',
         planId: 'trial',
         trialStartDate: now.toISOString(),
         trialEndDate: trialEndDate.toISOString(),

@@ -1,4 +1,5 @@
 
+
 // Renamed from AppLayout to AppLayoutInternal to avoid conflict in ProtectedAppLayout
 "use client";
 
@@ -24,13 +25,15 @@ import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import type { UserProfile } from '@/lib/types';
 
 
 interface AppLayoutInternalProps { // Changed name
   children: ReactNode;
+  userProfile: UserProfile | null;
 }
 
-export default function AppLayoutInternal({ children }: AppLayoutInternalProps) { // Changed name
+export default function AppLayoutInternal({ children, userProfile }: AppLayoutInternalProps) { // Changed name
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
@@ -53,7 +56,7 @@ export default function AppLayoutInternal({ children }: AppLayoutInternalProps) 
           <AppLogo />
         </SidebarHeader>
         <SidebarContent>
-          <NavLinks />
+          <NavLinks userProfile={userProfile} />
         </SidebarContent>
         <SidebarFooter>
           {user ? (

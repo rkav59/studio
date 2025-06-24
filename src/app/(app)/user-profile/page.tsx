@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -16,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ProfileUpdateForm } from '@/components/user-profile/profile-update-form';
 import { PasswordChangeSection } from '@/components/user-profile/password-change-section';
 import type { UserProfile } from '@/lib/types';
-import { Mail, User as UserIcon, Globe, Shield, HelpCircle, FileText as FileTextIcon, Phone } from 'lucide-react';
+import { Mail, User as UserIcon, Globe, Shield, HelpCircle, FileText as FileTextIcon, Phone, Fingerprint, Crown } from 'lucide-react';
 import Link from 'next/link';
 
 const USER_PROFILES_COLLECTION = 'userProfiles';
@@ -36,15 +37,18 @@ export default function UserProfilePage() {
         return { id: profileSnap.id, ...profileSnap.data() } as UserProfile;
       }
       // If profile doesn't exist, create a basic one
-      const basicProfile: Omit<UserProfile, 'id'> = {
+      const basicProfile: Partial<UserProfile> = {
           email: user.email || "",
           displayName: user.displayName || user.email?.split('@')[0] || "User",
           country: "", // Default empty, user needs to set it
           createdAt: new Date().toISOString(),
+          organizationId: `org_${user.uid.substring(0, 8)}_${Date.now()}`,
+          role: 'admin',
+          planId: 'free',
       };
       // Use setDoc without merge for initial creation, as it's a new document.
       await setDoc(profileRef, basicProfile); 
-      return {id: user.uid, ...basicProfile };
+      return {id: user.uid, ...basicProfile } as UserProfile;
     },
     enabled: !!user?.uid,
     retry: false,
@@ -148,6 +152,24 @@ export default function UserProfilePage() {
           />
         </CardContent>
       </Card>
+      
+      <Card className="shadow-lg">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Crown className="h-5 w-5 text-primary"/>Organization & Role</CardTitle>
+            <CardDescription>Your role and organization details.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="space-y-1">
+                <Label htmlFor="orgId" className="flex items-center gap-1 text-sm text-muted-foreground"><Fingerprint className="h-4 w-4"/>Organization ID</Label>
+                <Input id="orgId" value={userProfile.organizationId} readOnly disabled className="bg-muted/50 font-mono text-xs"/>
+            </div>
+             <div className="space-y-1">
+                <Label htmlFor="role" className="flex items-center gap-1 text-sm text-muted-foreground"><UserIcon className="h-4 w-4"/>Your Role</Label>
+                <Input id="role" value={userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1).replace('_', ' ')} readOnly disabled className="bg-muted/50"/>
+            </div>
+        </CardContent>
+      </Card>
+
 
       <Card className="shadow-lg">
         <CardHeader>

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React from 'react'; // Import React
@@ -17,6 +18,7 @@ import {
   AlertTriangle, // For Risk Management
   CalendarRange, // For SHE Meetings & Programs
   CreditCard, // For Billing
+  Users, // For User Management
 } from 'lucide-react';
 import {
   SidebarMenu,
@@ -28,6 +30,8 @@ import {
 import { cn } from '@/lib/utils';
 import { SheiqproLogo } from '../icons/sheiqpro-logo';
 import { Button } from '../ui/button';
+import type { UserProfile } from '@/lib/types';
+
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -40,34 +44,47 @@ const navItems = [
   { href: '/ppe-management', label: 'PPE Management', icon: HardHat },
   { href: '/contractor-safety', label: 'Contractor Safety', icon: ListChecks },
   { href: '/health-monitoring', label: 'Health Monitoring', icon: HeartPulse },
+  { href: '/user-management', label: 'User Management', icon: Users, requiredRole: 'admin' },
   { href: '/payments', label: 'Billing', icon: CreditCard },
   { href: '/ai-recommendations', label: 'AI Safety Assist', icon: Sparkles },
 ];
 
-export function NavLinks() {
+interface NavLinksProps {
+  userProfile: UserProfile | null;
+}
+
+export function NavLinks({ userProfile }: NavLinksProps) {
   const pathname = usePathname();
+  const userRole = userProfile?.role;
 
   return (
     <SidebarMenu>
-      {navItems.map((item) => (
-        <React.Fragment key={item.href}>
-          <SidebarMenuItem>
-            <Link href={item.href} passHref legacyBehavior>
-              <SidebarMenuButton
-                asChild
-                isActive={pathname.startsWith(item.href)}
-                tooltip={item.label}
-              >
-                <a> {/* <a> tag is required when asChild and legacyBehavior are used with Link */}
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.label}</span>
-                </a>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          {(item.label === 'Dashboard' || item.label === 'Checklist Templates' || item.label === 'Health Monitoring') && <SidebarSeparator className="my-1" />}
-        </React.Fragment>
-      ))}
+      {navItems.map((item) => {
+        // If a role is required and the user doesn't have it, don't render the item
+        if (item.requiredRole && item.requiredRole !== userRole) {
+          return null;
+        }
+
+        return (
+          <React.Fragment key={item.href}>
+            <SidebarMenuItem>
+              <Link href={item.href} passHref legacyBehavior>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname.startsWith(item.href)}
+                  tooltip={item.label}
+                >
+                  <a> {/* <a> tag is required when asChild and legacyBehavior are used with Link */}
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.label}</span>
+                  </a>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            {(item.label === 'Health Monitoring' || item.label === 'User Management') && <SidebarSeparator className="my-1" />}
+          </React.Fragment>
+        );
+      })}
     </SidebarMenu>
   );
 }
