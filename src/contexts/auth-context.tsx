@@ -1,4 +1,5 @@
 
+
 "use client"; // Add this directive
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -12,13 +13,16 @@ import {
   sendPasswordResetEmail,
   User
 } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { doc, setDoc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/types';
+import { add } from 'date-fns';
 
 interface AuthContextType { // Renamed for clarity
   user: User | null;
   isAuthenticating: boolean; // Changed from isLoading to be more specific
-  signUp: (email: string, password: string, displayName: string) => Promise<void>;
+  signUp: (email: string, password: string, displayName: string, country: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOutUser: () => Promise<void>;
   updateUserDisplayName: (displayName: string) => Promise<void>;
@@ -53,16 +57,33 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return () => unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, displayName: string) => {
+  const signUp = async (email: string, password: string, displayName: string, country: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
       await updateProfile(user, { displayName });
       setUser({ ...user, displayName }); // Update local state immediately
+
+      // Create user profile in Firestore with trial period
+      const userProfileRef = doc(db, 'userProfiles', user.uid);
+      const now = new Date();
+      const trialEndDate = add(now, { days: 14 });
+
+      const userProfileData: Omit<UserProfile, 'id'> = {
+        email: user.email || "",
+        displayName: displayName,
+        country: country,
+        createdAt: now.toISOString(),
+        planId: 'trial',
+        trialStartDate: now.toISOString(),
+        trialEndDate: trialEndDate.toISOString(),
+      };
+      await setDoc(userProfileRef, userProfileData);
+
       toast({
         title: 'Success',
-        description: 'Account created successfully.',
+        description: 'Account created successfully. Your 14-day trial has begun!',
       });
     } catch (error: any) {
       console.error("Signup failed:", error);

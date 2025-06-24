@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,15 +17,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/auth-context'; // Import useAuth
-import { db, auth } from "@/lib/firebase"; // Import db and auth
-import { doc, setDoc, serverTimestamp } from "firebase/firestore"; // Import Firestore functions
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import { Loader2, Mail, Lock, User as UserIcon, Globe } from "lucide-react"; // Added Globe
 import { SocialButtons } from "@/components/auth/social-buttons";
 import { Separator } from "@/components/ui/separator";
-import type { UserProfile } from "@/lib/types";
 
 
 const signUpFormSchema = z.object({
@@ -39,8 +37,6 @@ const signUpFormSchema = z.object({
 });
 
 type SignUpFormValues = z.infer<typeof signUpFormSchema>;
-
-const USER_PROFILES_COLLECTION = 'userProfiles';
 
 export default function SignUpPage() {
   const { toast } = useToast();
@@ -62,24 +58,8 @@ export default function SignUpPage() {
   async function onSubmit(data: SignUpFormValues) {
     setLoading(true);
     try {
-      await signUp(data.email, data.password, data.fullName);
-      
-      // The user object is now available in the AuthContext.
-      // We need to create the Firestore document here as well.
-      // const user = useAuth().user; // This might have a slight delay, better to handle inside signUp or get user from result
-       if (auth.currentUser) {
-        const firebaseUser = auth.currentUser;
-        const userProfileRef = doc(db, USER_PROFILES_COLLECTION, firebaseUser.uid);
-        const userProfileData: Omit<UserProfile, 'id'> = {
-          email: firebaseUser.email || "",
-          displayName: data.fullName,
-          country: data.country,
-          createdAt: new Date().toISOString(),
-        };
-        await setDoc(userProfileRef, userProfileData);
-      }
-      
-      router.push("/dashboard"); 
+      await signUp(data.email, data.password, data.fullName, data.country);
+      router.push("/welcome"); 
     } catch (error: any) {
       // Error toast is handled by context now
     } finally {
@@ -178,7 +158,7 @@ export default function SignUpPage() {
           />
           <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Account
+            Create Account & Start Trial
           </Button>
         </form>
       </Form>

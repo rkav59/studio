@@ -1,10 +1,11 @@
 
+
 "use client"; // Make this a client component to use hooks
 
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import AppLayoutInternal from '@/components/layout/app-layout'; // Renamed original
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -12,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function ProtectedAppLayout({ children }: { children: ReactNode }) {
   const { user, isAuthenticating } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isAuthenticating && !user) {
@@ -19,7 +21,7 @@ export default function ProtectedAppLayout({ children }: { children: ReactNode }
     }
   }, [user, isAuthenticating, router]);
 
-  if (isAuthenticating || !user) {
+  if (isAuthenticating || (!user && pathname !== '/welcome')) { // Allow /welcome page to show its content while user might be briefly null after signup
     // Show a loading state or a more sophisticated skeleton for the app layout
     return (
       <div className="flex min-h-screen">
@@ -35,6 +37,12 @@ export default function ProtectedAppLayout({ children }: { children: ReactNode }
     );
   }
 
-  // If authenticated, render the actual app layout and children
+  // If on the welcome page, render it without the main app layout for a focused experience
+  if (pathname === '/welcome') {
+      return <>{children}</>;
+  }
+
+
+  // If authenticated and not on welcome page, render the actual app layout and children
   return <AppLayoutInternal>{children}</AppLayoutInternal>;
 }
