@@ -15,13 +15,16 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore'; // Import getDoc
 import type { UserProfile } from '@/lib/types';
 import { add } from 'date-fns';
+import { useQuery } from '@tanstack/react-query'; // Import useQuery
 
 interface AuthContextType { // Renamed for clarity
   user: User | null;
   isAuthenticating: boolean; // Changed from isLoading to be more specific
+  userProfile: UserProfile | null; // Added
+  isLoadingProfile: boolean; // Added
   signUp: (email: string, password: string, displayName: string, country: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOutUser: () => Promise<void>;
@@ -39,6 +42,8 @@ export const useAuth = () => {
   return context;
 };
 
+const USER_PROFILES_COLLECTION = 'userProfiles';
+
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -53,9 +58,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setUser(user);
       setIsAuthenticating(false);
     });
-
     return () => unsubscribe();
   }, []);
+
+  const { data: userProfile, isLoading: isLoadingProfile } = useQuery<UserProfile | null>({
+    queryKey: [USER_PROFILES_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return null;
+      const profileRef = doc(db, USER_PROFILES_COLLECTION, user.uid);
+      const profileSnap = await getDoc(profileRef);
+      return profileSnap.exists() ? { id: profileSnap.id, ...profileSnap.data() } as UserProfile : null;
+    },
+    enabled: !!user?.uid,
+    staleTime: Infinity, // Profile data is stable, don't refetch automatically
+    cacheTime: Infinity,
+  });
 
   const signUp = async (email: string, password: string, displayName: string, country: string) => {
     try {
@@ -63,7 +80,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const user = userCredential.user;
 
       await updateProfile(user, { displayName });
-      setUser({ ...user, displayName }); // Update local state immediately
+      // setUser is handled by onAuthStateChanged listener
 
       // Create user profile in Firestore with trial period
       const userProfileRef = doc(db, 'userProfiles', user.uid);
@@ -71,14 +88,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const trialEndDate = add(now, { days: 14 });
       const organizationId = `org_${user.uid.substring(0, 8)}_${Date.now()}`;
 
-
       const userProfileData: Omit<UserProfile, 'id'> = {
         email: user.email || "",
         displayName: displayName,
         country: country,
         createdAt: now.toISOString(),
         organizationId: organizationId,
-        role: 'admin',
+        role: 'admin', // First user is always admin
         planId: 'trial',
         trialStartDate: now.toISOString(),
         trialEndDate: trialEndDate.toISOString(),
@@ -102,7 +118,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       throw error; // Re-throw for form to handle
     }
   };
-
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -181,6 +196,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const value: AuthContextType = {
     user,
     isAuthenticating,
+    userProfile: userProfile || null,
+    isLoadingProfile,
     signUp,
     signIn,
     signOutUser,

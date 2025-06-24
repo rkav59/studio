@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -29,6 +30,7 @@ import { riskMatrix, controlActionStatuses, riskAssessmentStatuses } from "@/lib
 import { IncidentDetailsDialog } from "@/components/risk-management/incident-details-dialog";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
@@ -47,10 +49,15 @@ interface ActiveControlAction extends RiskAssessmentControl {
 
 export default function RiskManagementPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth(); // Get userProfile from context
   const { toast } = useToast(); 
   const queryClient = useQueryClient();
   const [viewingIncident, setViewingIncident] = useState<Incident | null>(null); 
+
+  // --- Role-Based Access Control ---
+  const canCreate = useMemo(() => userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role), [userProfile]);
+  const canManageRegister = useMemo(() => userProfile && ['admin', 'she_officer'].includes(userProfile.role), [userProfile]);
+  const disabledTooltipContent = "You do not have permission to perform this action.";
 
   // Fetch Incidents
   const { data: incidents = [], isLoading: isLoadingIncidents, error: incidentsError } = useQuery<Incident[]>({
@@ -356,6 +363,7 @@ export default function RiskManagementPage() {
 
 
   return (
+    <TooltipProvider>
     <div className="space-y-8">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
@@ -396,9 +404,20 @@ export default function RiskManagementPage() {
                 <CardTitle className="flex items-center gap-2">Incident Log</CardTitle>
                 <CardDescription>Record and track all workplace incidents, near misses, and hazards.</CardDescription>
             </div>
-            <Button onClick={() => router.push('/risk-management/incidents/new')} className="bg-orange-500 hover:bg-orange-600 text-white">
-                <PlusCircle className="mr-2 h-4 w-4" /> Log New Incident/Event
-            </Button>
+             <Tooltip>
+              <TooltipTrigger asChild>
+                <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
+                  <Button onClick={() => canCreate && router.push('/risk-management/incidents/new')} disabled={!canCreate} className="bg-orange-500 hover:bg-orange-600 text-white w-full">
+                      <PlusCircle className="mr-2 h-4 w-4" /> Log New Incident/Event
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              {!canCreate && (
+                <TooltipContent>
+                  <p>{disabledTooltipContent}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
         </CardHeader>
         <CardContent>
             {incidents.length === 0 ? (
@@ -451,12 +470,26 @@ export default function RiskManagementPage() {
         </CardHeader>
         <CardContent>
             <div className="flex flex-col gap-4">
-                <Button onClick={() => router.push('/risk-management/hazards/new')} className="w-full bg-red-500 hover:bg-red-600 text-white">
-                    <Target className="mr-2 h-4 w-4" /> Log New Hazard
-                </Button>
-                <Button onClick={() => router.push('/risk-management/assessments/new')} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-                    <FileSignature className="mr-2 h-4 w-4" /> Conduct New Risk Assessment
-                </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
+                    <Button onClick={() => canCreate && router.push('/risk-management/hazards/new')} disabled={!canCreate} className="w-full bg-red-500 hover:bg-red-600 text-white">
+                        <Target className="mr-2 h-4 w-4" /> Log New Hazard
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                 {!canCreate && ( <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent> )}
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
+                    <Button onClick={() => canCreate && router.push('/risk-management/assessments/new')} disabled={!canCreate} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+                        <FileSignature className="mr-2 h-4 w-4" /> Conduct New Risk Assessment
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                {!canCreate && ( <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent> )}
+              </Tooltip>
                 <Button 
                     onClick={() => toast({ title: "Info", description: "Viewing all risk assessments will be available on a dedicated page soon."})} 
                     className="w-full bg-blue-500 hover:bg-blue-600 text-white"
@@ -479,9 +512,16 @@ export default function RiskManagementPage() {
                 <Button onClick={handleDownloadRiskRegister} variant="outline">
                     <Download className="mr-2 h-4 w-4" /> Download as Excel
                 </Button>
-                <Button onClick={() => router.push('/risk-management/risk-register/new')} className="bg-green-600 hover:bg-green-700 text-white">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add New Risk to Register
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div tabIndex={0} className={cn(!canManageRegister && "cursor-not-allowed")}>
+                      <Button onClick={() => canManageRegister && router.push('/risk-management/risk-register/new')} disabled={!canManageRegister} className="bg-green-600 hover:bg-green-700 text-white">
+                          <PlusCircle className="mr-2 h-4 w-4" /> Add New Risk to Register
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  {!canManageRegister && ( <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent> )}
+                </Tooltip>
             </div>
         </CardHeader>
         <CardContent>
@@ -639,5 +679,6 @@ export default function RiskManagementPage() {
         </CardContent>
       </Card>
     </div>
+    </TooltipProvider>
   );
 }
