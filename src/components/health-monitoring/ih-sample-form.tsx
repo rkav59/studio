@@ -68,11 +68,13 @@ interface IhSampleFormProps {
   isSubmitting?: boolean; // Added for button state
 }
 
+const NO_SEG_VALUE = "__NONE__"; // Special value for 'None' option
+
 export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting }: IhSampleFormProps) {
   const form = useForm<IhSampleFormValues>({
     resolver: zodResolver(ihSampleFormSchema),
     defaultValues: {
-      segId: initialData?.segId || undefined,
+      segId: initialData?.segId || NO_SEG_VALUE,
       employeeName: initialData?.employeeName || "",
       sampleDate: initialData?.sampleDate ? format(parseISO(initialData.sampleDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       agent: initialData?.agent || undefined,
@@ -95,6 +97,7 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
   const onSubmit = (data: IhSampleFormValues) => {
     const sampleToSave = {
         ...data,
+        segId: data.segId === NO_SEG_VALUE ? undefined : data.segId,
         specificAgentName: (data.agent === 'Specific Chemical' || data.agent === 'Other') ? data.specificAgentName : undefined,
         oelUnits: data.oel !== undefined ? data.oelUnits : undefined, // Ensure OEL units only saved if OEL is present
     };
@@ -112,10 +115,10 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel className="flex items-center gap-1"><Users className="h-4 w-4"/>Target SEG (Optional)</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <Select onValueChange={field.onChange} value={field.value || NO_SEG_VALUE}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Select SEG (if applicable)" /></SelectTrigger></FormControl>
                             <SelectContent>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value={NO_SEG_VALUE}>None</SelectItem>
                                 {segs.map(seg => <SelectItem key={seg.id} value={seg.id}>{seg.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
