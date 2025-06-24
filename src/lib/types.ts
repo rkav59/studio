@@ -833,6 +833,12 @@ export interface UserProfile {
     displayName?: string;
     country: string;
     createdAt: string; // ISO string
+
+    // Stripe fields
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+    stripePriceId?: string;
+    stripeCurrentPeriodEnd?: string; // ISO string
 }
 // --- End User Profile Type ---
 
