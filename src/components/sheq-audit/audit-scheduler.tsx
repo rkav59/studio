@@ -21,18 +21,21 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-// Removed direct import of defaultChecklistTemplates, will be passed as prop
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 interface AuditSchedulerProps {
   scheduledAudits: SheqAudit[];
   allChecklistTemplates: ChecklistTemplate[]; // Now accepts all templates
-  onScheduleAudit: (auditData: Omit<SheqAudit, 'id' | 'status' | 'checklist' | 'nonConformances' | 'overallFindings' | 'recommendations'>, initialChecklistItems: ChecklistItemTemplate[]) => void;
+  onScheduleAudit: (auditData: Omit<SheqAudit, 'id' | 'status' | 'checklist' | 'nonConformances' | 'overallFindings' | 'recommendations' | 'userId'>, initialChecklistItems: ChecklistItemTemplate[]) => void;
   onStartAudit: (auditId: string) => void;
+  canSchedule?: boolean;
+  canExecute?: boolean;
 }
 
 const auditTypes: SheqAudit['auditType'][] = ['Safety', 'Health', 'Environment', 'Quality', 'Integrated'];
 
-export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onScheduleAudit, onStartAudit }: AuditSchedulerProps) {
+export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onScheduleAudit, onStartAudit, canSchedule, canExecute }: AuditSchedulerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newAuditName, setNewAuditName] = useState("");
   const [newAuditType, setNewAuditType] = useState<SheqAudit['auditType'] | undefined>(undefined);
@@ -124,11 +127,20 @@ export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onSched
                     />
                 </div>
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                    <DialogTrigger asChild>
-                        <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                            <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Audit
-                        </Button>
-                    </DialogTrigger>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                           <div tabIndex={0} className={cn(!canSchedule && "cursor-not-allowed")}>
+                            <DialogTrigger asChild>
+                                <Button className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={!canSchedule}>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Audit
+                                </Button>
+                            </DialogTrigger>
+                          </div>
+                        </TooltipTrigger>
+                        {!canSchedule && <TooltipContent><p>You do not have permission to schedule audits.</p></TooltipContent>}
+                      </Tooltip>
+                    </TooltipProvider>
                     <DialogContent className="sm:max-w-lg">
                       <DialogHeader>
                         <DialogTitle>Schedule New SHEQ Audit</DialogTitle>
@@ -207,18 +219,45 @@ export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onSched
                   <p className={`text-xs font-medium ${getStatusColor(audit.status)}`}>Status: {audit.status}</p>
                 </div>
                 <div className="flex gap-2 mt-2 sm:mt-0 self-start sm:self-center">
-                  <Button variant="outline" size="sm" onClick={() => toast({ title: "Edit Audit", description: "Full audit editing (including checklist modification before start) will be available in a future update." })}>
-                    <Edit2 className="h-3 w-3 mr-1" /> Edit
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div tabIndex={0} className={cn(!canSchedule && "cursor-not-allowed")}>
+                          <Button variant="outline" size="sm" onClick={() => canSchedule && toast({ title: "Edit Audit", description: "Full audit editing (including checklist modification before start) will be available in a future update." })} disabled={!canSchedule}>
+                            <Edit2 className="h-3 w-3 mr-1" /> Edit
+                          </Button>
+                        </div>
+                      </TooltipTrigger>
+                      {!canSchedule && <TooltipContent><p>You do not have permission to edit audits.</p></TooltipContent>}
+                    </Tooltip>
+                  </TooltipProvider>
                   {audit.status === 'Planned' && (
-                    <Button variant="default" size="sm" onClick={() => onStartAudit(audit.id)} className="bg-green-600 hover:bg-green-700">
-                      <PlayCircle className="h-3 w-3 mr-1" /> Start Audit
-                    </Button>
+                    <TooltipProvider>
+                       <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div tabIndex={0} className={cn(!canExecute && "cursor-not-allowed")}>
+                            <Button variant="default" size="sm" onClick={() => onStartAudit(audit.id)} disabled={!canExecute} className="bg-green-600 hover:bg-green-700">
+                              <PlayCircle className="h-3 w-3 mr-1" /> Start Audit
+                            </Button>
+                          </div>
+                        </TooltipTrigger>
+                         {!canExecute && <TooltipContent><p>You do not have permission to execute audits.</p></TooltipContent>}
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                    {audit.status === 'In Progress' && (
-                    <Button variant="default" size="sm" onClick={() => onStartAudit(audit.id)} className="bg-yellow-500 hover:bg-yellow-600">
-                      <PlayCircle className="h-3 w-3 mr-1" /> Continue Audit
-                    </Button>
+                     <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div tabIndex={0} className={cn(!canExecute && "cursor-not-allowed")}>
+                              <Button variant="default" size="sm" onClick={() => onStartAudit(audit.id)} disabled={!canExecute} className="bg-yellow-500 hover:bg-yellow-600">
+                                <PlayCircle className="h-3 w-3 mr-1" /> Continue Audit
+                              </Button>
+                            </div>
+                          </TooltipTrigger>
+                          {!canExecute && <TooltipContent><p>You do not have permission to execute audits.</p></TooltipContent>}
+                        </Tooltip>
+                      </TooltipProvider>
                   )}
                 </div>
               </li>
@@ -229,5 +268,3 @@ export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onSched
     </Card>
   );
 }
-
-    

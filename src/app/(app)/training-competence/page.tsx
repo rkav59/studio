@@ -19,6 +19,10 @@ import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, T
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation'; // Added useRouter
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from '@/lib/utils';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+
 
 const COURSES_COLLECTION = 'trainingCourses';
 const RECORDS_COLLECTION = 'trainingRecords';
@@ -27,12 +31,16 @@ const RENEWAL_WARNING_DAYS = 30;
 
 export default function TrainingCompetencePage() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const queryClient = useQueryClient();
   const router = useRouter(); // Initialize useRouter
 
   const [courseSearchTerm, setCourseSearchTerm] = useState("");
   const [recordSearchTerm, setRecordSearchTerm] = useState("");
+
+  const canManageCourses = useMemo(() => userProfile && ['admin', 'she_officer'].includes(userProfile.role), [userProfile]);
+  const canManageRecords = useMemo(() => userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role), [userProfile]);
+  const disabledTooltipContent = "You do not have permission to perform this action.";
 
   // Fetch Courses
   const { data: courses = [], isLoading: isLoadingCourses, error: coursesError } = useQuery<TrainingCourse[]>({
@@ -173,6 +181,7 @@ export default function TrainingCompetencePage() {
   }
 
   return (
+    <TooltipProvider>
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
@@ -195,9 +204,16 @@ export default function TrainingCompetencePage() {
           </div>
           <div className="flex items-center gap-2">
             <div className="relative"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search courses..." className="pl-8 w-full sm:w-[200px]" value={courseSearchTerm} onChange={(e) => setCourseSearchTerm(e.target.value)} /></div>
-            <Button onClick={handleOpenNewCourseForm} className="bg-primary hover:bg-primary/90">
-                <PlusCircle className="mr-2 h-4 w-4" /> Add New Course
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div tabIndex={0} className={cn(!canManageCourses && "cursor-not-allowed")}>
+                    <Button onClick={() => canManageCourses && handleOpenNewCourseForm()} disabled={!canManageCourses} className="bg-primary hover:bg-primary/90">
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add New Course
+                    </Button>
+                </div>
+              </TooltipTrigger>
+              {!canManageCourses && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+            </Tooltip>
           </div>
         </CardHeader>
         <CardContent>
@@ -214,12 +230,40 @@ export default function TrainingCompetencePage() {
                       <p className="text-sm text-muted-foreground mt-1 truncate max-w-md">{course.description || "No description."}</p>
                     </div>
                     <div className="flex gap-2 shrink-0 ml-4">
-                      <Button variant="outline" size="sm" onClick={() => handleEditCourse(course)}>
-                        <Edit2 className="mr-1 h-3 w-3" /> Edit
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteCourse(course.id)} disabled={deleteCourseMutation.isPending && deleteCourseMutation.variables === course.id}>
-                         {deleteCourseMutation.isPending && deleteCourseMutation.variables === course.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin"/> : <Trash2 className="mr-1 h-3 w-3" />} Delete
-                      </Button>
+                      <Tooltip>
+                          <TooltipTrigger asChild>
+                              <div tabIndex={0} className={cn(!canManageCourses && "cursor-not-allowed")}>
+                                  <Button variant="outline" size="sm" onClick={() => canManageCourses && handleEditCourse(course)} disabled={!canManageCourses}>
+                                      <Edit2 className="mr-1 h-3 w-3" /> Edit
+                                  </Button>
+                              </div>
+                          </TooltipTrigger>
+                          {!canManageCourses && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                      </Tooltip>
+                      <AlertDialog>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div tabIndex={0} className={cn(!canManageCourses && "cursor-not-allowed")}>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" size="sm" onClick={(e) => !canManageCourses && e.preventDefault()} disabled={!canManageCourses || (deleteCourseMutation.isPending && deleteCourseMutation.variables === course.id)}>
+                                            {deleteCourseMutation.isPending && deleteCourseMutation.variables === course.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin"/> : <Trash2 className="mr-1 h-3 w-3" />} Delete
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                </div>
+                            </TooltipTrigger>
+                            {!canManageCourses && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                        </Tooltip>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Course?</AlertDialogTitle>
+                            <AlertDialogDescription>Are you sure you want to delete the course "{course.name}"? This action cannot be undone.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteCourse(course.id)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </li>
                 ))}
@@ -239,9 +283,16 @@ export default function TrainingCompetencePage() {
           </div>
           <div className="flex items-center gap-2">
             <div className="relative"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search records..." className="pl-8 w-full sm:w-[200px]" value={recordSearchTerm} onChange={(e) => setRecordSearchTerm(e.target.value)} /></div>
-            <Button onClick={handleOpenNewRecordForm} className="bg-accent hover:bg-accent/90" disabled={courses.length === 0}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add New Record
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div tabIndex={0} className={cn(!canManageRecords && "cursor-not-allowed")}>
+                    <Button onClick={() => canManageRecords && handleOpenNewRecordForm()} disabled={!canManageRecords || courses.length === 0} className="bg-accent hover:bg-accent/90">
+                      <PlusCircle className="mr-2 h-4 w-4" /> Add New Record
+                    </Button>
+                </div>
+              </TooltipTrigger>
+              {!canManageRecords && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+            </Tooltip>
           </div>
         </CardHeader>
         <CardContent>
@@ -262,12 +313,40 @@ export default function TrainingCompetencePage() {
                           <p className="text-sm text-primary">{getCourseName(record.courseId)}</p>
                         </div>
                         <div className="flex gap-2 self-start sm:self-center shrink-0">
-                          <Button variant="outline" size="sm" onClick={() => handleEditRecord(record)}>
-                            <Edit2 className="mr-1 h-3 w-3" /> Edit
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleDeleteRecord(record.id)} disabled={deleteRecordMutation.isPending && deleteRecordMutation.variables === record.id}>
-                            {deleteRecordMutation.isPending && deleteRecordMutation.variables === record.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin"/> : <Trash2 className="mr-1 h-3 w-3" />} Delete
-                          </Button>
+                           <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div tabIndex={0} className={cn(!canManageRecords && "cursor-not-allowed")}>
+                                  <Button variant="outline" size="sm" onClick={() => canManageRecords && handleEditRecord(record)} disabled={!canManageRecords}>
+                                    <Edit2 className="mr-1 h-3 w-3" /> Edit
+                                  </Button>
+                                </div>
+                              </TooltipTrigger>
+                              {!canManageRecords && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                            </Tooltip>
+                          <AlertDialog>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div tabIndex={0} className={cn(!canManageRecords && "cursor-not-allowed")}>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="destructive" size="sm" disabled={!canManageRecords || (deleteRecordMutation.isPending && deleteRecordMutation.variables === record.id)}>
+                                        {deleteRecordMutation.isPending && deleteRecordMutation.variables === record.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin"/> : <Trash2 className="mr-1 h-3 w-3" />} Delete
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                  </div>
+                                </TooltipTrigger>
+                                {!canManageRecords && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                            </Tooltip>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Record?</AlertDialogTitle>
+                                    <AlertDialogDescription>Are you sure you want to delete this training record for {record.employeeName}?</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteRecord(record.id)}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                       <Separator className="my-3"/>
@@ -314,5 +393,6 @@ export default function TrainingCompetencePage() {
         </CardContent>
       </Card>
     </div>
+    </TooltipProvider>
   );
 }

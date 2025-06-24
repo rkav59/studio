@@ -21,6 +21,8 @@ import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy }
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from '@/lib/utils';
 
 const PROGRAMS_COLLECTION = 'shePrograms';
 const MEETINGS_COLLECTION = 'sheMeetings';
@@ -30,13 +32,17 @@ const ACTION_ITEM_DUE_SOON_DAYS = 3;
 export default function SheMeetingsPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const queryClient = useQueryClient();
 
   const [viewingProgram, setViewingProgram] = useState<SheProgram | null>(null);
   const [viewingMeeting, setViewingMeeting] = useState<SheMeeting | null>(null);
   const [isRefreshingUpcomingMeetings, setIsRefreshingUpcomingMeetings] = useState(false); // State for upcoming meetings refresh
   const [meetingSearchTerm, setMeetingSearchTerm] = useState("");
+
+  const canCreate = useMemo(() => userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role), [userProfile]);
+  const canManage = useMemo(() => userProfile && ['admin', 'she_officer'].includes(userProfile.role), [userProfile]);
+  const disabledTooltipContent = "You do not have permission to perform this action.";
 
   // Fetch SHE Programs
   const { data: programs = [], isLoading: isLoadingPrograms, error: programsError } = useQuery<SheProgram[]>({
@@ -350,6 +356,7 @@ export default function SheMeetingsPage() {
   }
 
   return (
+    <TooltipProvider>
     <div className="space-y-8">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
@@ -453,9 +460,16 @@ export default function SheMeetingsPage() {
             <CardTitle className="flex items-center gap-2">SHE Programs</CardTitle>
             <CardDescription>Manage ongoing and planned SHE initiatives and campaigns.</CardDescription>
           </div>
-          <Button onClick={handleOpenNewProgramForm} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            <PlusCircle className="mr-2 h-4 w-4" /> Add New Program
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
+                <Button onClick={() => canCreate && handleOpenNewProgramForm()} disabled={!canCreate} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <PlusCircle className="mr-2 h-4 w-4" /> Add New Program
+                </Button>
+              </div>
+            </TooltipTrigger>
+            {!canCreate && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+          </Tooltip>
         </CardHeader>
         <CardContent>
           {programs.length === 0 ? (
@@ -473,9 +487,25 @@ export default function SheMeetingsPage() {
                       </div>
                       <div className="flex gap-2 self-start sm:self-center shrink-0">
                         <Button variant="outline" size="sm" onClick={() => setViewingProgram(program)}>View</Button>
-                        <Button variant="secondary" size="sm" onClick={() => handleEditProgram(program)}>Edit</Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
+                                <Button variant="secondary" size="sm" onClick={() => canManage && handleEditProgram(program)} disabled={!canManage}>Edit</Button>
+                            </div>
+                          </TooltipTrigger>
+                          {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                        </Tooltip>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteProgramMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
+                                  <AlertDialogTrigger asChild>
+                                      <Button variant="destructive" size="sm" disabled={!canManage || deleteProgramMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button>
+                                  </AlertDialogTrigger>
+                                </div>
+                              </TooltipTrigger>
+                              {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                          </Tooltip>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Delete Program?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. This will permanently delete the program "{program.programName}".</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteProgram(program.id)}>Delete</AlertDialogAction></AlertDialogFooter>
@@ -521,9 +551,16 @@ export default function SheMeetingsPage() {
              <Button onClick={handleDownloadMinutesTemplate} variant="outline" className="w-full">
                 <Download className="mr-2 h-4 w-4" /> Download Minutes Template
              </Button>
-            <Button onClick={handleOpenNewMeetingForm} className="bg-accent hover:bg-accent/90 text-accent-foreground w-full">
-                <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Meeting
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
+                    <Button onClick={() => canCreate && handleOpenNewMeetingForm()} disabled={!canCreate} className="bg-accent hover:bg-accent/90 text-accent-foreground w-full">
+                        <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Meeting
+                    </Button>
+                </div>
+              </TooltipTrigger>
+              {!canCreate && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+            </Tooltip>
           </div>
           </div>
         </CardHeader>
@@ -547,9 +584,25 @@ export default function SheMeetingsPage() {
                       </div>
                       <div className="flex gap-2 self-start sm:self-center shrink-0">
                         <Button variant="outline" size="sm" onClick={() => setViewingMeeting(meeting)}>View</Button>
-                        <Button variant="secondary" size="sm" onClick={() => handleEditMeeting(meeting)}>Edit</Button>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
+                                    <Button variant="secondary" size="sm" onClick={() => canManage && handleEditMeeting(meeting)} disabled={!canManage}>Edit</Button>
+                                </div>
+                            </TooltipTrigger>
+                            {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                        </Tooltip>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteMeetingMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
+                                  <AlertDialogTrigger asChild>
+                                      <Button variant="destructive" size="sm" disabled={!canManage || deleteMeetingMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button>
+                                  </AlertDialogTrigger>
+                                </div>
+                              </TooltipTrigger>
+                              {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                          </Tooltip>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Delete Meeting?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. This will permanently delete the meeting "{meeting.title}".</AlertDialogDescription></AlertDialogHeader>
                             <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteMeeting(meeting.id)}>Delete</AlertDialogAction></AlertDialogFooter>
@@ -580,5 +633,6 @@ export default function SheMeetingsPage() {
         </CardContent>
       </Card>
     </div>
+    </TooltipProvider>
   );
 }

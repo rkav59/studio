@@ -55,7 +55,7 @@ const getDefaultObservationEntry = (): AuditObservationEntry => ({
 
 export default function SheqAuditPage() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const queryClient = useQueryClient();
 
   const [currentAudit, setCurrentAudit] = useState<SheqAudit | null>(null);
@@ -67,6 +67,9 @@ export default function SheqAuditPage() {
   const [completedAuditFilterType, setCompletedAuditFilterType] = useState<SheqAudit['auditType'] | 'All'>('All');
   const [archivedSearchTerm, setArchivedSearchTerm] = useState("");
   const [activeSearchTerm, setActiveSearchTerm] = useState("");
+
+  const canScheduleAndManage = useMemo(() => userProfile && ['admin', 'she_officer'].includes(userProfile.role), [userProfile]);
+  const canExecute = useMemo(() => userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role), [userProfile]);
 
 
   // Fetch SHEQ Audits
@@ -225,6 +228,10 @@ export default function SheqAuditPage() {
   };
 
   const handleStartAudit = (auditId: string) => {
+    if (!canExecute) {
+      toast({ title: "Permission Denied", description: "You do not have permission to start audits.", variant: "destructive" });
+      return;
+    }
     const auditToStart = audits.find(a => a.id === auditId);
     if (auditToStart) {
       setCurrentAudit({ 
@@ -566,6 +573,8 @@ export default function SheqAuditPage() {
               allChecklistTemplates={allChecklistTemplatesForScheduler} 
               onScheduleAudit={handleScheduleAudit}
               onStartAudit={handleStartAudit}
+              canSchedule={canScheduleAndManage}
+              canExecute={canExecute}
             />
           </div>
           
