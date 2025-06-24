@@ -28,6 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import { riskMatrix, controlActionStatuses, riskAssessmentStatuses } from "@/lib/risk-assessment-config";
 import { IncidentDetailsDialog } from "@/components/risk-management/incident-details-dialog";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 
 
 const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
@@ -362,10 +363,34 @@ export default function RiskManagementPage() {
         </h1>
         <p className="text-base text-muted-foreground">This module facilitates a systematic approach to risk management, following ISO 31000 guidelines for establishing context, identifying, analyzing, evaluating, treating, monitoring, and reporting risks. Now includes Incident Logging.</p>
       </div>
+
+       <Card>
+        <CardHeader>
+          <CardTitle>Quick Access</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="#incident-log">Incident Log</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#risk-identification">Risk Identification</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#risk-register">Risk Register</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#control-monitoring">Control Monitoring</Link>
+          </Button>
+           <Button asChild variant="outline" size="sm">
+            <Link href="#ai-tools">AI Tools</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
       <Separator />
 
     {/* Incident Log Section */}
-    <Card className="shadow-md">
+    <Card id="incident-log" className="shadow-md">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
                 <CardTitle className="flex items-center gap-2">Incident Log</CardTitle>
@@ -419,7 +444,7 @@ export default function RiskManagementPage() {
 
 
     {/* Section 1: Risk Identification & Assessment Tools */}
-      <Card className="shadow-md">
+      <Card id="risk-identification" className="shadow-md">
         <CardHeader>
             <CardTitle className="flex items-center gap-2">Risk Identification, Analysis &amp; Evaluation</CardTitle>
             <CardDescription>Manually log hazards and conduct detailed risk assessments to understand and prioritize risks based on likelihood and severity. These tools support the core ISO 31000 risk assessment process.</CardDescription>
@@ -444,7 +469,7 @@ export default function RiskManagementPage() {
       </Card>
 
       {/* Risk Register Section */}
-      <Card className="shadow-md">
+      <Card id="risk-register" className="shadow-md">
         <CardHeader className="flex flex-col gap-4">
             <div>
                 <CardTitle className="flex items-center gap-2">Risk Register (Centralized Risk Recording &amp; Reporting)</CardTitle>
@@ -500,7 +525,7 @@ export default function RiskManagementPage() {
       </Card>
 
       {/* Active Risk Control Actions Section */}
-      <Card className="shadow-md">
+      <Card id="control-monitoring" className="shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Risk Treatment &amp; Control Monitoring
@@ -557,7 +582,7 @@ export default function RiskManagementPage() {
       <Separator />
 
       {/* AI Assisted Tools & Legal Register */}
-        <Card className="shadow-md">
+        <Card id="ai-tools" className="shadow-md">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">Intelligent Risk Tools</CardTitle>
                 <CardDescription>Utilize AI for deeper insights and access relevant legal information (ISO 31000: Risk Analysis &amp; Evaluation Support, Establishing Context).</CardDescription>

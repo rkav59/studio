@@ -20,6 +20,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
+import Link from 'next/link';
 
 const PROGRAMS_COLLECTION = 'shePrograms';
 const MEETINGS_COLLECTION = 'sheMeetings';
@@ -358,11 +359,29 @@ export default function SheMeetingsPage() {
           Organize, track, and manage safety, health, and environmental initiatives and communication. Data stored in Firestore.
         </p>
       </div>
+      
+       <Card>
+        <CardHeader>
+          <CardTitle>Quick Access</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="#reminders-section">Reminders</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#she-programs">SHE Programs</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#she-meetings">SHE Meetings</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
 
       <Separator/>
 
       {/* Reminders Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div id="reminders-section" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">Upcoming Meetings (Next {UPCOMING_MEETING_DAYS_THRESHOLD} Days)</CardTitle>
@@ -428,7 +447,7 @@ export default function SheMeetingsPage() {
 
 
       {/* SHE Programs Section */}
-      <Card>
+      <Card id="she-programs">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
             <CardTitle className="flex items-center gap-2">SHE Programs</CardTitle>
@@ -453,8 +472,8 @@ export default function SheMeetingsPage() {
                         <p className={`text-xs font-semibold ${getProgramStatusColor(program.status)}`}>Status: {program.status}</p>
                       </div>
                       <div className="flex gap-2 self-start sm:self-center shrink-0">
-                        <Button variant="outline" size="sm" onClick={() => setViewingProgram(program)}><Eye className="mr-1 h-3 w-3" /> View</Button>
-                        <Button variant="secondary" size="sm" onClick={() => handleEditProgram(program)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
+                        <Button variant="outline" size="sm" onClick={() => setViewingProgram(program)}>View</Button>
+                        <Button variant="secondary" size="sm" onClick={() => handleEditProgram(program)}>Edit</Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteProgramMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
                           <AlertDialogContent>
@@ -476,7 +495,7 @@ export default function SheMeetingsPage() {
       <Separator />
 
       {/* SHE Meetings Section */}
-      <Card>
+      <Card id="she-meetings">
         <CardHeader className="flex flex-col gap-4">
           <div>
             <CardTitle className="flex items-center gap-2">
@@ -527,8 +546,8 @@ export default function SheMeetingsPage() {
                         {meeting.linkedProgramName && <p className="text-xs text-muted-foreground">Linked Program: {meeting.linkedProgramName}</p>}
                       </div>
                       <div className="flex gap-2 self-start sm:self-center shrink-0">
-                        <Button variant="outline" size="sm" onClick={() => setViewingMeeting(meeting)}><Eye className="mr-1 h-3 w-3" /> View</Button>
-                        <Button variant="secondary" size="sm" onClick={() => handleEditMeeting(meeting)}><Edit2 className="mr-1 h-3 w-3" /> Edit</Button>
+                        <Button variant="outline" size="sm" onClick={() => setViewingMeeting(meeting)}>View</Button>
+                        <Button variant="secondary" size="sm" onClick={() => handleEditMeeting(meeting)}>Edit</Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={deleteMeetingMutation.isPending}><Trash2 className="mr-1 h-3 w-3" /> Delete</Button></AlertDialogTrigger>
                           <AlertDialogContent>

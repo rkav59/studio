@@ -24,6 +24,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Input } from '@/components/ui/input';
+import Link from 'next/link';
 
 const SHEQ_AUDITS_COLLECTION = 'sheqAudits';
 const USER_CHECKLIST_TEMPLATES_COLLECTION = 'userChecklistTemplates';
@@ -243,7 +244,7 @@ export default function SheqAuditPage() {
             comments: item.comments || '',
         })),
         nonConformances: (auditToStart.nonConformances || []).map(nc => ({
-            ...getDefaultNonConformance(),
+            ...getDefaultNonConformanceValues(),
             ...nc,
             id: nc.id || crypto.randomUUID(),
             actionDueDate: nc.actionDueDate && isValid(parseISO(nc.actionDueDate)) ? format(parseISO(nc.actionDueDate), 'yyyy-MM-dd') : undefined,
@@ -539,17 +540,37 @@ export default function SheqAuditPage() {
                 Checklist items now include fields for audit criteria and evidence gathering to align with ISO 19011 principles.
             </p>
           </div>
+
+           <Card>
+            <CardHeader>
+              <CardTitle>Quick Access</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              <Button asChild variant="outline" size="sm">
+                <Link href="#audit-program">Audit Program</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="#completed-audits">Completed Audits</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="#archived-audits">Archived Audits</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
           <Separator />
           
-          <AuditScheduler
-            scheduledAudits={audits.filter(a => a.status === 'Planned' || a.status === 'In Progress')}
-            allChecklistTemplates={allChecklistTemplatesForScheduler} 
-            onScheduleAudit={handleScheduleAudit}
-            onStartAudit={handleStartAudit}
-          />
+          <div id="audit-program">
+            <AuditScheduler
+              scheduledAudits={audits.filter(a => a.status === 'Planned' || a.status === 'In Progress')}
+              allChecklistTemplates={allChecklistTemplatesForScheduler} 
+              onScheduleAudit={handleScheduleAudit}
+              onStartAudit={handleStartAudit}
+            />
+          </div>
           
           
-            <Card className="shadow-lg mt-6">
+            <Card id="completed-audits" className="shadow-lg mt-6">
               <CardHeader>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
                     <div>
@@ -623,7 +644,7 @@ export default function SheqAuditPage() {
               </CardContent>
             </Card>
 
-            <Accordion type="single" collapsible className="w-full">
+            <Accordion type="single" collapsible className="w-full" id="archived-audits">
               <AccordionItem value="archived-audits">
                 <Card className="shadow-lg mt-6">
                   <AccordionTrigger className="p-6 w-full">
@@ -656,7 +677,7 @@ export default function SheqAuditPage() {
                                     <p className="text-xs text-muted-foreground">Date: {format(parseISO(audit.auditDate), "PPP")} | Auditor(s): {audit.auditor}</p>
                                   </div>
                                   <div className="flex flex-wrap gap-2 mt-2 sm:mt-0 self-start sm:self-auto">
-                                    <Button variant="outline" size="sm" onClick={() => setViewingAuditDetails(audit)}><Eye className="mr-2 h-4 w-4" /> View</Button>
+                                    <Button variant="outline" size="sm" onClick={() => setViewingAuditDetails(audit)}>View</Button>
                                     <Button variant="outline" size="sm" onClick={() => archiveAuditMutation.mutate({ auditId: audit.id, archiveStatus: false })} disabled={archiveAuditMutation.isPending && archiveAuditMutation.variables?.auditId === audit.id}>
                                         <ArchiveRestore className="mr-2 h-4 w-4" /> Unarchive
                                     </Button>
