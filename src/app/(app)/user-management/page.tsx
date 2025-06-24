@@ -94,21 +94,34 @@ export default function UserManagementPage() {
         
         setIsInviting(true);
         
-        // This function now writes a document to the 'mail' collection.
-        // The `firestore-send-email` extension should be configured to watch this collection.
         try {
+            const appName = "SHEild";
+            const primaryColor = "#3498DB";
+            const backgroundColor = "#f4f4f4";
+            const textColor = "#333333";
+            const inviteUrl = `${window.location.origin}/sign-up`;
+            const roleName = inviteRole.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
             await addDoc(collection(db, MAIL_COLLECTION), {
                 to: [inviteEmail],
                 message: {
-                    subject: `You're invited to join ${userProfile?.organizationId || 'an organization'} on SHEiQpro!`,
+                    subject: `You're invited to join ${userProfile?.organizationId || 'an organization'} on ${appName}!`,
                     html: `
-                        <p>Hello,</p>
-                        <p>You have been invited to join an organization on SHEiQpro with the role of <strong>${inviteRole.replace('_', ' ')}</strong>.</p>
-                        <p>Please click the following link to sign up and create your account:</p>
-                        <a href="${window.location.origin}/sign-up">Create Your Account</a>
-                        <p>During sign-up, please use this email address: ${inviteEmail}</p>
-                        <p>Thank you,</p>
-                        <p>The SHEiQpro Team</p>
+                        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: ${textColor}; background-color: ${backgroundColor}; padding: 20px;">
+                            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #ddd;">
+                                <h1 style="color: ${primaryColor}; font-size: 24px;">Invitation to Join ${appName}</h1>
+                                <p>Hello,</p>
+                                <p>You have been invited to join the organization <strong>${userProfile?.organizationId || 'your organization'}</strong> on ${appName} with the role of <strong>${roleName}</strong>.</p>
+                                <p>${appName} is a platform for managing Safety, Health, Environment, and Quality processes.</p>
+                                <p style="text-align: center; margin: 30px 0;">
+                                    <a href="${inviteUrl}" style="background-color: ${primaryColor}; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Accept Invitation & Create Account</a>
+                                </p>
+                                <p>To ensure you join the correct organization, please use this email address (<strong>${inviteEmail}</strong>) when signing up.</p>
+                                <p>If you were not expecting this invitation, you can safely ignore this email.</p>
+                                <hr style="border: none; border-top: 1px solid #eeeeee; margin: 20px 0;" />
+                                <p style="font-size: 12px; color: #888888;">This is an automated message from the ${appName} application.</p>
+                            </div>
+                        </div>
                     `,
                 },
             });
@@ -317,3 +330,4 @@ export default function UserManagementPage() {
         </div>
     );
 }
+
