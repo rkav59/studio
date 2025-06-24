@@ -24,10 +24,10 @@ export function CustomPricingTable() {
             toast({ title: "Authentication Required", description: "Please sign in to upgrade.", variant: "destructive" });
             return;
         }
-        if (!proPriceId || proPriceId.includes("price_...")) {
+        if (!proPriceId || !proPriceId.startsWith("price_")) {
             toast({ 
                 title: "Stripe Price ID Needed", 
-                description: "Please provide a valid Stripe Price ID in the environment settings to enable checkout.", 
+                description: "Please provide a valid Stripe Price ID in your environment settings (should start with 'price_...'). The current ID is invalid.", 
                 variant: "destructive" 
             });
             return;
@@ -70,7 +70,7 @@ export function CustomPricingTable() {
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="text-center">
-                    <p className="text-4xl font-extrabold">$29<span className="text-lg font-normal text-muted-foreground">/mo</span></p>
+                    <p className="text-4xl font-extrabold">$49<span className="text-lg font-normal text-muted-foreground">/mo</span></p>
                 </div>
                 <ul className="space-y-3 text-sm">
                     <li className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /> Unlimited Risk Assessments</li>
