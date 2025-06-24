@@ -77,8 +77,9 @@ const plans: PlanDetails[] = [
     {
         id: 'enterprise',
         title: 'Enterprise',
-        price: 'Custom',
-        priceDescription: 'For large-scale deployments.',
+        price: '$249',
+        priceId: process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID,
+        priceDescription: '/month, for large organizations.',
         features: [
             'All Premium features',
             'Enterprise SSO',
@@ -177,12 +178,8 @@ export function CustomPricingTable() {
                         </ul>
                     </CardContent>
                     <CardFooter>
-                        {plan.id === 'free' ? (
+                         {plan.id === 'free' ? (
                             <Button disabled className="w-full">Free Plan</Button>
-                        ) : plan.id === 'enterprise' ? (
-                            <Button asChild className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80">
-                                <Link href="/contact-support">Contact Sales</Link>
-                            </Button>
                         ) : currentPlanId === plan.id ? (
                             <Button disabled className="w-full">Current Plan</Button>
                         ) : (
