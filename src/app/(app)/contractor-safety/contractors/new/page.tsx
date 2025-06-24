@@ -1,14 +1,14 @@
 
 "use client";
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ContractorForm, type ContractorFormDataWithFiles } from "@/components/contractor-safety/contractor-form";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, Timestamp, doc, setDoc } from 'firebase/firestore'; // Use setDoc with explicit doc ref
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { collection, addDoc, Timestamp, doc, setDoc } from 'firebase/firestore'; 
+import { ref as storageRef, uploadBytesResumable, getDownloadURL, type UploadTaskSnapshot } from "firebase/storage";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { parseISO } from 'date-fns';
 import type { ContractorDocument } from '@/lib/types';
@@ -17,35 +17,65 @@ import { Button } from '@/components/ui/button';
 
 const CONTRACTORS_COLLECTION = 'contractors';
 
-async function uploadContractorDocument(file: File, userId: string, contractorId: string, documentId: string): Promise<{ url: string, path: string, name: string, type: string, size: number }> {
-  const filePath = `contractor_documents/${userId}/${contractorId}/${documentId}/${file.name}`;
-  const fileStorageRef = storageRef(storage, filePath);
-  const snapshot = await uploadBytes(fileStorageRef, file);
-  const url = await getDownloadURL(snapshot.ref);
-  return { url, path: filePath, name: file.name, type: file.type, size: file.size };
-}
-
 export default function NewContractorPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [uploadProgress, setUploadProgress] = useState<Map<string, number>>(new Map());
+
+  async function uploadContractorDocument(
+    file: File, 
+    userId: string, 
+    contractorId: string, 
+    documentId: string,
+    onProgress: (progress: number) => void
+  ): Promise<{ url: string, path: string, name: string, type: string, size: number }> {
+    const filePath = `contractor_documents/${userId}/${contractorId}/${documentId}/${file.name}`;
+    const fileStorageRef = storageRef(storage, filePath);
+    
+    return new Promise((resolve, reject) => {
+        const uploadTask = uploadBytesResumable(fileStorageRef, file);
+
+        uploadTask.on('state_changed',
+            (snapshot: UploadTaskSnapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                onProgress(progress);
+            },
+            (error) => {
+                console.error("Upload failed:", error);
+                reject(error);
+            },
+            async () => {
+                const url = await getDownloadURL(uploadTask.snapshot.ref);
+                resolve({ url, path: filePath, name: file.name, type: file.type, size: file.size });
+            }
+        );
+    });
+  }
 
   const addContractorMutation = useMutation({
     mutationFn: async (formData: ContractorFormDataWithFiles) => {
       if (!user?.uid) throw new Error("User not authenticated.");
       
       const { documentFiles, documentsToRemove, ...contractorData } = formData; 
-      const contractorDocRef = doc(collection(db, CONTRACTORS_COLLECTION)); // Generate ID upfront
+      const contractorDocRef = doc(collection(db, CONTRACTORS_COLLECTION));
 
       const processedDocuments: ContractorDocument[] = await Promise.all(
         (contractorData.documents || []).map(async (docData) => {
           const fileToUpload = documentFiles?.get(docData.id);
           if (fileToUpload) {
-            const { url, path, name, type, size } = await uploadContractorDocument(fileToUpload, user.uid, contractorDocRef.id, docData.id);
+            const { url, path, name, type, size } = await uploadContractorDocument(
+              fileToUpload,
+              user.uid,
+              contractorDocRef.id,
+              docData.id,
+              (progress) => {
+                setUploadProgress(prev => new Map(prev).set(docData.id, progress));
+              }
+            );
             return { ...docData, fileUrl: url, filePath: path, fileName: name, fileType: type, fileSize: size };
           }
-          // Remove file related fields if no file is being uploaded for this entry
           const {fileUrl, filePath, fileName, fileSize, fileType, ...rest } = docData;
           return rest;
         })
@@ -59,19 +89,23 @@ export default function NewContractorPage() {
       };
        dataToSave.documents = dataToSave.documents.map(d => {
         const { fileUrl, filePath, fileName, fileSize, fileType, ...rest } = d;
-        if (d.fileUrl) return d; // If it has a fileUrl, keep all relevant fields
-        return rest; // Otherwise, only keep core fields
+        if (d.fileUrl) return d; 
+        return rest;
       });
 
-      await setDoc(contractorDocRef, dataToSave); // Use setDoc with the generated ref
+      await setDoc(contractorDocRef, dataToSave);
       return contractorDocRef.id;
     },
     onSuccess: (newContractorId) => {
       queryClient.invalidateQueries({ queryKey: [CONTRACTORS_COLLECTION, user?.uid] });
+      setUploadProgress(new Map());
       toast({ title: "Contractor Added", description: "The new contractor has been successfully registered." });
       router.push('/contractor-safety');
     },
-    onError: (e: Error) => toast({ title: "Error Adding Contractor", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
+    onError: (e: Error) => {
+        setUploadProgress(new Map());
+        toast({ title: "Error Adding Contractor", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
+    },
   });
 
   const handleSaveContractor = (data: ContractorFormDataWithFiles) => {
@@ -96,6 +130,7 @@ export default function NewContractorPage() {
         onSave={handleSaveContractor} 
         onCancel={handleCancel} 
         isSubmitting={addContractorMutation.isPending}
+        uploadProgress={uploadProgress}
       />
     </div>
   );

@@ -27,13 +27,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription as UiCardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardDescription as UiCardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, FileText, UploadCloud } from "lucide-react";
 import type { Contractor, ContractorDocument, ContractorVettingStatus } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import React, { useState } from "react";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 
 // Refined Zod schema for ContractorDocument for form validation
 const contractorDocumentSchema = z.object({
@@ -75,6 +76,7 @@ interface ContractorFormProps {
   onSave: (data: ContractorFormDataWithFiles) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
+  uploadProgress?: Map<string, number>;
 }
 
 const newDocumentDefault = (): ContractorDocument => ({
@@ -85,7 +87,7 @@ const newDocumentDefault = (): ContractorDocument => ({
     expiryDate: undefined,
 });
 
-export function ContractorForm({ initialData, onSave, onCancel, isSubmitting }: ContractorFormProps) {
+export function ContractorForm({ initialData, onSave, onCancel, isSubmitting, uploadProgress }: ContractorFormProps) {
   const [documentFiles, setDocumentFiles] = useState<Map<string, File>>(new Map());
   const [documentsToRemove, setDocumentsToRemove] = useState<string[]>([]);
 
@@ -159,7 +161,7 @@ export function ContractorForm({ initialData, onSave, onCancel, isSubmitting }: 
   return (
     <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
       <CardHeader>
-        <UiCardDescription> {/* Using aliased CardDescription */}
+        <UiCardDescription>
           {initialData ? "Update the contractor's details below." : "Enter details for the new contractor."}
         </UiCardDescription>
       </CardHeader>
@@ -167,7 +169,6 @@ export function ContractorForm({ initialData, onSave, onCancel, isSubmitting }: 
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
           <ScrollArea className="flex-1">
             <CardContent className="space-y-6 p-4 md:p-6">
-            {/* Basic Info */}
             <div className="space-y-4">
               <FormField control={form.control} name="companyName" render={({ field }) => (
                 <FormItem><FormLabel>Company Name</FormLabel><FormControl><Input placeholder="Contractor Company Ltd." {...field} /></FormControl><FormMessage /></FormItem>
@@ -192,7 +193,6 @@ export function ContractorForm({ initialData, onSave, onCancel, isSubmitting }: 
 
             <Separator className="my-6" />
 
-            {/* Vetting & Induction */}
             <div className="space-y-4">
                 <h3 className="text-lg font-medium">Vetting & Induction</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -230,7 +230,6 @@ export function ContractorForm({ initialData, onSave, onCancel, isSubmitting }: 
             
             <Separator className="my-6" />
 
-            {/* Document Management */}
             <div className="space-y-4">
                 <h3 className="text-lg font-medium">Document Management</h3>
                 {documentFields.map((docItem, index) => (
@@ -278,6 +277,12 @@ export function ContractorForm({ initialData, onSave, onCancel, isSubmitting }: 
                                    </a>
                                  </FormDescription>
                              )}
+                            {uploadProgress?.has(docItem.id) && uploadProgress.get(docItem.id)! < 100 && (
+                                <div className="mt-2 space-y-1">
+                                    <Progress value={uploadProgress.get(docItem.id)} className="h-2" />
+                                    <p className="text-xs text-muted-foreground">Uploading: {Math.round(uploadProgress.get(docItem.id)!)}%</p>
+                                </div>
+                            )}
                         </FormItem>
                         <FormField control={form.control} name={`documents.${index}.uploadedDate`} render={({ field }) => ( <FormItem className="hidden"><FormControl><Input type="hidden" {...field} /></FormControl></FormItem> )}/>
                     </Card>
@@ -288,8 +293,7 @@ export function ContractorForm({ initialData, onSave, onCancel, isSubmitting }: 
 
             <Separator className="my-6" />
 
-             {/* Performance Notes */}
-            <div className="space-y-4">
+             <div className="space-y-4">
                 <h3 className="text-lg font-medium">Performance Notes (Optional)</h3>
                  <FormField control={form.control} name="performanceNotes" render={({ field }) => (
                     <FormItem><FormLabel className="sr-only">Performance Notes</FormLabel><FormControl><Textarea placeholder="Observations on safety performance, quality of work, etc." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
@@ -310,6 +314,3 @@ export function ContractorForm({ initialData, onSave, onCancel, isSubmitting }: 
     </Card>
   );
 }
-
-
-    
