@@ -1,12 +1,15 @@
+import Image from 'next/image';
 import * as React from 'react';
+import { cn } from '@/lib/utils';
 
-export const SheiqproLogo = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    {...props}
-  >
-    <path d="M20.8,5.2L12.6,0.5c-0.4-0.2-0.8-0.2-1.2,0L3.2,5.2C2.8,5.4,2.5,5.8,2.5,6.3v9.4c0,0.5,0.3,0.9,0.7,1.1l8.2,4.7c0.4,0.2,0.8,0.2,1.2,0l8.2-4.7c0.4-0.2,0.7-0.6,0.7-1.1V6.3C21.5,5.8,21.2,5.4,20.8,5.2z M9.8,11.3H7.4v-2h2.4V8.1H7.4c-1,0-1.8,0.8-1.8,1.8v3.6c0,1,0.8,1.8,1.8,1.8h2.4v-1.2H7.4v-1.2h2.4V11.3z M14.6,11.3h-2.4v2.4h2.4v2.4h-2.4c-1,0-1.8-0.8-1.8-1.8v-6c0-1,0.8-1.8,1.8-1.8h2.4V11.3z M19.4,12.5l-3,3l-1.8-1.8l1.2-1.2l0.6,0.6l1.8-1.8L19.4,12.5z" />
-  </svg>
+export const SheiqproLogo = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn("relative", className)} {...props}>
+    <Image
+      src="https://storage.googleapis.com/sheild-xt9s1.appspot.com/logos/sheiqpro-logo.png"
+      alt="SHEiQpro Logo"
+      fill
+      style={{ objectFit: 'contain' }}
+      priority
+    />
+  </div>
 );
