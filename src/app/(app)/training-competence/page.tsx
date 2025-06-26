@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 // Removed Dialog import as forms are now on separate pages
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, BookOpen, UserCheck, CalendarClock, AlertTriangle, CheckCircle2, Loader2, BookUser, Search } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, BookOpen, UserCheck, CalendarClock, AlertTriangle, CheckCircle2, Loader2, BookUser, Search, XCircle } from "lucide-react";
 import type { TrainingCourse, TrainingRecord, TrainingRecordStatus } from "@/lib/types";
 // Removed CourseForm and TrainingRecordForm imports
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import Link from 'next/link';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 
 const COURSES_COLLECTION = 'trainingCourses';
@@ -195,6 +196,28 @@ export default function TrainingCompetencePage() {
     }
   };
 
+  const uniqueEmployees = useMemo(() => {
+    const employeeSet = new Set(trainingRecords.map(r => r.employeeName));
+    return Array.from(employeeSet).sort();
+  }, [trainingRecords]);
+
+  const trainingMatrixData = useMemo(() => {
+    return uniqueEmployees.map(employeeName => {
+      const employeeRecords = trainingRecords.filter(r => r.employeeName === employeeName);
+      const courseStatuses: Record<string, TrainingRecord | undefined> = {};
+      courses.forEach(course => {
+        const recordsForCourse = employeeRecords
+          .filter(r => r.courseId === course.id)
+          .sort((a, b) => new Date(b.trainingDate).getTime() - new Date(a.trainingDate).getTime());
+        courseStatuses[course.id] = recordsForCourse[0];
+      });
+      return {
+        employeeName,
+        courseStatuses
+      };
+    });
+  }, [uniqueEmployees, courses, trainingRecords]);
+
 
   if (isLoadingCourses || isLoadingRecords) {
     return (
@@ -213,7 +236,7 @@ export default function TrainingCompetencePage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
-          <BookUser className="h-8 w-8"/> Training & Competence
+          <BookUser className="h-8 w-8"/> Training &amp; Competence
         </h1>
         <p className="text-muted-foreground mt-2">
             This module allows you to build a course catalog and maintain training records for employees. 
@@ -229,6 +252,9 @@ export default function TrainingCompetencePage() {
         <CardContent className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
             <Link href="#reminders-section">Reminders</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#training-matrix">Training Matrix</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
             <Link href="#course-catalog">Course Catalog</Link>
@@ -279,6 +305,96 @@ export default function TrainingCompetencePage() {
         </Card>
       )}
 
+      <Separator />
+
+      <Card id="training-matrix">
+        <CardHeader>
+          <CardTitle>Training Compliance Matrix</CardTitle>
+          <CardDescription>
+            An overview of training status for each employee across all available courses. Hover over a status for details.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {uniqueEmployees.length === 0 || courses.length === 0 ? (
+             <p className="text-muted-foreground text-center py-4">No employee or course data available to build the matrix.</p>
+          ) : (
+            <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 bg-card z-10 font-semibold">Employee</TableHead>
+                    {courses.map(course => (
+                      <TableHead key={course.id} className="text-center">{course.name}</TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {trainingMatrixData.map(({ employeeName, courseStatuses }) => (
+                    <TableRow key={employeeName}>
+                      <TableCell className="font-medium sticky left-0 bg-card z-10">{employeeName}</TableCell>
+                      {courses.map(course => {
+                        const record = courseStatuses[course.id];
+                        const status: TrainingRecordStatus | 'Not Taken' = record ? getDerivedStatus(record) : 'Not Taken';
+                        
+                        const getCellContent = () => {
+                            let colorClass: string;
+                            let IconComponent: JSX.Element;
+
+                            switch(status) {
+                                case 'Planned': colorClass = getStatusColor('Planned'); IconComponent = <CalendarClock className="h-4 w-4" />; break;
+                                case 'Completed': colorClass = getStatusColor('Completed'); IconComponent = <CheckCircle2 className="h-4 w-4" />; break;
+                                case 'Requires Renewal': colorClass = getStatusColor('Requires Renewal'); IconComponent = <AlertTriangle className="h-4 w-4" />; break;
+                                case 'Expired': colorClass = getStatusColor('Expired'); IconComponent = <AlertTriangle className="h-4 w-4" />; break;
+                                case 'Not Taken':
+                                default:
+                                    colorClass = "bg-muted text-muted-foreground";
+                                    IconComponent = <XCircle className="h-4 w-4" />;
+                            }
+                            return (
+                                <div className={cn("px-2 py-1 rounded-full text-xs font-semibold flex items-center justify-center gap-1 w-fit mx-auto", colorClass)}>
+                                    {IconComponent}
+                                    <span className="hidden sm:inline">{status}</span>
+                                </div>
+                            );
+                        };
+                        
+                        return (
+                          <TableCell key={course.id} className="text-center">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild><div className="flex justify-center">{getCellContent()}</div></TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="text-sm space-y-1">
+                                    <p className="font-semibold">{employeeName}</p>
+                                    <p className="text-muted-foreground">{course.name}</p>
+                                    <Separator/>
+                                    {record ? (
+                                      <>
+                                        <p>Status: {status}</p>
+                                        <p>Trained: {format(parseISO(record.trainingDate), 'PPP')}</p>
+                                        {record.expiryDate && <p>Expires: {format(parseISO(record.expiryDate), 'PPP')}</p>}
+                                      </>
+                                    ) : (
+                                      <p>No training record found.</p>
+                                    )}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+           )}
+        </CardContent>
+      </Card>
+
+
+      <Separator />
 
       <Card id="course-catalog">
         <CardHeader className="flex flex-row items-center justify-between">
