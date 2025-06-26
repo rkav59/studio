@@ -27,7 +27,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, Award, Users } from "lucide-react";
+import { CalendarIcon, Save, XCircle, Award, Users, PlayCircle, Info } from "lucide-react";
 import type { WellnessProgram, WellnessProgramStatus } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { Card, CardContent, CardDescription as UiCardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Added Card imports
@@ -49,7 +49,7 @@ const wellnessProgramFormSchema = z.object({
     path: ["actualParticipants"],
 });
 
-type WellnessProgramFormValues = z.infer<typeof wellnessProgramFormSchema>;
+export type WellnessProgramFormValues = z.infer<typeof wellnessProgramFormSchema>;
 
 interface WellnessProgramFormProps {
   initialData?: WellnessProgram | null;
@@ -81,12 +81,12 @@ export function WellnessProgramForm({ initialData, onSave, onCancel, isSubmittin
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
-          <ScrollArea className="flex-1 p-6 space-y-4">
+          <ScrollArea className="flex-1 p-6 space-y-6">
             <FormField control={form.control} name="programName" render={({ field }) => (
                 <FormItem><FormLabel>Program Name</FormLabel><FormControl><Input placeholder="e.g., Healthy Eating Challenge, Mental Wellness Workshops" {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
             <FormField control={form.control} name="description" render={({ field }) => (
-                <FormItem><FormLabel>Description (Optional)</FormLabel><FormControl><Textarea placeholder="Describe the program's goals, activities, and benefits." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel className="flex items-center gap-1"><Info className="h-4 w-4"/>Description (Optional)</FormLabel><FormControl><Textarea placeholder="Describe the program's goals, activities, and benefits." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="startDate" render={({ field }) => (
@@ -109,21 +109,21 @@ export function WellnessProgramForm({ initialData, onSave, onCancel, isSubmittin
                 )}/>
             </div>
              <FormField control={form.control} name="status" render={({ field }) => (
-                <FormItem><FormLabel>Program Status</FormLabel>
+                <FormItem><FormLabel className="flex items-center gap-1"><PlayCircle className="h-4 w-4"/>Program Status</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
                     <SelectContent>{wellnessProgramStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent>
                     </Select><FormMessage /></FormItem>
             )}/>
             <FormField control={form.control} name="targetAudience" render={({ field }) => (
-                <FormItem><FormLabel>Target Audience (Optional)</FormLabel><FormControl><Input placeholder="e.g., All Employees, Night Shift Staff, Specific Department" {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel className="flex items-center gap-1"><Users className="h-4 w-4"/>Target Audience (Optional)</FormLabel><FormControl><Input placeholder="e.g., All Employees, Night Shift Staff, Specific Department" {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <FormField control={form.control} name="targetParticipants" render={({ field }) => (
-                    <FormItem><FormLabel className="flex items-center gap-1"><Users className="h-4 w-4"/>Target Participants (Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 100" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Target Participants (Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 100" {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="actualParticipants" render={({ field }) => (
-                    <FormItem><FormLabel className="flex items-center gap-1"><Users className="h-4 w-4"/>Actual Participants (Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 75" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Actual Participants (Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 75" {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
             </div>
             <FormField control={form.control} name="participationNotes" render={({ field }) => (
