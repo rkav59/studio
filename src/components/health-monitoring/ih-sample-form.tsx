@@ -180,10 +180,10 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
                     <FormItem><FormLabel className="flex items-center gap-1"><Clock className="h-4 w-4"/>Duration (hrs)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="e.g., 8" {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
                  <FormField control={form.control} name="twa" render={({ field }) => (
-                    <FormItem><FormLabel>TWA (Optional)</FormLabel><FormControl><Input type="number" step="any" placeholder="Time-Weighted Avg" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="flex items-center gap-1"><Package className="h-4 w-4"/>TWA (Optional)</FormLabel><FormControl><Input type="number" step="any" placeholder="Time-Weighted Avg" {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
                  <FormField control={form.control} name="stel" render={({ field }) => (
-                    <FormItem><FormLabel>STEL (Optional)</FormLabel><FormControl><Input type="number" step="any" placeholder="Short-Term Limit" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="flex items-center gap-1"><Package className="h-4 w-4"/>STEL (Optional)</FormLabel><FormControl><Input type="number" step="any" placeholder="Short-Term Limit" {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
             </div>
             <FormField control={form.control} name="location" render={({ field }) => (
@@ -206,4 +206,3 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
     </Form>
   );
 }
-
