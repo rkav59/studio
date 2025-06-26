@@ -26,7 +26,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, Activity, Users } from "lucide-react";
+import { CalendarIcon, Save, XCircle, Activity, Users, Briefcase, DollarSign, ListChecks, Target } from "lucide-react";
 import type { SheProgram, SheProgramType, SheProgramStatus } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { CardContent } from "@/components/ui/card";
@@ -91,12 +91,12 @@ export function SheProgramForm({ initialData, onSave, onCancel, isSubmitting }: 
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
         <ScrollArea className="flex-1">
-            <CardContent className="p-6 space-y-4">
+            <CardContent className="p-6 space-y-6">
                 <FormField control={form.control} name="programName" render={({ field }) => (
                     <FormItem><FormLabel>Program Name</FormLabel><FormControl><Input placeholder="e.g., Q4 Manual Handling Awareness Drive" {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="objective" render={({ field }) => (
-                    <FormItem><FormLabel>Program Objective</FormLabel><FormControl><Textarea placeholder="Clearly state the main goal of this program." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="flex items-center gap-1"><Target className="h-4 w-4"/>Program Objective</FormLabel><FormControl><Textarea placeholder="Clearly state the main goal of this program." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="programType" render={({ field }) => (
@@ -136,17 +136,17 @@ export function SheProgramForm({ initialData, onSave, onCancel, isSubmitting }: 
                     <FormItem><FormLabel className="flex items-center gap-1"><Users className="h-4 w-4"/>Target Audience (Optional)</FormLabel><FormControl><Input placeholder="e.g., All employees, Workshop staff, Contractors" {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="keyActivities" render={({ field }) => (
-                    <FormItem><FormLabel>Key Activities / Initiatives (Optional)</FormLabel><FormControl><Textarea placeholder="List main activities, training sessions, campaigns involved." rows={4} {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="flex items-center gap-1"><ListChecks className="h-4 w-4"/>Key Activities / Initiatives (Optional)</FormLabel><FormControl><Textarea placeholder="List main activities, training sessions, campaigns involved." rows={4} {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="kpis" render={({ field }) => (
                     <FormItem><FormLabel>Key Performance Indicators (KPIs) (Optional)</FormLabel><FormControl><Textarea placeholder="How will success be measured? e.g., Reduction in X, Increase in Y reports." rows={2} {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="leadPerson" render={({ field }) => (
-                        <FormItem><FormLabel>Lead Person/Coordinator (Optional)</FormLabel><FormControl><Input placeholder="Name or Role" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="flex items-center gap-1"><Briefcase className="h-4 w-4"/>Lead Person/Coordinator (Optional)</FormLabel><FormControl><Input placeholder="Name or Role" {...field} /></FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="budget" render={({ field }) => (
-                        <FormItem><FormLabel>Budget Allocation (Optional)</FormLabel><FormControl><Input placeholder="e.g., $5000, Departmental Budget" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="flex items-center gap-1"><DollarSign className="h-4 w-4"/>Budget Allocation (Optional)</FormLabel><FormControl><Input placeholder="e.g., $5000, Departmental Budget" {...field} /></FormControl><FormMessage /></FormItem>
                     )}/>
                 </div>
             </CardContent>
