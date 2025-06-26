@@ -16,9 +16,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Save, XCircle, Users } from "lucide-react";
+import { Save, XCircle, Users, Info, Activity } from "lucide-react";
 import type { SimilarExposureGroup } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Added Card imports
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const segFormSchema = z.object({
   name: z.string().min(2, "SEG name must be at least 2 characters.").max(150),
@@ -26,13 +26,13 @@ const segFormSchema = z.object({
   riskProfileNotes: z.string().max(2000, "Risk profile notes are too long.").optional(),
 });
 
-type SegFormValues = z.infer<typeof segFormSchema>;
+export type SegFormValues = z.infer<typeof segFormSchema>;
 
 interface SegFormProps {
   initialData?: SimilarExposureGroup | null;
   onSave: (data: SegFormValues) => void;
   onCancel: () => void;
-  isSubmitting?: boolean; // Added for button state
+  isSubmitting?: boolean;
 }
 
 export function SegForm({ initialData, onSave, onCancel, isSubmitting }: SegFormProps) {
@@ -52,13 +52,14 @@ export function SegForm({ initialData, onSave, onCancel, isSubmitting }: SegForm
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
-        <ScrollArea className="flex-1 p-6 space-y-6">
+        <ScrollArea className="flex-1">
+          <div className="p-6 space-y-6">
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>SEG Name</FormLabel>
+                  <FormLabel className="flex items-center gap-1"><Users className="h-4 w-4"/>SEG Name</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Welders - Workshop A, Office Admin Staff" {...field} />
                   </FormControl>
@@ -71,7 +72,7 @@ export function SegForm({ initialData, onSave, onCancel, isSubmitting }: SegForm
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormLabel className="flex items-center gap-1"><Info className="h-4 w-4"/>Description (Optional)</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Briefly describe the group and their common tasks or environment." rows={3} {...field} />
                   </FormControl>
@@ -84,7 +85,7 @@ export function SegForm({ initialData, onSave, onCancel, isSubmitting }: SegForm
               name="riskProfileNotes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Risk Profile Notes (Optional)</FormLabel>
+                  <FormLabel className="flex items-center gap-1"><Activity className="h-4 w-4"/>Risk Profile Notes (Optional)</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Describe typical exposures (e.g., noise, dust, chemicals), potential health risks, or required controls for this SEG." rows={4} {...field} />
                   </FormControl>
@@ -92,6 +93,7 @@ export function SegForm({ initialData, onSave, onCancel, isSubmitting }: SegForm
                 </FormItem>
               )}
             />
+          </div>
         </ScrollArea>
         <div className="p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
