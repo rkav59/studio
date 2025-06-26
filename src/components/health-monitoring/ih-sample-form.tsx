@@ -27,10 +27,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, Thermometer, Users, AlertTriangle } from "lucide-react";
+import { CalendarIcon, Save, XCircle, Thermometer, Users, AlertTriangle, FileText, Tag, MapPin, Clock, Beaker, Package } from "lucide-react";
 import type { IndustrialHygieneSample, IndustrialHygieneSampleAgent, SimilarExposureGroup } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
-import { Card, CardContent, CardDescription as UiCardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Added Card imports
+import { Card, CardContent, CardDescription as UiCardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ihSampleAgents: IndustrialHygieneSampleAgent[] = ['Noise', 'Dust (Respirable)', 'Dust (Inhalable)', 'Silica', 'Asbestos', 'VOCs', 'Lead', 'Welding Fumes', 'Specific Chemical', 'Ergonomic Strain', 'Other'];
 
@@ -65,10 +65,10 @@ interface IhSampleFormProps {
   initialData?: IndustrialHygieneSample | null;
   onSave: (data: IhSampleFormValues) => void;
   onCancel: () => void;
-  isSubmitting?: boolean; // Added for button state
+  isSubmitting?: boolean;
 }
 
-const NO_SEG_VALUE = "__NONE__"; // Special value for 'None' option
+const NO_SEG_VALUE = "__NONE__";
 
 export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting }: IhSampleFormProps) {
   const form = useForm<IhSampleFormValues>({
@@ -99,7 +99,7 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
         ...data,
         segId: data.segId === NO_SEG_VALUE ? undefined : data.segId,
         specificAgentName: (data.agent === 'Specific Chemical' || data.agent === 'Other') ? data.specificAgentName : undefined,
-        oelUnits: data.oel !== undefined ? data.oelUnits : undefined, // Ensure OEL units only saved if OEL is present
+        oelUnits: data.oel !== undefined ? data.oelUnits : undefined,
     };
     onSave(sampleToSave);
   };
@@ -107,7 +107,8 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
-        <ScrollArea className="flex-1 p-6 space-y-4">
+        <ScrollArea className="flex-1">
+          <div className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
@@ -140,7 +141,7 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
                 </Popover><FormMessage /></FormItem>
             )}/>
              <FormField control={form.control} name="agent" render={({ field }) => (
-                <FormItem><FormLabel>Agent Monitored</FormLabel>
+                <FormItem><FormLabel className="flex items-center gap-1"><Beaker className="h-4 w-4"/>Agent Monitored</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select agent" /></SelectTrigger></FormControl>
                     <SelectContent>{ihSampleAgents.map(agent => <SelectItem key={agent} value={agent}>{agent}</SelectItem>)}</SelectContent>
@@ -153,7 +154,7 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="exposureLevel" render={({ field }) => (
-                    <FormItem><FormLabel>Exposure Level</FormLabel><FormControl><Input type="number" step="any" placeholder="e.g., 85, 0.5" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="flex items-center gap-1"><Thermometer className="h-4 w-4"/>Exposure Level</FormLabel><FormControl><Input type="number" step="any" placeholder="e.g., 85, 0.5" {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
                 <FormField control={form.control} name="units" render={({ field }) => (
                     <FormItem><FormLabel>Units</FormLabel><FormControl><Input placeholder="e.g., dBA, mg/m³, ppm" {...field} /></FormControl><FormMessage /></FormItem>
@@ -168,7 +169,7 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
                 )}/>
             </div>
             <FormField control={form.control} name="sampleType" render={({ field }) => (
-                <FormItem><FormLabel>Sample Type</FormLabel>
+                <FormItem><FormLabel className="flex items-center gap-1"><Tag className="h-4 w-4"/>Sample Type</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select sample type" /></SelectTrigger></FormControl>
                     <SelectContent>{(['Personal', 'Area', 'Source'] as IndustrialHygieneSample['sampleType'][]).map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
@@ -176,7 +177,7 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
             )}/>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                  <FormField control={form.control} name="durationHours" render={({ field }) => (
-                    <FormItem><FormLabel>Duration (hrs)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="e.g., 8" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="flex items-center gap-1"><Clock className="h-4 w-4"/>Duration (hrs)</FormLabel><FormControl><Input type="number" step="0.1" placeholder="e.g., 8" {...field} /></FormControl><FormMessage /></FormItem>
                 )}/>
                  <FormField control={form.control} name="twa" render={({ field }) => (
                     <FormItem><FormLabel>TWA (Optional)</FormLabel><FormControl><Input type="number" step="any" placeholder="Time-Weighted Avg" {...field} /></FormControl><FormMessage /></FormItem>
@@ -186,11 +187,12 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
                 )}/>
             </div>
             <FormField control={form.control} name="location" render={({ field }) => (
-                <FormItem><FormLabel>Specific Location of Sample</FormLabel><FormControl><Input placeholder="e.g., Workshop Bay 3, Assembly Line Alpha" {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel className="flex items-center gap-1"><MapPin className="h-4 w-4"/>Specific Location of Sample</FormLabel><FormControl><Input placeholder="e.g., Workshop Bay 3, Assembly Line Alpha" {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
             <FormField control={form.control} name="notes" render={({ field }) => (
-                <FormItem><FormLabel>Notes (Optional)</FormLabel><FormControl><Textarea placeholder="Any relevant details about the sampling conditions, equipment used, etc." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel className="flex items-center gap-1"><FileText className="h-4 w-4"/>Notes (Optional)</FormLabel><FormControl><Textarea placeholder="Any relevant details about the sampling conditions, equipment used, etc." rows={3} {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
+          </div>
         </ScrollArea>
         <div className="p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
@@ -204,3 +206,4 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
     </Form>
   );
 }
+
