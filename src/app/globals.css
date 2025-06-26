@@ -23,7 +23,7 @@
     --muted: 210 16% 90%; /* Muted Gray */
     --muted-foreground: 210 15% 45%; /* Muted Gray Foreground */
 
-    --accent: 28 80% 52%; /* Orange #E67E22 */
+    --accent: 180 70% 45%; /* Cyan */
     --accent-foreground: 0 0% 100%; /* White */
 
     --destructive: 0 84.2% 60.2%; /* Default Red */
@@ -40,13 +40,13 @@
     --sidebar-foreground: 204 17% 85%; /* Light Gray for text */
     --sidebar-primary: 207 68% 53%; /* Strong Blue */
     --sidebar-primary-foreground: 0 0% 100%; /* White */
-    --sidebar-accent: 28 80% 52%; /* Orange */
+    --sidebar-accent: 180 70% 45%; /* Cyan */
     --sidebar-accent-foreground: 0 0% 100%; /* White */
     --sidebar-border: 210 30% 30%; /* Slightly lighter than sidebar bg */
     --sidebar-ring: 207 68% 53%; /* Primary Blue for focus rings */
 
     --chart-1: 207 68% 53%; /* Primary Blue */
-    --chart-2: 28 80% 52%; /* Accent Orange */
+    --chart-2: 180 70% 45%; /* Accent Cyan */
     --chart-3: 170 50% 45%; /* Teal/Greenish */
     --chart-4: 300 50% 55%; /* Purpleish */
     --chart-5: 50 70% 50%; /* Yellowish */
@@ -72,7 +72,7 @@
     --muted: 210 25% 40%; /* Muted Dark Gray */
     --muted-foreground: 204 17% 75%; /* Muted Light Gray Foreground */
 
-    --accent: 28 85% 58%; /* Brighter Orange */
+    --accent: 180 70% 55%; /* Brighter Cyan */
     --accent-foreground: 0 0% 100%; /* White */
     
     --destructive: 0 70% 50%; /* Darker Red */
@@ -87,13 +87,13 @@
     --sidebar-foreground: 204 17% 75%; /* Medium Light Gray for text */
     --sidebar-primary: 207 72% 60%; /* Brighter Strong Blue */
     --sidebar-primary-foreground: 0 0% 100%; /* White */
-    --sidebar-accent: 28 85% 58%; /* Brighter Orange */
+    --sidebar-accent: 180 70% 55%; /* Brighter Cyan */
     --sidebar-accent-foreground: 0 0% 100%; /* White */
     --sidebar-border: 210 30% 25%; /* Slightly lighter than dark sidebar bg */
     --sidebar-ring: 207 72% 60%; /* Brighter Primary Blue for rings */
 
     --chart-1: 207 72% 60%;
-    --chart-2: 28 85% 58%;
+    --chart-2: 180 70% 55%;
     --chart-3: 170 55% 50%;
     --chart-4: 300 55% 60%;
     --chart-5: 50 75% 55%;

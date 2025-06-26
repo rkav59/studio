@@ -408,7 +408,7 @@ export default function RiskManagementPage() {
              <Tooltip>
               <TooltipTrigger asChild>
                 <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
-                  <Button onClick={() => canCreate && router.push('/risk-management/incidents/new')} disabled={!canCreate} className="bg-orange-500 hover:bg-orange-600 text-white w-full">
+                  <Button onClick={() => canCreate && router.push('/risk-management/incidents/new')} disabled={!canCreate} className="bg-accent hover:bg-accent/90 text-accent-foreground w-full">
                       <PlusCircle className="mr-2 h-4 w-4" /> Log New Incident/Event
                   </Button>
                 </div>
