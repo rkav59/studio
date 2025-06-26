@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -45,7 +45,7 @@ const medicalTestFormSchema = z.object({
   testType: z.enum(medicalTestTypes, { required_error: "Please select a test type." }),
   specificTestName: z.string().max(100).optional(),
   testDate: z.string().refine(val => isValid(parseISO(val)), { message: "Test date is required." }),
-  screeningPurpose: z.enum(medicalScreeningPurposes).optional(),
+  screeningPurpose: z.string().optional(),
   linkedExposure: z.string().max(200).optional(),
   resultSummary: z.string().min(5, "Result summary is required.").max(2000),
   referenceRange: z.string().max(200).optional(),
@@ -66,6 +66,8 @@ interface MedicalTestFormProps {
   isEditing: boolean;
   isSubmitting?: boolean; // Added for button state
 }
+
+const NO_SELECTION_VALUE = "__NONE__"; // Placeholder for 'None' option
 
 export function MedicalTestForm({ segs, initialData, onSave, onCancel, isEditing, isSubmitting }: MedicalTestFormProps) {
   const form = useForm<MedicalTestFormValues>({
@@ -105,6 +107,8 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel, isEditing
   const onSubmit = (data: MedicalTestFormValues) => {
      const testToSave = {
         ...data,
+        screeningPurpose: data.screeningPurpose === NO_SELECTION_VALUE ? undefined : data.screeningPurpose as MedicalScreeningPurpose,
+        segId: data.segId === NO_SELECTION_VALUE ? undefined : data.segId,
         specificTestName: data.testType === 'Other' ? data.specificTestName : undefined,
         certificateExpiryDate: data.certificateExpiryDate || undefined,
     };
@@ -146,10 +150,10 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel, isEditing
             )}
             <FormField control={form.control} name="screeningPurpose" render={({ field }) => (
                 <FormItem><FormLabel className="flex items-center gap-1"><Briefcase className="h-4 w-4"/>Screening Purpose (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value || NO_SELECTION_VALUE}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select purpose" /></SelectTrigger></FormControl>
                         <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value={NO_SELECTION_VALUE}>None</SelectItem>
                             {medicalScreeningPurposes.map(purpose => <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>)}
                         </SelectContent>
                     </Select><FormMessage /></FormItem>
@@ -199,10 +203,10 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel, isEditing
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel className="flex items-center gap-1"><Users className="h-4 w-4"/>Associated SEG (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value || NO_SELECTION_VALUE}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select SEG (if applicable)" /></SelectTrigger></FormControl>
                         <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value={NO_SELECTION_VALUE}>None</SelectItem>
                             {segs.map(seg => <SelectItem key={seg.id} value={seg.id}>{seg.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
