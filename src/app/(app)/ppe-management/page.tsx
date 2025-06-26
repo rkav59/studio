@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { PpeItemDetailsDialog } from '@/components/ppe-management/ppe-item-details-dialog';
 import { PpeIssuanceDetailsDialog } from '@/components/ppe-management/ppe-issuance-details-dialog';
 import { PpeInspectionDetailsDialog } from '@/components/ppe-management/ppe-inspection-details-dialog'; 
@@ -128,6 +129,10 @@ export default function PpeManagementPage() {
     },
     enabled: !!user?.uid,
   });
+
+  const lowStockItems = useMemo(() => {
+    return ppeItems.filter(item => item.currentStock < item.reorderLevel);
+  }, [ppeItems]);
 
   // Mutations (example for PPE Item delete, others would follow similar pattern)
   const deletePpeItemMutation = useMutation({
@@ -338,6 +343,23 @@ export default function PpeManagementPage() {
           Track inventory, issuance, inspections, and compliance for Personal Protective Equipment. Data stored in Firestore.
         </p>
       </div>
+      
+      {lowStockItems.length > 0 && (
+        <Alert variant="destructive" className="shadow-md">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Low Stock Warning!</AlertTitle>
+          <AlertDescription>
+            The following PPE items are below their reorder level and require attention:
+            <ul className="list-disc list-inside mt-2 pl-2 text-xs">
+              {lowStockItems.map(item => (
+                <li key={item.id}>
+                  <strong>{item.name}</strong> (Current Stock: {item.currentStock}, Reorder Level: {item.reorderLevel})
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
 
        <Card>
         <CardHeader>
@@ -462,7 +484,7 @@ export default function PpeManagementPage() {
           </div>
            <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search issuances..." className="pl-8 w-full sm:w-[200px]" value={issuanceSearchTerm} onChange={(e) => setIssuanceSearchTerm(e.target.value)} /></div>
-            <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button onClick={() => canManage && handleOpenNewPpeIssuanceForm()} disabled={!canManage || ppeItems.filter(i => (i.status || 'Available') === 'Available').length === 0} className="bg-accent hover:bg-accent/90 text-accent-foreground"><PlusCircle className="mr-2 h-4 w-4" /> Log Issuance</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
+            <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button onClick={() => canManage && handleOpenNewPpeIssuanceForm()} disabled={!canManage || ppeItems.filter(i => (i.status || 'Available') === 'Available').length === 0} className="bg-cyan-500 hover:bg-cyan-600 text-cyan-foreground"><PlusCircle className="mr-2 h-4 w-4" /> Log Issuance</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
           </div>
         </CardHeader>
         <CardContent>
