@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -236,13 +237,16 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
                 name="specificAgentName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Specific Agent Name</FormLabel>
+                    <FormLabel>Specify Agent Name</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder={`Name of ${watchedAgent.toLowerCase()}`}
+                        placeholder={`Name of ${watchedAgent?.toLowerCase()}`}
                         {...field}
                       />
                     </FormControl>
+                    <FormDescription>
+                      Provide the specific name for the selected agent type.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
