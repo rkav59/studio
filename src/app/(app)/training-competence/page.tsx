@@ -20,8 +20,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation'; // Added useRouter
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import Link from 'next/link';
 
 
 const COURSES_COLLECTION = 'trainingCourses';
@@ -167,6 +168,33 @@ export default function TrainingCompetencePage() {
       default: return null;
     }
   };
+  
+  const recordsRequiringAttention = useMemo(() => {
+    return trainingRecords
+      .map(record => ({ ...record, derivedStatus: getDerivedStatus(record) }))
+      .filter(record => record.derivedStatus === 'Expired' || record.derivedStatus === 'Requires Renewal')
+      .sort((a, b) => {
+        // Sort by status first (Expired > Requires Renewal), then by date
+        const statusOrder: Record<string, number> = { 'Expired': 1, 'Requires Renewal': 2 };
+        const aStatus = statusOrder[a.derivedStatus] || 3;
+        const bStatus = statusOrder[b.derivedStatus] || 3;
+        if (aStatus !== bStatus) {
+          return aStatus - bStatus;
+        }
+        const dateA = a.expiryDate ? parseISO(a.expiryDate).getTime() : 0;
+        const dateB = b.expiryDate ? parseISO(b.expiryDate).getTime() : 0;
+        return dateA - dateB;
+      });
+  }, [trainingRecords]);
+
+  const getReminderStatusColor = (status: TrainingRecordStatus) => {
+    switch (status) {
+        case 'Expired': return 'text-red-600 dark:text-red-400';
+        case 'Requires Renewal': return 'text-yellow-600 dark:text-yellow-400';
+        default: return 'text-muted-foreground';
+    }
+  };
+
 
   if (isLoadingCourses || isLoadingRecords) {
     return (
@@ -185,7 +213,7 @@ export default function TrainingCompetencePage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
-          <BookUser className="h-8 w-8"/> Training &amp; Competence
+          <BookUser className="h-8 w-8"/> Training & Competence
         </h1>
         <p className="text-muted-foreground mt-2">
             This module allows you to build a course catalog and maintain training records for employees. 
@@ -194,9 +222,65 @@ export default function TrainingCompetencePage() {
         </p>
       </div>
       
+       <Card>
+        <CardHeader>
+          <CardTitle>Quick Access</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="#reminders-section">Reminders</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="#course-catalog">Course Catalog</Link>
+          </Button>
+           <Button asChild variant="outline" size="sm">
+            <Link href="#training-records">Training Records</Link>
+          </Button>
+        </CardContent>
+      </Card>
+      
       <Separator />
 
-      <Card>
+      {recordsRequiringAttention.length > 0 && (
+        <Card id="reminders-section" className="border-orange-500/50 shadow-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+              <AlertTriangle className="h-6 w-6"/> Training Reminders
+            </CardTitle>
+            <CardDescription>
+              The following training records are expired or require renewal soon.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="max-h-[250px] pr-3">
+              <ul className="space-y-3">
+                {recordsRequiringAttention.map(record => {
+                  const derivedStatus = getDerivedStatus(record);
+                  return (
+                    <li key={record.id} className={`p-3 border rounded-md ${derivedStatus === 'Expired' ? 'bg-red-50 dark:bg-red-900/20' : 'bg-yellow-50 dark:bg-yellow-900/20'}`}>
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <p className="font-semibold">{record.employeeName}</p>
+                          <p className="text-sm text-muted-foreground">{getCourseName(record.courseId)}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className={`text-sm font-semibold ${getReminderStatusColor(derivedStatus)}`}>{derivedStatus}</p>
+                          {record.expiryDate && (
+                            <p className="text-xs text-muted-foreground">Expires: {format(parseISO(record.expiryDate), 'PPP')}</p>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
+
+
+      <Card id="course-catalog">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2"><BookOpen className="h-6 w-6 text-primary"/>Course Catalog</CardTitle>
@@ -275,7 +359,7 @@ export default function TrainingCompetencePage() {
       
       <Separator />
 
-      <Card>
+      <Card id="training-records">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2"><UserCheck className="h-6 w-6 text-accent"/>Training Records</CardTitle>
