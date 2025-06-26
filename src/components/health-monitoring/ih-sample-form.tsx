@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -276,7 +275,10 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
                 name="units"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-1"><Package className="h-4 w-4"/>Units</FormLabel>
+                    <FormLabel className="flex items-center gap-1">
+                      <Package className="h-4 w-4" />
+                      Units
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., dBA, mg/m³, ppm" {...field} />
                     </FormControl>
@@ -312,7 +314,10 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
                 name="oelUnits"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>OEL Units (if OEL set)</FormLabel>
+                    <FormLabel className="flex items-center gap-1">
+                      <Package className="h-4 w-4" />
+                      OEL Units (if OEL set)
+                    </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Units for OEL"
