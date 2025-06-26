@@ -27,7 +27,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, Thermometer, Users, AlertTriangle, FileText, Tag, MapPin, Clock, Beaker, Package } from "lucide-react";
+import { CalendarIcon, Save, XCircle, Thermometer, Users, AlertTriangle, FileText, Tag, MapPin, Clock, Beaker, Package, User } from "lucide-react";
 import type { IndustrialHygieneSample, IndustrialHygieneSampleAgent, SimilarExposureGroup } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { Card, CardContent, CardDescription as UiCardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -146,7 +146,10 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
                 name="employeeName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Employee Name (if not SEG)</FormLabel>
+                    <FormLabel className="flex items-center gap-1">
+                      <User className="h-4 w-4" />
+                      Employee Name (if not SEG)
+                    </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="If personal sample, not SEG"
