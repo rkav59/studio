@@ -16,7 +16,7 @@ const KpiRecommendationInputSchema = z.object({
   kpiKey: z.string().describe("The unique key or code for the KPI."),
   kpiTitle: z.string().describe("The user-friendly title of the KPI."),
   currentValue: z.union([z.number(), z.string()]).describe("The current measured value of the KPI."),
-  thresholdValue: z.number().describe("The target or threshold value for this KPI."),
+  thresholdValue: z.coerce.number().describe("The target or threshold value for this KPI."),
   targetDirection: z.enum(['above', 'below']).describe("Indicates if a higher value is better ('above') or a lower value is better ('below') for this KPI."),
   kpiDefinition: z.string().describe("A brief definition explaining what the KPI measures."),
   kpiRelevance: z.string().describe("A brief explanation of why this KPI is important for SHEQ performance."),
@@ -75,4 +75,3 @@ const generateKpiRecommendationFlow = ai.defineFlow(
     return output;
   }
 );
-
