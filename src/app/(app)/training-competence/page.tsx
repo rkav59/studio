@@ -32,6 +32,7 @@ const COURSES_COLLECTION = 'trainingCourses';
 const RECORDS_COLLECTION = 'trainingRecords';
 const TRAINING_JOB_ROLE_MATRIX_COLLECTION = 'trainingJobRoleMatrix'; // New collection
 const RENEWAL_WARNING_DAYS = 30;
+const NO_ROLE_VALUE = "__NONE__"; // Placeholder for 'None' option
 
 
 export default function TrainingCompetencePage() {
@@ -248,21 +249,64 @@ export default function TrainingCompetencePage() {
   }, [trainingRecords]);
 
   const trainingMatrixData = useMemo(() => {
+    // Create a map of employee names to their most recent job role
+    const employeeJobRoles = new Map<string, string | undefined>();
+    uniqueEmployees.forEach(employeeName => {
+      const mostRecentRecordWithRole = trainingRecords
+        .filter(r => r.employeeName === employeeName && r.jobRole && r.jobRole !== NO_ROLE_VALUE)
+        .sort((a, b) => new Date(b.trainingDate).getTime() - new Date(a.trainingDate).getTime())[0];
+      employeeJobRoles.set(employeeName, mostRecentRecordWithRole?.jobRole);
+    });
+    
+    // Create a map of job roles to their required course IDs for quick lookup
+    const jobRoleRequirements = new Map<string, Set<string>>();
+    trainingJobRoleMatrix.forEach(entry => {
+      jobRoleRequirements.set(entry.jobRole, new Set(entry.requiredCourseIds));
+    });
+
     return uniqueEmployees.map(employeeName => {
+      const jobRole = employeeJobRoles.get(employeeName);
+      const requiredCourseIds = jobRole ? jobRoleRequirements.get(jobRole) : undefined;
+      
       const employeeRecords = trainingRecords.filter(r => r.employeeName === employeeName);
-      const courseStatuses: Record<string, TrainingRecord | undefined> = {};
+      const courseStatuses: Record<string, { record?: TrainingRecord; derivedStatus: TrainingRecordStatus | 'Not Taken', complianceStatus: 'Compliant' | 'Gap' | 'Extra' | 'Not Applicable' }> = {};
+      
       courses.forEach(course => {
-        const recordsForCourse = employeeRecords
+        const isRequired = !!requiredCourseIds?.has(course.id);
+        const latestRecord = employeeRecords
           .filter(r => r.courseId === course.id)
-          .sort((a, b) => new Date(b.trainingDate).getTime() - new Date(a.trainingDate).getTime());
-        courseStatuses[course.id] = recordsForCourse[0];
+          .sort((a, b) => new Date(b.trainingDate).getTime() - new Date(a.trainingDate).getTime())[0];
+        
+        const derivedStatus = latestRecord ? getDerivedStatus(latestRecord) : 'Not Taken';
+        
+        let complianceStatus: 'Compliant' | 'Gap' | 'Extra' | 'Not Applicable' = 'Not Applicable';
+        
+        if (isRequired) {
+          if (derivedStatus === 'Completed' || derivedStatus === 'Requires Renewal') {
+            complianceStatus = 'Compliant';
+          } else {
+            complianceStatus = 'Gap';
+          }
+        } else {
+          if (derivedStatus !== 'Not Taken') {
+            complianceStatus = 'Extra';
+          }
+        }
+
+        courseStatuses[course.id] = {
+          record: latestRecord,
+          derivedStatus,
+          complianceStatus
+        };
       });
+
       return {
         employeeName,
+        jobRole,
         courseStatuses
       };
     });
-  }, [uniqueEmployees, courses, trainingRecords]);
+  }, [uniqueEmployees, courses, trainingRecords, trainingJobRoleMatrix]);
 
 
   if (isLoadingCourses || isLoadingRecords || isLoadingJobRoleMatrix) {
@@ -348,7 +392,7 @@ export default function TrainingCompetencePage() {
         <CardHeader>
           <CardTitle>Training Compliance Matrix</CardTitle>
           <CardDescription>
-            An overview of training status for each employee across all available courses. Hover over a status for details.
+            An overview of training compliance status for each employee based on their assigned job role. Hover over a status for details.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -366,31 +410,47 @@ export default function TrainingCompetencePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {trainingMatrixData.map(({ employeeName, courseStatuses }) => (
+                  {trainingMatrixData.map(({ employeeName, jobRole, courseStatuses }) => (
                     <TableRow key={employeeName}>
-                      <TableCell className="font-medium sticky left-0 bg-card z-10">{employeeName}</TableCell>
+                      <TableCell className="font-medium sticky left-0 bg-card z-10">
+                        <div>{employeeName}</div>
+                        {jobRole && <div className="text-xs text-muted-foreground">{jobRole}</div>}
+                      </TableCell>
                       {courses.map(course => {
-                        const record = courseStatuses[course.id];
-                        const status: TrainingRecordStatus | 'Not Taken' = record ? getDerivedStatus(record) : 'Not Taken';
+                        const { record, derivedStatus, complianceStatus } = courseStatuses[course.id];
                         
                         const getCellContent = () => {
                             let colorClass: string;
                             let IconComponent: JSX.Element;
+                            let text = complianceStatus;
 
-                            switch(status) {
-                                case 'Planned': colorClass = getStatusColor('Planned'); IconComponent = <CalendarClock className="h-4 w-4" />; break;
-                                case 'Completed': colorClass = getStatusColor('Completed'); IconComponent = <CheckCircle2 className="h-4 w-4" />; break;
-                                case 'Requires Renewal': colorClass = getStatusColor('Requires Renewal'); IconComponent = <AlertTriangle className="h-4 w-4" />; break;
-                                case 'Expired': colorClass = getStatusColor('Expired'); IconComponent = <AlertTriangle className="h-4 w-4" />; break;
-                                case 'Not Taken':
+                             switch(complianceStatus) {
+                                case 'Compliant':
+                                    colorClass = "bg-green-100 text-green-700 dark:bg-green-700/30 dark:text-green-300";
+                                    IconComponent = <CheckCircle2 className="h-4 w-4" />;
+                                    text = derivedStatus === 'Requires Renewal' ? 'Renewal Due' : 'Compliant';
+                                    break;
+                                case 'Gap':
+                                    colorClass = "bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-300";
+                                    IconComponent = <AlertTriangle className="h-4 w-4" />;
+                                    text = derivedStatus === 'Expired' ? 'Expired' : 'Gap';
+                                    break;
+                                case 'Extra':
+                                    colorClass = "bg-blue-100 text-blue-700 dark:bg-blue-700/30 dark:text-blue-300";
+                                    IconComponent = <PlusCircle className="h-4 w-4" />;
+                                    text = "Extra";
+                                    break;
+                                case 'Not Applicable':
                                 default:
-                                    colorClass = "bg-muted text-muted-foreground";
+                                    colorClass = "bg-muted text-muted-foreground/60";
                                     IconComponent = <XCircle className="h-4 w-4" />;
+                                    text = "N/A";
+                                    break;
                             }
                             return (
                                 <div className={cn("px-2 py-1 rounded-full text-xs font-semibold flex items-center justify-center gap-1 w-fit mx-auto", colorClass)}>
                                     {IconComponent}
-                                    <span className="hidden sm:inline">{status}</span>
+                                    <span className="hidden sm:inline">{text}</span>
                                 </div>
                             );
                         };
@@ -405,9 +465,10 @@ export default function TrainingCompetencePage() {
                                     <p className="font-semibold">{employeeName}</p>
                                     <p className="text-muted-foreground">{course.name}</p>
                                     <Separator/>
+                                    <p>Requirement: <span className={complianceStatus === 'Gap' ? 'text-red-500 font-semibold' : ''}>{complianceStatus}</span></p>
                                     {record ? (
                                       <>
-                                        <p>Status: {status}</p>
+                                        <p>Status: {derivedStatus}</p>
                                         <p>Trained: {format(parseISO(record.trainingDate), 'PPP')}</p>
                                         {record.expiryDate && <p>Expires: {format(parseISO(record.expiryDate), 'PPP')}</p>}
                                       </>
@@ -696,3 +757,4 @@ export default function TrainingCompetencePage() {
     </TooltipProvider>
   );
 }
+
