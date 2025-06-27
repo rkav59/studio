@@ -71,11 +71,13 @@ export default function TrainingCompetencePage() {
       const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => {
         const data = doc.data();
+        const trainingDate = data.trainingDate;
+        const expiryDate = data.expiryDate;
         return {
           id: doc.id,
           ...data,
-          trainingDate: (data.trainingDate as Timestamp)?.toDate().toISOString(),
-          expiryDate: (data.expiryDate as Timestamp)?.toDate().toISOString() || null,
+          trainingDate: trainingDate instanceof Timestamp ? trainingDate.toDate().toISOString() : trainingDate,
+          expiryDate: expiryDate instanceof Timestamp ? expiryDate.toDate().toISOString() : (expiryDate || null),
         } as TrainingRecord;
       });
     },
@@ -318,7 +320,7 @@ export default function TrainingCompetencePage() {
     );
   }
   if (coursesError || recordsError || jobRoleMatrixError) {
-    return <div className="text-red-500 text-center py-10">Error loading data: ${(coursesError || recordsError)?.message}</div>;
+    return <div className="text-red-500 text-center py-10">Error loading data: {(coursesError || recordsError || jobRoleMatrixError)?.message}</div>;
   }
 
   return (
@@ -757,4 +759,5 @@ export default function TrainingCompetencePage() {
     </TooltipProvider>
   );
 }
+
 
