@@ -29,12 +29,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardDescription as UiCardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, FileText, UploadCloud } from "lucide-react";
-import type { Contractor, ContractorDocument, ContractorVettingStatus } from "@/lib/types";
+import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, FileText, UploadCloud, Sparkles, Loader2 } from "lucide-react";
+import type { Contractor, ContractorDocument, ContractorVettingStatus, PermitToWork, PtwSupervisionRecord, JobCard } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import React, { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@/contexts/auth-context";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { vetContractor, type VetContractorInput } from "@/ai/flows/vet-contractor-flow";
+import { useToast } from "@/hooks/use-toast";
+
 
 // Refined Zod schema for ContractorDocument for form validation
 const contractorDocumentSchema = z.object({
@@ -57,7 +63,7 @@ const contractorFormSchema = z.object({
   contactPhone: z.string().max(30).optional(),
   tradeOrService: z.string().min(2, "Trade/Service is required.").max(100),
   vettingStatus: z.enum(['Pending', 'Approved', 'Rejected', 'Requires Review']),
-  vettingNotes: z.string().max(1000).optional(),
+  vettingNotes: z.string().max(5000).optional(), // Increased max length
   inductionCompleted: z.boolean().default(false),
   inductionDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid induction date" }),
   documents: z.array(contractorDocumentSchema).optional(),
@@ -88,8 +94,11 @@ const newDocumentDefault = (): ContractorDocument => ({
 });
 
 export function ContractorForm({ initialData, onSave, onCancel, isSubmitting, uploadProgress }: ContractorFormProps) {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [documentFiles, setDocumentFiles] = useState<Map<string, File>>(new Map());
   const [documentsToRemove, setDocumentsToRemove] = useState<string[]>([]);
+  const [isAiVettingLoading, setIsAiVettingLoading] = useState(false);
 
   const form = useForm<ContractorFormValues>({
     resolver: zodResolver(contractorFormSchema),
@@ -158,6 +167,96 @@ export function ContractorForm({ initialData, onSave, onCancel, isSubmitting, up
     onSave(contractorToSave);
   };
 
+  const handleGetAiVettingSuggestion = async () => {
+    if (!user?.uid || !initialData?.id) {
+        toast({ title: "Error", description: "Cannot get suggestion without a saved contractor.", variant: "destructive" });
+        return;
+    }
+    setIsAiVettingLoading(true);
+
+    try {
+        // 1. Fetch PTWs for contractor
+        const ptwQuery = query(collection(db, 'permitsToWork'), where("userId", "==", user.uid), where("contractorId", "==", initialData.id));
+        const ptwSnapshot = await getDocs(ptwQuery);
+        const ptws = ptwSnapshot.docs.map(d => ({id: d.id, ...d.data()}) as PermitToWork);
+        const ptwSummary = { total: ptws.length, closed: 0, expired: 0, cancelled: 0 };
+        ptws.forEach(ptw => {
+            if (ptw.status === 'Closed') ptwSummary.closed++;
+            if (ptw.status === 'Expired') ptwSummary.expired++;
+            if (ptw.status === 'Cancelled') ptwSummary.cancelled++;
+        });
+
+        // 2. Fetch Job Cards
+        const jobCardQuery = query(collection(db, 'jobCards'), where("userId", "==", user.uid), where("contractorId", "==", initialData.id));
+        const jobCardSnapshot = await getDocs(jobCardQuery);
+        const jobCards = jobCardSnapshot.docs.map(d => d.data() as JobCard);
+        const jobCardSummary = { total: jobCards.length, completed: 0, cancelled: 0 };
+        jobCards.forEach(jc => {
+            if (jc.status === 'Completed') jobCardSummary.completed++;
+            if (jc.status === 'Cancelled') jobCardSummary.cancelled++;
+        });
+        
+        // 3. Fetch Supervision Records
+        let supervisionRecords: PtwSupervisionRecord[] = [];
+        const ptwIds = ptws.map(p => p.id);
+        if(ptwIds.length > 0) {
+           // Firestore `in` query is limited to 30 items. For simplicity, we assume this limit is not exceeded.
+            const supervisionQuery = query(collection(db, 'ptwSupervisionRecords'), where("userId", "==", user.uid), where("ptwId", "in", ptwIds));
+            const supervisionSnapshot = await getDocs(supervisionQuery);
+            supervisionRecords = supervisionSnapshot.docs.map(d => d.data() as PtwSupervisionRecord);
+        }
+        const supervisionSummary = { excellent: 0, good: 0, fair: 0, poor: 0, total: supervisionRecords.length };
+        supervisionRecords.forEach(sr => {
+            const rating = sr.overallPerformanceRating.toLowerCase() as keyof typeof supervisionSummary;
+            if (supervisionSummary.hasOwnProperty(rating)) {
+                supervisionSummary[rating]++;
+            }
+        });
+        
+        // 4. Call AI Flow
+        const aiInput: VetContractorInput = {
+            contractorName: initialData.companyName,
+            tradeOrService: initialData.tradeOrService,
+            ptwSummary,
+            jobCardSummary,
+            supervisionSummary,
+        };
+        
+        const result = await vetContractor(aiInput);
+        
+        // 5. Format and set form values
+        const formattedNotes = `## AI Vetting Assistance Summary
+
+**Overall Assessment:**
+${result.overallAssessment}
+
+**Positive Points:**
+${result.positivePoints.length > 0 ? result.positivePoints.map(p => `- ${p}`).join('\n') : '- None'}
+
+**Areas for Concern:**
+${result.areasForConcern.length > 0 ? result.areasForConcern.map(c => `- ${c}`).join('\n') : '- None'}
+
+**Reasoning for Suggestion:**
+${result.recommendationReasoning}
+
+---
+*This summary was generated by AI based on historical data on ${format(new Date(), 'PPP')}. Please review and use your professional judgment.*
+`;
+
+        form.setValue('vettingNotes', formattedNotes);
+        form.setValue('vettingStatus', result.suggestedVettingStatus);
+        
+        toast({ title: "AI Suggestion Generated", description: `Suggested Status: ${result.suggestedVettingStatus}. Notes updated.` });
+
+    } catch (error) {
+        console.error("Failed to get AI vetting suggestion:", error);
+        toast({ title: "Error", description: "Could not generate AI suggestion. Please try again.", variant: "destructive" });
+    } finally {
+        setIsAiVettingLoading(false);
+    }
+  };
+
+
   return (
     <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
       <CardHeader>
@@ -212,9 +311,33 @@ export function ContractorForm({ initialData, onSave, onCancel, isSubmitting, up
                         </FormItem>
                     )}/>
                 </div>
-                <FormField control={form.control} name="vettingNotes" render={({ field }) => (
-                    <FormItem><FormLabel>Vetting Notes (Optional)</FormLabel><FormControl><Textarea placeholder="Notes regarding vetting process or outcome..." rows={2} {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
+                 <FormField
+                    control={form.control}
+                    name="vettingNotes"
+                    render={({ field }) => (
+                        <FormItem>
+                            <div className="flex justify-between items-center">
+                                <FormLabel>Vetting Notes (Optional)</FormLabel>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleGetAiVettingSuggestion}
+                                    disabled={!initialData?.id || isAiVettingLoading}
+                                    className="text-accent border-accent hover:bg-accent/10 h-8"
+                                >
+                                    {isAiVettingLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                    AI Vetting Suggestion
+                                </Button>
+                            </div>
+                            <FormControl>
+                                <Textarea placeholder="Notes regarding vetting process or outcome..." rows={4} {...field} />
+                            </FormControl>
+                             <FormDescription>Click the AI button to analyze historical performance and generate a summary here.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
                 {form.watch("inductionCompleted") && (
                     <FormField control={form.control} name="inductionDate" render={({ field }) => (
                         <FormItem className="flex flex-col"><FormLabel>Induction Date (if completed)</FormLabel>

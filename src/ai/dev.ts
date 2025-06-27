@@ -12,4 +12,5 @@ import '@/ai/flows/generate-drill-scenario-flow.ts';
 import '@/ai/flows/generate-kpi-recommendation-flow.ts'; // New KPI recommendation flow
 import '@/ai/flows/generate-legal-register-flow.ts'; // New Legal Register flow
 import '@/ai/flows/send-action-item-reminders-flow.ts'; // New flow for email reminders
+import '@/ai/flows/vet-contractor-flow.ts'; // New flow for contractor vetting
 
