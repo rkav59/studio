@@ -1,4 +1,5 @@
 
+
 import type { RiskAssessmentMethod, Likelihood, Severity, RiskLevel, RiskRegisterStatus } from "./types";
 
 export interface DescriptiveRiskAssessmentMethod {
