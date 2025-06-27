@@ -339,6 +339,23 @@ export default function SheMeetingsPage() {
       setIsRefreshingUpcomingMeetings(false);
     }
   };
+  
+  const timelineEvents = useMemo(() => {
+    const events: Array<{ type: 'Program' | 'Meeting'; date: string; title: string; status?: SheProgram['status']; data: SheProgram | SheMeeting }> = [];
+    
+    programs.forEach(p => {
+        if (p.startDate && isValid(parseISO(p.startDate))) {
+            events.push({ type: 'Program', date: p.startDate, title: p.programName, status: p.status, data: p });
+        }
+    });
+    meetings.forEach(m => {
+        if (m.meetingDate && isValid(parseISO(m.meetingDate))) {
+            events.push({ type: 'Meeting', date: m.meetingDate, title: m.title, data: m });
+        }
+    });
+
+    return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [programs, meetings]);
 
   const isLoading = isLoadingPrograms || isLoadingMeetings;
   const anyError = programsError || meetingsError;
@@ -372,15 +389,10 @@ export default function SheMeetingsPage() {
           <CardTitle>Quick Access</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href="#reminders-section">Reminders</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href="#she-programs">SHE Programs</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href="#she-meetings">SHE Meetings</Link>
-          </Button>
+          <Button asChild variant="outline" size="sm"><Link href="#reminders-section">Reminders</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link href="#timeline-section">Timeline</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link href="#she-programs">SHE Programs</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link href="#she-meetings">SHE Meetings</Link></Button>
         </CardContent>
       </Card>
 
@@ -452,6 +464,47 @@ export default function SheMeetingsPage() {
       </div>
       <Separator/>
 
+      {/* Timeline Section */}
+      <Card id="timeline-section">
+        <CardHeader>
+            <CardTitle>Program & Meeting Timeline</CardTitle>
+            <CardDescription>A chronological overview of all scheduled programs and meetings.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            {timelineEvents.length === 0 ? (
+                <p className="text-center py-4 text-muted-foreground">No programs or meetings with valid dates to display on the timeline.</p>
+            ) : (
+                <ScrollArea className="max-h-[500px] pr-3">
+                    <div className="relative pl-6">
+                        <div className="absolute left-0 top-0 h-full w-0.5 bg-border -translate-x-1/2 ml-3"></div>
+                        <ul className="space-y-8">
+                            {timelineEvents.map((event) => (
+                                <li key={`${event.type}-${event.data.id}`} className="relative">
+                                    <div className={`absolute -left-6 top-1 h-3 w-3 rounded-full border-2 border-background ${event.type === 'Program' ? 'bg-primary' : 'bg-accent'}`}></div>
+                                    <div className="pl-4">
+                                        <p className="text-xs text-muted-foreground">{format(parseISO(event.date), "PPP")}</p>
+                                        <p className="font-semibold">
+                                            {event.title} 
+                                            <span className={`text-xs ml-2 font-normal ${event.type === 'Program' ? 'text-primary' : 'text-accent'}`}>({event.type})</span>
+                                        </p>
+                                        {event.type === 'Program' && (
+                                            <p className={`text-xs font-medium ${getProgramStatusColor((event.data as SheProgram).status)}`}>Status: {(event.data as SheProgram).status}</p>
+                                        )}
+                                        <Button size="xs" variant="outline" className="mt-1 h-7 text-xs" onClick={() => event.type === 'Program' ? setViewingProgram(event.data as SheProgram) : setViewingMeeting(event.data as SheMeeting)}>
+                                            View Details
+                                        </Button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </ScrollArea>
+            )}
+        </CardContent>
+      </Card>
+
+
+      <Separator/>
 
       {/* SHE Programs Section */}
       <Card id="she-programs">
@@ -625,7 +678,6 @@ export default function SheMeetingsPage() {
         </CardHeader>
         <CardContent>
              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-                <li>Overall Program Calendar/Timeline view.</li>
                 <li>Meeting effectiveness scoring and participation statistics.</li>
                 <li>Automated reminders for meeting action item due dates (requires backend setup).</li>
                 <li>Integration with other modules (e.g., link incidents to meeting discussions).</li>
