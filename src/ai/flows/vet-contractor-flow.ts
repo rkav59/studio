@@ -15,7 +15,7 @@ import type { ContractorVettingStatus } from '@/lib/types';
 // Define Zod schemas for input and output
 const vettingStatusesForSchema: [ContractorVettingStatus, ...ContractorVettingStatus[]] = ['Approved', 'Pending', 'Rejected', 'Requires Review'];
 
-export const VetContractorInputSchema = z.object({
+const VetContractorInputSchema = z.object({
   contractorName: z.string().describe('The name of the contractor being vetted.'),
   tradeOrService: z.string().describe('The trade or service the contractor provides.'),
   ptwSummary: z.object({
@@ -38,7 +38,7 @@ export const VetContractorInputSchema = z.object({
   }).describe('A summary of performance ratings from on-site supervision records.'),
 });
 
-export const VetContractorOutputSchema = z.object({
+const VetContractorOutputSchema = z.object({
   overallAssessment: z.string().describe('A concise, one-sentence overall assessment of the contractor\'s safety performance.'),
   positivePoints: z.array(z.string()).describe('A list of positive observations from the data.'),
   areasForConcern: z.array(z.string()).describe('A list of potential concerns or red flags from the data.'),
