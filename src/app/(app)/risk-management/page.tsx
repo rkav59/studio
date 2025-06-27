@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -10,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertTriangle, ListChecks, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, Link as LinkIcon, BookOpen, LayoutDashboard, Brain, Download, Landmark } from "lucide-react";
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy, updateDoc } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ManualHazard, ManualRiskAssessment, RiskLevel, RiskAssessmentControl, RiskRegisterEntry, RiskRegisterStatus, SheqAudit, Incident } from "@/lib/types";
 import { format, parseISO, isBefore, differenceInDays, isValid } from 'date-fns';
@@ -33,6 +32,7 @@ import Link from "next/link";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { RiskReportingDashboard } from "@/components/risk-management/risk-reporting-dashboard";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 
 const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
@@ -182,6 +182,39 @@ export default function RiskManagementPage() {
     },
   });
 
+  // New mutation to update control status
+  const updateControlStatusMutation = useMutation({
+    mutationFn: async ({ assessmentId, controlId, newStatus }: { assessmentId: string, controlId: string, newStatus: Required<RiskAssessmentControl>['status'] }) => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+
+      const assessmentToUpdate = manualRiskAssessments.find(a => a.id === assessmentId);
+      if (!assessmentToUpdate) throw new Error("Parent assessment not found.");
+
+      const updatedControls = assessmentToUpdate.additionalControls.map(control => {
+        if (control.id === controlId) {
+          return { ...control, status: newStatus };
+        }
+        return control;
+      });
+
+      const assessmentRef = doc(db, MANUAL_RISK_ASSESSMENTS_COLLECTION, assessmentId);
+      await updateDoc(assessmentRef, { additionalControls: updatedControls });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [MANUAL_RISK_ASSESSMENTS_COLLECTION, user?.uid] });
+      toast({
+        title: "Control Status Updated",
+        description: "The status of the control action has been saved.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error Updating Status",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const getRiskLevelColor = (level: RiskLevel | undefined) => level ? riskMatrix[level]?.color : 'bg-gray-200 text-gray-700';
   const getRiskRegisterStatusColor = (status: RiskRegisterStatus) => {
@@ -599,17 +632,48 @@ export default function RiskManagementPage() {
                           <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs mt-1">
                             {control.responsiblePerson && <p className="flex items-center gap-1"><UserCircleIcon className="h-3 w-3 text-muted-foreground"/>Resp: {control.responsiblePerson}</p>}
                             {dateStatus && <p className={`flex items-center gap-1 ${dateStatus.textClass}`}>{dateStatus.icon}Due: {dateStatus.displayText}</p>}
-                            <p className={`flex items-center gap-1 ${statusColor}`}>Status: {control.status}</p>
+                            <p className={`flex items-center gap-1 font-semibold ${statusColor}`}>Status:</p>
                           </div>
                         </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="mt-2 sm:mt-0 shrink-0"
-                            onClick={() => router.push(`/risk-management/assessments/edit/${control.assessmentId}`)}
-                        >
-                          Manage in Assessment
-                        </Button>
+                        <div className="flex gap-2 self-start sm:self-center shrink-0">
+                          <Select
+                            value={control.status}
+                            onValueChange={(newStatus: Required<RiskAssessmentControl>['status']) => {
+                              updateControlStatusMutation.mutate({
+                                assessmentId: control.assessmentId,
+                                controlId: control.id,
+                                newStatus,
+                              });
+                            }}
+                            disabled={updateControlStatusMutation.isPending && updateControlStatusMutation.variables?.controlId === control.id}
+                          >
+                            <SelectTrigger className="w-[150px] h-9 text-xs">
+                              <SelectValue placeholder="Set status..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {controlActionStatuses.map(status => (
+                                <SelectItem key={status} value={status} className="text-xs">
+                                  {status}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9"
+                                onClick={() => router.push(`/risk-management/assessments/edit/${control.assessmentId}`)}
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Edit full assessment</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
                       </div>
                     </Card>
                   )
@@ -672,7 +736,6 @@ export default function RiskManagementPage() {
         <CardContent>
              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
                     <li>Future: Customize risk matrices (likelihood, severity, risk levels), define risk appetite, and integrate with other modules for a holistic approach to continuous improvement (ISO 31000: Framework - Integration, Design, Implementation, Evaluation, Improvement).</li>
-                    <li>Direct editing of control action status from the 'Active Controls' list for assessments.</li>
                     <li>More granular action tracking within Risk Register entries.</li>
                 </ul>
         </CardContent>
