@@ -552,6 +552,21 @@ export interface InductionRecord {
   inductionDate: string; // ISO string
   quizAnswers: QuizQuestion[];
 }
+
+export interface InductionQuestion {
+  id: string;
+  userId: string;
+  organizationId?: string;
+  text: string;
+  // Array of 3 options
+  options: [
+    { id: 'option1', text: string },
+    { id: 'option2', text: string },
+    { id: 'option3', text: string },
+  ];
+  // ID of the correct option, e.g., 'option1', 'option2', 'option3'
+  correctAnswerId: 'option1' | 'option2' | 'option3';
+}
 // --- End Online Induction Types ---
 
 

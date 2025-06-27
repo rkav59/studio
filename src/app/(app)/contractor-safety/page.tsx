@@ -387,10 +387,20 @@ export default function ContractorSafetyPage() {
             <CardTitle className="flex items-center gap-2"><GraduationCap className="h-6 w-6 text-primary"/>Online Safety Induction</CardTitle>
             <CardDescription>A streamlined process for contractor safety inductions. Contractors can view training content and complete a quiz to be marked as inducted.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-wrap gap-2">
             <Button onClick={() => router.push('/contractor-safety/induction')}>
                 Go to Online Induction Module
             </Button>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
+                        <Button variant="outline" onClick={() => canManage && router.push('/contractor-safety/induction-settings')} disabled={!canManage}>
+                            <Settings className="mr-2 h-4 w-4" /> Setup Induction
+                        </Button>
+                    </div>
+                </TooltipTrigger>
+                {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+            </Tooltip>
         </CardContent>
       </Card>
 
