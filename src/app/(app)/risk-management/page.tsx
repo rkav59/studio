@@ -474,7 +474,7 @@ export default function RiskManagementPage() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
-                    <Button onClick={() => canCreate && router.push('/risk-management/hazards/new')} disabled={!canCreate} className="w-full bg-red-500 hover:bg-red-600 text-white">
+                    <Button onClick={() => canCreate && router.push('/risk-management/hazards/new')} disabled={!canCreate} className="w-full bg-cyan-600 hover:bg-cyan-700 text-white">
                         <Target className="mr-2 h-4 w-4" /> Log New Hazard
                     </Button>
                   </div>
@@ -484,7 +484,7 @@ export default function RiskManagementPage() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
-                    <Button onClick={() => canCreate && router.push('/risk-management/assessments/new')} disabled={!canCreate} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+                    <Button onClick={() => canCreate && router.push('/risk-management/assessments/new')} disabled={!canCreate} className="w-full bg-cyan-700 hover:bg-cyan-800 text-white">
                         <FileSignature className="mr-2 h-4 w-4" /> Conduct New Risk Assessment
                     </Button>
                   </div>
@@ -493,8 +493,7 @@ export default function RiskManagementPage() {
               </Tooltip>
                 <Button 
                     onClick={() => toast({ title: "Info", description: "Viewing all risk assessments will be available on a dedicated page soon."})} 
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-                    variant="secondary"
+                    className="w-full bg-cyan-500 hover:bg-cyan-600 text-white"
                 >
                     <ListChecks className="mr-2 h-4 w-4" /> View/Manage Risk Assessments
                 </Button>
