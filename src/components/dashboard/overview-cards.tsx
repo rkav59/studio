@@ -275,7 +275,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
                 variant="ghost"
                 size="sm"
                 onClick={handleRecommendationClick}
-                className="text-xs text-accent hover:text-accent/90 h-auto p-1"
+                className="text-xs text-red-600 hover:text-red-700 h-auto p-1"
                 title="Get AI Recommendation"
               >
                 <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
