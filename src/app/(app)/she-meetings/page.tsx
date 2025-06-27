@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -7,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, Eye, CalendarRange, Users, ListChecks, Activity, Settings, Loader2, ClockIcon, AlertTriangle, CheckCircle, Download, RefreshCw, Search } from "lucide-react"; // Added Search
+import { PlusCircle, Edit2, Trash2, Eye, CalendarRange, Users, ListChecks, Activity, Settings, Loader2, ClockIcon, AlertTriangle, CheckCircle, Download, RefreshCw, Search, Mail } from "lucide-react"; // Added Search & Mail
 import type { SheProgram, SheMeeting, MeetingActionItem, MeetingActionItemStatus } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid, isBefore, differenceInDays } from 'date-fns';
@@ -23,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from '@/lib/utils';
+import { sendActionItemReminders, type SendActionItemRemindersOutput } from '@/ai/flows/send-action-item-reminders-flow'; // Import new flow
 
 const PROGRAMS_COLLECTION = 'shePrograms';
 const MEETINGS_COLLECTION = 'sheMeetings';
@@ -43,6 +45,26 @@ export default function SheMeetingsPage() {
   const canCreate = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [user, userProfile]);
   const canManage = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [user, userProfile]);
   const disabledTooltipContent = "You do not have permission to perform this action.";
+
+    const sendRemindersMutation = useMutation({
+    mutationFn: async () => {
+      if (!user?.uid) throw new Error("User not authenticated.");
+      return sendActionItemReminders({ userId: user.uid });
+    },
+    onSuccess: (data: SendActionItemRemindersOutput) => {
+      toast({
+        title: "Reminder Process Complete",
+        description: data.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error Sending Reminders",
+        description: error.message || "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Fetch SHE Programs
   const { data: programs = [], isLoading: isLoadingPrograms, error: programsError } = useQuery<SheProgram[]>({
@@ -430,8 +452,34 @@ export default function SheMeetingsPage() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">Pending & Overdue Action Items</CardTitle>
+          <CardHeader className="flex flex-row items-start justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">Pending & Overdue Action Items</CardTitle>
+              <CardDescription>A summary of open action items that are overdue or due soon.</CardDescription>
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => sendRemindersMutation.mutate()}
+                      disabled={!canManage || sendRemindersMutation.isPending || pendingActionItems.length === 0}
+                    >
+                      {sendRemindersMutation.isPending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Mail className="mr-2 h-4 w-4" />
+                      )}
+                      Email Reminders
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                  {canManage && pendingActionItems.length === 0 && <TooltipContent><p>No pending items to send reminders for.</p></TooltipContent>}
+              </Tooltip>
+            </TooltipProvider>
           </CardHeader>
           <CardContent>
             {pendingActionItems.length === 0 ? (
