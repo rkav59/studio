@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { RiskReportingDashboard } from "@/components/risk-management/risk-reporting-dashboard";
 
 
 const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
@@ -659,12 +660,10 @@ export default function RiskManagementPage() {
             </CardContent>
         </Card>
 
-      <Card className="shadow-md mt-6">
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2"><LayoutDashboard className="h-6 w-6 text-muted-foreground" />Risk Reporting Dashboard (Future Development)</CardTitle>
-            <CardDescription>Future: Generate reports on risk profiles, control effectiveness, and monitor key risk indicators (KRIs) through customizable dashboards (ISO 31000: Monitoring, Review, and Reporting).</CardDescription>
-        </CardHeader>
-      </Card>
+      <RiskReportingDashboard 
+        riskRegisterEntries={riskRegisterEntries}
+        incidents={incidents}
+      />
 
        <Card className="mt-8">
         <CardHeader>
