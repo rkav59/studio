@@ -207,7 +207,7 @@ export default function RiskManagementPage() {
   const activeControlActions = useMemo((): ActiveControlAction[] => {
     const controls: ActiveControlAction[] = [];
     manualRiskAssessments.forEach(assessment => {
-      assessment.additionalControls.forEach(control => {
+      (assessment.additionalControls || []).forEach(control => {
         if (control.status && !['Completed', 'Cancelled'].includes(control.status)) {
           controls.push({
             ...control,
