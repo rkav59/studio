@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useRouter } from 'next/navigation';
 import { TrainingRecordForm, type TrainingRecordFormValues } from "@/components/training-competence/training-record-form";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -10,12 +11,13 @@ import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { TrainingCourse, TrainingRecord, TrainingRecordStatus } from '@/lib/types';
+import type { TrainingCourse, TrainingRecord, TrainingRecordStatus, TrainingJobRoleMatrixEntry } from '@/lib/types';
 import { parseISO } from 'date-fns';
 import { ArrowLeft, UserCheck } from 'lucide-react';
 
 const COURSES_COLLECTION = 'trainingCourses';
 const RECORDS_COLLECTION = 'trainingRecords';
+const TRAINING_JOB_ROLE_MATRIX_COLLECTION = 'trainingJobRoleMatrix';
 
 export default function NewTrainingRecordPage() {
   const router = useRouter();
@@ -34,9 +36,21 @@ export default function NewTrainingRecordPage() {
     enabled: !!user?.uid,
   });
 
+  const { data: trainingJobRoleMatrix = [], isLoading: isLoadingJobRoleMatrix, error: jobRoleMatrixError } = useQuery<TrainingJobRoleMatrixEntry[]>({
+    queryKey: [TRAINING_JOB_ROLE_MATRIX_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, TRAINING_JOB_ROLE_MATRIX_COLLECTION), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainingJobRoleMatrixEntry));
+    },
+    enabled: !!user?.uid,
+  });
+
   const addRecordMutation = useMutation({
     mutationFn: async (recordData: {
         employeeName: string;
+        jobRole?: string;
         courseId: string;
         trainingDate: string; // ISO string
         expiryDate: string | null; // ISO string or null
@@ -74,7 +88,7 @@ export default function NewTrainingRecordPage() {
     router.push('/training-competence');
   };
 
-  if (isLoadingCourses) {
+  if (isLoadingCourses || isLoadingJobRoleMatrix) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
@@ -90,8 +104,8 @@ export default function NewTrainingRecordPage() {
     );
   }
 
-  if (coursesError) {
-     return <div className="text-red-500 text-center py-10">Error loading courses: {coursesError.message}</div>;
+  if (coursesError || jobRoleMatrixError) {
+     return <div className="text-red-500 text-center py-10">Error loading data: {coursesError?.message || jobRoleMatrixError?.message}</div>;
   }
   
   if (courses.length === 0 && !isLoadingCourses) {
@@ -135,7 +149,8 @@ export default function NewTrainingRecordPage() {
           </CardDescription>
         </CardHeader>
         <TrainingRecordForm 
-          courses={courses} 
+          courses={courses}
+          trainingJobRoleMatrix={trainingJobRoleMatrix}
           onSave={handleSaveRecord} 
           onCancel={handleCancel}
           isSubmitting={addRecordMutation.isPending}

@@ -1,7 +1,8 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,15 +25,16 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-// Removed Dialog imports
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Save, XCircle } from "lucide-react";
-import type { TrainingCourse, TrainingRecord, TrainingRecordStatus } from "@/lib/types";
+import type { TrainingCourse, TrainingRecord, TrainingRecordStatus, TrainingJobRoleMatrixEntry } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
-import { ScrollArea } from "@/components/ui/scroll-area"; // Added ScrollArea
+import { useMemo, useEffect } from "react";
 
 const trainingRecordFormSchema = z.object({
   employeeName: z.string().min(2, "Employee name is required.").max(150),
+  jobRole: z.string().optional(),
   courseId: z.string({ required_error: "Please select a course." }),
   trainingDate: z.date({ required_error: "Training date is required." }),
   expiryDate: z.date().nullable().optional(),
@@ -46,17 +48,21 @@ type TrainingRecordFormValues = z.infer<typeof trainingRecordFormSchema>;
 
 interface TrainingRecordFormProps {
   courses: TrainingCourse[];
+  trainingJobRoleMatrix: TrainingJobRoleMatrixEntry[];
   initialData?: TrainingRecord | null;
-  onSave: (data: Omit<TrainingRecord, 'id' | 'status'>, currentStatus: TrainingRecordStatus) => void;
+  onSave: (data: Omit<TrainingRecord, 'id' | 'status' | 'userId'>, currentStatus: TrainingRecordStatus) => void;
   onCancel: () => void;
-  isSubmitting?: boolean; // Added for button state
+  isSubmitting?: boolean;
 }
 
-export function TrainingRecordForm({ courses, initialData, onSave, onCancel, isSubmitting }: TrainingRecordFormProps) {
+const NO_ROLE_VALUE = "__NONE__";
+
+export function TrainingRecordForm({ courses, trainingJobRoleMatrix, initialData, onSave, onCancel, isSubmitting }: TrainingRecordFormProps) {
   const form = useForm<TrainingRecordFormValues>({
     resolver: zodResolver(trainingRecordFormSchema),
     defaultValues: {
       employeeName: initialData?.employeeName || "",
+      jobRole: initialData?.jobRole || NO_ROLE_VALUE,
       courseId: initialData?.courseId || "",
       trainingDate: initialData?.trainingDate ? parseISO(initialData.trainingDate) : new Date(),
       expiryDate: initialData?.expiryDate ? parseISO(initialData.expiryDate) : null,
@@ -66,10 +72,34 @@ export function TrainingRecordForm({ courses, initialData, onSave, onCancel, isS
       notes: initialData?.notes || "",
     },
   });
+  
+  const watchedJobRole = useWatch({ control: form.control, name: "jobRole" });
+
+  const availableCoursesForRole = useMemo(() => {
+    if (watchedJobRole && watchedJobRole !== NO_ROLE_VALUE) {
+      const roleMatrixEntry = trainingJobRoleMatrix.find(r => r.jobRole === watchedJobRole);
+      if (roleMatrixEntry) {
+        const requiredIds = new Set(roleMatrixEntry.requiredCourseIds);
+        return courses.filter(course => requiredIds.has(course.id));
+      }
+      return []; // If role is selected but no matrix found, show no courses
+    }
+    return courses; // If no role selected, show all courses
+  }, [watchedJobRole, trainingJobRoleMatrix, courses]);
+
+  // Effect to reset courseId if the selected one is no longer in the available list
+  useEffect(() => {
+    const currentCourseId = form.getValues("courseId");
+    if (currentCourseId && !availableCoursesForRole.some(c => c.id === currentCourseId)) {
+      form.setValue("courseId", "");
+    }
+  }, [watchedJobRole, availableCoursesForRole, form]);
+
 
   const onSubmit = (data: TrainingRecordFormValues) => {
     const recordToSave = {
         employeeName: data.employeeName,
+        jobRole: data.jobRole === NO_ROLE_VALUE ? undefined : data.jobRole,
         courseId: data.courseId,
         trainingDate: data.trainingDate.toISOString(),
         expiryDate: data.expiryDate ? data.expiryDate.toISOString() : null,
@@ -102,18 +132,43 @@ export function TrainingRecordForm({ courses, initialData, onSave, onCancel, isS
 
           <FormField
             control={form.control}
+            name="jobRole"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Job Role (Optional)</FormLabel>
+                 <Select onValueChange={field.onChange} value={field.value || NO_ROLE_VALUE}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a job role to filter courses" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={NO_ROLE_VALUE}>None (Show All Courses)</SelectItem>
+                    {trainingJobRoleMatrix.map(role => (
+                      <SelectItem key={role.id} value={role.jobRole}>{role.jobRole}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                 <FormDescription>Filters the course list below based on requirements.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="courseId"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Course</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={courses.length === 0}>
+                <Select onValueChange={field.onChange} value={field.value} disabled={availableCoursesForRole.length === 0}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder={courses.length === 0 ? "No courses available" : "Select a training course"} />
+                      <SelectValue placeholder={availableCoursesForRole.length === 0 ? "No required/available courses for this role" : "Select a training course"} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {courses.map(course => (
+                    {availableCoursesForRole.map(course => (
                       <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
                     ))}
                   </SelectContent>

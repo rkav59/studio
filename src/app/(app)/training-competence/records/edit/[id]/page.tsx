@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
@@ -10,12 +11,14 @@ import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { TrainingCourse, TrainingRecord, TrainingRecordStatus } from '@/lib/types';
+import type { TrainingCourse, TrainingRecord, TrainingRecordStatus, TrainingJobRoleMatrixEntry } from '@/lib/types';
 import { parseISO, format } from 'date-fns';
 import { ArrowLeft, UserCheck } from 'lucide-react';
 
 const COURSES_COLLECTION = 'trainingCourses';
 const RECORDS_COLLECTION = 'trainingRecords';
+const TRAINING_JOB_ROLE_MATRIX_COLLECTION = 'trainingJobRoleMatrix';
+
 
 export default function EditTrainingRecordPage() {
   const router = useRouter();
@@ -33,6 +36,17 @@ export default function EditTrainingRecordPage() {
       const q = query(collection(db, COURSES_COLLECTION), where("userId", "==", user.uid));
       const snapshot = await getDocs(q);
       return snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as TrainingCourse));
+    },
+    enabled: !!user?.uid,
+  });
+  
+  const { data: trainingJobRoleMatrix = [], isLoading: isLoadingJobRoleMatrix, error: jobRoleMatrixError } = useQuery<TrainingJobRoleMatrixEntry[]>({
+    queryKey: [TRAINING_JOB_ROLE_MATRIX_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, TRAINING_JOB_ROLE_MATRIX_COLLECTION), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainingJobRoleMatrixEntry));
     },
     enabled: !!user?.uid,
   });
@@ -79,11 +93,11 @@ export default function EditTrainingRecordPage() {
     onError: (e: Error) => toast({ title: "Error Updating Record", description: e.message, variant: "destructive" }),
   });
 
-  const handleSaveRecord = (formData: Omit<TrainingRecord, 'id' | 'status' | 'userId'>, currentFormStatus: TrainingRecordStatus) => {
+  const handleSaveRecord = (data: Omit<TrainingRecord, 'id' | 'status' | 'userId'>, currentFormStatus: TrainingRecordStatus) => {
     if (!recordToEdit) return;
     const recordDataToSave: TrainingRecord = {
         ...recordToEdit, // Spread existing data like id and userId
-        ...formData, // Spread form values
+        ...data, // Spread form values
         status: currentFormStatus, // Use the status from the form
     };
     updateRecordMutation.mutate(recordDataToSave);
@@ -93,7 +107,7 @@ export default function EditTrainingRecordPage() {
     router.push('/training-competence');
   };
 
-  if (isLoadingCourses || isLoadingRecord) {
+  if (isLoadingCourses || isLoadingRecord || isLoadingJobRoleMatrix) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
@@ -109,7 +123,7 @@ export default function EditTrainingRecordPage() {
     );
   }
 
-  if (coursesError || recordError || !recordToEdit) {
+  if (coursesError || recordError || !recordToEdit || jobRoleMatrixError) {
     return (
       <div className="space-y-6">
         <Button variant="outline" onClick={handleCancel}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
@@ -139,6 +153,7 @@ export default function EditTrainingRecordPage() {
         </CardHeader>
         <TrainingRecordForm 
             courses={courses}
+            trainingJobRoleMatrix={trainingJobRoleMatrix}
             initialData={recordToEdit} 
             onSave={handleSaveRecord} 
             onCancel={handleCancel}

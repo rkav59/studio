@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -6,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 // Removed Dialog import as forms are now on separate pages
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Edit2, Trash2, BookOpen, UserCheck, CalendarClock, AlertTriangle, CheckCircle2, Loader2, BookUser, Search, XCircle } from "lucide-react";
-import type { TrainingCourse, TrainingRecord, TrainingRecordStatus } from "@/lib/types";
+import { PlusCircle, Edit2, Trash2, BookOpen, UserCheck, CalendarClock, AlertTriangle, CheckCircle2, Loader2, BookUser, Search, XCircle, Briefcase } from "lucide-react"; // Added Briefcase
+import type { TrainingCourse, TrainingRecord, TrainingRecordStatus, TrainingJobRoleMatrixEntry } from "@/lib/types"; // Added TrainingJobRoleMatrixEntry
 // Removed CourseForm and TrainingRecordForm imports
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, differenceInDays, isValid, isBefore } from 'date-fns';
+import { format, parseISO, isValid, isBefore, differenceInDays } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/auth-context';
@@ -24,10 +25,12 @@ import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TrainingJobRoleMatrixDetailsDialog } from '@/components/training-competence/training-job-role-matrix-details-dialog';
 
 
 const COURSES_COLLECTION = 'trainingCourses';
 const RECORDS_COLLECTION = 'trainingRecords';
+const TRAINING_JOB_ROLE_MATRIX_COLLECTION = 'trainingJobRoleMatrix'; // New collection
 const RENEWAL_WARNING_DAYS = 30;
 
 
@@ -39,6 +42,8 @@ export default function TrainingCompetencePage() {
 
   const [courseSearchTerm, setCourseSearchTerm] = useState("");
   const [recordSearchTerm, setRecordSearchTerm] = useState("");
+  const [jobRoleSearchTerm, setJobRoleSearchTerm] = useState("");
+  const [viewingJobRoleEntry, setViewingJobRoleEntry] = useState<TrainingJobRoleMatrixEntry | null>(null);
 
   const canManageCourses = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [user, userProfile]);
   const canManageRecords = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [user, userProfile]);
@@ -75,13 +80,27 @@ export default function TrainingCompetencePage() {
     },
     enabled: !!user?.uid,
   });
+  
+  // Fetch Training Job Role Matrix
+  const { data: trainingJobRoleMatrix = [], isLoading: isLoadingJobRoleMatrix, error: jobRoleMatrixError } = useQuery<TrainingJobRoleMatrixEntry[]>({
+    queryKey: [TRAINING_JOB_ROLE_MATRIX_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, TRAINING_JOB_ROLE_MATRIX_COLLECTION), where("userId", "==", user.uid), orderBy("jobRole"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainingJobRoleMatrixEntry));
+    },
+    enabled: !!user?.uid,
+  });
+
 
   // Course Deletion Mutation (remains here as it's triggered from the list)
   const deleteCourseMutation = useMutation({
     mutationFn: async (courseId: string) => {
       if (!user?.uid) throw new Error("User not authenticated.");
-      if (trainingRecords.some(record => record.courseId === courseId)) {
-        throw new Error("This course is linked to training records. Delete records first.");
+      if (trainingRecords.some(record => record.courseId === courseId) || 
+          trainingJobRoleMatrix.some(matrix => matrix.requiredCourseIds.includes(courseId))) {
+        throw new Error("Cannot delete: This course is linked to training records or a job role matrix. Please remove associations first.");
       }
       await deleteDoc(doc(db, COURSES_COLLECTION, courseId));
     },
@@ -102,6 +121,17 @@ export default function TrainingCompetencePage() {
     onError: (e: Error) => toast({ title: "Error Deleting Record", description: e.message, variant: "destructive" }),
   });
 
+  // Job Role Matrix Deletion Mutation
+  const deleteJobRoleEntryMutation = useMutation({
+    mutationFn: (entryId: string) => deleteDoc(doc(db, TRAINING_JOB_ROLE_MATRIX_COLLECTION, entryId)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [TRAINING_JOB_ROLE_MATRIX_COLLECTION, user?.uid] });
+      toast({ title: "Job Role Deleted" });
+    },
+    onError: (e: Error) => toast({ title: "Error Deleting Job Role", description: e.message, variant: "destructive" }),
+  });
+
+
   const getCourseName = (courseId: string) => courses.find(c => c.id === courseId)?.name || "Unknown Course";
 
   const filteredCourses = useMemo(() => {
@@ -121,6 +151,12 @@ export default function TrainingCompetencePage() {
       getCourseName(r.courseId).toLowerCase().includes(lowercasedTerm)
     );
   }, [trainingRecords, recordSearchTerm, courses]);
+  
+  const filteredJobRoleMatrix = useMemo(() => {
+    if (!jobRoleSearchTerm) return trainingJobRoleMatrix;
+    const lowercasedTerm = jobRoleSearchTerm.toLowerCase();
+    return trainingJobRoleMatrix.filter(entry => entry.jobRole.toLowerCase().includes(lowercasedTerm));
+  }, [trainingJobRoleMatrix, jobRoleSearchTerm]);
 
 
   // Navigation handlers
@@ -137,6 +173,16 @@ export default function TrainingCompetencePage() {
   };
   const handleEditRecord = (record: TrainingRecord) => router.push(`/training-competence/records/edit/${record.id}`);
   const handleDeleteRecord = (recordId: string) => deleteRecordMutation.mutate(recordId);
+  
+  const handleOpenNewJobRoleForm = () => {
+    if (courses.length === 0) {
+      toast({ title: "No Courses", description: "Please add courses before defining job roles.", variant: "destructive"});
+      return;
+    }
+    router.push('/training-competence/job-role-matrix/new');
+  };
+  const handleEditJobRoleEntry = (entry: TrainingJobRoleMatrixEntry) => router.push(`/training-competence/job-role-matrix/edit/${entry.id}`);
+  const handleDeleteJobRoleEntry = (entryId: string) => deleteJobRoleEntryMutation.mutate(entryId);
   
   const getDerivedStatus = (record: TrainingRecord): TrainingRecordStatus => {
     if (record.status === 'Planned') return 'Planned';
@@ -219,7 +265,7 @@ export default function TrainingCompetencePage() {
   }, [uniqueEmployees, courses, trainingRecords]);
 
 
-  if (isLoadingCourses || isLoadingRecords) {
+  if (isLoadingCourses || isLoadingRecords || isLoadingJobRoleMatrix) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -227,7 +273,7 @@ export default function TrainingCompetencePage() {
       </div>
     );
   }
-  if (coursesError || recordsError) {
+  if (coursesError || recordsError || jobRoleMatrixError) {
     return <div className="text-red-500 text-center py-10">Error loading data: ${(coursesError || recordsError)?.message}</div>;
   }
 
@@ -236,12 +282,10 @@ export default function TrainingCompetencePage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
-          <BookUser className="h-8 w-8"/> Training &amp; Competence
+          <BookUser className="h-8 w-8"/> Training & Competence
         </h1>
         <p className="text-muted-foreground mt-2">
-            This module allows you to build a course catalog and maintain training records for employees. 
-            Track completion dates, expiry dates, and overall training status to ensure workforce competence.
-            All data is now stored securely in Firebase Firestore.
+            This module allows you to build a course catalog, define training needs by job role, and maintain training records for employees.
         </p>
       </div>
       
@@ -250,18 +294,11 @@ export default function TrainingCompetencePage() {
           <CardTitle>Quick Access</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href="#reminders-section">Reminders</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href="#training-matrix">Training Matrix</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href="#course-catalog">Course Catalog</Link>
-          </Button>
-           <Button asChild variant="outline" size="sm">
-            <Link href="#training-records">Training Records</Link>
-          </Button>
+          <Button asChild variant="outline" size="sm"><Link href="#reminders-section">Reminders</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link href="#training-matrix">Training Matrix</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link href="#job-role-matrix">Job Role Matrix</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link href="#course-catalog">Course Catalog</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link href="#training-records">Training Records</Link></Button>
         </CardContent>
       </Card>
       
@@ -392,6 +429,69 @@ export default function TrainingCompetencePage() {
            )}
         </CardContent>
       </Card>
+
+
+      <Separator />
+
+       <Card id="job-role-matrix">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2"><Briefcase className="h-6 w-6 text-indigo-600"/>Job Role Training Matrix</CardTitle>
+            <CardDescription>Define standard training requirements for different job roles (Training Needs Analysis).</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search job roles..." className="pl-8 w-full sm:w-[200px]" value={jobRoleSearchTerm} onChange={(e) => setJobRoleSearchTerm(e.target.value)} /></div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div tabIndex={0} className={cn(!canManageCourses && "cursor-not-allowed")}>
+                    <Button onClick={() => canManageCourses && handleOpenNewJobRoleForm()} disabled={!canManageCourses || courses.length === 0} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                        <PlusCircle className="mr-2 h-4 w-4" /> Define Job Role
+                    </Button>
+                </div>
+              </TooltipTrigger>
+              {!canManageCourses && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+            </Tooltip>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {courses.length === 0 && <p className="text-center text-muted-foreground py-4">Please add courses to the catalog first to define job role requirements.</p>}
+          {filteredJobRoleMatrix.length === 0 && courses.length > 0 && (
+            <p className="text-muted-foreground text-center py-4">{jobRoleSearchTerm ? "No matching job roles found." : "No job role requirements defined yet."}</p>
+          )}
+          {filteredJobRoleMatrix.length > 0 && (
+            <ScrollArea className="max-h-[300px] pr-3">
+              <ul className="space-y-3">
+                {filteredJobRoleMatrix.map(entry => (
+                  <li key={entry.id} className="p-3 border rounded-md bg-secondary/30 flex justify-between items-start">
+                    <div>
+                      <h4 className="font-semibold">{entry.jobRole}</h4>
+                      <p className="text-xs text-muted-foreground">{entry.requiredCourseIds.length} course(s) required</p>
+                    </div>
+                    <div className="flex gap-2 shrink-0 ml-4">
+                      <Button variant="outline" size="sm" onClick={() => setViewingJobRoleEntry(entry)}>View</Button>
+                      <Tooltip>
+                          <TooltipTrigger asChild><div tabIndex={0} className={cn(!canManageCourses && "cursor-not-allowed")}><Button variant="secondary" size="sm" onClick={() => canManageCourses && handleEditJobRoleEntry(entry)} disabled={!canManageCourses}>Edit</Button></div></TooltipTrigger>
+                          {!canManageCourses && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                      </Tooltip>
+                      <AlertDialog>
+                        <Tooltip>
+                            <TooltipTrigger asChild><div tabIndex={0} className={cn(!canManageCourses && "cursor-not-allowed")}><AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={!canManageCourses || (deleteJobRoleEntryMutation.isPending && deleteJobRoleEntryMutation.variables === entry.id)}>Delete</Button></AlertDialogTrigger></div></TooltipTrigger>
+                            {!canManageCourses && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
+                        </Tooltip>
+                        <AlertDialogContent>
+                          <AlertDialogHeader><AlertDialogTitle>Delete Job Role?</AlertDialogTitle><AlertDialogDescription>This will delete the training requirements for "{entry.jobRole}". It will not delete existing training records.</AlertDialogDescription></AlertDialogHeader>
+                          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteJobRoleEntry(entry.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
+      {viewingJobRoleEntry && <TrainingJobRoleMatrixDetailsDialog entry={viewingJobRoleEntry} courses={courses} onClose={() => setViewingJobRoleEntry(null)} />}
 
 
       <Separator />

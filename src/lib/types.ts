@@ -1,4 +1,5 @@
 
+
 // --- User Profile & Auth Types ---
 export type UserRole = 'admin' | 'she_officer' | 'authorizer' | 'she_rep' | 'visitor';
 export type PlanId = 'free' | 'trial' | 'pro' | 'premium' | 'enterprise';
@@ -296,6 +297,7 @@ export interface TrainingRecord {
   userId?: string;
   organizationId?: string; // For data scoping
   employeeName: string;
+  jobRole?: string;
   courseId: string; // Links to TrainingCourse.id
   trainingDate: string; // ISO date string
   expiryDate?: string | null; // ISO date string, optional
@@ -303,6 +305,14 @@ export interface TrainingRecord {
   status: TrainingRecordStatus; // User sets 'Planned' | 'Completed'; 'Expired'/'Requires Renewal' derived
   certificateUrl?: string; // Optional link to a certificate
   notes?: string;
+}
+
+export interface TrainingJobRoleMatrixEntry {
+  id: string;
+  userId?: string;
+  organizationId?: string;
+  jobRole: string;
+  requiredCourseIds: string[];
 }
 
 
