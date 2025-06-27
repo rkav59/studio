@@ -453,7 +453,7 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
                   kpiKey={kpi.key}
                   value={kpi.value}
                   valueSuffix={kpi.valueSuffix}
-                  threshold={thresholdConfig?.value}
+                  threshold={thresholdConfig ? Number(thresholdConfig.value) : undefined}
                   targetDirection={thresholdConfig?.targetDirection || kpiInfoMap[kpi.key].defaultTargetDirection}
                   onGetAiRecommendation={handleGetAiRecommendation}
                 />
