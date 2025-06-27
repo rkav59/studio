@@ -42,8 +42,8 @@ const auditObservationEntrySchema = z.object({
 });
 
 const auditChecklistItemSchema = z.object({
-  id: z.string(),
-  templateItemId: z.string().optional(),
+  id: z.string(), // Unique ID for the instance of this item in an audit
+  templateItemId: z.string().optional(), // ID of the original template item
   text: z.string().min(1, "Checklist item text cannot be empty.").max(1000, "Text too long"),
   status: z.enum(['Compliant', 'Non-Compliant', 'Not Applicable', 'Pending']),
   auditCriteriaReference: z.string().max(250).optional(),

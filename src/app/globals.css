@@ -116,10 +116,10 @@
     -webkit-print-color-adjust: exact !important; /* Chrome, Safari */
     color-adjust: exact !important; /* Firefox, Edge */
   }
-  #she-report-print-area, #she-report-print-area * {
+  .printable-area, .printable-area * {
     visibility: visible;
   }
-  #she-report-print-area {
+  .printable-area {
     position: absolute;
     left: 0;
     top: 0;
@@ -131,49 +131,49 @@
     background-color: white !important; /* Ensure white background */
     color: black !important; /* Ensure black text */
   }
-  #she-report-print-area h1, 
-  #she-report-print-area h2, 
-  #she-report-print-area h3,
-  #she-report-print-area h4,
-  #she-report-print-area h5,
-  #she-report-print-area h6 {
+  .printable-area h1, 
+  .printable-area h2, 
+  .printable-area h3,
+  .printable-area h4,
+  .printable-area h5,
+  .printable-area h6 {
     color: black !important;
     margin-top: 0.7em;
     margin-bottom: 0.3em;
     font-weight: bold;
   }
-   #she-report-print-area h1 { font-size: 16pt; }
-   #she-report-print-area h2 { font-size: 14pt; }
-   #she-report-print-area h3 { font-size: 12pt; }
-  #she-report-print-area p {
+   .printable-area h1 { font-size: 16pt; }
+   .printable-area h2 { font-size: 14pt; }
+   .printable-area h3 { font-size: 12pt; }
+  .printable-area p {
     color: black !important;
     margin-bottom: 0.4em;
   }
-  #she-report-print-area ul, #she-report-print-area ol {
+  .printable-area ul, .printable-area ol {
     color: black !important;
     margin-left: 20px; /* Consistent margin for lists */
     padding-left: 20px; /* Ensure padding for list bullets/numbers */
     margin-bottom: 0.5em;
   }
-  #she-report-print-area ul {
+  .printable-area ul {
     list-style: disc !important;
   }
-  #she-report-print-area ol {
+  .printable-area ol {
     list-style: decimal !important;
   }
-  #she-report-print-area li {
+  .printable-area li {
     color: black !important;
     margin-bottom: 0.2em;
   }
-  #she-report-print-area strong, #she-report-print-area b {
+  .printable-area strong, .printable-area b {
     font-weight: bold !important;
     color: black !important;
   }
-  #she-report-print-area em, #she-report-print-area i {
+  .printable-area em, .printable-area i {
     font-style: italic !important;
     color: black !important;
   }
-  #she-report-print-area hr {
+  .printable-area hr {
     border: none;
     border-top: 1px solid #ccc !important; /* Light gray line for hr */
     margin: 1em 0 !important;
@@ -181,7 +181,7 @@
     height: 1px !important;
     background-color: #ccc !important;
   }
-  #she-report-print-area a { /* Basic styling for links in print */
+  .printable-area a { /* Basic styling for links in print */
     color: #0000EE !important; /* Standard blue link color */
     text-decoration: underline !important;
   }
@@ -192,18 +192,18 @@
   }
 
   /* Avoid page breaks inside these elements if possible */
-  #she-report-print-area h1,
-  #she-report-print-area h2,
-  #she-report-print-area h3,
-  #she-report-print-area p,
-  #she-report-print-area ul,
-  #she-report-print-area ol {
+  .printable-area h1,
+  .printable-area h2,
+  .printable-area h3,
+  .printable-area p,
+  .printable-area ul,
+  .printable-area ol {
     page-break-inside: avoid;
   }
   /* Try to avoid page breaks after headings */
-  #she-report-print-area h1,
-  #she-report-print-area h2,
-  #she-report-print-area h3 {
+  .printable-area h1,
+  .printable-area h2,
+  .printable-area h3 {
     page-break-after: avoid;
   }
 }

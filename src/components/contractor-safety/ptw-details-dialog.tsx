@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -14,7 +15,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { PermitToWork } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
-import { FileText, User, MapPin, Clock, AlertTriangle, CheckCircle2, ShieldCheck, UserCheck, CalendarX2, Search } from "lucide-react"; // Added Search
+import { FileText, User, MapPin, Clock, AlertTriangle, CheckCircle2, ShieldCheck, UserCheck, CalendarX2, Search, Download } from "lucide-react";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { useToast } from "@/hooks/use-toast";
 
 interface PtwDetailsDialogProps {
   ptw: PermitToWork;
@@ -25,6 +29,7 @@ interface PtwDetailsDialogProps {
 }
 
 export function PtwDetailsDialog({ ptw, contractorName, onClose, supervisionRecordsCount, onNavigateToSupervision }: PtwDetailsDialogProps) {
+  const { toast } = useToast();
 
   const getPtwStatusIcon = (status: PermitToWork['status']) => {
     switch (status) {
@@ -50,7 +55,31 @@ export function PtwDetailsDialog({ ptw, contractorName, onClose, supervisionReco
     }
   };
 
+  const handleDownloadPdf = () => {
+    const reportElement = document.getElementById(`pdf-report-ptw-${ptw.id}`);
+    if (reportElement) {
+        toast({ title: "Generating PDF...", description: "Please wait a moment." });
+        html2canvas(reportElement, { scale: 2, useCORS: true }).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            const ratio = canvasWidth / canvasHeight;
+            const width = pdfWidth;
+            const height = width / ratio;
+            
+            pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+            pdf.save(`PTW_${ptw.ptwNumber}.pdf`);
+        });
+    }
+  };
+
+
   return (
+    <>
+    <PtwPdfReport ptw={ptw} contractorName={contractorName} />
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
@@ -140,12 +169,68 @@ export function PtwDetailsDialog({ ptw, contractorName, onClose, supervisionReco
             </div>
         </ScrollArea>
 
-        <DialogFooter className="pt-4 border-t">
-          <DialogClose asChild>
-            <Button variant="outline" onClick={onClose}>Close</Button>
-          </DialogClose>
+        <DialogFooter className="pt-4 border-t flex justify-between">
+            <Button variant="outline" onClick={handleDownloadPdf}>
+                <Download className="mr-2 h-4 w-4" />
+                Download PDF
+            </Button>
+            <DialogClose asChild>
+                <Button variant="outline" onClick={onClose}>Close</Button>
+            </DialogClose>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
+
+
+// Hidden component for PDF generation content
+const PtwPdfReport = ({ ptw, contractorName }: { ptw: PermitToWork, contractorName: string }) => {
+    return (
+        <div id={`pdf-report-ptw-${ptw.id}`} style={{ width: '800px', padding: '40px', fontFamily: 'Arial, sans-serif', color: '#000', backgroundColor: '#fff', position: 'absolute', left: '-9999px', top: 0 }}>
+            <h1 style={{ fontSize: '24px', color: '#2C3E50', borderBottom: '2px solid #3498DB', paddingBottom: '10px', marginBottom: '20px' }}>Permit to Work - {ptw.ptwNumber}</h1>
+            
+            <h2 style={{ fontSize: '18px', color: '#34495E', borderBottom: '1px solid #ccc', paddingBottom: '5px' }}>Permit Details</h2>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginTop: '10px' }}>
+                <tbody>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd', width: '25%' }}><strong>Contractor:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{contractorName}</td></tr>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Work Description:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{ptw.workDescription}</td></tr>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Location:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{ptw.location}</td></tr>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Status:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd', fontWeight: 'bold' }}>{ptw.status}</td></tr>
+                </tbody>
+            </table>
+
+            <h2 style={{ fontSize: '18px', color: '#34495E', borderBottom: '1px solid #ccc', paddingBottom: '5px', marginTop: '20px' }}>Validity</h2>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginTop: '10px' }}>
+                <tbody>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd', width: '25%' }}><strong>Start Date & Time:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{format(parseISO(ptw.startDate), "yyyy-MM-dd, HH:mm")}</td></tr>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>End Date & Time:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{format(parseISO(ptw.endDate), "yyyy-MM-dd, HH:mm")}</td></tr>
+                </tbody>
+            </table>
+
+            <h2 style={{ fontSize: '18px', color: '#34495E', borderBottom: '1px solid #ccc', paddingBottom: '5px', marginTop: '20px' }}>Scope & Precautions</h2>
+            <h3 style={{ fontSize: '14px', color: '#2980B9', marginTop: '15px' }}>Detailed Scope of Work:</h3>
+            <p style={{ fontSize: '12px', whiteSpace: 'pre-wrap', border: '1px solid #eee', padding: '10px', borderRadius: '4px' }}>{ptw.scopeOfWork}</p>
+            <h3 style={{ fontSize: '14px', color: '#2980B9', marginTop: '15px' }}>Safety Precautions Required:</h3>
+            <p style={{ fontSize: '12px', whiteSpace: 'pre-wrap', border: '1px solid #eee', padding: '10px', borderRadius: '4px' }}>{ptw.precautions}</p>
+            {ptw.supervisorOnSite && <p style={{ fontSize: '12px', marginTop: '10px' }}><strong>Contractor Supervisor On-Site:</strong> {ptw.supervisorOnSite}</p>}
+
+             <h2 style={{ fontSize: '18px', color: '#34495E', borderBottom: '1px solid #ccc', paddingBottom: '5px', marginTop: '20px' }}>Authorization & Sign-Off</h2>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginTop: '10px' }}>
+                <tbody>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd', width: '25%' }}><strong>Authorized By:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{ptw.authorizedBy || ''}</td></tr>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Authorization Date:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{ptw.authorizationDate ? format(parseISO(ptw.authorizationDate), 'yyyy-MM-dd, HH:mm') : ''}</td></tr>
+                    <tr style={{ height: '40px' }}><td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Signature:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}></td></tr>
+                </tbody>
+            </table>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginTop: '15px' }}>
+                <tbody>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd', width: '25%' }}><strong>Closed/Cancelled By:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{ptw.closedBy || ''}</td></tr>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Closure Date:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{ptw.closureDate ? format(parseISO(ptw.closureDate), 'yyyy-MM-dd, HH:mm') : ''}</td></tr>
+                    <tr style={{ height: '40px' }}><td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Signature:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}></td></tr>
+                </tbody>
+            </table>
+        </div>
+    );
+};

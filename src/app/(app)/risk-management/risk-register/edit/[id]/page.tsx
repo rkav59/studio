@@ -9,14 +9,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'firebase/firestore'; // Added collection, query, getDocs
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { RiskRegisterEntry, SheqAudit } from '@/lib/types'; // Added SheqAudit
-import { ArrowLeft, BookOpen } from 'lucide-react';
+import type { RiskRegisterEntry, SheqAudit } from '@/lib/types';
+import { ArrowLeft, BookOpen, FileDown } from 'lucide-react';
 import { parseISO, format } from 'date-fns';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const RISK_REGISTER_ENTRIES_COLLECTION = 'riskRegisterEntries';
-const SHEQ_AUDITS_COLLECTION = 'sheqAudits'; // For fetching SHEQ Audits
+const SHEQ_AUDITS_COLLECTION = 'sheqAudits';
 
 export default function EditRiskRegisterEntryPage() {
   const router = useRouter();
@@ -27,7 +29,6 @@ export default function EditRiskRegisterEntryPage() {
   
   const entryId = params.id as string;
 
-  // Fetch SHEQ Audits for the dropdown
   const { data: sheqAudits = [], isLoading: isLoadingSheqAudits, error: sheqAuditsError } = useQuery<SheqAudit[]>({
     queryKey: [SHEQ_AUDITS_COLLECTION, user?.uid],
     queryFn: async () => {
@@ -77,8 +78,8 @@ export default function EditRiskRegisterEntryPage() {
         treatmentDueDate: dataToUpdate.treatmentDueDate ? Timestamp.fromDate(parseISO(dataToUpdate.treatmentDueDate as string)) : null,
         lastReviewedDate: dataToUpdate.lastReviewedDate ? Timestamp.fromDate(parseISO(dataToUpdate.lastReviewedDate as string)) : null,
         nextReviewDate: dataToUpdate.nextReviewDate ? Timestamp.fromDate(parseISO(dataToUpdate.nextReviewDate as string)) : null,
-        linkedSheqAuditId: dataToUpdate.linkedSheqAuditId || null, // Store null if undefined
-        linkedSheqAuditName: dataToUpdate.linkedSheqAuditName || null, // Store null if undefined
+        linkedSheqAuditId: dataToUpdate.linkedSheqAuditId || null,
+        linkedSheqAuditName: dataToUpdate.linkedSheqAuditName || null,
       };
       await updateDoc(entryRef, dataForDb); 
     },
@@ -110,6 +111,28 @@ export default function EditRiskRegisterEntryPage() {
     router.push('/risk-management');
   };
 
+  const handleDownloadPdf = () => {
+    const reportElement = document.getElementById(`pdf-report-risk-entry-${entryId}`);
+    if (reportElement) {
+        toast({ title: "Generating PDF...", description: "Please wait a moment." });
+        html2canvas(reportElement, { scale: 2, useCORS: true }).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            const ratio = canvasWidth / canvasHeight;
+            const width = pdfWidth;
+            const height = width / ratio;
+            
+            pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+            pdf.save(`Risk_Register_Entry_${entryToEdit?.riskTitle.replace(/\s/g, '_')}.pdf`);
+        });
+    }
+  };
+
+
   if (isLoadingEntry || isLoadingSheqAudits) {
     return (
       <div className="space-y-6">
@@ -137,14 +160,21 @@ export default function EditRiskRegisterEntryPage() {
   }
   
   return (
+    <>
+    <RiskRegisterEntryPdfReport entry={entryToEdit} />
     <div className="space-y-6">
-       <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={handleCancel} aria-label="Back to Risk Management">
-                <ArrowLeft className="h-4 w-4" />
+       <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Button variant="outline" size="icon" onClick={handleCancel} aria-label="Back to Risk Management">
+                  <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+                  <BookOpen className="h-6 w-6 text-green-600" /> Edit Risk: {entryToEdit.riskTitle}
+              </h1>
+            </div>
+            <Button variant="outline" onClick={handleDownloadPdf}>
+              <FileDown className="mr-2 h-4 w-4" /> Download PDF
             </Button>
-            <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-                 <BookOpen className="h-6 w-6 text-green-600" /> Edit Risk: {entryToEdit.riskTitle}
-            </h1>
         </div>
       <Card className="shadow-lg">
          <CardHeader>
@@ -161,5 +191,79 @@ export default function EditRiskRegisterEntryPage() {
         />
       </Card>
     </div>
+    </>
   );
 }
+
+
+const RiskRegisterEntryPdfReport = ({ entry }: { entry: RiskRegisterEntry }) => {
+    return (
+        <div id={`pdf-report-risk-entry-${entry.id}`} style={{ width: '800px', padding: '40px', fontFamily: 'Arial, sans-serif', color: '#000', backgroundColor: '#fff', position: 'absolute', left: '-9999px', top: 0 }}>
+            <h1 style={{ fontSize: '24px', color: '#2C3E50', borderBottom: '2px solid #3498DB', paddingBottom: '10px' }}>Risk Register Entry Report</h1>
+            
+            <h2 style={{ fontSize: '18px', color: '#34495E', marginTop: '20px' }}>{entry.riskTitle}</h2>
+            <p style={{ fontSize: '14px', whiteSpace: 'pre-wrap' }}>{entry.riskDescription}</p>
+
+            <h3 style={{ fontSize: '16px', color: '#2980B9', marginTop: '20px' }}>Identification</h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                <tbody>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Date Identified:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{format(parseISO(entry.dateIdentified), 'PPP')}</td></tr>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Identified By:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{entry.identifiedBy}</td></tr>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Category:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{entry.category || 'N/A'}</td></tr>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Source:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{entry.source || 'N/A'}</td></tr>
+                </tbody>
+            </table>
+
+            <h3 style={{ fontSize: '16px', color: '#2980B9', marginTop: '20px' }}>Risk Analysis</h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                <thead>
+                    <tr style={{ backgroundColor: '#f2f2f2' }}>
+                        <th style={{ padding: '6px', border: '1px solid #ddd' }}></th>
+                        <th style={{ padding: '6px', border: '1px solid #ddd' }}>Likelihood</th>
+                        <th style={{ padding: '6px', border: '1px solid #ddd' }}>Severity</th>
+                        <th style={{ padding: '6px', border: '1px solid #ddd' }}>Risk Level</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Initial:</strong></td>
+                        <td style={{ padding: '6px', border: '1px solid #ddd' }}>{entry.initialLikelihood}</td>
+                        <td style={{ padding: '6px', border: '1px solid #ddd' }}>{entry.initialSeverity}</td>
+                        <td style={{ padding: '6px', border: '1px solid #ddd', fontWeight: 'bold' }}>{entry.initialRiskLevel}</td>
+                    </tr>
+                     <tr>
+                        <td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Residual:</strong></td>
+                        <td style={{ padding: '6px', border: '1px solid #ddd' }}>{entry.residualLikelihood || 'N/A'}</td>
+                        <td style={{ padding: '6px', border: '1px solid #ddd' }}>{entry.residualSeverity || 'N/A'}</td>
+                        <td style={{ padding: '6px', border: '1px solid #ddd', fontWeight: 'bold' }}>{entry.residualRiskLevel || 'N/A'}</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3 style={{ fontSize: '16px', color: '#2980B9', marginTop: '20px' }}>Risk Treatment</h3>
+            <p style={{ fontSize: '14px', whiteSpace: 'pre-wrap', border: '1px solid #eee', padding: '10px', borderRadius: '4px' }}>{entry.treatmentPlan}</p>
+             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginTop: '10px' }}>
+                <tbody>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd', width: '25%' }}><strong>Risk Owner:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{entry.riskOwner}</td></tr>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Status:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{entry.status}</td></tr>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Treatment Due Date:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{entry.treatmentDueDate ? format(parseISO(entry.treatmentDueDate), 'PPP') : 'N/A'}</td></tr>
+                </tbody>
+            </table>
+
+             <h3 style={{ fontSize: '16px', color: '#2980B9', marginTop: '20px' }}>Monitoring & Review</h3>
+             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                <tbody>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd', width: '25%' }}><strong>Last Reviewed:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{entry.lastReviewedDate ? format(parseISO(entry.lastReviewedDate), 'PPP') : 'N/A'}</td></tr>
+                    <tr><td style={{ padding: '6px', border: '1px solid #ddd' }}><strong>Next Review:</strong></td><td style={{ padding: '6px', border: '1px solid #ddd' }}>{entry.nextReviewDate ? format(parseISO(entry.nextReviewDate), 'PPP') : 'N/A'}</td></tr>
+                </tbody>
+            </table>
+
+            {entry.notes && (
+                 <div style={{ marginTop: '20px' }}>
+                    <h3 style={{ fontSize: '16px', color: '#34495E' }}>Notes:</h3>
+                    <p style={{ fontSize: '14px', whiteSpace: 'pre-wrap', border: '1px solid #eee', padding: '10px', borderRadius: '4px' }}>{entry.notes}</p>
+                </div>
+            )}
+        </div>
+    );
+};
