@@ -36,9 +36,14 @@ interface DateStatusInfo {
   displayText: string;
 }
 
-function getDateStatusInfo(dateString?: string, leadDays: number = REMINDER_LEAD_DAYS_EP): DateStatusInfo | null {
-  if (!dateString || !isValid(parseISO(dateString))) return null;
-  const date = parseISO(dateString);
+function getDateStatusInfo(dateInput?: string | Date, leadDays: number = REMINDER_LEAD_DAYS_EP): DateStatusInfo | null {
+  if (!dateInput) return null;
+
+  // This handles both string and Date objects gracefully
+  const date = typeof dateInput === 'string' ? parseISO(dateInput) : dateInput;
+
+  if (!isValid(date)) return null;
+
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const formattedDate = format(date, "PPP");
   if (isBefore(date, today)) return { status: 'Overdue', textClass: 'text-red-600 font-semibold', icon: <AlertTriangle className="h-3 w-3 mr-1" />, displayText: `${formattedDate} (Overdue)` };
@@ -71,8 +76,8 @@ export default function EmergencyPreparednessPage() {
         const data = doc.data();
         return { 
           id: doc.id, ...data, 
-          lastReviewedDate: (data.lastReviewedDate as Timestamp)?.toDate().toISOString(),
-          nextReviewDate: (data.nextReviewDate as Timestamp)?.toDate().toISOString(),
+          lastReviewedDate: data.lastReviewedDate ? (data.lastReviewedDate as Timestamp).toDate().toISOString() : undefined,
+          nextReviewDate: data.nextReviewDate ? (data.nextReviewDate as Timestamp).toDate().toISOString() : undefined,
         } as EmergencyPlan;
       });
     },
@@ -90,8 +95,8 @@ export default function EmergencyPreparednessPage() {
         const data = doc.data();
         return { 
           id: doc.id, ...data, 
-          lastCheckedDate: (data.lastCheckedDate as Timestamp)?.toDate().toISOString(),
-          nextCheckDate: (data.nextCheckDate as Timestamp)?.toDate().toISOString(),
+          lastCheckedDate: data.lastCheckedDate ? (data.lastCheckedDate as Timestamp).toDate().toISOString() : undefined,
+          nextCheckDate: data.nextCheckDate ? (data.nextCheckDate as Timestamp).toDate().toISOString() : undefined,
         } as EmergencyResource;
       });
     },
@@ -110,10 +115,10 @@ export default function EmergencyPreparednessPage() {
         return { 
           id: doc.id, ...data, 
           scheduledDate: (data.scheduledDate as Timestamp)?.toDate().toISOString(),
-          actualDate: (data.actualDate as Timestamp)?.toDate().toISOString(),
+          actualDate: data.actualDate ? (data.actualDate as Timestamp).toDate().toISOString() : undefined,
           actionItems: (data.actionItems || []).map((ai: any) => ({
             ...ai,
-            dueDate: (ai.dueDate as Timestamp)?.toDate().toISOString(),
+            dueDate: ai.dueDate ? (ai.dueDate as Timestamp).toDate().toISOString() : undefined,
           })),
         } as MockDrill;
       });
