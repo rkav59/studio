@@ -219,6 +219,16 @@ export default function PpeManagementPage() {
     });
   }, [ppeItems, ppeInspections]);
 
+  const allScheduledInspections = useMemo(() => {
+    return ppeItemsWithInspectionInfo
+      .filter(item => ['Overdue', 'Due Soon', 'Scheduled'].includes(item.dueStatus || ''))
+      .sort((a, b) => {
+        const dateA = a.nextInspectionDueDate ? parseISO(a.nextInspectionDueDate).getTime() : Infinity;
+        const dateB = b.nextInspectionDueDate ? parseISO(b.nextInspectionDueDate).getTime() : Infinity;
+        return dateA - dateB;
+      });
+  }, [ppeItemsWithInspectionInfo]);
+
   const upcomingOrOverdueInspections = useMemo(() => {
     return ppeItemsWithInspectionInfo.filter(item => item.dueStatus === 'Overdue' || item.dueStatus === 'Due Soon');
   }, [ppeItemsWithInspectionInfo]);
@@ -230,7 +240,7 @@ export default function PpeManagementPage() {
       if (overdueCount > 0 || dueSoonCount > 0) {
         toast({
           title: "PPE Inspection Reminders",
-          description: `${overdueCount} item(s) overdue, ${dueSoonCount} item(s) due soon. Check 'Upcoming/Overdue Inspections'.`,
+          description: `${overdueCount} item(s) overdue, ${dueSoonCount} item(s) due soon. Check 'Inspection Schedule & Reminders'.`,
           variant: overdueCount > 0 ? "destructive" : "default", 
           duration: 10000,
         });
@@ -350,7 +360,7 @@ export default function PpeManagementPage() {
           <AlertTitle>Low Stock Warning!</AlertTitle>
           <AlertDescription>
             The following PPE items are below their reorder level and require attention:
-            <ul className="list-disc list-inside mt-2 pl-2 text-xs">
+            <ul className="list-disc list-inside mt-2 text-xs">
               {lowStockItems.map(item => (
                 <li key={item.id}>
                   <strong>{item.name}</strong> (Current Stock: {item.currentStock}, Reorder Level: {item.reorderLevel})
@@ -367,7 +377,7 @@ export default function PpeManagementPage() {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link href="#upcoming-inspections">Upcoming Inspections</Link>
+            <Link href="#inspection-schedule">Inspection Schedule</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
             <Link href="#ppe-inventory">PPE Inventory</Link>
@@ -386,32 +396,38 @@ export default function PpeManagementPage() {
 
       <Separator/>
 
-      <Card id="upcoming-inspections">
+      <Card id="inspection-schedule">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><CalendarClock className="h-6 w-6 text-orange-500"/>Upcoming/Overdue Inspections</CardTitle>
-          <CardDescription>PPE items requiring inspection soon or currently overdue.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><CalendarClock className="h-6 w-6 text-orange-500"/>Inspection Schedule & Reminders</CardTitle>
+          <CardDescription>A list of all planned inspections, highlighting those that are due soon or overdue.</CardDescription>
         </CardHeader>
         <CardContent>
-          {upcomingOrOverdueInspections.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">No PPE items currently due or overdue for inspection.</p>
+          {allScheduledInspections.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">No PPE items with scheduled inspections.</p>
           ) : (
             <ScrollArea className="max-h-[300px] pr-3">
               <div className="space-y-3">
-                {upcomingOrOverdueInspections.map(item => (
-                  <Card key={`due-${item.id}`} className={`p-3 shadow-sm border-l-4 ${item.dueStatus === 'Overdue' ? 'border-red-500' : 'border-yellow-500'}`}>
-                    <div className="flex flex-col sm:flex-row justify-between items-start">
-                      <div className="mb-1 sm:mb-0">
-                        <h4 className="font-semibold text-md">{item.name} {item.latestInspection?.uniquePpeIdentifier ? `(ID: ${item.latestInspection.uniquePpeIdentifier})` : ''}</h4>
-                        <p className={`text-xs font-semibold ${getDueDateStatusColor(item.dueStatus)}`}>
-                          Status: {item.dueStatus}
-                          {item.nextInspectionDueDate && ` (Due: ${format(parseISO(item.nextInspectionDueDate), "PPP")})`}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Last Inspected: {item.latestInspection ? format(parseISO(item.latestInspection.inspectionDate), "PPP") : "N/A"}</p>
+                {allScheduledInspections.map(item => {
+                  const statusColorClass = 
+                      item.dueStatus === 'Overdue' ? 'border-red-500' : 
+                      item.dueStatus === 'Due Soon' ? 'border-yellow-500' : 
+                      'border-blue-500';
+                  return (
+                    <Card key={`due-${item.id}`} className={`p-3 shadow-sm border-l-4 ${statusColorClass}`}>
+                      <div className="flex flex-col sm:flex-row justify-between items-start">
+                        <div className="mb-1 sm:mb-0">
+                          <h4 className="font-semibold text-md">{item.name} {item.latestInspection?.uniquePpeIdentifier ? `(ID: ${item.latestInspection.uniquePpeIdentifier})` : ''}</h4>
+                          <p className={`text-xs font-semibold ${getDueDateStatusColor(item.dueStatus)}`}>
+                            Status: {item.dueStatus}
+                            {item.nextInspectionDueDate && ` (Due: ${format(parseISO(item.nextInspectionDueDate), "PPP")})`}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Last Inspected: {item.latestInspection ? format(parseISO(item.latestInspection.inspectionDate), "PPP") : "N/A"}</p>
+                        </div>
+                        <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button variant="outline" size="sm" onClick={() => canManage && router.push(`/ppe-management/inspections/new?ppeItemId=${item.id}`)} disabled={!canManage}>Inspect Now</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
                       </div>
-                      <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button variant="outline" size="sm" onClick={() => canManage && router.push(`/ppe-management/inspections/new?ppeItemId=${item.id}`)} disabled={!canManage}>Inspect Now</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  )
+                })}
               </div>
             </ScrollArea>
           )}
