@@ -111,19 +111,51 @@ export default function UserManagementPage() {
         }
         setIsInviting(true);
         try {
-            const appName = "SHEild";
+            const appName = "SHEiQpro";
             const primaryColor = "#3498DB";
-            const backgroundColor = "#f4f4f4";
-            const textColor = "#333333";
+            const backgroundColor = "#ECF0F1";
+            const textColor = "#2C3E50";
+            const accentColor = "#E67E22";
             const inviteUrl = `${window.location.origin}/sign-up`;
             const roleName = inviteRole.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
-            await addDoc(collection(db, MAIL_COLLECTION), { to: [inviteEmail], message: { subject: `You're invited to join ${userProfile?.organizationId || 'an organization'} on ${appName}!`, html: `<div style="...invitation html..."` } });
+            const emailHtmlBody = `
+<div style="font-family: Arial, sans-serif; line-height: 1.6; color: ${textColor}; background-color: ${backgroundColor}; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+        <div style="text-align: center; padding-bottom: 20px; border-bottom: 1px solid #dddddd;">
+            <h1 style="color: ${primaryColor}; font-size: 24px;">You're Invited to Join ${appName}</h1>
+        </div>
+        <div style="padding: 20px 0;">
+            <p>Hello,</p>
+            <p>You have been invited by <strong>${user?.displayName || user?.email}</strong> to join their organization on ${appName}, a comprehensive platform for managing Safety, Health, Environment, and Quality.</p>
+            <p>You have been assigned the role of <strong>${roleName}</strong>.</p>
+            <p style="text-align: center; margin: 30px 0;">
+                <a href="${inviteUrl}" style="background-color: ${accentColor}; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                    Accept Invitation & Create Account
+                </a>
+            </p>
+            <p>If you were not expecting this invitation, you can safely ignore this email.</p>
+            <p>Best regards,<br>The ${appName} Team</p>
+        </div>
+        <div style="text-align: center; font-size: 12px; color: #777777; padding-top: 20px; border-top: 1px solid #dddddd;">
+            <p>&copy; ${new Date().getFullYear()} ${appName}. All rights reserved.</p>
+        </div>
+    </div>
+</div>
+`;
+
+            await addDoc(collection(db, MAIL_COLLECTION), {
+                to: [inviteEmail],
+                message: {
+                    subject: `You've been invited to SHEiQpro by ${user?.displayName || user?.email}`,
+                    html: emailHtmlBody,
+                }
+            });
             toast({ title: "Invitation Sent", description: `An invitation has been sent to ${inviteEmail}.` });
             setIsInviteDialogOpen(false); setInviteEmail(""); setInviteRole("visitor");
         } catch (error) {
             console.error("Error creating invitation document:", error);
-            toast({ title: "Invitation Failed", description: "Could not create the invitation record.", variant: "destructive" });
+            toast({ title: "Invitation Failed", description: "Could not create the invitation record. Please ensure the Firebase Mail extension is configured correctly.", variant: "destructive", duration: 7000 });
         } finally {
             setIsInviting(false);
         }
