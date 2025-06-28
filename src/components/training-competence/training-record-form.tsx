@@ -35,7 +35,7 @@ import { useMemo, useEffect } from "react";
 const trainingRecordFormSchema = z.object({
   employeeName: z.string().min(2, "Employee name is required.").max(150),
   jobRole: z.string().optional(),
-  courseId: z.string({ required_error: "Please select a course." }),
+  courseId: z.string({ required_error: "Please select a course." }).min(1, "Please select a course."),
   trainingDate: z.date({ required_error: "Training date is required." }),
   expiryDate: z.date().nullable().optional(),
   trainer: z.string().max(100).optional(),
@@ -85,6 +85,7 @@ export function TrainingRecordForm({ courses, trainingJobRoleMatrix, initialData
       return []; // If role is selected but no matrix found, show no courses
     }
     return courses; // If no role selected, show all courses
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchedJobRole, trainingJobRoleMatrix, courses]);
 
   // Effect to reset courseId if the selected one is no longer in the available list
@@ -115,187 +116,191 @@ export function TrainingRecordForm({ courses, trainingJobRoleMatrix, initialData
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
         {/* Removed DialogHeader */}
-        <ScrollArea className="flex-1 p-6 space-y-5"> {/* Added ScrollArea and padding */}
-          <FormField
-            control={form.control}
-            name="employeeName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Employee Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Full name of the employee" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <ScrollArea className="flex-1">
+          <div className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <FormField
+                control={form.control}
+                name="employeeName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Employee Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Full name of the employee" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="jobRole"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Job Role (Optional)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || NO_ROLE_VALUE}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a job role to filter courses" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NO_ROLE_VALUE}>None (Show All Courses)</SelectItem>
+                        {trainingJobRoleMatrix.map(role => (
+                          <SelectItem key={role.id} value={role.jobRole}>{role.jobRole}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>Filters the course list below based on requirements.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-          <FormField
-            control={form.control}
-            name="jobRole"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Job Role (Optional)</FormLabel>
-                 <Select onValueChange={field.onChange} value={field.value || NO_ROLE_VALUE}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a job role to filter courses" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={NO_ROLE_VALUE}>None (Show All Courses)</SelectItem>
-                    {trainingJobRoleMatrix.map(role => (
-                      <SelectItem key={role.id} value={role.jobRole}>{role.jobRole}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                 <FormDescription>Filters the course list below based on requirements.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="courseId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Course</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value} disabled={availableCoursesForRole.length === 0}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder={availableCoursesForRole.length === 0 ? "No required/available courses for this role" : "Select a training course"} />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {availableCoursesForRole.map(course => (
-                      <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="trainingDate"
+              name="courseId"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Training Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                        >
-                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                    </PopoverContent>
-                  </Popover>
+                <FormItem>
+                  <FormLabel>Course</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={availableCoursesForRole.length === 0}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={availableCoursesForRole.length === 0 ? "No required/available courses for this role" : "Select a training course"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {availableCoursesForRole.map(course => (
+                        <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="trainingDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Training Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                          >
+                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="expiryDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Expiry Date (Optional)</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                          >
+                            {field.value ? format(field.value, "PPP") : <span>Pick an expiry date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Record Status</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="Set training status" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value="Planned">Planned</SelectItem>
+                            <SelectItem value="Completed">Completed</SelectItem>
+                        </SelectContent>
+                        </Select>
+                        <FormDescription>Set to 'Planned' for upcoming training, or 'Completed' for finished training. 'Expired' or 'Requires Renewal' will be shown automatically based on Expiry Date.</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="trainer"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Trainer/Provider (Optional)</FormLabel>
+                        <FormControl>
+                        <Input placeholder="Name of trainer or training provider" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="certificateUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Certificate URL (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://example.com/path/to/certificate.pdf" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <FormField
               control={form.control}
-              name="expiryDate"
+              name="notes"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Expiry Date (Optional)</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                        >
-                          {field.value ? format(field.value, "PPP") : <span>Pick an expiry date</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
-                    </PopoverContent>
-                  </Popover>
+                <FormItem>
+                  <FormLabel>Notes (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Any additional notes about this training record..." rows={3} {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
-
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Record Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Set training status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Planned">Planned</SelectItem>
-                    <SelectItem value="Completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormDescription>Set to 'Planned' for upcoming training, or 'Completed' for finished training. 'Expired' or 'Requires Renewal' will be shown automatically based on Expiry Date.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="trainer"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Trainer/Provider (Optional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="Name of trainer or training provider" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="certificateUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Certificate URL (Optional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://example.com/path/to/certificate.pdf" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-           <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Notes (Optional)</FormLabel>
-                <FormControl>
-                  <Textarea placeholder="Any additional notes about this training record..." rows={3} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </ScrollArea>
         <div className="p-6 border-t flex justify-end gap-2 bg-background"> {/* Replaced DialogFooter */}
           <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
