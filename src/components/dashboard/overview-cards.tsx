@@ -258,11 +258,14 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
 
   return (
     <Card onClick={handleCardClick} className="cursor-pointer hover:shadow-lg transition-shadow duration-200 flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium min-h-[40px] flex items-start">{title}</CardTitle>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium min-h-[40px] flex items-center">{title}</CardTitle>
+        {hasThreshold && (
+            <p className="text-xs text-muted-foreground font-bold">{threshold}</p>
+        )}
       </CardHeader>
       
-      <CardContent className="flex-grow flex flex-col items-center justify-center min-h-0">
+      <CardContent className="flex-grow flex flex-col items-center justify-center">
         {hasThreshold ? (
           <div className="text-center">
             <div className={`text-4xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
@@ -286,7 +289,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
         )}
       </CardContent>
       
-      <div className="border-t p-2 px-4 flex justify-between items-center min-h-[36px]">
+      <div className="border-t p-2 px-4 flex justify-start items-center min-h-[36px]">
         {hasThreshold ? (
           <>
             {isDesirable ? (
@@ -305,7 +308,6 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
                 <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
               </Button>
             )}
-            <p className="text-xs text-muted-foreground font-bold">{threshold}</p>
           </>
         ) : (
           <div className="w-full" />
@@ -424,9 +426,9 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
 
   if (isLoadingSettings) {
     return (
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+      <div className="grid gap-4 auto-rows-fr grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {[...Array(Object.keys(kpiInfoMap).length)].map((_, i) => (
-            <Card key={`skl-${i}`} className="h-[180px] flex flex-col justify-between">
+            <Card key={`skl-${i}`} className="flex flex-col justify-between">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <KpiLoader className="h-6 w-6 animate-spin text-muted-foreground/50" />
                 </CardHeader>
@@ -468,7 +470,7 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
         <React.Fragment key={section.title}>
           {sectionIndex > 0 && <Separator className="my-8" />}
           <h2 className="text-xl font-semibold tracking-tight text-foreground/90">{section.title}</h2>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          <div className="grid gap-4 auto-rows-fr grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {section.kpis.map((kpi) => {
               const thresholdConfig = findThreshold(kpi.key);
               return (
