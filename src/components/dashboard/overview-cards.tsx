@@ -286,7 +286,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
         )}
       </CardContent>
       
-      <div className="border-t p-2 px-4 flex justify-between items-center h-[36px]">
+      <div className="border-t p-2 px-4 flex justify-between items-center min-h-[36px]">
         {hasThreshold ? (
           <>
             {isDesirable ? (
@@ -305,7 +305,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
                 <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
               </Button>
             )}
-            <p className="text-xs text-muted-foreground font-bold">Threshold: {threshold}</p>
+            <p className="text-xs text-muted-foreground font-bold">{threshold}</p>
           </>
         ) : (
           <div className="w-full" />
