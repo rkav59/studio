@@ -285,7 +285,7 @@ export default function DashboardPage() {
                             <PageLoader className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
                     ) : upcomingEvents.length > 0 ? (
-                        <ScrollArea className="max-h-[280px]">
+                        <ScrollArea className="max-h-[200px]">
                             <ul className="space-y-3 pr-3">
                                 {upcomingEvents.map(event => (
                                     <li key={event.id} className="flex items-start gap-3 p-2.5 rounded-md border bg-secondary/40 hover:shadow-sm transition-shadow">
@@ -400,7 +400,7 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-[150px] w-full flex items-center justify-center text-muted-foreground bg-muted/30 rounded-md">
+            <div className="h-[120px] w-full flex items-center justify-center text-muted-foreground bg-muted/30 rounded-md">
               (Incident Chart Area - Data will be filtered based on selections above)
             </div>
           </CardContent>
@@ -443,11 +443,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
-
-
-
-
-
-    

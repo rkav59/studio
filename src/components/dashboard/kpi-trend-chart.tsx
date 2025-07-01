@@ -117,7 +117,7 @@ export function KpiTrendChart() {
         </div>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[200px] w-full">
+        <ChartContainer config={chartConfig} className="h-[180px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={chartData}
