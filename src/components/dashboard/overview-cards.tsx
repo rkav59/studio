@@ -257,7 +257,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
 
 
   return (
-    <Card onClick={handleCardClick} className="cursor-pointer hover:shadow-lg transition-shadow duration-200 relative h-[160px] flex flex-col">
+    <Card onClick={handleCardClick} className="cursor-pointer hover:shadow-lg transition-shadow duration-200 relative h-[140px] flex flex-col">
       {hasThreshold && (
         <div className={`absolute top-2 right-2 h-3 w-3 rounded-full ${isDesirable ? 'bg-green-500' : 'bg-red-500'}`} 
              title={`Status: ${isDesirable ? 'Meeting target' : 'Needs attention'}`} />
@@ -462,7 +462,7 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
         <React.Fragment key={section.title}>
           {sectionIndex > 0 && <Separator className="my-8" />}
           <h2 className="text-xl font-semibold tracking-tight text-foreground/90">{section.title}</h2>
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {section.kpis.map((kpi) => {
               const thresholdConfig = findThreshold(kpi.key);
               return (

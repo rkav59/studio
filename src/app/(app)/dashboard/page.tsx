@@ -296,7 +296,7 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
         </Card>
-        <div className="lg:col-span-3 flex items-center p-4">
+        <div className="lg:col-span-3 flex items-center p-6">
           <div className="flex items-start gap-4">
             <Lightbulb className="h-8 w-8 shrink-0 text-accent" />
             <div>
@@ -310,13 +310,16 @@ export default function DashboardPage() {
       <Separator />
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-            <OverviewCards 
-                kpiThresholds={kpiThresholds} 
-                kpiVisibility={kpiVisibility}
-                isLoadingSettings={isLoadingSettings} 
-            />
+        <div className="lg:col-span-2 space-y-6">
+            <div className="space-y-6">
+              <OverviewCards 
+                  kpiThresholds={kpiThresholds} 
+                  kpiVisibility={kpiVisibility}
+                  isLoadingSettings={isLoadingSettings} 
+              />
+            </div>
         </div>
+
         <div className="space-y-6">
             <KpiTrendChart />
              <Card>
@@ -331,11 +334,11 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                     {isLoadingUpcomingEvents ? (
-                        <div className="flex justify-center items-center h-32">
+                        <div className="flex justify-center items-center h-24">
                             <PageLoader className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
                     ) : upcomingEvents.length > 0 ? (
-                        <ScrollArea className="h-[140px]">
+                        <ScrollArea className="h-[120px]">
                             <ul className="space-y-3 pr-3">
                                 {upcomingEvents.map(event => (
                                     <li key={event.id} className="flex items-start gap-3 p-2.5 rounded-md border bg-secondary/40 hover:shadow-sm transition-shadow">
@@ -343,7 +346,6 @@ export default function DashboardPage() {
                                         <div>
                                             <p className="font-medium text-sm leading-tight">{event.title}</p>
                                             <p className="text-xs text-muted-foreground">{event.dateDisplay} ({event.type})</p>
-                                            {/* Future: Add Link to event.path if needed */}
                                         </div>
                                     </li>
                                 ))}
@@ -446,7 +448,7 @@ export default function DashboardPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="h-[120px] w-full flex items-center justify-center text-muted-foreground bg-muted/30 rounded-md">
+                    <div className="h-[100px] w-full flex items-center justify-center text-muted-foreground bg-muted/30 rounded-md">
                     (Incident Chart Area - Data will be filtered based on selections above)
                     </div>
                 </CardContent>
@@ -484,7 +486,9 @@ export default function DashboardPage() {
             </Card>
         </div>
       </div>
-      <SuggestIndicatorForm />
+      <div className="grid grid-cols-1 gap-6">
+        <SuggestIndicatorForm />
+      </div>
     </div>
   );
 }
