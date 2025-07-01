@@ -116,7 +116,7 @@ export const kpiInfoMap: Record<string, { title: string; definition: string; rel
     defaultTargetDirection: 'below',
     unit: 'rate',
   },
-  "HearingConservationCompliance": {
+  "HearingCompliance": {
     title: "Hearing Compliance",
     definition: "% of workers in high-noise areas covered by the hearing conservation program (audiometry, training, PPE compliance).",
     relevance: "Critical in manufacturing, construction, and energy sectors to prevent noise-induced hearing loss. Measures program reach and effectiveness.",
@@ -291,19 +291,19 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
       </CardContent>
        {hasThreshold && (
         <CardFooter className="pt-0 pb-2 px-4 justify-between items-center">
-            {!isDesirable ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRecommendationClick}
-                className="text-xs text-red-600 hover:text-red-700 h-auto p-1"
-                title="Get AI Recommendation"
-              >
-                <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
-              </Button>
-            ) : (
-                <div /> // Empty div for spacing to keep threshold on the right
-            )}
+            <div>
+                {!isDesirable && (
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRecommendationClick}
+                    className="text-xs text-red-600 hover:text-red-700 h-auto p-1"
+                    title="Get AI Recommendation"
+                >
+                    <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
+                </Button>
+                )}
+            </div>
             <p className="text-xs text-muted-foreground font-bold">{threshold}</p>
         </CardFooter>
       )}
@@ -400,7 +400,7 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
       kpis: [
         { key: "HealthSurveillanceCoverage", value: healthSurveillanceCoverage, valueSuffix: "%" },
         { key: "WorkRelatedIllnessRate", value: workIllnessRate, valueSuffix: "" },
-        { key: "HearingConservationCompliance", value: hearingConservationCompliance, valueSuffix: "%" },
+        { key: "HearingCompliance", value: hearingConservationCompliance, valueSuffix: "%" },
         { key: "FitForDutyNonCompliance", value: fitForDutyNonCompliance, valueSuffix: "%" },
         { key: "HealthEducationCoverage", value: healthEducationCoverage, valueSuffix: "%" },
       ]
