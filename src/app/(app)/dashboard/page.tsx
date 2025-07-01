@@ -259,12 +259,57 @@ export default function DashboardPage() {
         </Button>
       </div>
       
-      <OverviewCards 
-        kpiThresholds={kpiThresholds} 
-        kpiVisibility={kpiVisibility}
-        isLoadingSettings={isLoadingSettings} 
-      />
-
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+            <OverviewCards 
+                kpiThresholds={kpiThresholds} 
+                kpiVisibility={kpiVisibility}
+                isLoadingSettings={isLoadingSettings} 
+            />
+        </div>
+        <div className="space-y-6">
+            <KpiTrendChart />
+             <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div className="flex-grow">
+                        <CardTitle className="flex items-center gap-2"><CalendarClock className="h-5 w-5 text-primary"/>Upcoming SHE Events</CardTitle>
+                        <CardDescription>Key programs and meetings on the horizon.</CardDescription>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={handleRefreshEvents} disabled={isRefreshingEvents} title="Refresh Events">
+                        {isRefreshingEvents ? <PageLoader className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {isLoadingUpcomingEvents ? (
+                        <div className="flex justify-center items-center h-32">
+                            <PageLoader className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : upcomingEvents.length > 0 ? (
+                        <ScrollArea className="max-h-[280px]">
+                            <ul className="space-y-3 pr-3">
+                                {upcomingEvents.map(event => (
+                                    <li key={event.id} className="flex items-start gap-3 p-2.5 rounded-md border bg-secondary/40 hover:shadow-sm transition-shadow">
+                                        <event.icon className={`h-5 w-5 mt-0.5 ${event.type === 'Program' ? 'text-primary' : 'text-accent'}`} />
+                                        <div>
+                                            <p className="font-medium text-sm leading-tight">{event.title}</p>
+                                            <p className="text-xs text-muted-foreground">{event.dateDisplay} ({event.type})</p>
+                                            {/* Future: Add Link to event.path if needed */}
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </ScrollArea>
+                    ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">No upcoming events scheduled.</p>
+                    )}
+                    {(programsError || meetingsError) && (
+                        <p className="text-xs text-red-500 mt-2 text-center">Error loading events. Please try again later.</p>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+      </div>
+      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -360,11 +405,7 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-        <KpiTrendChart />
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"> 
-        <Card>
+         <Card>
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>Latest incidents and inspections.</CardDescription>
@@ -395,45 +436,6 @@ export default function DashboardPage() {
             </ul>
           </CardContent>
         </Card>
-
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-                <div className="flex-grow">
-                    <CardTitle className="flex items-center gap-2"><CalendarClock className="h-5 w-5 text-primary"/>Upcoming SHE Events</CardTitle>
-                    <CardDescription>Key programs and meetings on the horizon.</CardDescription>
-                </div>
-                <Button variant="ghost" size="icon" onClick={handleRefreshEvents} disabled={isRefreshingEvents} title="Refresh Events">
-                    {isRefreshingEvents ? <PageLoader className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                </Button>
-            </CardHeader>
-            <CardContent>
-                {isLoadingUpcomingEvents ? (
-                    <div className="flex justify-center items-center h-32">
-                        <PageLoader className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                ) : upcomingEvents.length > 0 ? (
-                    <ScrollArea className="max-h-[280px]">
-                        <ul className="space-y-3 pr-3">
-                            {upcomingEvents.map(event => (
-                                <li key={event.id} className="flex items-start gap-3 p-2.5 rounded-md border bg-secondary/40 hover:shadow-sm transition-shadow">
-                                    <event.icon className={`h-5 w-5 mt-0.5 ${event.type === 'Program' ? 'text-primary' : 'text-accent'}`} />
-                                    <div>
-                                        <p className="font-medium text-sm leading-tight">{event.title}</p>
-                                        <p className="text-xs text-muted-foreground">{event.dateDisplay} ({event.type})</p>
-                                        {/* Future: Add Link to event.path if needed */}
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    </ScrollArea>
-                ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">No upcoming events scheduled.</p>
-                )}
-                {(programsError || meetingsError) && (
-                    <p className="text-xs text-red-500 mt-2 text-center">Error loading events. Please try again later.</p>
-                )}
-            </CardContent>
-        </Card>
       </div>
 
       <SuggestIndicatorForm />
@@ -446,3 +448,6 @@ export default function DashboardPage() {
 
 
 
+
+
+    
