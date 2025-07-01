@@ -117,7 +117,7 @@ export const kpiInfoMap: Record<string, { title: string; definition: string; rel
     unit: 'rate',
   },
   "HearingConservationCompliance": {
-    title: "Hearing Conservation Compliance",
+    title: "Hearing Compliance",
     definition: "% of workers in high-noise areas covered by the hearing conservation program (audiometry, training, PPE compliance).",
     relevance: "Critical in manufacturing, construction, and energy sectors to prevent noise-induced hearing loss. Measures program reach and effectiveness.",
     defaultTargetDirection: 'above',
