@@ -10,7 +10,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { LayoutDashboard, CalendarIcon, Filter, Settings, Loader2 as PageLoader, Activity, Users as UsersIcon, CalendarClock, RefreshCw } from "lucide-react"; 
+import { LayoutDashboard, CalendarIcon, Filter, Settings, Loader2 as PageLoader, Activity, Users as UsersIcon, CalendarClock, RefreshCw, Lightbulb } from "lucide-react"; 
 import { cn } from "@/lib/utils";
 import { format, parseISO, startOfToday, isValid } from "date-fns"; 
 import { Label } from '@/components/ui/label';
@@ -19,7 +19,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, getDoc, Timestamp, orderBy } from 'firebase/firestore';
-import type { KpiThreshold, KpiVisibilitySettings, SheProgram, SheMeeting } from '@/lib/types';
+import type { KpiThreshold, KpiVisibilitySettings, SheProgram, SheMeeting, UserRole } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -44,7 +44,7 @@ interface UpcomingEvent {
 
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const { toast } = useToast();
   const router = useRouter(); 
   const queryClient = useQueryClient();
@@ -58,6 +58,33 @@ export default function DashboardPage() {
   const [kpiVisibility, setKpiVisibility] = useState<Record<string, boolean>>({});
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [isRefreshingEvents, setIsRefreshingEvents] = useState(false);
+
+  const [tipOfTheDay, setTipOfTheDay] = useState("");
+
+  const tips = [
+    "Use the AI Hazard Identification tool in Risk Management to quickly brainstorm potential hazards for a new task.",
+    "Regularly review your overdue action items from SHE Meetings to ensure timely closure.",
+    "Check the Training Matrix to identify any compliance gaps for critical job roles.",
+    "Low on PPE? The PPE Management dashboard highlights items below their reorder level.",
+    "Schedule recurring audits to maintain consistent oversight of your safety management system.",
+    "Use the 'AI Vetting Suggestion' in Contractor Safety to get a quick performance summary before approving a contractor.",
+    "Link SHEQ Audits to your Risk Register entries to provide context and evidence for your risk assessments."
+  ];
+
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * tips.length);
+    setTipOfTheDay(tips[randomIndex]);
+  }, []);
+
+  const roleDisplayNames: Record<UserRole, string> = {
+    admin: 'Administrator',
+    she_officer: 'SHE Officer',
+    authorizer: 'Authorizer',
+    she_rep: 'SHE Representative',
+    visitor: 'Visitor'
+  };
+
+  const userRoleName = userProfile?.role ? roleDisplayNames[userProfile.role] : 'User';
   
 
   // Fetch thresholds and visibility settings
@@ -258,6 +285,24 @@ export default function DashboardPage() {
           Configure KPI Settings
         </Button>
       </div>
+      
+      <Card className="bg-gradient-to-r from-primary/90 to-primary text-primary-foreground shadow-lg">
+        <CardHeader>
+          <CardTitle>Welcome back, {user?.displayName || 'User'}!</CardTitle>
+          <CardDescription className="text-primary-foreground/80">
+            You are logged in as an {userRoleName}. Your access level allows you to manage relevant SHEQ modules.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start gap-3 rounded-md border border-primary-foreground/30 bg-primary-foreground/10 p-3">
+            <Lightbulb className="h-5 w-5 mt-1 shrink-0" />
+            <div>
+              <h4 className="font-semibold">Tip of the Day</h4>
+              <p className="text-sm text-primary-foreground/90">{tipOfTheDay}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
