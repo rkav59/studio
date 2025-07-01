@@ -321,8 +321,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-6">
-            <KpiTrendChart />
-             <Card>
+            <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div className="flex-grow">
                         <CardTitle className="flex items-center gap-2"><CalendarClock className="h-5 w-5 text-primary"/>Upcoming SHE Events</CardTitle>
@@ -359,92 +358,91 @@ export default function DashboardPage() {
                     )}
                 </CardContent>
             </Card>
+            <KpiTrendChart />
             <Card>
                 <CardHeader>
                     <CardTitle>Incidents Overview</CardTitle>
                     <CardDescription>Filter incidents by location, category, and date range.</CardDescription>
-                    <div className="pt-4 space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 items-end">
-                        <div>
-                        <Label htmlFor="location-filter" className="text-xs font-medium text-muted-foreground">Location</Label>
-                        <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                            <SelectTrigger id="location-filter" className="w-full">
-                            <SelectValue placeholder="Select Location" />
-                            </SelectTrigger>
-                            <SelectContent>
-                            {mockLocations.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
+                    <div className="pt-4">
+                        <div className="flex flex-wrap gap-4 items-end">
+                            <div className="flex-grow min-w-[180px]">
+                                <Label htmlFor="location-filter" className="text-xs font-medium text-muted-foreground">Location</Label>
+                                <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                                    <SelectTrigger id="location-filter" className="w-full">
+                                    <SelectValue placeholder="Select Location" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                    {mockLocations.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="flex-grow min-w-[180px]">
+                                <Label htmlFor="category-filter" className="text-xs font-medium text-muted-foreground">Category</Label>
+                                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                                    <SelectTrigger id="category-filter" className="w-full">
+                                    <SelectValue placeholder="Select Category" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                    {mockCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="flex-grow min-w-[180px]">
+                                <Label htmlFor="start-date-filter" className="text-xs font-medium text-muted-foreground">Start Date</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                        id="start-date-filter"
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal",
+                                            !startDate && "text-muted-foreground"
+                                        )}
+                                        >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {startDate ? format(startDate, "PPP") : <span>Pick a start date</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <Calendar
+                                        mode="single"
+                                        selected={startDate}
+                                        onSelect={setStartDate}
+                                        initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <div className="flex-grow min-w-[180px]">
+                                <Label htmlFor="end-date-filter" className="text-xs font-medium text-muted-foreground">End Date</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                        id="end-date-filter"
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal",
+                                            !endDate && "text-muted-foreground"
+                                        )}
+                                        >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {endDate ? format(endDate, "PPP") : <span>Pick an end date</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <Calendar
+                                        mode="single"
+                                        selected={endDate}
+                                        onSelect={setEndDate}
+                                        initialFocus
+                                        disabled={(date) =>
+                                            startDate ? date < startDate : false
+                                        }
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                         </div>
-                        <div>
-                        <Label htmlFor="category-filter" className="text-xs font-medium text-muted-foreground">Category</Label>
-                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                            <SelectTrigger id="category-filter" className="w-full">
-                            <SelectValue placeholder="Select Category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                            {mockCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                        <div>
-                        <Label htmlFor="start-date-filter" className="text-xs font-medium text-muted-foreground">Start Date</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                    id="start-date-filter"
-                                    variant={"outline"}
-                                    className={cn(
-                                        "w-full justify-start text-left font-normal",
-                                        !startDate && "text-muted-foreground"
-                                    )}
-                                    >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {startDate ? format(startDate, "PPP") : <span>Pick a start date</span>}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                    mode="single"
-                                    selected={startDate}
-                                    onSelect={setStartDate}
-                                    initialFocus
-                                    />
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <div>
-                            <Label htmlFor="end-date-filter" className="text-xs font-medium text-muted-foreground">End Date</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                    id="end-date-filter"
-                                    variant={"outline"}
-                                    className={cn(
-                                        "w-full justify-start text-left font-normal",
-                                        !endDate && "text-muted-foreground"
-                                    )}
-                                    >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {endDate ? format(endDate, "PPP") : <span>Pick an end date</span>}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                    mode="single"
-                                    selected={endDate}
-                                    onSelect={setEndDate}
-                                    initialFocus
-                                    disabled={(date) =>
-                                        startDate ? date < startDate : false
-                                    }
-                                    />
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                    </div>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -452,8 +450,8 @@ export default function DashboardPage() {
                     (Incident Chart Area - Data will be filtered based on selections above)
                     </div>
                 </CardContent>
-                </Card>
-                <Card>
+            </Card>
+            <Card>
                 <CardHeader>
                     <CardTitle>Recent Activity</CardTitle>
                     <CardDescription>Latest incidents and inspections.</CardDescription>
@@ -492,7 +490,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-
-
-    
