@@ -289,22 +289,31 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
           </div>
         )}
       </CardContent>
-       <CardFooter className="pt-0 pb-2 px-4 justify-between items-center min-h-[28px]">
-            {!isDesirable && hasThreshold ? (
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRecommendationClick}
-                    className="text-xs text-red-600 hover:text-red-700 h-auto p-1"
-                    title="Get AI Recommendation"
-                >
-                    <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
-                </Button>
+       <div className="border-t mt-auto p-2 px-4 flex justify-between items-center h-[36px]">
+            {hasThreshold ? (
+                <>
+                    {!isDesirable ? (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRecommendationClick}
+                            className="text-xs text-red-600 hover:text-red-700 h-auto p-1"
+                            title="Get AI Recommendation"
+                        >
+                            <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
+                        </Button>
+                    ) : (
+                        <div className="flex items-center text-xs text-green-600 font-semibold">
+                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                            <span>Safe</span>
+                        </div>
+                    )}
+                    <p className="text-xs text-muted-foreground font-bold">{threshold}</p>
+                </>
             ) : (
-              <div /> // Empty div to push the threshold to the right
+                <div /> // Empty div to keep height consistent if no threshold
             )}
-            {hasThreshold && <p className="text-xs text-muted-foreground font-bold">{threshold}</p>}
-       </CardFooter>
+       </div>
     </Card>
   );
 }
@@ -462,7 +471,7 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
         <React.Fragment key={section.title}>
           {sectionIndex > 0 && <Separator className="my-8" />}
           <h2 className="text-xl font-semibold tracking-tight text-foreground/90">{section.title}</h2>
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {section.kpis.map((kpi) => {
               const thresholdConfig = findThreshold(kpi.key);
               return (
