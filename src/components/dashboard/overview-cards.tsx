@@ -263,7 +263,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
              title={`Status: ${isDesirable ? 'Meeting target' : 'Needs attention'}`} />
       )}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium h-10 flex items-start">{title}</CardTitle>
       </CardHeader>
       
       <CardContent className="flex-1 flex flex-col items-center justify-center">
@@ -289,10 +289,8 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
           </div>
         )}
       </CardContent>
-       {hasThreshold && (
-        <CardFooter className="pt-0 pb-2 px-4 justify-between items-center">
-            <div>
-                {!isDesirable && (
+       <CardFooter className="pt-0 pb-2 px-4 justify-between items-center min-h-[28px]">
+            {!isDesirable && hasThreshold ? (
                 <Button
                     variant="ghost"
                     size="sm"
@@ -302,11 +300,11 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
                 >
                     <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
                 </Button>
-                )}
-            </div>
-            <p className="text-xs text-muted-foreground font-bold">{threshold}</p>
-        </CardFooter>
-      )}
+            ) : (
+              <div /> // Empty div to push the threshold to the right
+            )}
+            {hasThreshold && <p className="text-xs text-muted-foreground font-bold">{threshold}</p>}
+       </CardFooter>
     </Card>
   );
 }
