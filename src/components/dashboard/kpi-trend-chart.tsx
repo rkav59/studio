@@ -77,9 +77,9 @@ export function KpiTrendChart() {
                 <CardTitle>Monthly Occurrence Trends</CardTitle>
                 <CardDescription>Actual total incidents and near misses over the selected period. Customize via dropdowns.</CardDescription>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <div className="flex flex-col gap-2 w-full sm:w-40">
               <Select value={String(selectedPeriod)} onValueChange={(value) => setSelectedPeriod(Number(value))}>
-                <SelectTrigger className="w-full sm:w-[160px] h-9 text-xs">
+                <SelectTrigger className="w-full h-9 text-xs">
                   <SelectValue placeholder="Select period" />
                 </SelectTrigger>
                 <SelectContent>
@@ -92,7 +92,7 @@ export function KpiTrendChart() {
               </Select>
               <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-full sm:w-auto h-9 text-xs">
+                      <Button variant="outline" size="sm" className="w-full h-9 text-xs">
                           <SlidersHorizontal className="mr-2 h-4 w-4" />
                           Display KPIs
                       </Button>
