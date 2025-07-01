@@ -8,8 +8,8 @@ import { HelpCircle } from "lucide-react";
 export default function FaqPage() {
   const faqs = [
     {
-      question: "What is SHEild and what can it do?",
-      answer: "SHEild is a comprehensive platform designed to help organizations manage their Safety, Health, Environment, and Quality (SHEQ) processes. Key features include incident logging, risk assessment, SHEQ audits, training and competence tracking, emergency preparedness, PPE management, contractor safety, health monitoring, AI-driven safety recommendations, and data visualization.",
+      question: "What is SHEiQpro and what can it do?",
+      answer: "SHEiQpro is a comprehensive platform designed to help organizations manage their Safety, Health, Environment, and Quality (SHEQ) processes. Key features include incident logging, risk assessment, SHEQ audits, training and competence tracking, emergency preparedness, PPE management, contractor safety, health monitoring, AI-driven safety recommendations, and data visualization.",
     },
     {
       question: "How do I log an incident, near miss, or hazard?",
@@ -17,7 +17,7 @@ export default function FaqPage() {
     },
     {
       question: "How does the AI assist with risk management?",
-      answer: "SHEild uses AI to help you in several ways: \n - **Hazard Identification:** Describe an activity, and the AI can suggest potential hazards. \n - **Risk Assessment Suggestions:** Provide activity details and identified hazards, and the AI can suggest potential risks, control measures (based on hierarchy of controls), and suitable assessment methodologies. \n - **Root Cause Suggestions:** For incidents or risks, the AI can help brainstorm potential underlying root causes based on the description and findings.",
+      answer: "SHEiQpro uses AI to help you in several ways: \n - **Hazard Identification:** Describe an activity, and the AI can suggest potential hazards. \n - **Risk Assessment Suggestions:** Provide activity details and identified hazards, and the AI can suggest potential risks, control measures (based on hierarchy of controls), and suitable assessment methodologies. \n - **Root Cause Suggestions:** For incidents or risks, the AI can help brainstorm potential underlying root causes based on the description and findings.",
     },
     {
       question: "Can I create custom audit checklists?",
@@ -28,7 +28,7 @@ export default function FaqPage() {
       answer: "When conducting an audit using the 'Audit Execution Form' in the SHEQ Audit module, you can log non-conformances directly. For each non-conformance, you can describe it, set a severity, link it to a checklist item, and detail proposed corrective and preventive actions (CAPA), including assigning responsibility and due dates.",
     },
     {
-      question: "How does SHEild manage contractor safety?",
+      question: "How does SHEiQpro manage contractor safety?",
       answer: "The 'Contractor Safety' module allows you to register contractors, track their vetting status, safety induction completion, and manage associated documents (like insurance, certifications). You can also create and manage Permits to Work (PTW) for high-risk activities and log on-site supervision records linked to these PTWs.",
     },
     {
@@ -57,7 +57,7 @@ export default function FaqPage() {
     },
     {
       question: "Is there a mobile app available?",
-      answer: "Currently, SHEild is a web-based application accessible on all devices through a web browser. We are considering a dedicated mobile app for future development.",
+      answer: "Currently, SHEiQpro is a web-based application accessible on all devices through a web browser. We are considering a dedicated mobile app for future development.",
     },
     {
       question: "How do I get support if I encounter an issue?",
@@ -70,7 +70,7 @@ export default function FaqPage() {
       <div className="text-center">
         <HelpCircle className="mx-auto h-12 w-12 text-primary mb-3" />
         <h1 className="text-3xl font-bold tracking-tight font-headline">Frequently Asked Questions</h1>
-        <p className="text-muted-foreground">Find answers to common questions about SHEild.</p>
+        <p className="text-muted-foreground">Find answers to common questions about SHEiQpro.</p>
       </div>
 
       <Card className="shadow-lg">

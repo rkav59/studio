@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,13 +15,15 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from '@/contexts/auth-context'; // Import useAuth
+import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
-import { Loader2, Mail, Lock, User as UserIcon, Globe } from "lucide-react"; // Added Globe
+import { Loader2, Mail, Lock, User as UserIcon, Globe } from "lucide-react";
 import { SocialButtons } from "@/components/auth/social-buttons";
 import { Separator } from "@/components/ui/separator";
+import { Combobox } from "@/components/ui/combobox";
+import { countries } from "@/lib/countries";
 
 
 const signUpFormSchema = z.object({
@@ -30,7 +31,7 @@ const signUpFormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   confirmPassword: z.string(),
-  country: z.string().min(2, { message: "Country is required."}).max(100, "Country name is too long."), // Added country field
+  country: z.string({ required_error: "Country is required." }).min(2, { message: "Country is required."}),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match.",
   path: ["confirmPassword"], 
@@ -41,7 +42,7 @@ type SignUpFormValues = z.infer<typeof signUpFormSchema>;
 export default function SignUpPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { signUp } = useAuth(); // Use signUp from context
+  const { signUp } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const form = useForm<SignUpFormValues>({
@@ -51,7 +52,7 @@ export default function SignUpPage() {
       email: "",
       password: "",
       confirmPassword: "",
-      country: "", // Default for country
+      country: "",
     },
   });
 
@@ -112,14 +113,15 @@ export default function SignUpPage() {
             control={form.control}
             name="country"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel className="sr-only">Country</FormLabel>
-                <div className="relative">
-                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <FormControl>
-                    <Input placeholder="Country of Operation" {...field} className="pl-10" />
-                  </FormControl>
-                </div>
+              <FormItem className="flex flex-col">
+                <FormLabel>Country of Operation</FormLabel>
+                <Combobox
+                  options={countries}
+                  value={field.value}
+                  onChange={(value) => form.setValue("country", value)}
+                  placeholder="Select your country..."
+                  searchPlaceholder="Search for a country..."
+                />
                 <FormMessage />
               </FormItem>
             )}

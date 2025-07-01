@@ -14,7 +14,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, User as UserIcon, Globe, Save } from "lucide-react"; // Renamed User to UserIcon
+import { Loader2, User as UserIcon, Globe, Save } from "lucide-react";
+import { Combobox } from "@/components/ui/combobox";
+import { countries } from "@/lib/countries";
 
 const profileUpdateSchema = z.object({
   displayName: z.string().min(2, "Display name must be at least 2 characters.").max(50, "Display name too long."),
@@ -37,10 +39,9 @@ export function ProfileUpdateForm({ initialDisplayName, initialCountry, onUpdate
       displayName: initialDisplayName,
       country: initialCountry,
     },
-    mode: "onChange", // Enable revalidation on change
+    mode: "onChange",
   });
 
-  // Watch for changes to enable/disable save button
   const watchedDisplayName = form.watch("displayName");
   const watchedCountry = form.watch("country");
   const isChanged = watchedDisplayName !== initialDisplayName || watchedCountry !== initialCountry;
@@ -70,11 +71,15 @@ export function ProfileUpdateForm({ initialDisplayName, initialCountry, onUpdate
           control={form.control}
           name="country"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col">
               <FormLabel className="flex items-center gap-1 text-sm text-muted-foreground"><Globe className="h-4 w-4"/>Country of Operation</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g., United States" {...field} />
-              </FormControl>
+              <Combobox
+                options={countries}
+                value={field.value}
+                onChange={(value) => form.setValue("country", value)}
+                placeholder="Select country..."
+                searchPlaceholder="Search country..."
+              />
               <FormMessage />
             </FormItem>
           )}

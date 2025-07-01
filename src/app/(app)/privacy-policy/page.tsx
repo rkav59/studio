@@ -21,7 +21,7 @@ export default function PrivacyPolicyPage() {
               <p className="text-sm text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
               
               <h2>1. Introduction</h2>
-              <p>SHEild ("us", "we", or "our") operates the SHEild platform (the "Service"). This page informs you of our policies regarding the collection, use, and disclosure of personal data when you use our Service and the choices you have associated with that data.</p>
+              <p>SHEiQpro ("us", "we", or "our") operates the SHEiQpro platform (the "Service"). This page informs you of our policies regarding the collection, use, and disclosure of personal data when you use our Service and the choices you have associated with that data.</p>
               <p>We use your data to provide and improve the Service. By using the Service, you agree to the collection and use of information in accordance with this policy.</p>
 
               <h2>2. Information Collection and Use</h2>
@@ -36,10 +36,10 @@ export default function PrivacyPolicyPage() {
                 <li>Usage Data (collected automatically, e.g., feature usage, IP address for session management)</li>
               </ul>
               <h4>User-Generated Content (SHEQ Data)</h4>
-              <p>The primary purpose of SHEild is to manage your Safety, Health, Environment, and Quality (SHEQ) data. This includes information you input regarding incidents, risk assessments, audits, training records, PPE management, contractor information, health monitoring data, emergency preparedness plans, meeting minutes, and any other data entered into the Service's modules ("SHEQ Data"). You own your SHEQ Data. We process this data on your behalf to provide the Service.</p>
+              <p>The primary purpose of SHEiQpro is to manage your Safety, Health, Environment, and Quality (SHEQ) data. This includes information you input regarding incidents, risk assessments, audits, training records, PPE management, contractor information, health monitoring data, emergency preparedness plans, meeting minutes, and any other data entered into the Service's modules ("SHEQ Data"). You own your SHEQ Data. We process this data on your behalf to provide the Service.</p>
 
               <h2>3. Use of Data</h2>
-              <p>SHEild uses the collected data for various purposes:</p>
+              <p>SHEiQpro uses the collected data for various purposes:</p>
               <ul>
                 <li>To provide and maintain our Service, including all its features and functionalities.</li>
                 <li>To manage your account and provide you with customer support.</li>
@@ -50,7 +50,7 @@ export default function PrivacyPolicyPage() {
                 <li>To detect, prevent and address technical issues.</li>
                 <li>To fulfill any other purpose for which you provide it or with your consent.</li>
               </ul>
-              <p><strong>AI-Powered Features:</strong> Some features within SHEild utilize artificial intelligence (AI) models (e.g., through Genkit and Google AI services) to provide suggestions, analysis, or generate content (e.g., safety recommendations, risk assessment assistance, legal register generation). When you use these features, the relevant input data you provide (which may be derived from your SHEQ Data) is sent to these AI models. We strive to use AI responsibly. Data sent to AI models for these specific features will be handled according to the data usage policies of the respective AI service providers (e.g., Google). Where feasible, we aim to use anonymized or aggregated data to train and improve the underlying AI models, taking steps to ensure that such data does not identify individual users or organizations unless explicit consent is given for specific features.</p>
+              <p><strong>AI-Powered Features:</strong> Some features within SHEiQpro utilize artificial intelligence (AI) models (e.g., through Genkit and Google AI services) to provide suggestions, analysis, or generate content (e.g., safety recommendations, risk assessment assistance, legal register generation). When you use these features, the relevant input data you provide (which may be derived from your SHEQ Data) is sent to these AI models. We strive to use AI responsibly. Data sent to AI models for these specific features will be handled according to the data usage policies of the respective AI service providers (e.g., Google). Where feasible, we aim to use anonymized or aggregated data to train and improve the underlying AI models, taking steps to ensure that such data does not identify individual users or organizations unless explicit consent is given for specific features.</p>
 
               <h2>4. Data Storage and Security</h2>
               <p>Your Personal Data and SHEQ Data are stored using Firebase services, including Firebase Firestore (for database storage), Firebase Authentication (for user management), and Firebase Storage (for file uploads like documents related to contractors or PPE). We are committed to protecting the security of your data and implement reasonable technical and organizational measures designed to prevent unauthorized access, use, alteration, or disclosure. However, please be aware that no method of transmission over the Internet or method of electronic storage is 100% secure, and we cannot guarantee its absolute security.</p>
@@ -67,7 +67,7 @@ export default function PrivacyPolicyPage() {
                 <li>The right to object to our processing of your Personal Data.</li>
                 <li>The right to request that we restrict the processing of your Personal Data.</li>
                 <li>The right to data portability, allowing you to obtain a copy of your Personal Data in a structured, commonly used, and machine-readable format.</li>
-                <li>The right to withdraw consent at any time where SHEild relied on your consent to process your Personal Data.</li>
+                <li>The right to withdraw consent at any time where SHEiQpro relied on your consent to process your Personal Data.</li>
               </ul>
               <p>To exercise any of these rights, please contact us using the details provided in the "Contact Us" section. We may need to verify your identity before responding to such requests.</p>
 
@@ -94,4 +94,3 @@ export default function PrivacyPolicyPage() {
     </div>
   );
 }
-

@@ -11,7 +11,7 @@ export default function TermsOfServicePage() {
       <div className="text-center">
         <FileText className="mx-auto h-12 w-12 text-primary mb-3" />
         <h1 className="text-3xl font-bold tracking-tight font-headline">Terms of Service</h1>
-        <p className="text-muted-foreground">Please read these terms carefully before using SHEild.</p>
+        <p className="text-muted-foreground">Please read these terms carefully before using SHEiQpro.</p>
       </div>
 
       <Card className="shadow-lg">
@@ -21,10 +21,10 @@ export default function TermsOfServicePage() {
               <p className="text-sm text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
               
               <h2>1. Acceptance of Terms</h2>
-              <p>By accessing or using the SHEild platform ("Service"), operated by SHEild ("Company", "us", "we", or "our"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of the terms, then you may not access the Service. Your access to and use of the Service is conditioned upon your acceptance of and compliance with these Terms. These Terms apply to all visitors, users, and others who wish to access or use the Service.</p>
+              <p>By accessing or using the SHEiQpro platform ("Service"), operated by SHEiQpro ("Company", "us", "we", or "our"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of the terms, then you may not access the Service. Your access to and use of the Service is conditioned upon your acceptance of and compliance with these Terms. These Terms apply to all visitors, users, and others who wish to access or use the Service.</p>
 
               <h2>2. Description of Service</h2>
-              <p>SHEild provides a comprehensive platform for managing Safety, Health, Environment, and Quality (SHEQ) data and processes. Features include, but are not limited to, incident logging, risk assessment and management (including AI-assisted tools), SHEQ audit management, checklist template creation, training and competence tracking, emergency preparedness planning, Personal Protective Equipment (PPE) management, contractor safety management, health monitoring, SHE meetings and programs management, data visualization, and AI-driven safety recommendations ("Features"). The Service is provided on an "as is" and "as available" basis.</p>
+              <p>SHEiQpro provides a comprehensive platform for managing Safety, Health, Environment, and Quality (SHEQ) data and processes. Features include, but are not limited to, incident logging, risk assessment and management (including AI-assisted tools), SHEQ audit management, checklist template creation, training and competence tracking, emergency preparedness planning, Personal Protective Equipment (PPE) management, contractor safety management, health monitoring, SHE meetings and programs management, data visualization, and AI-driven safety recommendations ("Features"). The Service is provided on an "as is" and "as available" basis.</p>
 
               <h2>3. User Accounts</h2>
               <p>When you create an account with us, you guarantee that the information you provide is accurate, complete, and current at all times. Inaccurate, incomplete, or obsolete information may result in the immediate termination of your account on the Service.</p>
@@ -48,7 +48,7 @@ export default function TermsOfServicePage() {
               </ul>
 
               <h2>6. AI-Generated Content and Recommendations</h2>
-              <p>Certain Features of the Service may utilize artificial intelligence (AI) to generate suggestions, analysis, recommendations, or other content ("AI Content"). AI Content is provided for informational and assistive purposes only and should not be solely relied upon for decision-making, compliance, or safety-critical applications. You are solely responsible for reviewing, validating, and appropriately using any AI Content. The Company makes no warranties or representations regarding the accuracy, completeness, reliability, or suitability of AI Content for any particular purpose. You acknowledge that AI systems can make mistakes and produce inaccurate information.</p>
+              <p>Certain Features of the Service may utilize artificial intelligence (AI) to generate suggestions, analysis, recommendations, or other content ("AI Content"). You are solely responsible for reviewing, validating, and appropriately using any AI Content. The Company makes no warranties or representations regarding the accuracy, completeness, reliability, or suitability of AI Content for any particular purpose. You acknowledge that AI systems can make mistakes and produce inaccurate information.</p>
 
               <h2>7. Intellectual Property</h2>
               <p>The Service and its original content (excluding User Data), features, and functionality are and will remain the exclusive property of the Company and its licensors. The Service is protected by copyright, trademark, and other laws of both [Your Jurisdiction/Country] and foreign countries. Our trademarks and trade dress may not be used in connection with any product or service without the prior written consent of the Company.</p>
@@ -81,4 +81,3 @@ export default function TermsOfServicePage() {
     </div>
   );
 }
-
