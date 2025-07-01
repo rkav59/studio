@@ -23,6 +23,7 @@ import type { KpiThreshold, KpiVisibilitySettings, SheProgram, SheMeeting, UserR
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 const mockLocations = ["All Locations", "Warehouse A", "Office Block", "Factory Floor", "Loading Bay"];
 const mockCategories = ["All Categories", "Incident", "Near Miss", "Hazard"];
@@ -305,6 +306,8 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <Separator />
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
