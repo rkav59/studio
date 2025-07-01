@@ -265,7 +265,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
         )}
       </CardHeader>
       
-      <CardContent className="flex-grow flex flex-col items-center justify-center">
+      <CardContent className="flex-grow flex flex-col items-center justify-center min-h-0">
         {hasThreshold ? (
           <div className="text-center">
             <div className={`text-4xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
@@ -289,29 +289,26 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
         )}
       </CardContent>
       
-      <div className="border-t p-2 px-4 flex justify-start items-center min-h-[36px]">
-        {hasThreshold ? (
-          <>
-            {isDesirable ? (
-              <div className="flex items-center text-xs text-green-600 font-semibold">
-                <CheckCircle2 className="h-4 w-4 mr-1" />
-                <span>Safe</span>
-              </div>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRecommendationClick}
-                className="text-xs text-red-600 hover:text-red-700 h-auto p-1"
-                title="Get AI Recommendation"
-              >
-                <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
-              </Button>
-            )}
-          </>
+      <div className="border-t p-2 px-4 flex justify-between items-center min-h-[36px]">
+        {hasThreshold && !isDesirable ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRecommendationClick}
+            className="text-xs text-red-600 hover:text-red-700 h-auto p-1"
+            title="Get AI Recommendation"
+          >
+            <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
+          </Button>
         ) : (
-          <div className="w-full" />
+          <div /> // Placeholder to align footers
         )}
+        {hasThreshold && isDesirable ? (
+          <div className="flex items-center text-xs text-green-600 font-semibold ml-auto">
+              <CheckCircle2 className="h-4 w-4 mr-1" />
+              <span>Safe</span>
+          </div>
+        ) : null}
       </div>
     </Card>
   );
@@ -426,7 +423,7 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
 
   if (isLoadingSettings) {
     return (
-      <div className="grid gap-4 auto-rows-fr grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="grid gap-4 auto-rows-fr [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
         {[...Array(Object.keys(kpiInfoMap).length)].map((_, i) => (
             <Card key={`skl-${i}`} className="flex flex-col justify-between">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -470,7 +467,7 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
         <React.Fragment key={section.title}>
           {sectionIndex > 0 && <Separator className="my-8" />}
           <h2 className="text-xl font-semibold tracking-tight text-foreground/90">{section.title}</h2>
-          <div className="grid gap-4 auto-rows-fr grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid gap-4 auto-rows-fr [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
             {section.kpis.map((kpi) => {
               const thresholdConfig = findThreshold(kpi.key);
               return (
