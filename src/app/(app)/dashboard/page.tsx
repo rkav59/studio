@@ -286,19 +286,19 @@ export default function DashboardPage() {
         </Button>
       </div>
       
-      <Card className="bg-gradient-to-r from-primary/90 to-primary text-primary-foreground shadow-lg">
+      <Card className="bg-gradient-to-r from-accent/90 to-accent text-accent-foreground shadow-lg">
         <CardHeader>
           <CardTitle>Welcome back, {user?.displayName || 'User'}!</CardTitle>
-          <CardDescription className="text-primary-foreground/80">
+          <CardDescription className="text-accent-foreground/80">
             You are logged in as an {userRoleName}. Your access level allows you to manage relevant SHEQ modules.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-start gap-3 rounded-md border border-primary-foreground/30 bg-primary-foreground/10 p-3">
+          <div className="flex items-start gap-3 rounded-md border border-accent-foreground/20 bg-accent-foreground/10 p-3">
             <Lightbulb className="h-5 w-5 mt-1 shrink-0" />
             <div>
               <h4 className="font-semibold">Tip of the Day</h4>
-              <p className="text-sm text-primary-foreground/90">{tipOfTheDay}</p>
+              <p className="text-sm text-accent-foreground/90">{tipOfTheDay}</p>
             </div>
           </div>
         </CardContent>
