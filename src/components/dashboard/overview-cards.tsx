@@ -257,16 +257,12 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
 
 
   return (
-    <Card onClick={handleCardClick} className="cursor-pointer hover:shadow-lg transition-shadow duration-200 relative h-[140px] flex flex-col">
-      {hasThreshold && (
-        <div className={`absolute top-2 right-2 h-3 w-3 rounded-full ${isDesirable ? 'bg-green-500' : 'bg-red-500'}`} 
-             title={`Status: ${isDesirable ? 'Meeting target' : 'Needs attention'}`} />
-      )}
+    <Card onClick={handleCardClick} className="cursor-pointer hover:shadow-lg transition-shadow duration-200 h-[140px] flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium h-10 flex items-start">{title}</CardTitle>
       </CardHeader>
       
-      <CardContent className="flex-1 flex flex-col items-center justify-center">
+      <CardContent className="flex-grow flex flex-col items-center justify-center min-h-0">
         {hasThreshold ? (
           <div className="text-center">
             <div className={`text-4xl font-bold ${valueColor}`}>{value}{valueSuffix}</div>
@@ -289,7 +285,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
           </div>
         )}
       </CardContent>
-       <div className="border-t mt-auto p-2 px-4 flex justify-between items-center h-[36px]">
+       <div className="border-t p-2 px-4 flex justify-between items-center h-[36px]">
             {hasThreshold ? (
                 <>
                     {!isDesirable ? (
@@ -311,7 +307,7 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
                     <p className="text-xs text-muted-foreground font-bold">{threshold}</p>
                 </>
             ) : (
-                <div /> // Empty div to keep height consistent if no threshold
+                <div />
             )}
        </div>
     </Card>
