@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,8 +15,31 @@ import { useToast } from '@/hooks/use-toast';
 import type { UserProfile, GenerateLegalRegisterOutput, LegalRegisterItem } from '@/lib/types';
 import { generateLegalRegister } from '@/ai/flows/generate-legal-register-flow';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
 
 const USER_PROFILES_COLLECTION = 'userProfiles';
+
+const highlightText = (text: string, highlight: string) => {
+  if (!highlight.trim()) {
+    return text;
+  }
+  const regex = new RegExp(`(${highlight})`, 'gi');
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <span key={i} className="bg-yellow-200 dark:bg-yellow-700 font-bold">
+            {part}
+          </span>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+};
+
 
 export default function LegalRegisterPage() {
   const router = useRouter();
@@ -27,6 +50,7 @@ export default function LegalRegisterPage() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isLoadingRegister, setIsLoadingRegister] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     if (user?.uid) {
@@ -80,12 +104,26 @@ export default function LegalRegisterPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile, isLoadingProfile]);
+  
+  const filteredLegalItems = useMemo(() => {
+    if (!legalRegister?.legalItems) return [];
+    if (!searchTerm.trim()) return legalRegister.legalItems;
+    
+    const lowercasedTerm = searchTerm.toLowerCase();
+    
+    return legalRegister.legalItems.filter(item => 
+      item.title.toLowerCase().includes(lowercasedTerm) ||
+      item.summary.toLowerCase().includes(lowercasedTerm) ||
+      item.relevanceToSheq.toLowerCase().includes(lowercasedTerm) ||
+      (item.keywords && item.keywords.some(kw => kw.toLowerCase().includes(lowercasedTerm)))
+    );
+  }, [legalRegister, searchTerm]);
 
   const renderLegalItem = (item: LegalRegisterItem) => (
     <Card key={item.title} className="shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold text-primary flex items-center gap-2">
-          <FileText className="h-5 w-5" /> {item.title}
+          <FileText className="h-5 w-5" /> {highlightText(item.title, searchTerm)}
         </CardTitle>
         <CardDescription className="text-xs">
           <strong>Type:</strong> {item.type}
@@ -96,17 +134,17 @@ export default function LegalRegisterPage() {
       <CardContent className="space-y-2 text-sm">
         <div>
           <p className="font-medium text-muted-foreground">Summary:</p>
-          <p className="whitespace-pre-wrap text-xs">{item.summary}</p>
+          <p className="whitespace-pre-wrap text-xs">{highlightText(item.summary, searchTerm)}</p>
         </div>
         <div>
           <p className="font-medium text-muted-foreground">Relevance to SHEQ:</p>
-          <p className="whitespace-pre-wrap text-xs">{item.relevanceToSheq}</p>
+          <p className="whitespace-pre-wrap text-xs">{highlightText(item.relevanceToSheq, searchTerm)}</p>
         </div>
         {item.keywords && item.keywords.length > 0 && (
           <div>
             <p className="font-medium text-muted-foreground">Keywords:</p>
             <div className="flex flex-wrap gap-1 mt-1">
-              {item.keywords.map(kw => <span key={kw} className="text-xs bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded-full">{kw}</span>)}
+              {item.keywords.map(kw => <span key={kw} className="text-xs bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded-full">{highlightText(kw, searchTerm)}</span>)}
             </div>
           </div>
         )}
@@ -167,12 +205,26 @@ export default function LegalRegisterPage() {
                 <UiAlertTitle>Important Disclaimer</UiAlertTitle>
                 <UiAlertDescription>{legalRegister.disclaimer}</UiAlertDescription>
               </Alert>
-              <ScrollArea className="h-[70vh]">
+
+              <div className="relative mb-4">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Highlight keywords (e.g., risk, hazard, noise)..."
+                  className="pl-8 w-full"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              
+              <ScrollArea className="h-[60vh] -mx-6 px-6">
                 <div className="space-y-4 pr-4">
-                  {legalRegister.legalItems.length > 0 ? (
-                    legalRegister.legalItems.map(renderLegalItem)
+                  {filteredLegalItems.length > 0 ? (
+                    filteredLegalItems.map(renderLegalItem)
                   ) : (
-                    <p className="text-muted-foreground text-center py-4">No specific legal items were identified by the AI for your criteria, or there was an issue generating them.</p>
+                    <p className="text-muted-foreground text-center py-4">
+                        {searchTerm ? 'No matching legal items found.' : 'No specific legal items were identified by the AI.'}
+                    </p>
                   )}
                 </div>
               </ScrollArea>
