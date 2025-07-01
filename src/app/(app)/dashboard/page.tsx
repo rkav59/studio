@@ -479,10 +479,13 @@ export default function DashboardPage() {
                     </ul>
                 </CardContent>
             </Card>
-            <SuggestIndicatorForm />
         </div>
       </div>
+      <SuggestIndicatorForm />
     </div>
   );
 }
 
+
+
+    
