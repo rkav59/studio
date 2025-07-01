@@ -257,9 +257,9 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
 
 
   return (
-    <Card onClick={handleCardClick} className="cursor-pointer hover:shadow-lg transition-shadow duration-200 h-[140px] flex flex-col">
+    <Card onClick={handleCardClick} className="cursor-pointer hover:shadow-lg transition-shadow duration-200 flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium min-h-10 flex items-start">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium min-h-[40px] flex items-start">{title}</CardTitle>
       </CardHeader>
       
       <CardContent className="flex-grow flex flex-col items-center justify-center min-h-0">
@@ -285,30 +285,32 @@ function KpiCard({ title, value, valueSuffix = "", kpiKey, threshold, targetDire
           </div>
         )}
       </CardContent>
-       <div className="border-t p-2 px-4 flex justify-between items-center h-[36px]">
-            <div className="w-1/2"> 
-                 {!isDesirable && hasThreshold && (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRecommendationClick}
-                        className="text-xs text-red-600 hover:text-red-700 h-auto p-1"
-                        title="Get AI Recommendation"
-                    >
-                        <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
-                    </Button>
-                )}
-                 {isDesirable && hasThreshold && (
-                    <div className="flex items-center text-xs text-green-600 font-semibold">
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
-                        <span>Safe</span>
-                    </div>
-                )}
-            </div>
-            {hasThreshold ? (
-                 <p className="text-xs text-muted-foreground font-bold w-1/2 text-right">Threshold: {threshold}</p>
-            ) : <div className="w-1/2" />} 
-       </div>
+      
+      <div className="border-t p-2 px-4 flex justify-between items-center h-[36px]">
+        {hasThreshold ? (
+          <>
+            {isDesirable ? (
+              <div className="flex items-center text-xs text-green-600 font-semibold">
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                <span>Safe</span>
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRecommendationClick}
+                className="text-xs text-red-600 hover:text-red-700 h-auto p-1"
+                title="Get AI Recommendation"
+              >
+                <Lightbulb className="h-3 w-3 mr-1" /> Get Suggestion
+              </Button>
+            )}
+            <p className="text-xs text-muted-foreground font-bold">Threshold: {threshold}</p>
+          </>
+        ) : (
+          <div className="w-full" />
+        )}
+      </div>
     </Card>
   );
 }
