@@ -295,17 +295,15 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
         </Card>
-        <Card className="lg:col-span-3 shadow-lg flex items-center">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <Lightbulb className="h-8 w-8 shrink-0 text-accent" />
-              <div>
-                <h4 className="font-semibold text-lg">Tip of the Day</h4>
-                <p className="text-muted-foreground">{tipOfTheDay}</p>
-              </div>
+        <div className="lg:col-span-3 flex items-center p-4">
+          <div className="flex items-start gap-4">
+            <Lightbulb className="h-8 w-8 shrink-0 text-accent" />
+            <div>
+              <h4 className="font-semibold text-lg">Tip of the Day</h4>
+              <p className="text-muted-foreground">{tipOfTheDay}</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -487,3 +485,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
