@@ -286,23 +286,27 @@ export default function DashboardPage() {
         </Button>
       </div>
       
-      <Card className="bg-gradient-to-r from-accent/90 to-accent text-accent-foreground shadow-lg">
-        <CardHeader>
-          <CardTitle>Welcome back, {user?.displayName || 'User'}!</CardTitle>
-          <CardDescription className="text-accent-foreground/80">
-            You are logged in as an {userRoleName}. Your access level allows you to manage relevant SHEQ modules.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-start gap-3 rounded-md border border-accent-foreground/20 bg-accent-foreground/10 p-3">
-            <Lightbulb className="h-5 w-5 mt-1 shrink-0" />
-            <div>
-              <h4 className="font-semibold">Tip of the Day</h4>
-              <p className="text-sm text-accent-foreground/90">{tipOfTheDay}</p>
+       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <Card className="lg:col-span-1 bg-gradient-to-r from-accent/90 to-accent text-accent-foreground shadow-lg flex flex-col justify-center">
+          <CardHeader>
+            <CardTitle>Welcome back, {user?.displayName || 'User'}!</CardTitle>
+            <CardDescription className="text-accent-foreground/80 mt-1">
+              You are logged in as an {userRoleName}.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+        <Card className="lg:col-span-3 shadow-lg flex items-center">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <Lightbulb className="h-8 w-8 shrink-0 text-accent" />
+              <div>
+                <h4 className="font-semibold text-lg">Tip of the Day</h4>
+                <p className="text-muted-foreground">{tipOfTheDay}</p>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
