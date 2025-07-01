@@ -167,7 +167,7 @@ export default function LegalRegisterPage() {
                 <UiAlertTitle>Important Disclaimer</UiAlertTitle>
                 <UiAlertDescription>{legalRegister.disclaimer}</UiAlertDescription>
               </Alert>
-              <ScrollArea className="max-h-[70vh]">
+              <ScrollArea className="h-[70vh]">
                 <div className="space-y-4 pr-4">
                   {legalRegister.legalItems.length > 0 ? (
                     legalRegister.legalItems.map(renderLegalItem)
