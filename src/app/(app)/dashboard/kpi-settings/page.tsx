@@ -229,8 +229,19 @@ export default function KpiSettingsPage() {
                                   <FormItem>
                                     <FormLabel className="text-xs">Threshold Value</FormLabel>
                                     <FormControl>
-                                      <Input type="number" step="any" placeholder="e.g., 2.0" {...itemField} value={itemField.value ?? ''} />
+                                      <Input
+                                        type="number"
+                                        step="any"
+                                        placeholder={kpiInfoMap[field.kpiKey]?.unit === '%' ? "e.g., 90 (%)" : "e.g., 2.0"}
+                                        {...itemField}
+                                        value={itemField.value ?? ''}
+                                      />
                                     </FormControl>
+                                    {kpiInfoMap[field.kpiKey]?.unit === '%' && (
+                                        <FormDescription className="text-xs">
+                                          Enter a percentage value (0-100).
+                                        </FormDescription>
+                                      )}
                                     <FormMessage className="text-xs"/>
                                   </FormItem>
                                 )}
