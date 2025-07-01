@@ -334,7 +334,7 @@ export default function DashboardPage() {
                             <PageLoader className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
                     ) : upcomingEvents.length > 0 ? (
-                        <ScrollArea className="max-h-[200px]">
+                        <ScrollArea className="h-[140px]">
                             <ul className="space-y-3 pr-3">
                                 {upcomingEvents.map(event => (
                                     <li key={event.id} className="flex items-start gap-3 p-2.5 rounded-md border bg-secondary/40 hover:shadow-sm transition-shadow">
@@ -356,139 +356,134 @@ export default function DashboardPage() {
                     )}
                 </CardContent>
             </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Incidents Overview</CardTitle>
+                    <CardDescription>Filter incidents by location, category, and date range.</CardDescription>
+                    <div className="pt-4 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 items-end">
+                        <div>
+                        <Label htmlFor="location-filter" className="text-xs font-medium text-muted-foreground">Location</Label>
+                        <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                            <SelectTrigger id="location-filter" className="w-full">
+                            <SelectValue placeholder="Select Location" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            {mockLocations.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        </div>
+                        <div>
+                        <Label htmlFor="category-filter" className="text-xs font-medium text-muted-foreground">Category</Label>
+                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                            <SelectTrigger id="category-filter" className="w-full">
+                            <SelectValue placeholder="Select Category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            {mockCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                        <div>
+                        <Label htmlFor="start-date-filter" className="text-xs font-medium text-muted-foreground">Start Date</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                    id="start-date-filter"
+                                    variant={"outline"}
+                                    className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !startDate && "text-muted-foreground"
+                                    )}
+                                    >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {startDate ? format(startDate, "PPP") : <span>Pick a start date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                    mode="single"
+                                    selected={startDate}
+                                    onSelect={setStartDate}
+                                    initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div>
+                            <Label htmlFor="end-date-filter" className="text-xs font-medium text-muted-foreground">End Date</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                    id="end-date-filter"
+                                    variant={"outline"}
+                                    className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !endDate && "text-muted-foreground"
+                                    )}
+                                    >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {endDate ? format(endDate, "PPP") : <span>Pick an end date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                    mode="single"
+                                    selected={endDate}
+                                    onSelect={setEndDate}
+                                    initialFocus
+                                    disabled={(date) =>
+                                        startDate ? date < startDate : false
+                                    }
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="h-[120px] w-full flex items-center justify-center text-muted-foreground bg-muted/30 rounded-md">
+                    (Incident Chart Area - Data will be filtered based on selections above)
+                    </div>
+                </CardContent>
+                </Card>
+                <Card>
+                <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                    <CardDescription>Latest incidents and inspections.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ul className="space-y-3">
+                    <li className="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
+                        <div>
+                        <p className="font-medium">Near Miss: Slips, Trips, and Falls</p>
+                        <p className="text-sm text-muted-foreground">Warehouse A - 2 hours ago</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground">View</span>
+                    </li>
+                    <li className="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
+                        <div>
+                        <p className="font-medium">Inspection: Fire Safety Check</p>
+                        <p className="text-sm text-muted-foreground">Office Block - Completed Yesterday</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground">Details</span>
+                    </li>
+                    <li className="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
+                        <div>
+                        <p className="font-medium">Hazard Reported: Damaged Guard Rail</p>
+                        <p className="text-sm text-muted-foreground">Factory Floor, Line 3 - 3 days ago</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground">View</span>
+                    </li>
+                    </ul>
+                </CardContent>
+            </Card>
+            <SuggestIndicatorForm />
         </div>
       </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Incidents Overview</CardTitle>
-            <CardDescription>Filter incidents by location, category, and date range.</CardDescription>
-            <div className="pt-4 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 items-end">
-                <div>
-                  <Label htmlFor="location-filter" className="text-xs font-medium text-muted-foreground">Location</Label>
-                  <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                    <SelectTrigger id="location-filter" className="w-full">
-                      <SelectValue placeholder="Select Location" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockLocations.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="category-filter" className="text-xs font-medium text-muted-foreground">Category</Label>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger id="category-filter" className="w-full">
-                      <SelectValue placeholder="Select Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                <div>
-                   <Label htmlFor="start-date-filter" className="text-xs font-medium text-muted-foreground">Start Date</Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                            id="start-date-filter"
-                            variant={"outline"}
-                            className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !startDate && "text-muted-foreground"
-                            )}
-                            >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {startDate ? format(startDate, "PPP") : <span>Pick a start date</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar
-                            mode="single"
-                            selected={startDate}
-                            onSelect={setStartDate}
-                            initialFocus
-                            />
-                        </PopoverContent>
-                    </Popover>
-                </div>
-                <div>
-                    <Label htmlFor="end-date-filter" className="text-xs font-medium text-muted-foreground">End Date</Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                            id="end-date-filter"
-                            variant={"outline"}
-                            className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !endDate && "text-muted-foreground"
-                            )}
-                            >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {endDate ? format(endDate, "PPP") : <span>Pick an end date</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar
-                            mode="single"
-                            selected={endDate}
-                            onSelect={setEndDate}
-                            initialFocus
-                            disabled={(date) =>
-                                startDate ? date < startDate : false
-                              }
-                            />
-                        </PopoverContent>
-                    </Popover>
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[120px] w-full flex items-center justify-center text-muted-foreground bg-muted/30 rounded-md">
-              (Incident Chart Area - Data will be filtered based on selections above)
-            </div>
-          </CardContent>
-        </Card>
-         <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest incidents and inspections.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-3">
-              <li className="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
-                <div>
-                  <p className="font-medium">Near Miss: Slips, Trips, and Falls</p>
-                  <p className="text-sm text-muted-foreground">Warehouse A - 2 hours ago</p>
-                </div>
-                <span className="text-xs text-muted-foreground">View</span>
-              </li>
-              <li className="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
-                <div>
-                  <p className="font-medium">Inspection: Fire Safety Check</p>
-                  <p className="text-sm text-muted-foreground">Office Block - Completed Yesterday</p>
-                </div>
-                <span className="text-xs text-muted-foreground">Details</span>
-              </li>
-               <li className="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
-                <div>
-                  <p className="font-medium">Hazard Reported: Damaged Guard Rail</p>
-                  <p className="text-sm text-muted-foreground">Factory Floor, Line 3 - 3 days ago</p>
-                </div>
-                <span className="text-xs text-muted-foreground">View</span>
-              </li>
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
-
-      <SuggestIndicatorForm />
-
     </div>
   );
 }
