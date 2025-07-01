@@ -7,15 +7,15 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     <div className="relative flex min-h-screen flex-col bg-background overflow-hidden">
       {/* Background Illustrations */}
       <div
-        className="absolute top-0 -left-40 w-96 h-96 bg-primary/10 rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob"
+        className="absolute top-0 -left-20 w-96 h-96 bg-primary/30 rounded-full mix-blend-multiply filter blur-xl opacity-60 animate-blob"
         style={{ animationDelay: '0s' }}
       ></div>
       <div
-        className="absolute top-0 -right-40 w-96 h-96 bg-accent/10 rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob"
+        className="absolute top-0 -right-20 w-96 h-96 bg-accent/30 rounded-full mix-blend-multiply filter blur-xl opacity-60 animate-blob"
         style={{ animationDelay: '2s' }}
       ></div>
       <div
-        className="absolute -bottom-16 left-20 w-96 h-96 bg-primary/20 rounded-full mix-blend-multiply filter blur-2xl opacity-40 animate-blob"
+        className="absolute -bottom-8 left-20 w-96 h-96 bg-primary/40 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-blob"
         style={{ animationDelay: '4s' }}
       ></div>
       
