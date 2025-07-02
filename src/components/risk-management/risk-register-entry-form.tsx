@@ -308,10 +308,10 @@ export function RiskRegisterEntryForm({ initialData, sheqAudits, onSave, onCance
                         render={({ field }) => (
                             <FormItem className="mt-4">
                             <FormLabel className="flex items-center gap-1"><LinkIconSheq className="h-4 w-4"/>Link to SHEQ Audit (Optional)</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
+                            <Select onValueChange={field.onChange} value={field.value || NO_SELECTION_VALUE}>
                                 <FormControl><SelectTrigger><SelectValue placeholder="Select an audit to link" /></SelectTrigger></FormControl>
                                 <SelectContent>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value={NO_SELECTION_VALUE}>None</SelectItem>
                                 {sheqAudits.map(audit => (
                                     <SelectItem key={audit.id} value={audit.id}>
                                     {audit.auditName} ({audit.auditType} - {format(parseISO(audit.auditDate), "PPP")})
@@ -342,3 +342,4 @@ export function RiskRegisterEntryForm({ initialData, sheqAudits, onSave, onCance
     </Form>
   );
 }
+
