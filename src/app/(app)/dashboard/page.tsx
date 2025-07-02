@@ -10,7 +10,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { LayoutDashboard, CalendarIcon, Filter, Settings, Loader2 as PageLoader, Activity, Users as UsersIcon, CalendarClock, RefreshCw, Lightbulb } from "lucide-react"; 
+import { LayoutDashboard, CalendarIcon, Filter, Settings, Loader2 as PageLoader, Activity, Users as UsersIcon, RefreshCw, Lightbulb } from "lucide-react"; 
 import { cn } from "@/lib/utils";
 import { format, parseISO, startOfToday, isValid } from "date-fns"; 
 import { Label } from '@/components/ui/label';
@@ -324,7 +324,7 @@ export default function DashboardPage() {
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div className="flex-grow">
-                        <CardTitle className="flex items-center gap-2"><CalendarClock className="h-5 w-5 text-primary"/>Upcoming SHE Events</CardTitle>
+                        <CardTitle>Upcoming SHE Events</CardTitle>
                         <CardDescription>Key programs and meetings on the horizon.</CardDescription>
                     </div>
                     <Button variant="ghost" size="icon" onClick={handleRefreshEvents} disabled={isRefreshingEvents} title="Refresh Events">
