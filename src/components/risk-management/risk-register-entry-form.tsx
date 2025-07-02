@@ -29,7 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as UiCardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Save, XCircle, User, Tag, AlertTriangle, BarChart, BookOpen, ShieldAlert, Users, FileSignature, Link as LinkIconSheq } from "lucide-react"; // Added LinkIconSheq
+import { CalendarIcon, Save, XCircle, User, Tag, AlertTriangle, BarChart, BookOpen, ShieldAlert, Users, FileSignature, Link as LinkIconSheq, ShieldCheck } from "lucide-react";
 import type { RiskRegisterEntry, Likelihood, Severity, RiskLevel, RiskRegisterStatus, SheqAudit } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { likelihoodLevels, severityLevels, getRiskLevel, riskMatrix, riskRegisterStatuses, riskCategories, riskSources } from "@/lib/risk-assessment-config";
@@ -87,8 +87,8 @@ export function RiskRegisterEntryForm({ initialData, sheqAudits, onSave, onCance
       riskDescription: initialData?.riskDescription || "",
       dateIdentified: initialData?.dateIdentified ? format(parseISO(initialData.dateIdentified), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       identifiedBy: initialData?.identifiedBy || "",
-      category: initialData?.category || undefined,
-      source: initialData?.source || undefined,
+      category: initialData?.category || NO_SELECTION_VALUE,
+      source: initialData?.source || NO_SELECTION_VALUE,
       initialLikelihood: initialData?.initialLikelihood || undefined,
       initialSeverity: initialData?.initialSeverity || undefined,
       initialRiskLevel: initialData?.initialRiskLevel || undefined,
@@ -132,7 +132,7 @@ export function RiskRegisterEntryForm({ initialData, sheqAudits, onSave, onCance
   }, [watchedResidualLikelihood, watchedResidualSeverity, form]);
 
   useEffect(() => {
-    if (watchedLinkedSheqAuditId) {
+    if (watchedLinkedSheqAuditId && watchedLinkedSheqAuditId !== NO_SELECTION_VALUE) {
       const selectedAudit = sheqAudits.find(audit => audit.id === watchedLinkedSheqAuditId);
       if (selectedAudit) {
         form.setValue("linkedSheqAuditName", `${selectedAudit.auditName} (${selectedAudit.auditType} - ${format(parseISO(selectedAudit.auditDate), "PPP")})`);
@@ -146,7 +146,13 @@ export function RiskRegisterEntryForm({ initialData, sheqAudits, onSave, onCance
 
 
   const onSubmit = (data: RiskRegisterEntryFormValues) => {
-    onSave(data);
+    const finalData = {
+        ...data,
+        category: data.category === NO_SELECTION_VALUE ? undefined : data.category,
+        source: data.source === NO_SELECTION_VALUE ? undefined : data.source,
+        linkedSheqAuditId: data.linkedSheqAuditId === NO_SELECTION_VALUE ? undefined : data.linkedSheqAuditId,
+    };
+    onSave(finalData);
   };
   
   const getRiskLevelColor = (level?: RiskLevel) => level ? riskMatrix[level]?.color : 'bg-gray-200 text-gray-700';
@@ -183,14 +189,14 @@ export function RiskRegisterEntryForm({ initialData, sheqAudits, onSave, onCance
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField control={form.control} name="category" render={({ field }) => (
                                 <FormItem><FormLabel>Category (Optional)</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger></FormControl>
-                                <SelectContent><SelectItem value="">None</SelectItem>{riskCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                                <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger></FormControl>
+                                <SelectContent><SelectItem value={NO_SELECTION_VALUE}>None</SelectItem>{riskCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                                 </Select><FormMessage /></FormItem>
                             )}/>
                              <FormField control={form.control} name="source" render={({ field }) => (
                                 <FormItem><FormLabel>Source (Optional)</FormLabel>
-                                 <Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger></FormControl>
-                                 <SelectContent><SelectItem value="">None</SelectItem>{riskSources.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                                 <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger></FormControl>
+                                 <SelectContent><SelectItem value={NO_SELECTION_VALUE}>None</SelectItem>{riskSources.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                                  </Select><FormMessage /></FormItem>
                             )}/>
                         </div>
