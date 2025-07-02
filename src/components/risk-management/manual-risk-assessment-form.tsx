@@ -350,23 +350,23 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
                 <CardHeader><CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary"/>Review & Status</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField control={form.control} name="status" render={({ field }) => (
-                          <FormItem><FormLabel>Assessment Status</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
-                              <SelectContent>{riskAssessmentStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                          </Select><FormMessage /></FormItem>
-                      )}/>
-                       {(watchedStatus === 'Open' || watchedStatus === 'Under Review') && (
-                          <FormField control={form.control} name="reviewDate" render={({ field }) => (
-                              <FormItem className="flex flex-col"><FormLabel>Next Review Date (Optional)</FormLabel>
-                              <Popover><PopoverTrigger asChild><FormControl>
-                                  <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                  {field.value ? format(parseISO(field.value), "PPP") : <span>Pick review date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button></FormControl></PopoverTrigger>
-                                  <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
-                              </Popover><FormMessage /></FormItem>
-                          )}/>
-                       )}
+                    <FormField control={form.control} name="status" render={({ field }) => (
+                        <FormItem><FormLabel>Assessment Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
+                            <SelectContent>{riskAssessmentStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                        </Select><FormMessage /></FormItem>
+                    )}/>
+                     {(watchedStatus === 'Open' || watchedStatus === 'Under Review') && (
+                        <FormField control={form.control} name="reviewDate" render={({ field }) => (
+                            <FormItem className="flex flex-col"><FormLabel>Next Review Date (Optional)</FormLabel>
+                            <Popover><PopoverTrigger asChild><FormControl>
+                                <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                {field.value ? format(parseISO(field.value), "PPP") : <span>Pick review date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button></FormControl></PopoverTrigger>
+                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
+                            </Popover><FormMessage /></FormItem>
+                        )}/>
+                     )}
                    </div>
                    <FormField control={form.control} name="overallComments" render={({ field }) => (
                       <FormItem className="mt-4">
@@ -396,4 +396,3 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
     </Form>
   );
 }
-
