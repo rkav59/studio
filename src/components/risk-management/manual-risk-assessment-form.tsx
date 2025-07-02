@@ -60,13 +60,16 @@ const manualRiskAssessmentFormSchema = z.object({
 
   additionalControls: z.array(riskAssessmentControlSchema).optional(),
 
-  residualLikelihood: z.enum(Object.keys(likelihoodLevels) as [Likelihood, ...Likelihood[]], { required_error: "Residual Likelihood is required." }),
-  residualSeverity: z.enum(Object.keys(severityLevels) as [Severity, ...Severity[]], { required_error: "Residual Severity is required." }),
+  residualLikelihood: z.enum(Object.keys(likelihoodLevels) as [Likelihood, ...Likelihood[]]).optional(),
+  residualSeverity: z.enum(Object.keys(severityLevels) as [Severity, ...Severity[]]).optional(),
   residualRiskLevel: z.custom<RiskLevel>((val) => Object.keys(riskMatrix).includes(val as string), {message: "Invalid Risk Level"}).optional(),
 
   reviewDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid review date" }),
   status: z.enum(riskAssessmentStatuses, { required_error: "Assessment status is required." }),
   overallComments: z.string().max(5000).optional(), // Increased max length for root cause suggestions
+}).refine(data => (data.residualLikelihood && data.residualSeverity) || (!data.residualLikelihood && !data.residualSeverity), {
+    message: "Both Residual Likelihood and Severity must be provided if one is entered.",
+    path: ["residualLikelihood"], 
 });
 
 export type ManualRiskAssessmentFormValues = z.infer<typeof manualRiskAssessmentFormSchema>;
@@ -314,19 +317,19 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
                 </Card>
 
                 {/* Residual Risk Assessment */}
-                <Card className="p-4 bg-secondary/20">
-                    <CardHeader className="p-0 pb-3 mb-3 border-b"><CardTitle className="text-lg flex items-center gap-2"><Zap className="h-5 w-5 text-primary"/>Residual Risk Assessment</CardTitle><FormDescription>After all additional controls are implemented.</FormDescription></CardHeader>
+                 <Card className="p-4 bg-secondary/20">
+                    <CardHeader className="p-0 pb-3 mb-3 border-b"><CardTitle className="text-lg flex items-center gap-2"><Zap className="h-5 w-5 text-primary"/>Residual Risk Assessment (Optional)</CardTitle><UiCardDescription>Assess the risk level *after* all additional controls are implemented.</UiCardDescription></CardHeader>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                         <FormField control={form.control} name="residualLikelihood" render={({ field }) => (
                             <FormItem><FormLabel>Residual Likelihood</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select likelihood" /></SelectTrigger></FormControl>
-                                <SelectContent>{Object.keys(likelihoodLevels).map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                            <Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select likelihood" /></SelectTrigger></FormControl>
+                                <SelectContent><SelectItem value="">N/A</SelectItem>{Object.keys(likelihoodLevels).map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                             </Select><FormMessage /></FormItem>
                         )}/>
                         <FormField control={form.control} name="residualSeverity" render={({ field }) => (
                             <FormItem><FormLabel>Residual Severity</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select severity" /></SelectTrigger></FormControl>
-                                <SelectContent>{Object.keys(severityLevels).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                            <Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select severity" /></SelectTrigger></FormControl>
+                                <SelectContent><SelectItem value="">N/A</SelectItem>{Object.keys(severityLevels).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                             </Select><FormMessage /></FormItem>
                         )}/>
                         <FormItem><FormLabel>Residual Risk Level</FormLabel>
