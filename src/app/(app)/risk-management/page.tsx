@@ -462,15 +462,15 @@ export default function RiskManagementPage() {
                     <div className="space-y-3">
                         {incidents.map(incident => (
                             <Card key={incident.id} className="p-3 shadow-sm">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex-grow">
+                                <div className="flex flex-col gap-2">
+                                    <div>
                                         <h4 className="font-semibold">{incident.type}: {incident.description.substring(0, 70)}{incident.description.length > 70 ? '...' : ''}</h4>
                                         <p className="text-xs text-muted-foreground">
                                             Date: {format(parseISO(incident.timestamp), "PPPp")} | Location: {incident.location}
                                         </p>
                                         <p className={`text-xs font-semibold ${getIncidentStatusColor(incident.status)}`}>Status: {incident.status || 'Open'}</p>
                                     </div>
-                                    <div className="flex gap-1 shrink-0">
+                                    <div className="flex gap-1">
                                         <Button variant="outline" size="sm" onClick={() => setViewingIncident(incident)}><Eye className="mr-1 h-3 w-3"/>View</Button>
                                         <Button variant="secondary" size="sm" onClick={() => router.push(`/risk-management/incidents/edit/${incident.id}`)}><Edit2 className="mr-1 h-3 w-3"/>Edit</Button>
                                         <AlertDialog>
