@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -442,7 +443,7 @@ export default function RiskManagementPage() {
              <Tooltip>
               <TooltipTrigger asChild>
                 <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
-                  <Button onClick={() => canCreate && router.push('/risk-management/incidents/new')} disabled={!canCreate} className="bg-accent hover:bg-accent/90 text-accent-foreground w-full">
+                  <Button onClick={() => canCreate && router.push('/risk-management/incidents/new')} disabled={!canCreate} className="bg-orange-500 hover:bg-orange-600 text-white w-full">
                       <PlusCircle className="mr-2 h-4 w-4" /> Log New Incident/Event
                   </Button>
                 </div>
@@ -508,7 +509,7 @@ export default function RiskManagementPage() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
-                    <Button onClick={() => canCreate && router.push('/risk-management/hazards/new')} disabled={!canCreate} className="w-full bg-cyan-600 hover:bg-cyan-700 text-white">
+                    <Button onClick={() => canCreate && router.push('/risk-management/hazards/new')} disabled={!canCreate} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
                         <Target className="mr-2 h-4 w-4" /> Log New Hazard
                     </Button>
                   </div>
@@ -518,7 +519,7 @@ export default function RiskManagementPage() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
-                    <Button onClick={() => canCreate && router.push('/risk-management/assessments/new')} disabled={!canCreate} className="w-full bg-cyan-700 hover:bg-cyan-800 text-white">
+                    <Button onClick={() => canCreate && router.push('/risk-management/assessments/new')} disabled={!canCreate} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
                         <FileSignature className="mr-2 h-4 w-4" /> Conduct New Risk Assessment
                     </Button>
                   </div>
@@ -527,7 +528,7 @@ export default function RiskManagementPage() {
               </Tooltip>
                 <Button 
                     onClick={() => toast({ title: "Info", description: "Viewing all risk assessments will be available on a dedicated page soon."})} 
-                    className="w-full bg-cyan-500 hover:bg-cyan-600 text-white"
+                    className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
                 >
                     <ListChecks className="mr-2 h-4 w-4" /> View/Manage Risk Assessments
                 </Button>
