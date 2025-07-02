@@ -89,6 +89,8 @@ const newControlDefault = (): RiskAssessmentControl => ({
     status: "Open",
 });
 
+const NO_SELECTION_VALUE = "__NONE__";
+
 
 export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubmitting }: ManualRiskAssessmentFormProps) {
   const [isHazardsAiPrefilled, setIsHazardsAiPrefilled] = useState(false);
@@ -322,14 +324,16 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                         <FormField control={form.control} name="residualLikelihood" render={({ field }) => (
                             <FormItem><FormLabel>Residual Likelihood</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select likelihood" /></SelectTrigger></FormControl>
-                                <SelectContent><SelectItem value="">N/A</SelectItem>{Object.keys(likelihoodLevels).map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                            <Select onValueChange={(value) => field.onChange(value === NO_SELECTION_VALUE ? undefined : value)} value={field.value || NO_SELECTION_VALUE}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select likelihood" /></SelectTrigger></FormControl>
+                                <SelectContent><SelectItem value={NO_SELECTION_VALUE}>N/A</SelectItem>{Object.keys(likelihoodLevels).map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                             </Select><FormMessage /></FormItem>
                         )}/>
                         <FormField control={form.control} name="residualSeverity" render={({ field }) => (
                             <FormItem><FormLabel>Residual Severity</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select severity" /></SelectTrigger></FormControl>
-                                <SelectContent><SelectItem value="">N/A</SelectItem>{Object.keys(severityLevels).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                            <Select onValueChange={(value) => field.onChange(value === NO_SELECTION_VALUE ? undefined : value)} value={field.value || NO_SELECTION_VALUE}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select severity" /></SelectTrigger></FormControl>
+                                <SelectContent><SelectItem value={NO_SELECTION_VALUE}>N/A</SelectItem>{Object.keys(severityLevels).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                             </Select><FormMessage /></FormItem>
                         )}/>
                         <FormItem><FormLabel>Residual Risk Level</FormLabel>

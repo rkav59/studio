@@ -76,6 +76,9 @@ interface RiskRegisterEntryFormProps {
   isSubmitting?: boolean;
 }
 
+const NO_SELECTION_VALUE = "__NONE__";
+
+
 export function RiskRegisterEntryForm({ initialData, sheqAudits, onSave, onCancel, isSubmitting }: RiskRegisterEntryFormProps) {
   const form = useForm<RiskRegisterEntryFormValues>({
     resolver: zodResolver(riskRegisterEntryFormSchema),
@@ -181,13 +184,13 @@ export function RiskRegisterEntryForm({ initialData, sheqAudits, onSave, onCance
                             <FormField control={form.control} name="category" render={({ field }) => (
                                 <FormItem><FormLabel>Category (Optional)</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger></FormControl>
-                                <SelectContent>{riskCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                                <SelectContent><SelectItem value="">None</SelectItem>{riskCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                                 </Select><FormMessage /></FormItem>
                             )}/>
                              <FormField control={form.control} name="source" render={({ field }) => (
                                 <FormItem><FormLabel>Source (Optional)</FormLabel>
                                  <Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger></FormControl>
-                                 <SelectContent>{riskSources.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                                 <SelectContent><SelectItem value="">None</SelectItem>{riskSources.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                                  </Select><FormMessage /></FormItem>
                             )}/>
                         </div>
@@ -248,18 +251,20 @@ export function RiskRegisterEntryForm({ initialData, sheqAudits, onSave, onCance
 
                 {/* Residual Risk Assessment */}
                 <Card className="p-4 bg-secondary/20">
-                    <CardHeader className="p-0 pb-3 mb-3 border-b"><CardTitle className="text-lg flex items-center gap-2"><BarChart className="h-5 w-5 text-primary"/>Residual Risk Level (Optional)</CardTitle><FormDescription>Assess after treatment plan is implemented.</FormDescription></CardHeader>
+                    <CardHeader className="p-0 pb-3 mb-3 border-b"><CardTitle className="text-lg flex items-center gap-2"><BarChart className="h-5 w-5 text-primary"/>Residual Risk Level (Optional)</CardTitle><UiCardDescription>Assess after treatment plan is implemented.</UiCardDescription></CardHeader>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                         <FormField control={form.control} name="residualLikelihood" render={({ field }) => (
                             <FormItem><FormLabel>Residual Likelihood</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select likelihood" /></SelectTrigger></FormControl>
-                                <SelectContent><SelectItem value="">N/A</SelectItem>{Object.keys(likelihoodLevels).map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                            <Select onValueChange={(value) => field.onChange(value === NO_SELECTION_VALUE ? undefined : value)} value={field.value || NO_SELECTION_VALUE}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select likelihood" /></SelectTrigger></FormControl>
+                                <SelectContent><SelectItem value={NO_SELECTION_VALUE}>N/A</SelectItem>{Object.keys(likelihoodLevels).map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                             </Select><FormMessage /></FormItem>
                         )}/>
                         <FormField control={form.control} name="residualSeverity" render={({ field }) => (
                             <FormItem><FormLabel>Residual Severity</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select severity" /></SelectTrigger></FormControl>
-                                <SelectContent><SelectItem value="">N/A</SelectItem>{Object.keys(severityLevels).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                            <Select onValueChange={(value) => field.onChange(value === NO_SELECTION_VALUE ? undefined : value)} value={field.value || NO_SELECTION_VALUE}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select severity" /></SelectTrigger></FormControl>
+                                <SelectContent><SelectItem value={NO_SELECTION_VALUE}>N/A</SelectItem>{Object.keys(severityLevels).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                             </Select><FormMessage /></FormItem>
                         )}/>
                         <FormItem><FormLabel>Residual Risk Level</FormLabel>
