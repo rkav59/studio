@@ -275,7 +275,7 @@ export default function DashboardPage() {
 
   const upcomingEvents = useMemo(() => {
     const events: UpcomingEvent[] = [];
-    upcomingPrograms.forEach(program => {
+    (upcomingPrograms || []).forEach(program => {
       if (program.startDate && isValid(parseISO(program.startDate))) {
         events.push({
           id: program.id,
@@ -288,7 +288,7 @@ export default function DashboardPage() {
         });
       }
     });
-    upcomingMeetingsData.forEach(meeting => {
+    (upcomingMeetingsData || []).forEach(meeting => {
       if (meeting.meetingDate && isValid(parseISO(meeting.meetingDate))) { // meeting.meetingDate is already validated ISO string or null
         events.push({
           id: meeting.id,
@@ -373,7 +373,7 @@ export default function DashboardPage() {
         <div className="space-y-6">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
-                    <div className="flex-grow">
+                    <div>
                         <CardTitle>Upcoming SHE Events</CardTitle>
                         <CardDescription>Key programs and meetings on the horizon.</CardDescription>
                     </div>
