@@ -423,7 +423,7 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
 
   if (isLoadingSettings) {
     return (
-      <div className="grid gap-4 auto-rows-fr [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
+      <div className="grid gap-2 auto-rows-fr [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
         {[...Array(Object.keys(kpiInfoMap).length)].map((_, i) => (
             <Card key={`skl-${i}`} className="flex flex-col justify-between">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -462,12 +462,12 @@ export function OverviewCards({ kpiThresholds, kpiVisibility, isLoadingSettings 
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       {visibleKpiSections.map((section, sectionIndex) => (
         <React.Fragment key={section.title}>
-          {sectionIndex > 0 && <Separator className="my-8" />}
+          {sectionIndex > 0 && <Separator className="my-2" />}
           <h2 className="text-xl font-semibold tracking-tight text-foreground/90">{section.title}</h2>
-          <div className="grid gap-4 auto-rows-fr [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
+          <div className="grid gap-2 auto-rows-fr [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
             {section.kpis.map((kpi) => {
               const thresholdConfig = findThreshold(kpi.key);
               return (
@@ -551,3 +551,5 @@ export function IncidentTypeChart() {
     </Card>
   );
 }
+
+    

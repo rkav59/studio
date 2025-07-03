@@ -4,7 +4,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { OverviewCards, kpiInfoMap } from "@/components/dashboard/overview-cards";
 import { KpiTrendChart } from "@/components/dashboard/kpi-trend-chart";
-import { SuggestIndicatorForm } from "@/components/dashboard/suggest-indicator-form";
 import { AppUsageProgress } from "@/components/dashboard/app-usage-progress"; // Import new component
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
@@ -28,6 +27,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { SuggestIndicatorForm } from '@/components/dashboard/suggest-indicator-form';
 
 const mockLocations = ["All Locations", "Warehouse A", "Office Block", "Factory Floor", "Loading Bay"];
 const mockCategories = ["All Categories", "Incident", "Near Miss", "Hazard"];
@@ -326,7 +326,7 @@ export default function DashboardPage() {
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       <div className="flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0">
         <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
           <LayoutDashboard className="h-8 w-8"/> Dashboard
@@ -337,7 +337,7 @@ export default function DashboardPage() {
         </Button>
       </div>
       
-       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+       <div className="grid grid-cols-1 lg:grid-cols-4 gap-2">
         <Card className="lg:col-span-1 bg-gradient-to-r from-accent/90 to-accent text-accent-foreground shadow-lg flex flex-col justify-center">
           <CardHeader>
             <CardTitle>Welcome back, {user?.displayName || 'User'}!</CardTitle>
@@ -359,9 +359,9 @@ export default function DashboardPage() {
 
       <Separator />
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-            <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+        <div className="lg:col-span-2 space-y-2">
+            <div className="space-y-2">
               <OverviewCards 
                   kpiThresholds={kpiThresholds} 
                   kpiVisibility={kpiVisibility}
@@ -370,7 +370,7 @@ export default function DashboardPage() {
             </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-2">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
@@ -549,9 +549,11 @@ export default function DashboardPage() {
         <AppUsageProgress usageData={usageData} />
       )}
       
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-2">
         <SuggestIndicatorForm />
       </div>
     </div>
   );
 }
+
+    
