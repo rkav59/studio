@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { OverviewCards, kpiInfoMap } from "@/components/dashboard/overview-cards";
 import { KpiTrendChart } from "@/components/dashboard/kpi-trend-chart";
 import { SuggestIndicatorForm } from "@/components/dashboard/suggest-indicator-form";
+import { AppUsageProgress } from "@/components/dashboard/app-usage-progress"; // Import new component
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,10 @@ import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, getDoc, Timestamp, orderBy } from 'firebase/firestore';
-import type { KpiThreshold, KpiVisibilitySettings, SheProgram, SheMeeting, UserRole } from '@/lib/types';
+import type { 
+    KpiThreshold, KpiVisibilitySettings, SheProgram, SheMeeting, UserRole,
+    Incident, ManualRiskAssessment, SheqAudit, TrainingRecord, Contractor, PpeItem, EmergencyPlan, SimilarExposureGroup, IndustrialHygieneSample 
+} from '@/lib/types'; // Import all necessary types
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -28,10 +32,21 @@ import { Separator } from '@/components/ui/separator';
 const mockLocations = ["All Locations", "Warehouse A", "Office Block", "Factory Floor", "Loading Bay"];
 const mockCategories = ["All Categories", "Incident", "Near Miss", "Hazard"];
 
+// Collection constants
 const KPI_THRESHOLDS_COLLECTION = 'kpiThresholds';
 const KPI_VISIBILITY_COLLECTION = 'kpiVisibilitySettings';
 const PROGRAMS_COLLECTION = 'shePrograms';
 const MEETINGS_COLLECTION = 'sheMeetings';
+const INCIDENTS_COLLECTION = 'incidents';
+const MANUAL_RISK_ASSESSMENTS_COLLECTION = 'manualRiskAssessments';
+const SHEQ_AUDITS_COLLECTION = 'sheqAudits';
+const TRAINING_RECORDS_COLLECTION = 'trainingRecords';
+const CONTRACTORS_COLLECTION = 'contractors';
+const PPE_ITEMS_COLLECTION = 'ppeItems';
+const EMERGENCY_PLANS_COLLECTION = 'emergencyPlans';
+const SEGS_COLLECTION = 'similarExposureGroups';
+const IH_SAMPLES_COLLECTION = 'industrialHygieneSamples';
+
 
 interface UpcomingEvent {
   id: string;
@@ -124,6 +139,41 @@ export default function DashboardPage() {
     };
     fetchAllSettings();
   }, [user?.uid, toast]);
+
+  // Fetch all necessary data for the AppUsageProgress component
+  const { data: usageData, isLoading: isLoadingUsageData } = useQuery({
+    queryKey: ['dashboardUsageData', user?.uid],
+    queryFn: async () => {
+        if (!user?.uid) return null;
+        
+        const collectionsToFetch = [
+            INCIDENTS_COLLECTION, MANUAL_RISK_ASSESSMENTS_COLLECTION, SHEQ_AUDITS_COLLECTION,
+            TRAINING_RECORDS_COLLECTION, CONTRACTORS_COLLECTION, PPE_ITEMS_COLLECTION,
+            EMERGENCY_PLANS_COLLECTION, SEGS_COLLECTION, IH_SAMPLES_COLLECTION, MEETINGS_COLLECTION
+        ];
+
+        const promises = collectionsToFetch.map(coll => {
+            const q = query(collection(db, coll), where("userId", "==", user.uid));
+            return getDocs(q);
+        });
+
+        const snapshots = await Promise.all(promises);
+
+        return {
+            incidentCount: snapshots[0].size,
+            riskAssessmentCount: snapshots[1].size,
+            auditCount: snapshots[2].size,
+            trainingRecordCount: snapshots[3].size,
+            contractorCount: snapshots[4].size,
+            ppeItemCount: snapshots[5].size,
+            emergencyPlanCount: snapshots[6].size,
+            healthRecordCount: snapshots[7].size + snapshots[8].size, // Combining SEGs and IH Samples
+            meetingCount: snapshots[9].size,
+        };
+    },
+    enabled: !!user?.uid,
+  });
+
 
   // Fetch Upcoming SHE Programs
   const { data: upcomingPrograms = [], isLoading: isLoadingPrograms, error: programsError } = useQuery<SheProgram[]>({
@@ -484,6 +534,21 @@ export default function DashboardPage() {
             </Card>
         </div>
       </div>
+      
+      {isLoadingUsageData || !usageData ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Application Utilization</CardTitle>
+          </CardHeader>
+          <CardContent className="flex justify-center items-center h-48">
+            <PageLoader className="h-8 w-8 animate-spin" />
+            <p className="ml-2 text-muted-foreground">Loading usage data...</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <AppUsageProgress usageData={usageData} />
+      )}
+      
       <div className="grid grid-cols-1 gap-6">
         <SuggestIndicatorForm />
       </div>
