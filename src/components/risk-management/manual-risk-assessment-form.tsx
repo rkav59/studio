@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,10 +29,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as UiCardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Save, XCircle, PlusCircle, Trash2, Activity, Users, Briefcase, ShieldCheck, BarChart, ShieldAlert, ListChecks, Zap, Lightbulb } from "lucide-react"; 
-import type { ManualRiskAssessment, RiskAssessmentControl, Likelihood, Severity, RiskLevel } from "@/lib/types";
+import type { ManualRiskAssessment, RiskAssessmentControl, Likelihood, Severity, RiskLevel, ManualHazard } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { likelihoodLevels, severityLevels, getRiskLevel, riskMatrix, controlActionStatuses, riskAssessmentStatuses } from "@/lib/risk-assessment-config";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 const riskAssessmentControlSchema = z.object({
@@ -51,7 +51,8 @@ const manualRiskAssessmentFormSchema = z.object({
   teamMembers: z.string().max(500).optional(),
   scope: z.string().min(5, "Scope is required.").max(1000),
   
-  potentialHazardsIdentified: z.string().min(5, "At least one hazard must be listed.").max(2000),
+  potentialHazardsIdentified: z.string().max(2000).optional(),
+  linkedHazardIds: z.array(z.string()).optional(),
   existingControls: z.string().min(5, "Describe existing controls (or 'None').").max(2000),
 
   initialLikelihood: z.enum(Object.keys(likelihoodLevels) as [Likelihood, ...Likelihood[]], { required_error: "Initial Likelihood is required." }),
@@ -66,7 +67,10 @@ const manualRiskAssessmentFormSchema = z.object({
 
   reviewDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid review date" }),
   status: z.enum(riskAssessmentStatuses, { required_error: "Assessment status is required." }),
-  overallComments: z.string().max(5000).optional(), // Increased max length for root cause suggestions
+  overallComments: z.string().max(5000).optional(),
+}).refine(data => (data.linkedHazardIds && data.linkedHazardIds.length > 0) || (data.potentialHazardsIdentified && data.potentialHazardsIdentified.trim().length > 0), {
+  message: "You must either link an identified hazard or describe the potential hazards.",
+  path: ["linkedHazardIds"], // Point error to this section
 }).refine(data => (data.residualLikelihood && data.residualSeverity) || (!data.residualLikelihood && !data.residualSeverity), {
     message: "Both Residual Likelihood and Severity must be provided if one is entered.",
     path: ["residualLikelihood"], 
@@ -76,6 +80,7 @@ export type ManualRiskAssessmentFormValues = z.infer<typeof manualRiskAssessment
 
 interface ManualRiskAssessmentFormProps {
   initialData?: ManualRiskAssessment | null;
+  manualHazards: ManualHazard[];
   onSave: (data: ManualRiskAssessmentFormValues) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
@@ -92,7 +97,7 @@ const newControlDefault = (): RiskAssessmentControl => ({
 const NO_SELECTION_VALUE = "__NONE__";
 
 
-export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubmitting }: ManualRiskAssessmentFormProps) {
+export function ManualRiskAssessmentForm({ initialData, manualHazards, onSave, onCancel, isSubmitting }: ManualRiskAssessmentFormProps) {
   const [isHazardsAiPrefilled, setIsHazardsAiPrefilled] = useState(false);
   const [isPotentialRisksAiPrefilled, setIsPotentialRisksAiPrefilled] = useState(false);
   const [isControlsAiPrefilled, setIsControlsAiPrefilled] = useState(false);
@@ -108,6 +113,7 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
       teamMembers: initialData?.teamMembers || "",
       scope: initialData?.scope || "",
       potentialHazardsIdentified: initialData?.potentialHazardsIdentified || "",
+      linkedHazardIds: initialData?.linkedHazardIds || [],
       existingControls: initialData?.existingControls || "",
       initialLikelihood: initialData?.initialLikelihood || undefined,
       initialSeverity: initialData?.initialSeverity || undefined,
@@ -230,35 +236,92 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
               </Card>
 
               <Card>
-                  <CardHeader><CardTitle className="flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-primary"/>Hazard Identification & Existing Controls</CardTitle></CardHeader>
-                  <CardContent className="space-y-4">
-                      <FormField control={form.control} name="potentialHazardsIdentified" render={({ field }) => (
-                          <FormItem>
-                              <FormLabel>Potential Hazards Identified</FormLabel>
-                              <FormControl><Textarea placeholder="List all identified hazards associated with the activity/process. One per line recommended." rows={4} {...field} /></FormControl>
-                              {(isHazardsAiPrefilled || isPotentialRisksAiPrefilled) && (
-                                  <FormDescription className="text-xs text-blue-600 flex items-center gap-1">
-                                      <Lightbulb className="h-3 w-3" /> This field was pre-filled with AI suggestions. Please review and edit as necessary.
-                                  </FormDescription>
+                <CardHeader><CardTitle className="flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-primary"/>Hazard Identification & Existing Controls</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="linkedHazardIds"
+                    render={() => (
+                      <FormItem>
+                        <div className="mb-2">
+                          <FormLabel className="text-base">Link to Previously Identified Hazards</FormLabel>
+                          <FormDescription>Select from hazards already logged in the system.</FormDescription>
+                        </div>
+                        <Card className="max-h-60">
+                          <ScrollArea className="h-full">
+                            <CardContent className="p-3 space-y-1">
+                              {manualHazards.map((hazard) => (
+                                <FormField
+                                  key={hazard.id}
+                                  control={form.control}
+                                  name="linkedHazardIds"
+                                  render={({ field }) => {
+                                    return (
+                                      <FormItem
+                                        key={hazard.id}
+                                        className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-2 hover:bg-muted/50 transition-colors"
+                                      >
+                                        <FormControl>
+                                          <Checkbox
+                                            checked={field.value?.includes(hazard.id)}
+                                            onCheckedChange={(checked) => {
+                                              return checked
+                                                ? field.onChange([...(field.value || []), hazard.id])
+                                                : field.onChange(field.value?.filter((value) => value !== hazard.id))
+                                            }}
+                                          />
+                                        </FormControl>
+                                        <FormLabel className="text-sm font-normal cursor-pointer">
+                                          {hazard.hazardDescription}
+                                          <span className="text-xs text-muted-foreground block"> (From Activity: {hazard.activityDescription})</span>
+                                        </FormLabel>
+                                      </FormItem>
+                                    )
+                                  }}
+                                />
+                              ))}
+                              {manualHazards.length === 0 && (
+                                <p className="text-sm text-muted-foreground p-2 text-center">No hazards logged. Please add hazards in the main Risk Management section first.</p>
                               )}
-                              <FormMessage />
-                          </FormItem>
-                      )}/>
-                      <FormField control={form.control} name="existingControls" render={({ field }) => (
-                          <FormItem>
-                              <FormLabel>Existing Control Measures</FormLabel>
-                              <FormControl><Textarea placeholder="List all current controls in place to mitigate the identified hazards. One per line recommended." rows={4} {...field} /></FormControl>
-                              {isControlsAiPrefilled && (
-                                  <FormDescription className="text-xs text-blue-600 flex items-center gap-1">
-                                      <Lightbulb className="h-3 w-3" /> This field was pre-filled with AI suggested controls. Please review, categorize, and move to 'Additional Controls' if new.
-                                  </FormDescription>
-                              )}
-                              <FormMessage />
-                          </FormItem>
-                      )}/>
-                  </CardContent>
+                            </CardContent>
+                          </ScrollArea>
+                        </Card>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="potentialHazardsIdentified"
+                    render={({ field }) => (
+                      <FormItem className="mt-4">
+                        <FormLabel>Or, Describe Other Hazards Here</FormLabel>
+                        <FormControl><Textarea placeholder="If the hazard is not in the list above, describe it here." rows={3} {...field} /></FormControl>
+                        {(isHazardsAiPrefilled || isPotentialRisksAiPrefilled) && (
+                          <FormDescription className="text-xs text-blue-600 flex items-center gap-1">
+                            <Lightbulb className="h-3 w-3" /> This field was pre-filled with AI suggestions. Please review and edit as necessary.
+                          </FormDescription>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Separator />
+                  <FormField control={form.control} name="existingControls" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Existing Control Measures</FormLabel>
+                      <FormControl><Textarea placeholder="List all current controls in place to mitigate the identified hazards. One per line recommended." rows={4} {...field} /></FormControl>
+                      {isControlsAiPrefilled && (
+                        <FormDescription className="text-xs text-blue-600 flex items-center gap-1">
+                          <Lightbulb className="h-3 w-3" /> This field was pre-filled with AI suggested controls. Please review, categorize, and move to 'Additional Controls' if new.
+                        </FormDescription>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}/>
+                </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader><CardTitle className="flex items-center gap-2"><BarChart className="h-5 w-5 text-primary"/>Initial Risk Assessment</CardTitle></CardHeader>
                 <CardContent>
@@ -349,13 +412,14 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
               <Card>
                 <CardHeader><CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary"/>Review & Status</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <FormField control={form.control} name="status" render={({ field }) => (
-                      <FormItem><FormLabel>Assessment Status</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
-                          <SelectContent>{riskAssessmentStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                      </Select><FormMessage /></FormItem>
-                  )}/>
-                  {(watchedStatus === 'Open' || watchedStatus === 'Under Review') && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="status" render={({ field }) => (
+                        <FormItem><FormLabel>Assessment Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
+                            <SelectContent>{riskAssessmentStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                        </Select><FormMessage /></FormItem>
+                    )}/>
+                    <div className={cn(watchedStatus === 'Closed' || watchedStatus === 'Superseded' ? 'hidden' : 'block')}>
                       <FormField control={form.control} name="reviewDate" render={({ field }) => (
                           <FormItem className="flex flex-col"><FormLabel>Next Review Date (Optional)</FormLabel>
                           <Popover><PopoverTrigger asChild><FormControl>
@@ -365,7 +429,8 @@ export function ManualRiskAssessmentForm({ initialData, onSave, onCancel, isSubm
                               <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
                           </Popover><FormMessage /></FormItem>
                       )}/>
-                  )}
+                    </div>
+                  </div>
                    <FormField control={form.control} name="overallComments" render={({ field }) => (
                       <FormItem className="mt-4">
                           <FormLabel>Overall Comments / Approval Notes (Optional)</FormLabel>

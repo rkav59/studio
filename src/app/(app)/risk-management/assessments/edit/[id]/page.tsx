@@ -8,13 +8,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, orderBy } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ManualRiskAssessment, RiskAssessmentControl } from '@/lib/types';
+import type { ManualRiskAssessment, RiskAssessmentControl, ManualHazard } from '@/lib/types';
 import { ArrowLeft, FileSignature } from 'lucide-react';
 import { parseISO, format } from 'date-fns';
 
 const MANUAL_RISK_ASSESSMENTS_COLLECTION = 'manualRiskAssessments';
+const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
+
 
 export default function EditManualRiskAssessmentPage() {
   const router = useRouter();
@@ -24,6 +26,17 @@ export default function EditManualRiskAssessmentPage() {
   const queryClient = useQueryClient();
   
   const assessmentId = params.id as string;
+
+  const { data: manualHazards = [], isLoading: isLoadingHazards, error: hazardsError } = useQuery<ManualHazard[]>({
+    queryKey: [MANUAL_HAZARDS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, MANUAL_HAZARDS_COLLECTION), where("userId", "==", user.uid), orderBy("dateIdentified", "desc"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), dateIdentified: (doc.data().dateIdentified as Timestamp)?.toDate().toISOString() } as ManualHazard));
+    },
+    enabled: !!user?.uid,
+  });
 
   const { data: assessmentToEdit, isLoading: isLoadingAssessment, error: assessmentError } = useQuery<ManualRiskAssessment | null>({
     queryKey: [MANUAL_RISK_ASSESSMENTS_COLLECTION, assessmentId, user?.uid],
@@ -94,7 +107,7 @@ export default function EditManualRiskAssessmentPage() {
     router.push('/risk-management');
   };
 
-  if (isLoadingAssessment) {
+  if (isLoadingAssessment || isLoadingHazards) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
@@ -108,7 +121,7 @@ export default function EditManualRiskAssessmentPage() {
     );
   }
 
-  if (assessmentError || !assessmentToEdit) {
+  if (assessmentError || !assessmentToEdit || hazardsError) {
     return (
       <div className="space-y-6">
         <Button variant="outline" onClick={handleCancel}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
@@ -138,6 +151,7 @@ export default function EditManualRiskAssessmentPage() {
         </CardHeader>
         <ManualRiskAssessmentForm 
             initialData={assessmentToEdit} 
+            manualHazards={manualHazards}
             onSave={handleSaveAssessment} 
             onCancel={handleCancel}
             isSubmitting={updateAssessmentMutation.isPending}

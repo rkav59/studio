@@ -7,19 +7,32 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ManualRiskAssessment, RiskAssessmentControl } from '@/lib/types';
+import { collection, addDoc, Timestamp, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ManualRiskAssessment, RiskAssessmentControl, ManualHazard } from '@/lib/types';
 import { ArrowLeft, FileSignature } from 'lucide-react';
 import { parseISO } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const MANUAL_RISK_ASSESSMENTS_COLLECTION = 'manualRiskAssessments';
+const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
 
 export default function NewManualRiskAssessmentPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  const { data: manualHazards = [], isLoading: isLoadingHazards, error: hazardsError } = useQuery<ManualHazard[]>({
+    queryKey: [MANUAL_HAZARDS_COLLECTION, user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return [];
+      const q = query(collection(db, MANUAL_HAZARDS_COLLECTION), where("userId", "==", user.uid), orderBy("dateIdentified", "desc"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), dateIdentified: (doc.data().dateIdentified as Timestamp)?.toDate().toISOString() } as ManualHazard));
+    },
+    enabled: !!user?.uid,
+  });
 
   const addAssessmentMutation = useMutation({
     mutationFn: async (newAssessmentData: ManualRiskAssessmentFormValues) => { 
@@ -52,6 +65,19 @@ export default function NewManualRiskAssessmentPage() {
     router.push('/risk-management');
   };
 
+  if (isLoadingHazards) {
+    return (
+        <div className="space-y-6">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-[500px] w-full" />
+        </div>
+    );
+  }
+
+  if (hazardsError) {
+      return <div className="text-red-500 text-center py-10">Error loading hazards list. Please try again.</div>
+  }
+
   return (
     <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -69,6 +95,7 @@ export default function NewManualRiskAssessmentPage() {
           </CardDescription>
         </CardHeader>
         <ManualRiskAssessmentForm 
+          manualHazards={manualHazards}
           onSave={handleSaveAssessment} 
           onCancel={handleCancel}
           isSubmitting={addAssessmentMutation.isPending}
