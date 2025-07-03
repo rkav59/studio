@@ -100,9 +100,10 @@ export interface ManualRiskAssessment {
   assessedBy: string;
   teamMembers?: string; // Comma-separated or array
   scope: string;
-  linkedHazardIds?: string[]; // Optional: Array of ManualHazard IDs
-  potentialHazardsIdentified: string; // Text area for listing hazards if not linking
   
+  linkedHazardId?: string; // Switched to single ID
+  unloggedHazardDescription?: string; // For creating a new hazard from the form
+
   existingControls: string; // Text area for listing existing controls
 
   initialLikelihood: Likelihood;
@@ -111,9 +112,9 @@ export interface ManualRiskAssessment {
 
   additionalControls: RiskAssessmentControl[];
   
-  residualLikelihood: Likelihood;
-  residualSeverity: Severity;
-  residualRiskLevel: RiskLevel;
+  residualLikelihood?: Likelihood;
+  residualSeverity?: Severity;
+  residualRiskLevel?: RiskLevel;
   
   reviewDate?: string; // ISO Date string
   status: 'Open' | 'Under Review' | 'Closed' | 'Superseded';

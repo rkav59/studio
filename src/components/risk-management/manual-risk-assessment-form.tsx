@@ -1,7 +1,8 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { useForm, useFieldArray, Controller, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEffect, useState } from "react"; 
 import { Button } from "@/components/ui/button";
@@ -33,8 +34,8 @@ import type { ManualRiskAssessment, RiskAssessmentControl, Likelihood, Severity,
 import { format, parseISO, isValid } from 'date-fns';
 import { likelihoodLevels, severityLevels, getRiskLevel, riskMatrix, controlActionStatuses, riskAssessmentStatuses } from "@/lib/risk-assessment-config";
 import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox";
 
+const NO_SELECTION_VALUE = "__NONE__";
 
 const riskAssessmentControlSchema = z.object({
   id: z.string(),
@@ -51,8 +52,8 @@ const manualRiskAssessmentFormSchema = z.object({
   teamMembers: z.string().max(500).optional(),
   scope: z.string().min(5, "Scope is required.").max(1000),
   
-  potentialHazardsIdentified: z.string().max(2000).optional(),
-  linkedHazardIds: z.array(z.string()).optional(),
+  linkedHazardId: z.string().optional(),
+  unloggedHazardDescription: z.string().max(1000).optional(),
   existingControls: z.string().min(5, "Describe existing controls (or 'None').").max(2000),
 
   initialLikelihood: z.enum(Object.keys(likelihoodLevels) as [Likelihood, ...Likelihood[]], { required_error: "Initial Likelihood is required." }),
@@ -68,9 +69,9 @@ const manualRiskAssessmentFormSchema = z.object({
   reviewDate: z.string().optional().refine(val => !val || isValid(parseISO(val)), { message: "Invalid review date" }),
   status: z.enum(riskAssessmentStatuses, { required_error: "Assessment status is required." }),
   overallComments: z.string().max(5000).optional(),
-}).refine(data => (data.linkedHazardIds && data.linkedHazardIds.length > 0) || (data.potentialHazardsIdentified && data.potentialHazardsIdentified.trim().length > 0), {
-  message: "You must either link an identified hazard or describe the potential hazards.",
-  path: ["linkedHazardIds"], // Point error to this section
+}).refine(data => (data.linkedHazardId && data.linkedHazardId !== NO_SELECTION_VALUE) || (data.unloggedHazardDescription && data.unloggedHazardDescription.trim().length > 5), {
+  message: "You must either select a previously logged hazard or describe a new one (min 5 characters).",
+  path: ["unloggedHazardDescription"],
 }).refine(data => (data.residualLikelihood && data.residualSeverity) || (!data.residualLikelihood && !data.residualSeverity), {
     message: "Both Residual Likelihood and Severity must be provided if one is entered.",
     path: ["residualLikelihood"], 
@@ -94,15 +95,11 @@ const newControlDefault = (): RiskAssessmentControl => ({
     status: "Open",
 });
 
-const NO_SELECTION_VALUE = "__NONE__";
-
-
 export function ManualRiskAssessmentForm({ initialData, manualHazards, onSave, onCancel, isSubmitting }: ManualRiskAssessmentFormProps) {
+  const isEditing = !!initialData;
   const [isHazardsAiPrefilled, setIsHazardsAiPrefilled] = useState(false);
-  const [isPotentialRisksAiPrefilled, setIsPotentialRisksAiPrefilled] = useState(false);
   const [isControlsAiPrefilled, setIsControlsAiPrefilled] = useState(false);
   const [isRootCausesAiPrefilled, setIsRootCausesAiPrefilled] = useState(false);
-
 
   const form = useForm<ManualRiskAssessmentFormValues>({
     resolver: zodResolver(manualRiskAssessmentFormSchema),
@@ -112,8 +109,8 @@ export function ManualRiskAssessmentForm({ initialData, manualHazards, onSave, o
       assessedBy: initialData?.assessedBy || "",
       teamMembers: initialData?.teamMembers || "",
       scope: initialData?.scope || "",
-      potentialHazardsIdentified: initialData?.potentialHazardsIdentified || "",
-      linkedHazardIds: initialData?.linkedHazardIds || [],
+      linkedHazardId: initialData?.linkedHazardId || NO_SELECTION_VALUE,
+      unloggedHazardDescription: initialData?.unloggedHazardDescription || "",
       existingControls: initialData?.existingControls || "",
       initialLikelihood: initialData?.initialLikelihood || undefined,
       initialSeverity: initialData?.initialSeverity || undefined,
@@ -141,39 +138,12 @@ export function ManualRiskAssessmentForm({ initialData, manualHazards, onSave, o
   const watchedResidualLikelihood = form.watch("residualLikelihood");
   const watchedResidualSeverity = form.watch("residualSeverity");
   const watchedStatus = form.watch("status");
+  const watchedLinkedHazardId = useWatch({ control: form.control, name: "linkedHazardId" });
 
   useEffect(() => {
-    const storedHazardSuggestions = localStorage.getItem('aiHazardSuggestionsForRiskAssessment');
-    if (storedHazardSuggestions) {
-      form.setValue('potentialHazardsIdentified', storedHazardSuggestions);
-      setIsHazardsAiPrefilled(true);
-      localStorage.removeItem('aiHazardSuggestionsForRiskAssessment');
-    }
-
-    const storedPotentialRisks = localStorage.getItem('aiPotentialRisksForRiskAssessment');
-    if (storedPotentialRisks) {
-      const currentHazards = form.getValues('potentialHazardsIdentified');
-      form.setValue('potentialHazardsIdentified', currentHazards ? `${currentHazards}\n\nAI Suggested Potential Risks:\n${storedPotentialRisks}` : storedPotentialRisks);
-      setIsPotentialRisksAiPrefilled(true);
-      localStorage.removeItem('aiPotentialRisksForRiskAssessment');
-    }
-
-    const storedRecommendedControls = localStorage.getItem('aiRecommendedControlsForRiskAssessment');
-    if (storedRecommendedControls) {
-      form.setValue('existingControls', storedRecommendedControls);
-      setIsControlsAiPrefilled(true);
-      localStorage.removeItem('aiRecommendedControlsForRiskAssessment');
-    }
-
-    const storedRootCauses = localStorage.getItem('aiRootCausesForRiskAssessment');
-    if (storedRootCauses) {
-      const currentComments = form.getValues('overallComments') || "";
-      form.setValue('overallComments', `${currentComments}\n\nAI Suggested Potential Root Causes:\n${storedRootCauses}`);
-      setIsRootCausesAiPrefilled(true);
-      localStorage.removeItem('aiRootCausesForRiskAssessment');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
+    // Note: The logic to pre-fill from AI was here, but has been moved to the parent 'new' page component
+    // as it's a better place to handle one-time local storage access.
+  }, []);
 
   useEffect(() => {
     if (watchedInitialLikelihood && watchedInitialSeverity) {
@@ -198,7 +168,6 @@ export function ManualRiskAssessmentForm({ initialData, manualHazards, onSave, o
   };
   
   const getRiskLevelColor = (level?: RiskLevel) => level ? riskMatrix[level]?.color : 'bg-gray-200 text-gray-700';
-
 
   return (
     <Form {...form}>
@@ -238,82 +207,58 @@ export function ManualRiskAssessmentForm({ initialData, manualHazards, onSave, o
               <Card>
                 <CardHeader><CardTitle className="flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-primary"/>Hazard Identification & Existing Controls</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <FormField
+                   <FormField
                     control={form.control}
-                    name="linkedHazardIds"
-                    render={() => (
-                      <FormItem>
-                        <div className="mb-2">
-                          <FormLabel className="text-base">Link to Previously Identified Hazards</FormLabel>
-                          <FormDescription>Select from hazards already logged in the system.</FormDescription>
-                        </div>
-                        <Card className="max-h-60">
-                          <ScrollArea className="h-full">
-                            <CardContent className="p-3 space-y-1">
-                              {manualHazards.map((hazard) => (
-                                <FormField
-                                  key={hazard.id}
-                                  control={form.control}
-                                  name="linkedHazardIds"
-                                  render={({ field }) => {
-                                    return (
-                                      <FormItem
-                                        key={hazard.id}
-                                        className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-2 hover:bg-muted/50 transition-colors"
-                                      >
-                                        <FormControl>
-                                          <Checkbox
-                                            checked={field.value?.includes(hazard.id)}
-                                            onCheckedChange={(checked) => {
-                                              return checked
-                                                ? field.onChange([...(field.value || []), hazard.id])
-                                                : field.onChange(field.value?.filter((value) => value !== hazard.id))
-                                            }}
-                                          />
-                                        </FormControl>
-                                        <FormLabel className="text-sm font-normal cursor-pointer">
-                                          {hazard.hazardDescription}
-                                          <span className="text-xs text-muted-foreground block"> (From Activity: {hazard.activityDescription})</span>
-                                        </FormLabel>
-                                      </FormItem>
-                                    )
-                                  }}
-                                />
-                              ))}
-                              {manualHazards.length === 0 && (
-                                <p className="text-sm text-muted-foreground p-2 text-center">No hazards logged. Please add hazards in the main Risk Management section first.</p>
-                              )}
-                            </CardContent>
-                          </ScrollArea>
-                        </Card>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="potentialHazardsIdentified"
+                    name="linkedHazardId"
                     render={({ field }) => (
-                      <FormItem className="mt-4">
-                        <FormLabel>Or, Describe Other Hazards Here</FormLabel>
-                        <FormControl><Textarea placeholder="If the hazard is not in the list above, describe it here." rows={3} {...field} /></FormControl>
-                        {(isHazardsAiPrefilled || isPotentialRisksAiPrefilled) && (
-                          <FormDescription className="text-xs text-blue-600 flex items-center gap-1">
-                            <Lightbulb className="h-3 w-3" /> This field was pre-filled with AI suggestions. Please review and edit as necessary.
-                          </FormDescription>
-                        )}
+                      <FormItem>
+                        <FormLabel>Link to Previously Identified Hazard</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Select a hazard..." /></SelectTrigger></FormControl>
+                              <SelectContent>
+                                  <SelectItem value={NO_SELECTION_VALUE}>-- Describe a New Hazard Below --</SelectItem>
+                                  {manualHazards.map(hazard => (
+                                  <SelectItem key={hazard.id} value={hazard.id}>
+                                      {hazard.hazardDescription.substring(0, 70)}{hazard.hazardDescription.length > 70 ? '...' : ''}
+                                  </SelectItem>
+                                  ))}
+                              </SelectContent>
+                          </Select>
+                        <FormDescription>Select a hazard from the log, or describe a new one below.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  {watchedLinkedHazardId === NO_SELECTION_VALUE && !isEditing && (
+                     <FormField
+                      control={form.control}
+                      name="unloggedHazardDescription"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Hazard Description</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Describe the specific hazard (e.g., Trailing electrical cable, Unguarded rotating parts). This will create a new entry in the hazard log."
+                              rows={3}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
                   <Separator />
+
                   <FormField control={form.control} name="existingControls" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Existing Control Measures</FormLabel>
                       <FormControl><Textarea placeholder="List all current controls in place to mitigate the identified hazards. One per line recommended." rows={4} {...field} /></FormControl>
                       {isControlsAiPrefilled && (
                         <FormDescription className="text-xs text-blue-600 flex items-center gap-1">
-                          <Lightbulb className="h-3 w-3" /> This field was pre-filled with AI suggested controls. Please review, categorize, and move to 'Additional Controls' if new.
+                          <Lightbulb className="h-3 w-3" /> This field may have been pre-filled with AI suggested controls. Please review, categorize, and move to 'Additional Controls' if new.
                         </FormDescription>
                       )}
                       <FormMessage />
@@ -382,10 +327,7 @@ export function ManualRiskAssessmentForm({ initialData, manualHazards, onSave, o
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5 text-primary"/>Residual Risk Assessment (Optional)</CardTitle>
-                  <UiCardDescription className="text-xs">Assess the risk level *after* all additional controls are implemented.</UiCardDescription>
-                </CardHeader>
+                <CardHeader><CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5 text-primary"/>Residual Risk Assessment (Optional)</CardTitle><UiCardDescription className="text-xs">Assess the risk level *after* all additional controls are implemented.</UiCardDescription></CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                       <FormField control={form.control} name="residualLikelihood" render={({ field }) => (

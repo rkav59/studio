@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRouter } from 'next/navigation';
@@ -16,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const MANUAL_RISK_ASSESSMENTS_COLLECTION = 'manualRiskAssessments';
 const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
+const NO_SELECTION_VALUE = "__NONE__";
 
 export default function NewManualRiskAssessmentPage() {
   const router = useRouter();
@@ -35,18 +37,46 @@ export default function NewManualRiskAssessmentPage() {
   });
 
   const addAssessmentMutation = useMutation({
-    mutationFn: async (newAssessmentData: ManualRiskAssessmentFormValues) => { 
+    mutationFn: async (newAssessmentData: ManualRiskAssessmentFormValues) => {
       if (!user?.uid) throw new Error("User not authenticated.");
-      const dataForDb = {
-        ...newAssessmentData,
+
+      let hazardIdToLink = newAssessmentData.linkedHazardId;
+
+      // If no hazard is linked and a new one is described, create it first
+      if ((!hazardIdToLink || hazardIdToLink === NO_SELECTION_VALUE) && newAssessmentData.unloggedHazardDescription) {
+        const newHazardData: Omit<ManualHazard, 'id'> = {
+          userId: user.uid,
+          activityDescription: newAssessmentData.activityOrProcess,
+          hazardDescription: newAssessmentData.unloggedHazardDescription,
+          dateIdentified: new Date().toISOString(), // Use current date for new hazard
+          identifiedBy: newAssessmentData.assessedBy,
+          location: newAssessmentData.scope, // Use assessment scope as location
+          potentialConsequences: "" // User can add this later by editing the hazard
+        };
+
+        const hazardDocRef = await addDoc(collection(db, MANUAL_HAZARDS_COLLECTION), {
+          ...newHazardData,
+          dateIdentified: Timestamp.fromDate(parseISO(newHazardData.dateIdentified))
+        });
+
+        hazardIdToLink = hazardDocRef.id;
+        queryClient.invalidateQueries({ queryKey: [MANUAL_HAZARDS_COLLECTION, user?.uid] });
+      }
+
+      const { unloggedHazardDescription, ...assessmentDataForDb } = newAssessmentData;
+      
+      const dataForDb: Omit<ManualRiskAssessment, 'id'> = {
+        ...assessmentDataForDb,
         userId: user.uid,
-        assessmentDate: Timestamp.fromDate(parseISO(newAssessmentData.assessmentDate as string)),
-        reviewDate: newAssessmentData.reviewDate ? Timestamp.fromDate(parseISO(newAssessmentData.reviewDate as string)) : null,
-        additionalControls: newAssessmentData.additionalControls.map(control => ({
+        assessmentDate: Timestamp.fromDate(parseISO(assessmentDataForDb.assessmentDate as string)),
+        reviewDate: assessmentDataForDb.reviewDate ? Timestamp.fromDate(parseISO(assessmentDataForDb.reviewDate as string)) : null,
+        additionalControls: (assessmentDataForDb.additionalControls || []).map(control => ({
             ...control,
             dueDate: control.dueDate ? Timestamp.fromDate(parseISO(control.dueDate as string)) : null,
-        })) as RiskAssessmentControl[], // Ensure type correctness
+        })),
+        linkedHazardId: hazardIdToLink === NO_SELECTION_VALUE ? undefined : hazardIdToLink,
       };
+
       return addDoc(collection(db, MANUAL_RISK_ASSESSMENTS_COLLECTION), dataForDb);
     },
     onSuccess: () => {

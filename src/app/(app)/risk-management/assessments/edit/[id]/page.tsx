@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
@@ -72,12 +73,12 @@ export default function EditManualRiskAssessmentPage() {
         userId: user.uid, 
         assessmentDate: Timestamp.fromDate(parseISO(dataToUpdate.assessmentDate as string)),
         reviewDate: dataToUpdate.reviewDate ? Timestamp.fromDate(parseISO(dataToUpdate.reviewDate as string)) : null,
-        additionalControls: dataToUpdate.additionalControls.map(control => ({
+        additionalControls: (dataToUpdate.additionalControls || []).map(control => ({
             ...control,
             dueDate: control.dueDate ? Timestamp.fromDate(parseISO(control.dueDate as string)) : null,
-        })) as RiskAssessmentControl[], // Ensure type
+        })),
       };
-      await updateDoc(assessmentRef, dataForDb); 
+      await updateDoc(assessmentRef, dataForDb as any); 
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [MANUAL_RISK_ASSESSMENTS_COLLECTION, user?.uid] });
@@ -93,12 +94,13 @@ export default function EditManualRiskAssessmentPage() {
     const assessmentDataToSave: ManualRiskAssessment = {
       ...assessmentToEdit, 
       ...formData,
+      unloggedHazardDescription: undefined, // This field is only for creation
       assessmentDate: parseISO(formData.assessmentDate).toISOString(),
       reviewDate: formData.reviewDate ? parseISO(formData.reviewDate).toISOString() : undefined,
-      additionalControls: formData.additionalControls.map(control => ({
+      additionalControls: formData.additionalControls?.map(control => ({
           ...control,
           dueDate: control.dueDate ? parseISO(control.dueDate).toISOString() : undefined,
-      }))
+      })) || []
     };
     updateAssessmentMutation.mutate(assessmentDataToSave);
   };
