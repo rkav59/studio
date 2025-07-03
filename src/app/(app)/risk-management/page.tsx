@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertTriangle, ListChecks, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, Link as LinkIcon, BookOpen, LayoutDashboard, Brain, Download, Landmark } from "lucide-react";
+import { AlertTriangle, ListChecks, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, Link as LinkIcon, BookOpen, LayoutDashboard, Brain, Download, Landmark, Search } from "lucide-react";
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy, updateDoc } from 'firebase/firestore';
@@ -34,6 +34,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { RiskReportingDashboard } from "@/components/risk-management/risk-reporting-dashboard";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Input } from '@/components/ui/input';
 
 
 const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
@@ -56,6 +57,7 @@ export default function RiskManagementPage() {
   const { toast } = useToast(); 
   const queryClient = useQueryClient();
   const [viewingIncident, setViewingIncident] = useState<Incident | null>(null); 
+  const [assessmentSearchTerm, setAssessmentSearchTerm] = useState(""); // State for search
 
   // --- Role-Based Access Control ---
   const canCreate = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [user, userProfile]);
@@ -238,6 +240,16 @@ export default function RiskManagementPage() {
     }
   };
 
+  const filteredAssessments = useMemo(() => {
+    if (!assessmentSearchTerm) return manualRiskAssessments;
+    const lowercasedTerm = assessmentSearchTerm.toLowerCase();
+    return manualRiskAssessments.filter(a =>
+        a.activityOrProcess.toLowerCase().includes(lowercasedTerm) ||
+        a.scope.toLowerCase().includes(lowercasedTerm) ||
+        a.assessedBy.toLowerCase().includes(lowercasedTerm)
+    );
+  }, [manualRiskAssessments, assessmentSearchTerm]);
+
 
   const activeControlActions = useMemo((): ActiveControlAction[] => {
     const controls: ActiveControlAction[] = [];
@@ -419,6 +431,9 @@ export default function RiskManagementPage() {
           <Button asChild variant="outline" size="sm">
             <Link href="#risk-identification">Risk Identification</Link>
           </Button>
+           <Button asChild variant="outline" size="sm">
+            <Link href="#manual-risk-assessments">Risk Assessments</Link>
+          </Button>
           <Button asChild variant="outline" size="sm">
             <Link href="#risk-register">Risk Register</Link>
           </Button>
@@ -443,7 +458,7 @@ export default function RiskManagementPage() {
              <Tooltip>
               <TooltipTrigger asChild>
                 <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
-                  <Button onClick={() => canCreate && router.push('/risk-management/incidents/new')} disabled={!canCreate} className="bg-accent hover:bg-accent/90 text-accent-foreground w-full">
+                  <Button onClick={() => canCreate && router.push('/risk-management/incidents/new')} disabled={!canCreate} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
                       <PlusCircle className="mr-2 h-4 w-4" /> Log New Incident/Event
                   </Button>
                 </div>
@@ -462,7 +477,7 @@ export default function RiskManagementPage() {
                 <ScrollArea className="max-h-[400px] pr-3">
                     <div className="space-y-3">
                         {incidents.map(incident => (
-                            <Card key={incident.id} className="p-3 shadow-sm">
+                           <Card key={incident.id} className="p-3 shadow-sm">
                                 <div className="flex flex-col gap-2">
                                     <div>
                                         <h4 className="font-semibold">{incident.type}: {incident.description.substring(0, 70)}{incident.description.length > 70 ? '...' : ''}</h4>
@@ -526,15 +541,73 @@ export default function RiskManagementPage() {
                 </TooltipTrigger>
                 {!canCreate && ( <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent> )}
               </Tooltip>
-                <Button 
-                    onClick={() => toast({ title: "Info", description: "Viewing all risk assessments will be available on a dedicated page soon."})} 
-                    className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
-                >
-                    <ListChecks className="mr-2 h-4 w-4" /> View/Manage Risk Assessments
-                </Button>
             </div>
         </CardContent>
       </Card>
+
+      {/* Manual Risk Assessments Section */}
+       <Card id="manual-risk-assessments" className="shadow-md">
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+            <div>
+                <CardTitle className="flex items-center gap-2"><FileSignature className="h-6 w-6 text-purple-600"/>Manual Risk Assessments</CardTitle>
+                <CardDescription>A log of all conducted manual risk assessments.</CardDescription>
+            </div>
+            <div className="relative w-full sm:w-auto">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Search assessments..."
+                    className="pl-8 w-full sm:w-[250px]"
+                    value={assessmentSearchTerm}
+                    onChange={(e) => setAssessmentSearchTerm(e.target.value)}
+                />
+            </div>
+        </CardHeader>
+        <CardContent>
+            {filteredAssessments.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">{assessmentSearchTerm ? "No matching assessments found." : "No manual risk assessments conducted yet."}</p>
+            ) : (
+                <ScrollArea className="max-h-[400px] pr-3">
+                    <div className="space-y-3">
+                        {filteredAssessments.map(assessment => {
+                            const displayRiskLevel = assessment.residualRiskLevel || assessment.initialRiskLevel;
+                            return (
+                                <Card key={assessment.id} className="p-3 shadow-sm">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-grow">
+                                            <h4 className="font-semibold">{assessment.activityOrProcess}</h4>
+                                            <p className="text-xs text-muted-foreground">Assessed by: {assessment.assessedBy} on {format(parseISO(assessment.assessmentDate), "PPP")}</p>
+                                            <p className="text-xs">Risk Level: <span className={`px-1.5 py-0.5 rounded-full text-xs ${getRiskLevelColor(displayRiskLevel)}`}>{displayRiskLevel}</span></p>
+                                            <p className="text-xs">Status: {assessment.status}</p>
+                                        </div>
+                                        <div className="flex gap-1 shrink-0">
+                                            <Button variant="outline" size="sm" onClick={() => router.push(`/risk-management/assessments/edit/${assessment.id}`)}>
+                                                <Edit2 className="mr-1 h-3 w-3" />Edit
+                                            </Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="destructive" size="sm" disabled={deleteAssessmentMutation.isPending && deleteAssessmentMutation.variables === assessment.id}>
+                                                        <Trash2 className="mr-1 h-3 w-3" />Delete
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Delete Risk Assessment?</AlertDialogTitle>
+                                                        <AlertDialogDescription>Are you sure you want to delete the assessment for "{assessment.activityOrProcess}"?</AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteAssessmentMutation.mutate(assessment.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
+                                    </div>
+                                </Card>
+                            )
+                        })}
+                    </div>
+                </ScrollArea>
+            )}
+        </CardContent>
+    </Card>
 
       {/* Risk Register Section */}
       <Card id="risk-register" className="shadow-md">
@@ -545,7 +618,7 @@ export default function RiskManagementPage() {
             </div>
             <div className="flex flex-col sm:flex-row gap-2 self-end">
                 <Button onClick={handleDownloadRiskRegister} variant="outline">
-                    <Download className="mr-2 h-4 w-4" /> Download as Excel
+                    <Download className="mr-2 h-4 w-4" /> Download as CSV
                 </Button>
                 <Tooltip>
                   <TooltipTrigger asChild>
