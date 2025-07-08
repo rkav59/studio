@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -58,6 +57,7 @@ export default function RiskManagementPage() {
   const queryClient = useQueryClient();
   const [viewingIncident, setViewingIncident] = useState<Incident | null>(null); 
   const [assessmentSearchTerm, setAssessmentSearchTerm] = useState(""); // State for search
+  const [hazardSearchTerm, setHazardSearchTerm] = useState("");
 
   // --- Role-Based Access Control ---
   const canCreate = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [user, userProfile]);
@@ -156,7 +156,7 @@ export default function RiskManagementPage() {
       toast({ title: "Hazard Deleted", description: "The hazard record has been deleted." });
     },
     onError: (e:Error) => {
-        const userFriendlyMessage = "An unexpected error occurred while deleting the hazard. Please try again.";
+        const userFriendlyMessage = "This hazard may be linked to a risk assessment. Please remove the link before deleting.";
         toast({title: "Error Deleting Hazard", description: userFriendlyMessage, variant: "destructive"});
     },
   });
@@ -249,6 +249,16 @@ export default function RiskManagementPage() {
         a.assessedBy.toLowerCase().includes(lowercasedTerm)
     );
   }, [manualRiskAssessments, assessmentSearchTerm]);
+  
+  const filteredHazards = useMemo(() => {
+    if (!hazardSearchTerm) return manualHazards;
+    const lowercasedTerm = hazardSearchTerm.toLowerCase();
+    return manualHazards.filter(h =>
+        h.hazardDescription.toLowerCase().includes(lowercasedTerm) ||
+        h.activityDescription.toLowerCase().includes(lowercasedTerm) ||
+        h.identifiedBy.toLowerCase().includes(lowercasedTerm)
+    );
+  }, [manualHazards, hazardSearchTerm]);
 
 
   const activeControlActions = useMemo((): ActiveControlAction[] => {
@@ -429,7 +439,7 @@ export default function RiskManagementPage() {
             <Link href="#incident-log">Incident Log</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <Link href="#risk-identification">Risk Identification</Link>
+            <Link href="#manual-hazard-log">Hazard Log</Link>
           </Button>
            <Button asChild variant="outline" size="sm">
             <Link href="#manual-risk-assessments">Risk Assessments</Link>
@@ -511,39 +521,54 @@ export default function RiskManagementPage() {
     </Card>
     {viewingIncident && <IncidentDetailsDialog incident={viewingIncident} onClose={() => setViewingIncident(null)} />}
     <Separator/>
-
-
-    {/* Section 1: Risk Identification & Assessment Tools */}
-      <Card id="risk-identification" className="shadow-md">
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2">Risk Identification, Analysis &amp; Evaluation</CardTitle>
-            <CardDescription>Manually log hazards and conduct detailed risk assessments to understand and prioritize risks based on likelihood and severity. These tools support the core ISO 31000 risk assessment process.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <div className="flex flex-col gap-4">
+    
+    {/* Manual Hazard Log Section */}
+    <Card id="manual-hazard-log" className="shadow-md">
+      <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+          <div>
+              <CardTitle className="flex items-center gap-2"><Target className="h-6 w-6 text-red-500"/>Manual Hazard Log</CardTitle>
+              <CardDescription>A register of manually identified hazards. These can be linked to risk assessments.</CardDescription>
+          </div>
+          <div className="flex w-full md:w-auto items-center gap-2">
+              <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search hazards..." className="pl-8 w-full sm:w-[200px]" value={hazardSearchTerm} onChange={(e) => setHazardSearchTerm(e.target.value)} /></div>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
-                    <Button onClick={() => canCreate && router.push('/risk-management/hazards/new')} disabled={!canCreate} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                        <Target className="mr-2 h-4 w-4" /> Log New Hazard
-                    </Button>
-                  </div>
-                </TooltipTrigger>
-                 {!canCreate && ( <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent> )}
+                  <TooltipTrigger asChild><div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}><Button onClick={() => canCreate && router.push('/risk-management/hazards/new')} disabled={!canCreate} className="bg-red-500 hover:bg-red-600 text-white"><PlusCircle className="mr-2 h-4 w-4"/>Log New Hazard</Button></div></TooltipTrigger>
+                  {!canCreate && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
               </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
-                    <Button onClick={() => canCreate && router.push('/risk-management/assessments/new')} disabled={!canCreate} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                        <FileSignature className="mr-2 h-4 w-4" /> Conduct New Risk Assessment
-                    </Button>
+          </div>
+      </CardHeader>
+      <CardContent>
+          {filteredHazards.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">{hazardSearchTerm ? "No matching hazards found." : "No hazards logged yet."}</p>
+          ) : (
+              <ScrollArea className="max-h-[400px] pr-3">
+                  <div className="space-y-3">
+                      {filteredHazards.map(hazard => (
+                          <Card key={hazard.id} className="p-3 shadow-sm">
+                              <div className="flex justify-between items-start">
+                                  <div className="flex-grow">
+                                      <h4 className="font-semibold">{hazard.hazardDescription}</h4>
+                                      <p className="text-xs text-muted-foreground">Activity: {hazard.activityDescription}</p>
+                                      <p className="text-xs text-muted-foreground">Identified by: {hazard.identifiedBy} on {format(parseISO(hazard.dateIdentified), "PPP")}</p>
+                                  </div>
+                                  <div className="flex gap-1 shrink-0 ml-2">
+                                      <Button variant="secondary" size="sm" className="h-7" onClick={() => router.push(`/risk-management/hazards/edit/${hazard.id}`)}><Edit2 className="h-3 w-3" /></Button>
+                                      <AlertDialog>
+                                          <AlertDialogTrigger asChild><Button variant="destructive" size="sm" className="h-7" disabled={deleteHazardMutation.isPending && deleteHazardMutation.variables === hazard.id}><Trash2 className="h-3 w-3" /></Button></AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                              <AlertDialogHeader><AlertDialogTitle>Delete Hazard?</AlertDialogTitle><AlertDialogDescription>This will not delete linked risk assessments, but the link will be broken. Are you sure you want to delete this hazard record?</AlertDialogDescription></AlertDialogHeader>
+                                              <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteHazardMutation.mutate(hazard.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                                          </AlertDialogContent>
+                                      </AlertDialog>
+                                  </div>
+                              </div>
+                          </Card>
+                      ))}
                   </div>
-                </TooltipTrigger>
-                {!canCreate && ( <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent> )}
-              </Tooltip>
-            </div>
-        </CardContent>
-      </Card>
+              </ScrollArea>
+          )}
+      </CardContent>
+    </Card>
 
       {/* Manual Risk Assessments Section */}
        <Card id="manual-risk-assessments" className="shadow-md">
@@ -552,15 +577,27 @@ export default function RiskManagementPage() {
                 <CardTitle className="flex items-center gap-2"><FileSignature className="h-6 w-6 text-purple-600"/>Manual Risk Assessments</CardTitle>
                 <CardDescription>A log of all conducted manual risk assessments.</CardDescription>
             </div>
-            <div className="relative w-full sm:w-auto">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                    type="search"
-                    placeholder="Search assessments..."
-                    className="pl-8 w-full sm:w-[250px]"
-                    value={assessmentSearchTerm}
-                    onChange={(e) => setAssessmentSearchTerm(e.target.value)}
-                />
+             <div className="flex w-full md:w-auto items-center gap-2">
+                <div className="relative flex-grow sm:flex-grow-0">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search assessments..."
+                        className="pl-8 w-full sm:w-[250px]"
+                        value={assessmentSearchTerm}
+                        onChange={(e) => setAssessmentSearchTerm(e.target.value)}
+                    />
+                </div>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
+                        <Button onClick={() => canCreate && router.push('/risk-management/assessments/new')} disabled={!canCreate} className="bg-purple-600 hover:bg-purple-700 text-white">
+                            <PlusCircle className="mr-2 h-4 w-4" /> Conduct New Assessment
+                        </Button>
+                      </div>
+                    </TooltipTrigger>
+                    {!canCreate && ( <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent> )}
+                  </Tooltip>
             </div>
         </CardHeader>
         <CardContent>
@@ -818,3 +855,5 @@ export default function RiskManagementPage() {
     </TooltipProvider>
   );
 }
+
+    
