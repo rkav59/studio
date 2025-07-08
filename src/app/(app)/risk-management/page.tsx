@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertTriangle, ListChecks, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, Link as LinkIcon, BookOpen, LayoutDashboard, Brain, Download, Landmark, Search } from "lucide-react";
+import { AlertTriangle, ListChecks, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, Link as LinkIcon, BookOpen, LayoutDashboard, Brain, Download, Landmark, Search, RefreshCw } from "lucide-react";
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy, updateDoc } from 'firebase/firestore';
@@ -59,6 +59,7 @@ export default function RiskManagementPage() {
   const [viewingIncident, setViewingIncident] = useState<Incident | null>(null); 
   const [assessmentSearchTerm, setAssessmentSearchTerm] = useState(""); // State for search
   const [hazardSearchTerm, setHazardSearchTerm] = useState("");
+  const [isRefreshingRegister, setIsRefreshingRegister] = useState(false); // New state for register refresh
 
   // --- Role-Based Access Control ---
   const canCreate = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [user, userProfile]);
@@ -407,6 +408,18 @@ export default function RiskManagementPage() {
     }
   };
 
+  const handleRefreshRiskRegister = async () => {
+    setIsRefreshingRegister(true);
+    try {
+      await queryClient.invalidateQueries({ queryKey: [RISK_REGISTER_ENTRIES_COLLECTION, user?.uid] });
+      toast({ title: "Risk Register Refreshed", description: "The risk register has been updated." });
+    } catch (e) {
+      toast({ title: "Error Refreshing", description: "Could not refresh the risk register.", variant: "destructive" });
+    } finally {
+      setIsRefreshingRegister(false);
+    }
+  };
+
 
   if (isLoadingHazards || isLoadingAssessments || isLoadingRiskRegister || isLoadingIncidents) {
     return (
@@ -655,6 +668,10 @@ export default function RiskManagementPage() {
                 <CardDescription>A central log of significant risks, automatically populated from completed Risk Assessments. This provides a live overview of the risk landscape (ISO 31000: Recording &amp; Reporting).</CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 self-end">
+                <Button onClick={handleRefreshRiskRegister} variant="outline" disabled={isRefreshingRegister}>
+                    {isRefreshingRegister ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                    Refresh
+                </Button>
                 <Button onClick={handleDownloadRiskRegister} variant="outline">
                     <Download className="mr-2 h-4 w-4" /> Download as CSV
                 </Button>
@@ -846,3 +863,4 @@ export default function RiskManagementPage() {
     </TooltipProvider>
   );
 }
+
