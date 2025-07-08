@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRouter, useParams } from 'next/navigation';
@@ -12,7 +11,7 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, Timestamp, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ManualRiskAssessment, RiskRegisterEntry, ManualHazard } from '@/lib/types';
-import { ArrowLeft, FileSignature } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { parseISO, format } from 'date-fns';
 
 const MANUAL_RISK_ASSESSMENTS_COLLECTION = 'manualRiskAssessments';
@@ -170,8 +169,8 @@ export default function EditManualRiskAssessmentPage() {
             <Button variant="outline" size="icon" onClick={handleCancel} aria-label="Back to Risk Management">
                 <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-                 <FileSignature className="h-6 w-6 text-purple-600" /> Edit Risk Assessment: {assessmentToEdit.activityOrProcess}
+            <h1 className="text-2xl font-semibold tracking-tight">
+                 Edit Risk Assessment: {assessmentToEdit.activityOrProcess}
             </h1>
         </div>
         <ManualRiskAssessmentForm 
