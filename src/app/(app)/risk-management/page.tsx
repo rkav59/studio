@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -651,22 +652,12 @@ export default function RiskManagementPage() {
         <CardHeader className="flex flex-col gap-4">
             <div>
                 <CardTitle className="flex items-center gap-2">Risk Register (Centralized Risk Recording &amp; Reporting)</CardTitle>
-                <CardDescription>A central log of significant organizational risks, their owners, treatment plans, and review status (ISO 31000: Recording &amp; Reporting). Provides an overview of the risk landscape.</CardDescription>
+                <CardDescription>A central log of significant risks, automatically populated from completed Risk Assessments. This provides a live overview of the risk landscape (ISO 31000: Recording &amp; Reporting).</CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 self-end">
                 <Button onClick={handleDownloadRiskRegister} variant="outline">
                     <Download className="mr-2 h-4 w-4" /> Download as CSV
                 </Button>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div tabIndex={0} className={cn(!canManageRegister && "cursor-not-allowed")}>
-                      <Button onClick={() => canManageRegister && router.push('/risk-management/risk-register/new')} disabled={!canManageRegister} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                          <PlusCircle className="mr-2 h-4 w-4" /> Add New Risk to Register
-                      </Button>
-                    </div>
-                  </TooltipTrigger>
-                  {!canManageRegister && ( <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent> )}
-                </Tooltip>
             </div>
         </CardHeader>
         <CardContent>
@@ -855,5 +846,3 @@ export default function RiskManagementPage() {
     </TooltipProvider>
   );
 }
-
-    

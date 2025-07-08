@@ -125,12 +125,13 @@ export interface RiskRegisterEntry {
   id: string;
   userId?: string;
   organizationId?: string; // For data scoping
+  linkedRiskAssessmentId?: string; // Link to the originating risk assessment
   riskTitle: string;
   riskDescription: string;
   dateIdentified: string; // ISO
   identifiedBy: string;
   category?: string; // e.g., Operational, Financial, Safety, Environmental, Reputation
-  source?: string; // e.g., Audit, Inspection, Hazard Report, Assessment-[ID], Management Review
+  source?: string; // e.g., Audit, Inspection, Hazard Report, Risk Assessment, Management Review
   
   initialLikelihood: Likelihood;
   initialSeverity: Severity;

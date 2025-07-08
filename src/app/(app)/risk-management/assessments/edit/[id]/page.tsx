@@ -9,14 +9,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp, collection, query, where, orderBy } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ManualRiskAssessment, RiskAssessmentControl, ManualHazard } from '@/lib/types';
+import type { ManualRiskAssessment, RiskRegisterEntry, ManualHazard } from '@/lib/types';
 import { ArrowLeft, FileSignature } from 'lucide-react';
 import { parseISO, format } from 'date-fns';
 
 const MANUAL_RISK_ASSESSMENTS_COLLECTION = 'manualRiskAssessments';
 const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
+const RISK_REGISTER_ENTRIES_COLLECTION = 'riskRegisterEntries';
 
 
 export default function EditManualRiskAssessmentPage() {
@@ -79,11 +80,44 @@ export default function EditManualRiskAssessmentPage() {
         })),
       };
       await updateDoc(assessmentRef, dataForDb as any); 
+      
+      // Update linked Risk Register Entry
+      const registerQuery = query(collection(db, RISK_REGISTER_ENTRIES_COLLECTION), where("linkedRiskAssessmentId", "==", id));
+      const registerSnapshot = await getDocs(registerQuery);
+      
+      if (!registerSnapshot.empty) {
+        const registerDoc = registerSnapshot.docs[0];
+        const linkedHazard = manualHazards.find(h => h.id === dataForDb.linkedHazardId);
+        
+        const treatmentPlan = `Existing Controls:\n${dataForDb.existingControls}\n\nAdditional Controls:\n${(dataForDb.additionalControls || []).map(c => `- ${c.description}`).join('\n')}`;
+        
+        const registerUpdateData: Partial<RiskRegisterEntry> = {
+          riskTitle: dataForDb.activityOrProcess,
+          riskDescription: linkedHazard?.hazardDescription || 'N/A',
+          dateIdentified: dataForDb.assessmentDate.toDate().toISOString(),
+          identifiedBy: dataForDb.assessedBy,
+          initialLikelihood: dataForDb.initialLikelihood,
+          initialSeverity: dataForDb.initialSeverity,
+          initialRiskLevel: dataForDb.initialRiskLevel,
+          treatmentPlan,
+          riskOwner: dataForDb.assessedBy,
+          status: 'Open', // Could be logic to determine this based on assessment status
+          residualLikelihood: dataForDb.residualLikelihood,
+          residualSeverity: dataForDb.residualSeverity,
+          residualRiskLevel: dataForDb.residualRiskLevel,
+          nextReviewDate: dataForDb.reviewDate ? dataForDb.reviewDate.toDate().toISOString() : undefined,
+          notes: dataForDb.overallComments,
+        };
+        await updateDoc(doc(db, RISK_REGISTER_ENTRIES_COLLECTION, registerDoc.id), registerUpdateData);
+      }
+
+      return updatedAssessmentData; // Return the original data for onSuccess
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [MANUAL_RISK_ASSESSMENTS_COLLECTION, user?.uid] });
+      queryClient.invalidateQueries({ queryKey: [RISK_REGISTER_ENTRIES_COLLECTION, user?.uid] });
       queryClient.invalidateQueries({ queryKey: [MANUAL_RISK_ASSESSMENTS_COLLECTION, variables.id, user?.uid] });
-      toast({ title: "Assessment Updated", description: `Risk assessment for "${variables.activityOrProcess}" has been updated.` });
+      toast({ title: "Assessment Updated", description: `Risk assessment for "${variables.activityOrProcess}" and the linked register entry have been updated.` });
       router.push('/risk-management');
     },
     onError: (e: Error) => toast({ title: "Error Updating Assessment", description: e.message, variant: "destructive" }),
@@ -113,12 +147,7 @@ export default function EditManualRiskAssessmentPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
-        <Card className="shadow-lg">
-          <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
-           <CardContent className="p-6 space-y-4">
-                {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
-            </CardContent>
-        </Card>
+        <Skeleton className="h-[500px] w-full" />
       </div>
     );
   }
@@ -145,12 +174,6 @@ export default function EditManualRiskAssessmentPage() {
                  <FileSignature className="h-6 w-6 text-purple-600" /> Edit Risk Assessment: {assessmentToEdit.activityOrProcess}
             </h1>
         </div>
-      <Card className="shadow-lg">
-         <CardHeader>
-          <CardDescription>
-            Modify the details for this manual risk assessment.
-          </CardDescription>
-        </CardHeader>
         <ManualRiskAssessmentForm 
             initialData={assessmentToEdit} 
             manualHazards={manualHazards}
@@ -158,7 +181,6 @@ export default function EditManualRiskAssessmentPage() {
             onCancel={handleCancel}
             isSubmitting={updateAssessmentMutation.isPending}
         />
-      </Card>
     </div>
   );
 }

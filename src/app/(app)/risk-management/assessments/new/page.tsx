@@ -10,13 +10,14 @@ import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, Timestamp, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ManualRiskAssessment, RiskAssessmentControl, ManualHazard } from '@/lib/types';
+import type { ManualRiskAssessment, RiskRegisterEntry, ManualHazard } from '@/lib/types';
 import { ArrowLeft, FileSignature } from 'lucide-react';
 import { parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const MANUAL_RISK_ASSESSMENTS_COLLECTION = 'manualRiskAssessments';
 const MANUAL_HAZARDS_COLLECTION = 'manualHazards';
+const RISK_REGISTER_ENTRIES_COLLECTION = 'riskRegisterEntries';
 const NO_SELECTION_VALUE = "__NONE__";
 
 export default function NewManualRiskAssessmentPage() {
@@ -41,6 +42,7 @@ export default function NewManualRiskAssessmentPage() {
       if (!user?.uid) throw new Error("User not authenticated.");
 
       let hazardIdToLink = newAssessmentData.linkedHazardId;
+      let linkedHazard: ManualHazard | undefined = manualHazards.find(h => h.id === hazardIdToLink);
 
       // If no hazard is linked and a new one is described, create it first
       if ((!hazardIdToLink || hazardIdToLink === NO_SELECTION_VALUE) && newAssessmentData.unloggedHazardDescription) {
@@ -48,10 +50,10 @@ export default function NewManualRiskAssessmentPage() {
           userId: user.uid,
           activityDescription: newAssessmentData.activityOrProcess,
           hazardDescription: newAssessmentData.unloggedHazardDescription,
-          dateIdentified: new Date().toISOString(), // Use current date for new hazard
+          dateIdentified: new Date().toISOString(),
           identifiedBy: newAssessmentData.assessedBy,
-          location: newAssessmentData.scope, // Use assessment scope as location
-          potentialConsequences: "" // User can add this later by editing the hazard
+          location: newAssessmentData.scope,
+          potentialConsequences: ""
         };
 
         const hazardDocRef = await addDoc(collection(db, MANUAL_HAZARDS_COLLECTION), {
@@ -60,6 +62,7 @@ export default function NewManualRiskAssessmentPage() {
         });
 
         hazardIdToLink = hazardDocRef.id;
+        linkedHazard = { id: hazardIdToLink, ...newHazardData }; // Use for register entry
         queryClient.invalidateQueries({ queryKey: [MANUAL_HAZARDS_COLLECTION, user?.uid] });
       }
 
@@ -77,11 +80,39 @@ export default function NewManualRiskAssessmentPage() {
         linkedHazardId: hazardIdToLink === NO_SELECTION_VALUE ? undefined : hazardIdToLink,
       };
 
-      return addDoc(collection(db, MANUAL_RISK_ASSESSMENTS_COLLECTION), dataForDb);
+      const assessmentDocRef = await addDoc(collection(db, MANUAL_RISK_ASSESSMENTS_COLLECTION), dataForDb as any);
+
+      // Now, create the Risk Register Entry
+      const treatmentPlan = `Existing Controls:\n${dataForDb.existingControls}\n\nAdditional Controls:\n${(dataForDb.additionalControls || []).map(c => `- ${c.description}`).join('\n')}`;
+      
+      const riskRegisterEntryData: Omit<RiskRegisterEntry, 'id'> = {
+        userId: user.uid,
+        linkedRiskAssessmentId: assessmentDocRef.id,
+        riskTitle: dataForDb.activityOrProcess,
+        riskDescription: linkedHazard?.hazardDescription || 'N/A',
+        dateIdentified: dataForDb.assessmentDate.toDate().toISOString(),
+        identifiedBy: dataForDb.assessedBy,
+        source: "Risk Assessment",
+        initialLikelihood: dataForDb.initialLikelihood,
+        initialSeverity: dataForDb.initialSeverity,
+        initialRiskLevel: dataForDb.initialRiskLevel,
+        treatmentPlan,
+        riskOwner: dataForDb.assessedBy, // Defaulting to assessor
+        status: 'Open',
+        residualLikelihood: dataForDb.residualLikelihood,
+        residualSeverity: dataForDb.residualSeverity,
+        residualRiskLevel: dataForDb.residualRiskLevel,
+        nextReviewDate: dataForDb.reviewDate ? dataForDb.reviewDate.toDate().toISOString() : undefined,
+      };
+      
+      await addDoc(collection(db, RISK_REGISTER_ENTRIES_COLLECTION), riskRegisterEntryData);
+
+      return assessmentDocRef;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [MANUAL_RISK_ASSESSMENTS_COLLECTION, user?.uid] });
-      toast({ title: "Risk Assessment Created", description: "The new manual risk assessment has been saved." });
+      queryClient.invalidateQueries({ queryKey: [RISK_REGISTER_ENTRIES_COLLECTION, user?.uid] });
+      toast({ title: "Success", description: "Risk assessment and register entry created." });
       router.push('/risk-management');
     },
     onError: (e: Error) => toast({ title: "Error Creating Assessment", description: e.message, variant: "destructive" }),
@@ -118,19 +149,12 @@ export default function NewManualRiskAssessmentPage() {
                  <FileSignature className="h-6 w-6 text-purple-600" /> Conduct New Manual Risk Assessment
             </h1>
         </div>
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardDescription>
-            Fill in the details for the risk assessment. Use the risk matrix guidance for likelihood and severity.
-          </CardDescription>
-        </CardHeader>
         <ManualRiskAssessmentForm 
           manualHazards={manualHazards}
           onSave={handleSaveAssessment} 
           onCancel={handleCancel}
           isSubmitting={addAssessmentMutation.isPending}
         />
-      </Card>
     </div>
   );
 }
