@@ -181,20 +181,18 @@ export function ManualRiskAssessmentForm({ initialData, manualHazards, onSave, o
                       <FormField control={form.control} name="activityOrProcess" render={({ field }) => (
                           <FormItem><FormLabel>Activity / Process Assessed</FormLabel><FormControl><Input placeholder="e.g., Routine Maintenance on Conveyor X" {...field} /></FormControl><FormMessage /></FormItem>
                       )}/>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField control={form.control} name="assessmentDate" render={({ field }) => (
-                              <FormItem className="flex flex-col"><FormLabel>Assessment Date</FormLabel>
-                              <Popover><PopoverTrigger asChild><FormControl>
-                                  <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                  {field.value ? format(parseISO(field.value), "PPP") : <span>Pick date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button></FormControl></PopoverTrigger>
-                                  <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} initialFocus/></PopoverContent>
-                              </Popover><FormMessage /></FormItem>
-                          )}/>
-                          <FormField control={form.control} name="assessedBy" render={({ field }) => (
-                              <FormItem><FormLabel>Assessed By</FormLabel><FormControl><Input placeholder="Lead Assessor Name" {...field} /></FormControl><FormMessage /></FormItem>
-                          )}/>
-                      </div>
+                      <FormField control={form.control} name="assessmentDate" render={({ field }) => (
+                          <FormItem className="flex flex-col"><FormLabel>Assessment Date</FormLabel>
+                          <Popover><PopoverTrigger asChild><FormControl>
+                              <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                              {field.value ? format(parseISO(field.value), "PPP") : <span>Pick date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button></FormControl></PopoverTrigger>
+                              <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} initialFocus/></PopoverContent>
+                          </Popover><FormMessage /></FormItem>
+                      )}/>
+                      <FormField control={form.control} name="assessedBy" render={({ field }) => (
+                          <FormItem><FormLabel>Assessed By</FormLabel><FormControl><Input placeholder="Lead Assessor Name" {...field} /></FormControl><FormMessage /></FormItem>
+                      )}/>
                       <FormField control={form.control} name="teamMembers" render={({ field }) => (
                           <FormItem><FormLabel className="flex items-center gap-1"><Users className="h-4 w-4"/>Assessment Team (Optional)</FormLabel><FormControl><Input placeholder="Comma-separated names if applicable" {...field} /></FormControl><FormMessage /></FormItem>
                       )}/>
@@ -354,24 +352,22 @@ export function ManualRiskAssessmentForm({ initialData, manualHazards, onSave, o
               <Card>
                 <CardHeader><CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary"/>Review & Status</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="status" render={({ field }) => (
-                        <FormItem><FormLabel>Assessment Status</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
-                            <SelectContent>{riskAssessmentStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                        </Select><FormMessage /></FormItem>
+                  <FormField control={form.control} name="status" render={({ field }) => (
+                      <FormItem><FormLabel>Assessment Status</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
+                          <SelectContent>{riskAssessmentStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                      </Select><FormMessage /></FormItem>
+                  )}/>
+                  <div className={cn(watchedStatus === 'Closed' || watchedStatus === 'Superseded' ? 'hidden' : 'block')}>
+                    <FormField control={form.control} name="reviewDate" render={({ field }) => (
+                        <FormItem className="flex flex-col"><FormLabel>Next Review Date (Optional)</FormLabel>
+                        <Popover><PopoverTrigger asChild><FormControl>
+                            <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                            {field.value ? format(parseISO(field.value), "PPP") : <span>Pick review date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button></FormControl></PopoverTrigger>
+                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
+                        </Popover><FormMessage /></FormItem>
                     )}/>
-                    <div className={cn(watchedStatus === 'Closed' || watchedStatus === 'Superseded' ? 'hidden' : 'block')}>
-                      <FormField control={form.control} name="reviewDate" render={({ field }) => (
-                          <FormItem className="flex flex-col"><FormLabel>Next Review Date (Optional)</FormLabel>
-                          <Popover><PopoverTrigger asChild><FormControl>
-                              <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                              {field.value ? format(parseISO(field.value), "PPP") : <span>Pick review date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button></FormControl></PopoverTrigger>
-                              <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ? parseISO(field.value) : undefined} onSelect={(d) => field.onChange(d ? format(d, "yyyy-MM-dd"):"")} /></PopoverContent>
-                          </Popover><FormMessage /></FormItem>
-                      )}/>
-                    </div>
                   </div>
                    <FormField control={form.control} name="overallComments" render={({ field }) => (
                       <FormItem className="mt-4">
