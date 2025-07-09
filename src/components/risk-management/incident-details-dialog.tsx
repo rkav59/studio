@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { Incident } from "@/lib/types";
 import { format, parseISO } from 'date-fns';
-import { Megaphone, CalendarDays, MapPin, User, TypeRows, ShieldAlert, Briefcase, LinkIcon, Activity, BarChart3, Info, AlertTriangle, CheckSquare, XCircle, FileDown } from "lucide-react";
+import { Map, Megaphone, CalendarDays, MapPin, User, TypeRows, ShieldAlert, Briefcase, LinkIcon, Activity, BarChart3, Info, AlertTriangle, CheckSquare, XCircle, FileDown } from "lucide-react";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -177,10 +177,20 @@ export function IncidentDetailsDialog({ incident, onClose }: IncidentDetailsDial
             <div className="space-y-4 text-sm">
                 <section>
                     <h3 className="text-md font-semibold mb-1 border-b pb-1">Event Overview</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-3 gap-y-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-3 gap-y-2">
                         <p><strong className="text-muted-foreground">Type:</strong> {incident.type}</p>
                         <p><CalendarDays className="inline h-4 w-4 mr-1 text-muted-foreground" /><strong>Date & Time:</strong> {format(parseISO(incident.timestamp), "PPPp")}</p>
-                        <p className="md:col-span-2"><MapPin className="inline h-4 w-4 mr-1 text-muted-foreground" /><strong>Location:</strong> {incident.location}</p>
+                        <div className="md:col-span-2 flex items-center justify-between">
+                            <p><MapPin className="inline h-4 w-4 mr-1 text-muted-foreground" /><strong>Location:</strong> {incident.location}</p>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(`https://www.google.com/maps?q=${encodeURIComponent(incident.location)}`, '_blank')}
+                                className="h-7 text-xs"
+                            >
+                                <Map className="mr-2 h-3 w-3" /> View on Map
+                            </Button>
+                        </div>
                         <p><strong className="text-muted-foreground">Region/Dept:</strong> {incident.region}</p>
                         {incident.reportedBy && <p><User className="inline h-4 w-4 mr-1 text-muted-foreground" /><strong>Reported By:</strong> {incident.reportedBy}</p>}
                     </div>

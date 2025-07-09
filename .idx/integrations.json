@@ -4,5 +4,7 @@
     "region": "africa-south1",
     "sourceFlag": "--source .",
     "allowUnauthenticatedInvocationsFlag": "--allow-unauthenticated"
-  }
+  },
+  "gemini_api": {},
+  "google_maps_platform": {}
 }

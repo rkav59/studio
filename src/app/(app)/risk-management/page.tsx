@@ -540,7 +540,7 @@ export default function RiskManagementPage() {
     <Card id="manual-hazard-log" className="shadow-md">
       <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
-              <CardTitle className="flex items-center gap-2"><Target className="h-6 w-6 text-red-500"/>Manual Hazard Log</CardTitle>
+              <CardTitle className="flex items-center gap-2">Hazard Log</CardTitle>
               <CardDescription>A register of manually identified hazards. These can be linked to risk assessments.</CardDescription>
           </div>
           <div className="flex w-full md:w-auto items-center gap-2">
@@ -588,7 +588,7 @@ export default function RiskManagementPage() {
        <Card id="manual-risk-assessments" className="shadow-md">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
-                <CardTitle className="flex items-center gap-2"><FileSignature className="h-6 w-6 text-purple-600"/>Manual Risk Assessments</CardTitle>
+                <CardTitle className="flex items-center gap-2">Risk Assessments</CardTitle>
                 <CardDescription>A log of all conducted manual risk assessments.</CardDescription>
             </div>
              <div className="flex w-full md:w-auto items-center gap-2">
