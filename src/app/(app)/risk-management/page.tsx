@@ -438,8 +438,8 @@ export default function RiskManagementPage() {
     <TooltipProvider>
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
-          <AlertTriangle className="h-8 w-8"/> Risk Management - Aligned with ISO 31000 Principles
+        <h1 className="text-3xl font-bold tracking-tight font-headline">
+          Risk Management - Aligned with ISO 31000 Principles
         </h1>
         <p className="text-base text-muted-foreground">This module facilitates a systematic approach to risk management, following ISO 31000 guidelines for establishing context, identifying, analyzing, evaluating, treating, monitoring, and reporting risks. Now includes Incident Logging.</p>
       </div>
