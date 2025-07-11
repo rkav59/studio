@@ -10,9 +10,9 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { LayoutDashboard, CalendarIcon, Filter, Settings, Loader2 as PageLoader, Activity, Users as UsersIcon, RefreshCw, Lightbulb } from "lucide-react"; 
+import { LayoutDashboard, CalendarIcon, Filter, Settings, Loader2 as PageLoader, Activity, Users as UsersIcon, RefreshCw, Lightbulb, BarChart3 } from "lucide-react"; 
 import { cn } from "@/lib/utils";
-import { format, parseISO, startOfToday, isValid } from "date-fns"; 
+import { format, parseISO, startOfToday, isValid, isAfter, isBefore } from "date-fns"; 
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useAuth } from '@/contexts/auth-context';
@@ -28,9 +28,29 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { SuggestIndicatorForm } from '@/components/dashboard/suggest-indicator-form';
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer } from "recharts"
 
 const mockLocations = ["All Locations", "Warehouse A", "Office Block", "Factory Floor", "Loading Bay"];
-const mockCategories = ["All Categories", "Incident", "Near Miss", "Hazard"];
+const incidentCategories = ["All Categories", "Incident", "Near Miss", "Hazard"];
+
+const incidentChartConfig = {
+  count: {
+    label: "Count",
+  },
+  Incident: {
+    label: "Incidents",
+    color: "hsl(var(--destructive))",
+  },
+  'Near Miss': {
+    label: "Near Misses",
+    color: "hsl(var(--chart-2))",
+  },
+  Hazard: {
+    label: "Hazards",
+    color: "hsl(var(--chart-1))",
+  },
+} satisfies ChartConfig
 
 // Collection constants
 const KPI_THRESHOLDS_COLLECTION = 'kpiThresholds';
@@ -66,7 +86,7 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
 
   const [selectedLocation, setSelectedLocation] = useState<string | undefined>(mockLocations[0]);
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(mockCategories[0]);
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(incidentCategories[0]);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   
@@ -323,7 +343,54 @@ export default function DashboardPage() {
       setIsRefreshingEvents(false);
     }
   };
+  
+  // --- Incident Chart Data & Logic ---
+  const { data: incidents = [], isLoading: isLoadingIncidents } = useQuery<Incident[]>({
+    queryKey: [INCIDENTS_COLLECTION, user?.uid],
+    queryFn: async () => {
+        if (!user?.uid) return [];
+        const q = query(collection(db, INCIDENTS_COLLECTION), where("userId", "==", user.uid));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Incident));
+    },
+    enabled: !!user?.uid,
+  });
 
+  const incidentChartData = useMemo(() => {
+    const filteredIncidents = incidents.filter(incident => {
+      const incidentDate = parseISO(incident.timestamp);
+      const isAfterStart = !startDate || isAfter(incidentDate, startDate) || format(incidentDate, 'yyyy-MM-dd') === format(startDate, 'yyyy-MM-dd');
+      const isBeforeEnd = !endDate || isBefore(incidentDate, endDate) || format(incidentDate, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
+      const categoryMatch = selectedCategory === 'All Categories' || incident.type === selectedCategory;
+      // Location filter is currently mocked
+      const locationMatch = selectedLocation === 'All Locations' || incident.location === selectedLocation;
+
+      return isAfterStart && isBeforeEnd && categoryMatch && locationMatch;
+    });
+
+    const counts = {
+        name: "Incidents",
+        Incident: 0,
+        'Near Miss': 0,
+        Hazard: 0,
+    };
+    filteredIncidents.forEach(incident => {
+      if (incident.type === 'Incident') counts.Incident++;
+      else if (incident.type === 'Near Miss') counts['Near Miss']++;
+      else if (incident.type === 'Hazard') counts.Hazard++;
+    });
+
+    return [
+        { type: 'Incident', count: counts.Incident, fill: "var(--color-Incident)" },
+        { type: 'Near Miss', count: counts['Near Miss'], fill: "var(--color-Near Miss)" },
+        { type: 'Hazard', count: counts.Hazard, fill: "var(--color-Hazard)" },
+    ];
+  }, [incidents, startDate, endDate, selectedCategory, selectedLocation]);
+
+  const uniqueIncidentRegions = useMemo(() => {
+    const regions = new Set(incidents.map(i => i.region));
+    return ['All Locations', ...Array.from(regions)];
+  }, [incidents]);
 
   return (
     <div className="space-y-2">
@@ -412,28 +479,17 @@ export default function DashboardPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Incidents Overview</CardTitle>
-                    <CardDescription>Filter incidents by location, category, and date range.</CardDescription>
+                    <CardDescription>Filter incidents by type and date range.</CardDescription>
                     <div className="pt-4">
                         <div className="flex flex-wrap gap-4 items-end">
-                            <div className="flex-grow min-w-[180px]">
-                                <Label htmlFor="location-filter" className="text-xs font-medium text-muted-foreground">Location</Label>
-                                <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                                    <SelectTrigger id="location-filter" className="w-full">
-                                    <SelectValue placeholder="Select Location" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                    {mockLocations.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="flex-grow min-w-[180px]">
+                             <div className="flex-grow min-w-[180px]">
                                 <Label htmlFor="category-filter" className="text-xs font-medium text-muted-foreground">Category</Label>
                                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                                     <SelectTrigger id="category-filter" className="w-full">
                                     <SelectValue placeholder="Select Category" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                    {mockCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                                    {incidentCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -492,13 +548,32 @@ export default function DashboardPage() {
                                     </PopoverContent>
                                 </Popover>
                             </div>
+                             <Button variant="ghost" onClick={() => { setStartDate(undefined); setEndDate(undefined); setSelectedCategory('All Categories')}}>Reset</Button>
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="h-[100px] w-full flex items-center justify-center text-muted-foreground bg-muted/30 rounded-md">
-                    (Incident Chart Area - Data will be filtered based on selections above)
-                    </div>
+                    {isLoadingIncidents ? (
+                         <div className="h-[200px] w-full flex items-center justify-center text-muted-foreground bg-muted/30 rounded-md">
+                           <PageLoader className="h-6 w-6 animate-spin" />
+                         </div>
+                    ) : (
+                        <ChartContainer config={incidentChartConfig} className="h-[200px] w-full">
+                            <ResponsiveContainer>
+                                <BarChart data={incidentChartData} layout="vertical" margin={{ left: 10, right: 10 }}>
+                                <CartesianGrid horizontal={false} />
+                                <YAxis dataKey="type" type="category" tickLine={false} axisLine={false} tickMargin={10} width={80} />
+                                <XAxis dataKey="count" type="number" hide />
+                                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
+                                <Bar dataKey="count" radius={5} >
+                                    {incidentChartData.map((entry) => (
+                                        <div key={entry.type} style={{backgroundColor: entry.fill}} />
+                                    ))}
+                                </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    )}
                 </CardContent>
             </Card>
             <Card>
@@ -555,5 +630,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
