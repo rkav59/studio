@@ -1,4 +1,4 @@
-# **App Name**: SHEild
+# **App Name**: SHEiQpro
 
 ## Core Features:
 
