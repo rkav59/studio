@@ -42,9 +42,6 @@ service cloud.firestore {
       return sameOrg(data) || ownsLegacy(data);
     }
 
-    // User profiles are security-sensitive. A user can create their own
-    // profile during signup, but cannot promote themselves, change tenancy,
-    // or change their subscription from the client.
     match /userProfiles/{userId} {
       allow create: if signedIn()
         && request.auth.uid == userId
@@ -55,6 +52,7 @@ service cloud.firestore {
       allow read: if signedIn()
         && (request.auth.uid == userId || (isAdmin() && resource.data.organizationId == orgId()));
 
+      // A user can only edit their own profile's non-security fields.
       allow update: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.organizationId == resource.data.organizationId
@@ -64,10 +62,12 @@ service cloud.firestore {
           'displayName', 'country'
         ]);
 
+      // Organization admins may manage another member's role, but cannot
+      // move the member to another organization or change billing fields.
       allow update: if isAdmin()
         && resource.data.organizationId == orgId()
         && request.resource.data.organizationId == resource.data.organizationId
-        && request.resource.data.id == resource.data.id;
+        && request.resource.data.planId == resource.data.planId;
 
       allow delete: if false;
     }
