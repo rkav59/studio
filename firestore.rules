@@ -1,0 +1,86 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profile() {
+      return get(/databases/$(database)/documents/userProfiles/$(request.auth.uid));
+    }
+
+    function isMember() {
+      return signedIn() && exists(/databases/$(database)/documents/userProfiles/$(request.auth.uid));
+    }
+
+    function orgId() {
+      return profile().data.organizationId;
+    }
+
+    function isAdmin() {
+      return isMember() && profile().data.role == 'admin';
+    }
+
+    function sameOrg(data) {
+      return isMember() && data.organizationId == orgId();
+    }
+
+    function ownsLegacy(data) {
+      return signedIn() && data.userId == request.auth.uid;
+    }
+
+    function canRead(data) {
+      return sameOrg(data) || ownsLegacy(data);
+    }
+
+    function canCreate(data) {
+      return sameOrg(data) && data.userId == request.auth.uid;
+    }
+
+    function canWrite(data) {
+      return sameOrg(data) || ownsLegacy(data);
+    }
+
+    // User profiles are security-sensitive. A user can create their own
+    // profile during signup, but cannot promote themselves, change tenancy,
+    // or change their subscription from the client.
+    match /userProfiles/{userId} {
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.organizationId is string
+        && request.resource.data.role == 'admin'
+        && request.resource.data.planId in ['free', 'trial'];
+
+      allow read: if signedIn()
+        && (request.auth.uid == userId || (isAdmin() && resource.data.organizationId == orgId()));
+
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.organizationId == resource.data.organizationId
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.planId == resource.data.planId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName', 'country'
+        ]);
+
+      allow update: if isAdmin()
+        && resource.data.organizationId == orgId()
+        && request.resource.data.organizationId == resource.data.organizationId
+        && request.resource.data.id == resource.data.id;
+
+      allow delete: if false;
+    }
+
+    // Baseline tenant isolation for application collections. New records must
+    // carry both organizationId and userId. Legacy user-owned records remain
+    // readable/writable by their owner while they are migrated.
+    match /{collection}/{document} {
+      allow read: if canRead(resource.data);
+      allow create: if canCreate(request.resource.data);
+      allow update, delete: if canWrite(resource.data)
+        && request.resource.data.organizationId == resource.data.organizationId
+        && request.resource.data.userId == resource.data.userId;
+    }
+  }
+}
