@@ -52,7 +52,6 @@ service cloud.firestore {
       allow read: if signedIn()
         && (request.auth.uid == userId || (isAdmin() && resource.data.organizationId == orgId()));
 
-      // A user can only edit their own profile's non-security fields.
       allow update: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.organizationId == resource.data.organizationId
@@ -62,8 +61,6 @@ service cloud.firestore {
           'displayName', 'country'
         ]);
 
-      // Organization admins may manage another member's role, but cannot
-      // move the member to another organization or change billing fields.
       allow update: if isAdmin()
         && resource.data.organizationId == orgId()
         && request.resource.data.organizationId == resource.data.organizationId
@@ -76,9 +73,10 @@ service cloud.firestore {
     // carry both organizationId and userId. Legacy user-owned records remain
     // readable/writable by their owner while they are migrated.
     match /{collection}/{document} {
-      allow read: if canRead(resource.data);
-      allow create: if canCreate(request.resource.data);
-      allow update, delete: if canWrite(resource.data)
+      allow read: if collection != 'userProfiles' && canRead(resource.data);
+      allow create: if collection != 'userProfiles' && canCreate(request.resource.data);
+      allow update, delete: if collection != 'userProfiles'
+        && canWrite(resource.data)
         && request.resource.data.organizationId == resource.data.organizationId
         && request.resource.data.userId == resource.data.userId;
     }
