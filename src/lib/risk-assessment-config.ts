@@ -1,6 +1,4 @@
-
-
-import type { RiskAssessmentMethod, Likelihood, Severity, RiskLevel, RiskRegisterStatus } from "./types";
+import type { RiskAssessmentMethod, Likelihood, Severity, RiskLevel, RiskRegisterStatus, RiskAssessmentControl, ManualRiskAssessment } from "./types";
 
 export interface DescriptiveRiskAssessmentMethod {
   name: RiskAssessmentMethod;
@@ -98,53 +96,29 @@ export const methodSpecificGuidance: Partial<Record<RiskAssessmentMethod, {
   }
 };
 
-
-// --- Manual Risk Assessment Config ---
 export const likelihoodLevels: Record<Likelihood, number> = {
-  "Very Unlikely": 1,
-  "Unlikely": 2,
-  "Possible": 3,
-  "Likely": 4,
-  "Very Likely": 5,
+  "Very Unlikely": 1, "Unlikely": 2, "Possible": 3, "Likely": 4, "Very Likely": 5,
 };
-
 export const severityLevels: Record<Severity, number> = {
-  "Insignificant": 1,
-  "Minor": 2,
-  "Moderate": 3,
-  "Serious": 4,
-  "Catastrophic": 5,
+  "Insignificant": 1, "Minor": 2, "Moderate": 3, "Serious": 4, "Catastrophic": 5,
 };
-
-// For dropdown options in forms
-export const severityOptions: Array<{ value: Severity; label: Severity }> = 
-  (Object.keys(severityLevels) as Severity[]).map(s => ({ value: s, label: s }));
-
-export const likelihoodOptions: Array<{ value: Likelihood; label: Likelihood }> =
-  (Object.keys(likelihoodLevels) as Likelihood[]).map(l => ({ value: l, label: l }));
-
-
+export const severityOptions: Array<{ value: Severity; label: Severity }> = (Object.keys(severityLevels) as Severity[]).map(s => ({ value: s, label: s }));
+export const likelihoodOptions: Array<{ value: Likelihood; label: Likelihood }> = (Object.keys(likelihoodLevels) as Likelihood[]).map(l => ({ value: l, label: l }));
 export const getRiskLevel = (likelihoodValue: number, severityValue: number): RiskLevel => {
   const riskScore = likelihoodValue * severityValue;
   if (riskScore <= 4) return 'Low';
   if (riskScore <= 9) return 'Medium';
-  if (riskScore <= 15) return 'High'; // Adjusted threshold for High
-  return 'Extreme'; // Adjusted for scores > 15
+  if (riskScore <= 15) return 'High';
+  return 'Extreme';
 };
-
 export const riskMatrix: Record<RiskLevel, { color: string; description: string }> = {
   Low: { color: "bg-green-500 text-white", description: "Acceptable, manage with routine procedures." },
   Medium: { color: "bg-yellow-500 text-black", description: "Tolerable, implement controls to reduce risk where possible." },
   High: { color: "bg-orange-500 text-white", description: "Undesirable, implement significant controls to reduce risk. Activity may require specific authorization." },
   Extreme: { color: "bg-red-600 text-white", description: "Intolerable, activity should not proceed without substantial risk reduction. Immediate action required." },
 };
-
 export const controlActionStatuses: Array<Required<RiskAssessmentControl>['status']> = ['Open', 'In Progress', 'Completed', 'Overdue', 'Cancelled'];
 export const riskAssessmentStatuses: Array<Required<ManualRiskAssessment>['status']> = ['Open', 'Under Review', 'Closed', 'Superseded'];
-// --- End Manual Risk Assessment Config ---
-
-// --- Risk Register Config ---
 export const riskRegisterStatuses: RiskRegisterStatus[] = ['Open', 'In Progress', 'Mitigated', 'Closed', 'Accepted'];
 export const riskCategories: string[] = ['Safety', 'Health', 'Environmental', 'Operational', 'Financial', 'Reputational', 'Legal/Compliance', 'Other'];
 export const riskSources: string[] = ['Audit Finding', 'Inspection Finding', 'Hazard Report', 'Risk Assessment', 'Management Review', 'External Source', 'Other'];
-// --- End Risk Register Config ---

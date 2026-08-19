@@ -1,44 +1,26 @@
-
 // src/lib/firebase.ts
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage'; // New import
+import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
-// Firebase configuration (Hardcoded as per user request)
+// Firebase web configuration is safe to expose to the client. Access control is
+// enforced by Firebase Authentication, Firestore rules and Storage rules.
 const firebaseConfig = {
   apiKey: "AIzaSyB_HdshgnYruTYAVPiAWHP5vAKTO4AALak",
   authDomain: "sheild-xt9s1.firebaseapp.com",
   projectId: "sheild-xt9s1",
-  storageBucket: "sheild-xt9s1.appspot.com", // User confirmed this bucket name
+  storageBucket: "sheild-xt9s1.appspot.com",
   messagingSenderId: "862879666585",
   appId: "1:862879666585:web:a242c2bd5db582f5064308"
 };
 
-let app: FirebaseApp;
-let authInstance;
-let dbInstance;
-let storageInstance; // New variable for storage
+const app: FirebaseApp = getApps().length
+  ? getApps()[0]
+  : initializeApp(firebaseConfig);
 
-if (!getApps().length) {
-  try {
-    app = initializeApp(firebaseConfig);
-    authInstance = getAuth(app);
-    dbInstance = getFirestore(app);
-    storageInstance = getStorage(app); // Initialize storage
-  } catch (initError) {
-    console.error("CRITICAL: Firebase initialization failed.", initError);
-    // Handle initialization error appropriately
-  }
-} else {
-  app = getApps()[0];
-  authInstance = getAuth(app);
-  dbInstance = getFirestore(app);
-  storageInstance = getStorage(app); // Initialize storage for already initialized app
-}
-
-const auth = authInstance;
-const db = dbInstance;
-const storage = storageInstance; // Export storage
+const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
+const storage: FirebaseStorage = getStorage(app);
 
 export { app, auth, db, storage };
