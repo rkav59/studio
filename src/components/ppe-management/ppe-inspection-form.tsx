@@ -34,8 +34,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { useEffect } from "react";
 
-const ppeInspectionOverallStatuses: PpeInspectionOverallStatus[] = ['Pass', 'Requires Repair', 'To be Replaced', 'Action Pending'];
-const ppeChecklistItemResults: PpeInspectionChecklistItemResult[] = ['Pass', 'Fail', 'N/A', 'Pending'];
+const ppeInspectionOverallStatuses = ['Pass', 'Requires Repair', 'To be Replaced', 'Action Pending'] as const;
+const ppeChecklistItemResults = ['Pass', 'Fail', 'N/A', 'Pending'] as const;
 
 
 export const DEFAULT_PPE_CHECKLIST_ITEMS_TEMPLATE: Array<Omit<PpeInspectionChecklistItemInstance, 'id' | 'result' | 'remarks' > & { templateItemId: string }> = [
@@ -71,11 +71,12 @@ export type PpeInspectionFormValues = z.infer<typeof ppeInspectionFormSchema>;
 interface PpeInspectionFormProps {
   ppeItems: PpeItem[];
   initialData?: PpeInspectionRecord | null;
+  isSubmitting?: boolean;
   onSave: (data: PpeInspectionFormValues) => void;
   onCancel: () => void;
 }
 
-export function PpeInspectionForm({ ppeItems, initialData, onSave, onCancel }: PpeInspectionFormProps) {
+export function PpeInspectionForm({ ppeItems, initialData, onSave, onCancel, isSubmitting }: PpeInspectionFormProps) {
   const isEditing = !!initialData;
   const form = useForm<PpeInspectionFormValues>({
     resolver: zodResolver(ppeInspectionFormSchema),
@@ -273,7 +274,7 @@ export function PpeInspectionForm({ ppeItems, initialData, onSave, onCancel }: P
           </ScrollArea>
           <div className="p-4 md:p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
             <Button type="button" variant="outline" onClick={onCancel}><XCircle className="mr-2 h-4 w-4" />Cancel</Button>
-            <Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white"><Save className="mr-2 h-4 w-4" />{isEditing ? "Save Changes" : "Log Inspection"}</Button>
+            <Button disabled={isSubmitting} type="submit" className="bg-teal-600 hover:bg-teal-700 text-white"><Save className="mr-2 h-4 w-4" />{isEditing ? "Save Changes" : "Log Inspection"}</Button>
           </div>
         </form>
       </Form>

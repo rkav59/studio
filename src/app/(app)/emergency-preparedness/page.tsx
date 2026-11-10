@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
@@ -16,8 +17,8 @@ import type { EmergencyPlan, EmergencyResource, MockDrill, DrillActionItem } fro
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertTitle, AlertDescription as UiAlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, Timestamp, orderBy } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation'; // Added for navigation
 import Link from 'next/link';
@@ -62,7 +63,7 @@ export default function EmergencyPreparednessPage() {
   const [viewingResource, setViewingResource] = useState<EmergencyResource | null>(null);
   const [viewingDrill, setViewingDrill] = useState<MockDrill | null>(null);
 
-  const canManage = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [user, userProfile]);
+  const canManage = useMemo(() => (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [userProfile]);
   const disabledTooltipContent = "You do not have permission to perform this action.";
 
   // Fetch Plans
@@ -76,8 +77,8 @@ export default function EmergencyPreparednessPage() {
         const data = doc.data();
         return { 
           id: doc.id, ...data, 
-          lastReviewedDate: data.lastReviewedDate ? (data.lastReviewedDate as Timestamp).toDate().toISOString() : undefined,
-          nextReviewDate: data.nextReviewDate ? (data.nextReviewDate as Timestamp).toDate().toISOString() : undefined,
+          lastReviewedDate: data.lastReviewedDate ? toIso(data.lastReviewedDate) : undefined,
+          nextReviewDate: data.nextReviewDate ? toIso(data.nextReviewDate) : undefined,
         } as EmergencyPlan;
       });
     },
@@ -95,8 +96,8 @@ export default function EmergencyPreparednessPage() {
         const data = doc.data();
         return { 
           id: doc.id, ...data, 
-          lastCheckedDate: data.lastCheckedDate ? (data.lastCheckedDate as Timestamp).toDate().toISOString() : undefined,
-          nextCheckDate: data.nextCheckDate ? (data.nextCheckDate as Timestamp).toDate().toISOString() : undefined,
+          lastCheckedDate: data.lastCheckedDate ? toIso(data.lastCheckedDate) : undefined,
+          nextCheckDate: data.nextCheckDate ? toIso(data.nextCheckDate) : undefined,
         } as EmergencyResource;
       });
     },
@@ -114,11 +115,11 @@ export default function EmergencyPreparednessPage() {
         const data = doc.data();
         return { 
           id: doc.id, ...data, 
-          scheduledDate: (data.scheduledDate as Timestamp)?.toDate().toISOString(),
-          actualDate: data.actualDate ? (data.actualDate as Timestamp).toDate().toISOString() : undefined,
+          scheduledDate: toIso(data.scheduledDate),
+          actualDate: data.actualDate ? toIso(data.actualDate) : undefined,
           actionItems: (data.actionItems || []).map((ai: any) => ({
             ...ai,
-            dueDate: ai.dueDate ? (ai.dueDate as Timestamp).toDate().toISOString() : undefined,
+            dueDate: ai.dueDate ? toIso(ai.dueDate) : undefined,
           })),
         } as MockDrill;
       });
@@ -208,7 +209,7 @@ export default function EmergencyPreparednessPage() {
           <Siren className="h-8 w-8"/> Emergency Preparedness
         </h1>
         <p className="text-muted-foreground">
-          This module assists in creating emergency plans, managing resources, and tracking drills to ensure readiness for any situation. All data is stored securely in Firebase Firestore.
+          This module assists in creating emergency plans, managing resources, and tracking drills to ensure readiness for any situation. All data is stored securely in Supabase PostgreSQL.
         </p>
       </div>
 

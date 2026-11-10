@@ -1,12 +1,13 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter, useParams } from 'next/navigation';
 import { PpeIssuanceForm, type PpeIssuanceFormValues } from "@/components/ppe-management/ppe-issuance-form";
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, Timestamp } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PpeIssuanceRecord, PpeItem, PpeJobRoleMatrixEntry } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,9 +66,9 @@ export default function EditPpeIssuancePage() {
         return {
           id: recordSnap.id,
           ...data,
-          issuedDate: (data.issuedDate as Timestamp)?.toDate().toISOString(),
-          expectedReturnDate: data.expectedReturnDate ? (data.expectedReturnDate as Timestamp).toDate().toISOString() : null,
-          actualReturnDate: data.actualReturnDate ? (data.actualReturnDate as Timestamp).toDate().toISOString() : null,
+          issuedDate: toIso(data.issuedDate),
+          expectedReturnDate: data.expectedReturnDate ? toIso(data.expectedReturnDate) : null,
+          actualReturnDate: data.actualReturnDate ? toIso(data.actualReturnDate) : null,
         } as PpeIssuanceRecord;
       }
       return null;

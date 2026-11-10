@@ -1,6 +1,7 @@
 
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -9,8 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertTriangle, ListChecks, Activity, Settings, PlusCircle, Eye, Edit2, Trash2, FileSignature, Target, Loader2, ShieldQuestion, ShieldCheck, ClockIcon, UserCircleIcon, Link as LinkIcon, BookOpen, LayoutDashboard, Brain, Download, Landmark, Search, RefreshCw } from "lucide-react";
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy, updateDoc } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ManualHazard, ManualRiskAssessment, RiskLevel, RiskAssessmentControl, RiskRegisterEntry, RiskRegisterStatus, SheqAudit, Incident } from "@/lib/types";
 import { format, parseISO, isBefore, differenceInDays, isValid } from 'date-fns';
@@ -62,8 +63,8 @@ export default function RiskManagementPage() {
   const [isRefreshingRegister, setIsRefreshingRegister] = useState(false); // New state for register refresh
 
   // --- Role-Based Access Control ---
-  const canCreate = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [user, userProfile]);
-  const canManageRegister = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [user, userProfile]);
+  const canCreate = useMemo(() => (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [userProfile]);
+  const canManageRegister = useMemo(() => (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [userProfile]);
   const disabledTooltipContent = "You do not have permission to perform this action.";
 
   // Fetch Incidents
@@ -99,7 +100,7 @@ export default function RiskManagementPage() {
       if (!user?.uid) return [];
       const q = query(collection(db, MANUAL_HAZARDS_COLLECTION), where("userId", "==", user.uid), orderBy("dateIdentified", "desc"));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), dateIdentified: (doc.data().dateIdentified as Timestamp)?.toDate().toISOString() } as ManualHazard));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), dateIdentified: toIso(doc.data().dateIdentified) } as ManualHazard));
     },
     enabled: !!user?.uid,
   });
@@ -116,11 +117,11 @@ export default function RiskManagementPage() {
         return {
             id: docSnap.id,
             ...data,
-            assessmentDate: (data.assessmentDate as Timestamp)?.toDate().toISOString(),
-            reviewDate: data.reviewDate ? (data.reviewDate as Timestamp).toDate().toISOString() : undefined,
+            assessmentDate: toIso(data.assessmentDate),
+            reviewDate: data.reviewDate ? toIso(data.reviewDate) : undefined,
             additionalControls: (data.additionalControls || []).map((control: any) => ({
                 ...control,
-                dueDate: control.dueDate ? (control.dueDate as Timestamp).toDate().toISOString() : undefined,
+                dueDate: control.dueDate ? toIso(control.dueDate) : undefined,
             })),
         } as ManualRiskAssessment;
       });
@@ -140,10 +141,10 @@ export default function RiskManagementPage() {
         return {
           id: docSnap.id,
           ...data,
-          dateIdentified: (data.dateIdentified as Timestamp)?.toDate().toISOString(),
-          treatmentDueDate: data.treatmentDueDate ? (data.treatmentDueDate as Timestamp).toDate().toISOString() : undefined,
-          lastReviewedDate: data.lastReviewedDate ? (data.lastReviewedDate as Timestamp).toDate().toISOString() : undefined,
-          nextReviewDate: data.nextReviewDate ? (data.nextReviewDate as Timestamp).toDate().toISOString() : undefined,
+          dateIdentified: toIso(data.dateIdentified),
+          treatmentDueDate: data.treatmentDueDate ? toIso(data.treatmentDueDate) : undefined,
+          lastReviewedDate: data.lastReviewedDate ? toIso(data.lastReviewedDate) : undefined,
+          nextReviewDate: data.nextReviewDate ? toIso(data.nextReviewDate) : undefined,
         } as RiskRegisterEntry;
       });
     },

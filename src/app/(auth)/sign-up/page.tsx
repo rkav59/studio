@@ -59,8 +59,8 @@ export default function SignUpPage() {
   async function onSubmit(data: SignUpFormValues) {
     setLoading(true);
     try {
-      await signUp(data.email, data.password, data.fullName, data.country);
-      router.push("/welcome"); 
+      const signedIn = await signUp(data.email, data.password, data.fullName, data.country);
+      if (signedIn) router.push(sessionStorage.getItem("sheiq-invitation") ? "/join" : "/welcome");
     } catch (error: any) {
       // Error toast is handled by context now
     } finally {
@@ -160,7 +160,7 @@ export default function SignUpPage() {
           />
           <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Account & Start Trial
+            Create Account
           </Button>
         </form>
       </Form>

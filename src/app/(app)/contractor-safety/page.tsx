@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useState, useMemo } from 'react';
 import Image from "next/image";
@@ -28,9 +29,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/auth-context';
-import { db, storage } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore'; 
-import { ref as storageRef, deleteObject } from "firebase/storage";
+import { db, storage } from '@/lib/supabase/client';
+import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from '@/lib/supabase/records';
+import { ref as storageRef, deleteObject } from "@/lib/supabase/storage";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
@@ -71,7 +72,7 @@ export default function ContractorSafetyPage() {
   const [ptwSearchTerm, setPtwSearchTerm] = useState("");
   const [jobCardSearchTerm, setJobCardSearchTerm] = useState(""); // New state
 
-  const canManage = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [user, userProfile]);
+  const canManage = useMemo(() => (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [userProfile]);
   const disabledTooltipContent = "You do not have permission to perform this action.";
 
 
@@ -86,11 +87,11 @@ export default function ContractorSafetyPage() {
           const data = docSnap.data();
           return { 
               id: docSnap.id, ...data, 
-              inductionDate: data.inductionDate instanceof Timestamp ? data.inductionDate.toDate().toISOString() : data.inductionDate,
+              inductionDate: data.inductionDate instanceof Timestamp ? toIso(data.inductionDate) : data.inductionDate,
               documents: (data.documents || []).map((d: any) => ({
                   ...d,
-                  uploadedDate: d.uploadedDate instanceof Timestamp ? d.uploadedDate.toDate().toISOString() : d.uploadedDate,
-                  expiryDate: d.expiryDate instanceof Timestamp ? d.expiryDate.toDate().toISOString() : d.expiryDate,
+                  uploadedDate: d.uploadedDate instanceof Timestamp ? toIso(d.uploadedDate) : d.uploadedDate,
+                  expiryDate: d.expiryDate instanceof Timestamp ? toIso(d.expiryDate) : d.expiryDate,
               }))
           } as Contractor;
       });
@@ -109,10 +110,10 @@ export default function ContractorSafetyPage() {
           const data = docSnap.data();
           return { 
               id: docSnap.id, ...data,
-              startDate: data.startDate instanceof Timestamp ? data.startDate.toDate().toISOString() : data.startDate,
-              endDate: data.endDate instanceof Timestamp ? data.endDate.toDate().toISOString() : data.endDate,
-              authorizationDate: data.authorizationDate instanceof Timestamp ? data.authorizationDate.toDate().toISOString() : data.authorizationDate,
-              closureDate: data.closureDate instanceof Timestamp ? data.closureDate.toDate().toISOString() : data.closureDate,
+              startDate: data.startDate instanceof Timestamp ? toIso(data.startDate) : data.startDate,
+              endDate: data.endDate instanceof Timestamp ? toIso(data.endDate) : data.endDate,
+              authorizationDate: data.authorizationDate instanceof Timestamp ? toIso(data.authorizationDate) : data.authorizationDate,
+              closureDate: data.closureDate instanceof Timestamp ? toIso(data.closureDate) : data.closureDate,
           } as PermitToWork;
       });
     },
@@ -130,7 +131,7 @@ export default function ContractorSafetyPage() {
         const data = docSnap.data();
         return {
           id: docSnap.id, ...data,
-          workDate: (data.workDate as Timestamp)?.toDate().toISOString(),
+          workDate: toIso(data.workDate),
         } as JobCard;
       });
       data.sort((a,b) => new Date(b.workDate).getTime() - new Date(a.workDate).getTime());
@@ -152,7 +153,7 @@ export default function ContractorSafetyPage() {
             return {
                 id: docSnap.id,
                 ...data,
-                supervisionDate: (data.supervisionDate as Timestamp)?.toDate().toISOString(),
+                supervisionDate: toIso(data.supervisionDate),
             } as PtwSupervisionRecord;
         });
     },
@@ -353,8 +354,8 @@ export default function ContractorSafetyPage() {
             <ShieldAlert className="h-4 w-4" />
             <AlertTitle>Data Storage & Security</AlertTitle>
             <div className="text-xs text-muted-foreground">
-                Contractor metadata & PTW data is stored in Firestore. Documents are uploaded to Firebase Storage.
-                Ensure appropriate Firebase Storage & Firestore security rules are in place.
+                Manage contractor details, permits to work, and supporting documents.
+                Uploaded documents are accessible only to their authorised owner.
             </div>
         </Alert>
       </div>
@@ -686,7 +687,7 @@ export default function ContractorSafetyPage() {
                     <li>Upload progress indicators.</li>
                     <li>Online safety induction training module with content and completion tracking.</li>
                     <li>Automated notifications (Cloud Functions) for PTW expiry or document renewals.</li>
-                    <li>Workflow for PTW approvals (Cloud Functions and Firestore status updates).</li>
+                    <li>Approval workflows and permit status tracking.</li>
                     <li>Contractor performance reviews and scoring based on historical data.</li>
                     <li>AI-assisted vetting using historical safety performance data (Genkit/Cloud AI).</li>
                     <li>Supervision checklist template management.</li>

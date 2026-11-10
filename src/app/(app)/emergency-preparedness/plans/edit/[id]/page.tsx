@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter, useParams } from 'next/navigation';
 import { EmergencyPlanForm } from "@/components/emergency-preparedness/emergency-plan-form";
@@ -8,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { EmergencyPlan } from '@/lib/types';
 import { ArrowLeft, FileText } from 'lucide-react';
@@ -37,8 +38,8 @@ export default function EditEmergencyPlanPage() {
         return { 
           id: planSnap.id, 
           ...data,
-          lastReviewedDate: data.lastReviewedDate instanceof Timestamp ? data.lastReviewedDate.toDate().toISOString() : data.lastReviewedDate,
-          nextReviewDate: data.nextReviewDate instanceof Timestamp ? data.nextReviewDate.toDate().toISOString() : data.nextReviewDate,
+          lastReviewedDate: data.lastReviewedDate instanceof Timestamp ? toIso(data.lastReviewedDate) : data.lastReviewedDate,
+          nextReviewDate: data.nextReviewDate instanceof Timestamp ? toIso(data.nextReviewDate) : data.nextReviewDate,
         } as EmergencyPlan;
       }
       return null;

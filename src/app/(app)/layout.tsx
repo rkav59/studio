@@ -12,7 +12,7 @@ import type { UserProfile } from '@/lib/types';
 
 // This is the protected layout for the main application routes
 export default function ProtectedAppLayout({ children }: { children: ReactNode }) {
-  const { user, userProfile, isAuthenticating, isLoadingProfile } = useAuth(); // Get profile from context
+  const { user, userProfile, isAuthenticating, isLoadingProfile, signOutUser } = useAuth(); // Get profile from context
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -47,6 +47,8 @@ export default function ProtectedAppLayout({ children }: { children: ReactNode }
       </div>
     );
   }
+
+  if (user && !userProfile) return <main className="p-8 space-y-4"><h1 className="text-xl font-semibold">Organisation access unavailable</h1><p>Contact your administrator to check your membership.</p><button onClick={() => signOutUser()}>Sign out</button></main>;
 
   // If on the welcome page, render it without the main app layout for a focused experience
   if (pathname === '/welcome') {

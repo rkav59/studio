@@ -1,6 +1,7 @@
 
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,8 +19,8 @@ import { useToast } from '@/hooks/use-toast';
 import { analyzeSheqAuditData } from '@/ai/flows/analyze-audit-data-flow';
 import { Alert, AlertTitle, AlertDescription as UIAlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, Timestamp, orderBy, writeBatch } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, Timestamp, orderBy } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -68,8 +69,8 @@ export default function SheqAuditPage() {
   const [archivedSearchTerm, setArchivedSearchTerm] = useState("");
   const [activeSearchTerm, setActiveSearchTerm] = useState("");
 
-  const canScheduleAndManage = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [user, userProfile]);
-  const canExecute = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [user, userProfile]);
+  const canScheduleAndManage = useMemo(() => (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [userProfile]);
+  const canExecute = useMemo(() => (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [userProfile]);
 
 
   // Fetch SHEQ Audits
@@ -85,7 +86,7 @@ export default function SheqAuditPage() {
           id: doc.id, 
           ...data,
           isArchived: data.isArchived || false, // Ensure isArchived exists
-          auditDate: (data.auditDate as Timestamp)?.toDate().toISOString(),
+          auditDate: toIso(data.auditDate),
           checklist: (data.checklist || []).map((item: any) => ({ 
             ...item,
             id: item.id || crypto.randomUUID(),
@@ -94,8 +95,8 @@ export default function SheqAuditPage() {
           nonConformances: (data.nonConformances || []).map((nc: any) => ({
             ...nc,
             id: nc.id || crypto.randomUUID(),
-            actionDueDate: nc.actionDueDate && (nc.actionDueDate as Timestamp)?.toDate ? (nc.actionDueDate as Timestamp).toDate().toISOString() : undefined,
-            actionCompletionDate: nc.actionCompletionDate && (nc.actionCompletionDate as Timestamp)?.toDate ? (nc.actionCompletionDate as Timestamp).toDate().toISOString() : undefined,
+            actionDueDate: nc.actionDueDate && (nc.actionDueDate as Timestamp)?.toDate ? toIso(nc.actionDueDate) : undefined,
+            actionCompletionDate: nc.actionCompletionDate && (nc.actionCompletionDate as Timestamp)?.toDate ? toIso(nc.actionCompletionDate) : undefined,
           })),
         } as SheqAudit;
       });
@@ -126,7 +127,7 @@ export default function SheqAuditPage() {
     mutationFn: async (auditToSchedule: { newAuditData: Omit<SheqAudit, 'id' | 'status' | 'checklist' | 'nonConformances' | 'overallFindings' | 'recommendations' | 'userId'>, initialChecklistItemsFromTemplate: ChecklistItemTemplate[] }) => {
       if (!user?.uid) throw new Error("User not authenticated");
       const { newAuditData, initialChecklistItemsFromTemplate } = auditToSchedule;
-      const newAuditForDb: Omit<SheqAudit, 'id'> = {
+      const newAuditForDb = {
         ...newAuditData,
         userId: user.uid,
         status: "Planned",
@@ -251,7 +252,7 @@ export default function SheqAuditPage() {
             comments: item.comments || '',
         })),
         nonConformances: (auditToStart.nonConformances || []).map(nc => ({
-            ...getDefaultNonConformanceValues(),
+            ...getDefaultNonConformance(),
             ...nc,
             id: nc.id || crypto.randomUUID(),
             actionDueDate: nc.actionDueDate && isValid(parseISO(nc.actionDueDate)) ? format(parseISO(nc.actionDueDate), 'yyyy-MM-dd') : undefined,
@@ -540,9 +541,9 @@ export default function SheqAuditPage() {
                   AI Audit Insights
               </Button>
             </div>
-            <p className="text-muted-foreground">Ensure compliance and drive continuous improvement across SHEQ. Data now in Firestore.</p>
+            <p className="text-muted-foreground">Ensure compliance and drive continuous improvement across SHEQ. Data now in PostgreSQL.</p>
             <p className="text-muted-foreground">
-                This module facilitates the planning, execution, and tracking of SHEQ audits, with all data stored in Firebase Firestore. 
+                This module facilitates the planning, execution, and tracking of SHEQ audits, with all data stored in Supabase PostgreSQL.
                 Select from default or custom checklist templates. During execution, customize items, log responsible persons, multiple observations, and comments. Document non-conformances with CAPA details.
                 Checklist items now include fields for audit criteria and evidence gathering to align with ISO 19011 principles.
             </p>
@@ -573,8 +574,8 @@ export default function SheqAuditPage() {
               allChecklistTemplates={allChecklistTemplatesForScheduler} 
               onScheduleAudit={handleScheduleAudit}
               onStartAudit={handleStartAudit}
-              canSchedule={canScheduleAndManage}
-              canExecute={canExecute}
+              canSchedule={!!canScheduleAndManage}
+              canExecute={!!canExecute}
             />
           </div>
           
@@ -854,7 +855,7 @@ export default function SheqAuditPage() {
                 <Sparkles className="h-6 w-6" /> AI-Powered Audit Insights
               </DialogTitle>
               <DialogDescription>
-                Analysis of audit data from Firestore.
+                Analysis of audit data from PostgreSQL.
               </DialogDescription>
             </DialogHeader>
             <ScrollArea className="flex-grow my-4 pr-3 space-y-4">
@@ -878,9 +879,9 @@ export default function SheqAuditPage() {
               )}
                <Alert variant="info" className="mt-4 text-xs">
                 <BrainCircuit className="h-4 w-4" />
-                <UIAlertTitle>Note on AI Insights</UIAlertTitle>
+                <AlertTitle>Note on AI Insights</AlertTitle>
                 <UIAlertDescription>
-                  These insights are AI-generated based on a summary of audit data from Firestore.
+                  These insights are AI-generated based on a summary of audit data from PostgreSQL.
                   Always use professional judgment when interpreting AI-generated information.
                 </UIAlertDescription>
               </Alert>

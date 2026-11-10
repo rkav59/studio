@@ -34,8 +34,8 @@ import { Separator } from "@/components/ui/separator";
 import { useEffect } from "react";
 
 
-const meetingTypes: SheMeetingType[] = ['Safety Committee', 'Management Review', 'Toolbox Talk', 'Program Kick-off', 'Program Review', 'Other'];
-const actionItemStatuses: MeetingActionItemStatus[] = ['Open', 'In Progress', 'Completed', 'Deferred'];
+const meetingTypes = ['Safety Committee', 'Management Review', 'Toolbox Talk', 'Program Kick-off', 'Program Review', 'Other'] as const;
+const actionItemStatuses = ['Open', 'In Progress', 'Completed', 'Deferred'] as const;
 
 const NO_PROGRAM_VALUE = "NO_PROGRAM_SELECTED_BY_USER"; // Defined constant
 
@@ -101,7 +101,6 @@ export function SheMeetingForm({ programs, initialData, onSave, onCancel, isSubm
   });
 
   const watchedLinkedProgramId = form.watch("linkedProgramId");
-  const currentMeetingStatus = initialData?.status; // Assuming SheMeeting has a status field if needed for more dynamic form
 
   useEffect(() => {
     if (watchedLinkedProgramId && watchedLinkedProgramId !== NO_PROGRAM_VALUE) {

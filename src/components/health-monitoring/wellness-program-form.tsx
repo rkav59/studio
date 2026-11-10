@@ -32,7 +32,7 @@ import type { WellnessProgram, WellnessProgramStatus } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { Card, CardContent, CardDescription as UiCardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Added Card imports
 
-const wellnessProgramStatuses: WellnessProgramStatus[] = ['Planned', 'Active', 'Completed', 'On Hold'];
+const wellnessProgramStatuses = ['Planned', 'Active', 'Completed', 'On Hold'] as const;
 
 const wellnessProgramFormSchema = z.object({
   programName: z.string().min(3, "Program name is required.").max(200),

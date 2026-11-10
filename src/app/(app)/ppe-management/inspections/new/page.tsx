@@ -8,8 +8,8 @@ import { PpeInspectionForm, type PpeInspectionFormValues, DEFAULT_PPE_CHECKLIST_
 import { useToast } from '@/hooks/use-toast';
 import { parseISO } from 'date-fns';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, Timestamp, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, addDoc, Timestamp, query, where, getDocs, doc, updateDoc } from '@/lib/supabase/records';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';

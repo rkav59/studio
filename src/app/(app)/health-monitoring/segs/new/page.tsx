@@ -7,8 +7,8 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, addDoc } from '@/lib/supabase/records';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { SimilarExposureGroup } from '@/lib/types';
 import { ArrowLeft, Users } from 'lucide-react';

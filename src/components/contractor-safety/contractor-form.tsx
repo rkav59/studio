@@ -1,5 +1,6 @@
 
 "use client";
+import { DocumentLink } from "@/components/storage/document-link";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -36,8 +37,8 @@ import React, { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/auth-context";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from "@/lib/supabase/client";
+import { collection, query, where, getDocs, Timestamp } from '@/lib/supabase/records';
 import { vetContractor, type VetContractorInput } from "@/ai/flows/vet-contractor-flow";
 import { useToast } from "@/hooks/use-toast";
 
@@ -130,7 +131,7 @@ export function ContractorForm({ initialData, onSave, onCancel, isSubmitting, up
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
       setDocumentFiles(prev => new Map(prev).set(documentId, file));
-      const docIndex = form.getValues("documents").findIndex(d => d.id === documentId);
+      const docIndex = (form.getValues("documents") || []).findIndex(d => d.id === documentId);
       if (docIndex !== -1) {
         form.setValue(`documents.${docIndex}.fileName`, file.name);
       }
@@ -200,7 +201,6 @@ export function ContractorForm({ initialData, onSave, onCancel, isSubmitting, up
         let supervisionRecords: PtwSupervisionRecord[] = [];
         const ptwIds = ptws.map(p => p.id);
         if(ptwIds.length > 0) {
-           // Firestore `in` query is limited to 30 items. For simplicity, we assume this limit is not exceeded.
             const supervisionQuery = query(collection(db, 'ptwSupervisionRecords'), where("userId", "==", user.uid), where("ptwId", "in", ptwIds));
             const supervisionSnapshot = await getDocs(supervisionQuery);
             supervisionRecords = supervisionSnapshot.docs.map(d => d.data() as PtwSupervisionRecord);
@@ -388,16 +388,16 @@ ${result.recommendationReasoning}
                             { (form.getValues(`documents.${index}.fileName`) || (initialData?.documents && initialData.documents[index]?.fileName)) && (
                                 <FormDescription className="text-xs text-primary/80">
                                     Current file: {form.getValues(`documents.${index}.fileName`) || initialData?.documents?.[index]?.fileName}
-                                    {initialData?.documents?.[index]?.fileUrl && !documentFiles.has(docItem.id) && 
+                                    {initialData?.documents?.[index]?.filePath && !documentFiles.has(docItem.id) &&
                                       " (Will keep existing if no new file chosen)"}
                                     {documentFiles.has(docItem.id) && " (New file selected)"}
                                 </FormDescription>
                             )}
-                             {initialData?.documents?.[index]?.fileUrl && !documentFiles.has(docItem.id) && (
+                             {initialData?.documents?.[index]?.filePath && !documentFiles.has(docItem.id) && (
                                  <FormDescription className="text-xs">
-                                   <a href={initialData.documents[index].fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                   <DocumentLink path={initialData.documents[index].filePath!} className="text-blue-600 hover:underline">
                                      View current uploaded file
-                                   </a>
+                                   </DocumentLink>
                                  </FormDescription>
                              )}
                             {uploadProgress?.has(docItem.id) && uploadProgress.get(docItem.id)! < 100 && (

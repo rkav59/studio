@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter, useParams } from 'next/navigation';
 import { JobCardForm, type JobCardFormValues } from "@/components/contractor-safety/job-card-form";
@@ -8,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { parseISO } from 'date-fns';
 import type { JobCard, Contractor } from '@/lib/types';
@@ -49,7 +50,7 @@ export default function EditJobCardPage() {
         return { 
           id: jobCardSnap.id, 
           ...data,
-          workDate: (data.workDate as Timestamp)?.toDate().toISOString(),
+          workDate: toIso(data.workDate),
         } as JobCard;
       }
       return null;
@@ -79,7 +80,7 @@ export default function EditJobCardPage() {
     },
   });
 
-  const handleSaveJobCard = (data: JobCardFormValues) => {
+  const handleSaveJobCard = (data: Omit<JobCard, 'id' | 'userId'>) => {
     updateJobCardMutation.mutate(data);
   };
 

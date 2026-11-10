@@ -319,7 +319,7 @@ export function ManualRiskAssessmentForm({ initialData, manualHazards, onSave, o
                             </div>
                         </Card>
                     ))}
-                    <Button type="button" variant="outline" size="sm" onClick={() => appendControl(newControlDefault())}><PlusCircle className="mr-2 h-4 w-4"/>Add Control</Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => appendControl({...newControlDefault(), status: "Open"})}><PlusCircle className="mr-2 h-4 w-4"/>Add Control</Button>
                     <FormField name="additionalControls" control={form.control} render={() => <FormMessage />} />
                 </CardContent>
               </Card>

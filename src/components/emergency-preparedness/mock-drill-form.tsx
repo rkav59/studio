@@ -37,9 +37,9 @@ import { useToast } from "@/hooks/use-toast";
 import React from "react";
 
 
-const drillTypes: MockDrill['drillType'][] = ['Evacuation', 'Fire', 'Medical', 'Spill', 'Security', 'Tabletop', 'Other'];
-const drillStatuses: MockDrill['status'][] = ['Planned', 'Completed', 'Cancelled'];
-const actionItemStatuses: DrillActionStatus[] = ['Open', 'In Progress', 'Completed', 'Deferred'];
+const drillTypes = ['Evacuation', 'Fire', 'Medical', 'Spill', 'Security', 'Tabletop', 'Other'] as const;
+const drillStatuses = ['Planned', 'Completed', 'Cancelled'] as const;
+const actionItemStatuses = ['Open', 'In Progress', 'Completed', 'Deferred'] as const;
 
 const NO_PLAN_VALUE = "NO_PLAN_SELECTED_BY_USER";
 

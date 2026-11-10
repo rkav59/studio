@@ -19,8 +19,8 @@ import { Settings, Save, Loader2 as FormLoader, ArrowLeft, Eye, EyeOff } from "l
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, setDoc, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, doc, getDoc, setDoc, query, where, getDocs, Timestamp } from '@/lib/supabase/records';
 import type { KpiThreshold, KpiVisibilitySettings } from '@/lib/types';
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

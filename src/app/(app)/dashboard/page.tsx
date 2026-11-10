@@ -1,5 +1,6 @@
 
-"use client"; 
+"use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useState, useEffect, useMemo } from 'react';
 import { OverviewCards, kpiInfoMap } from "@/components/dashboard/overview-cards";
@@ -17,8 +18,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, query, where, getDocs, doc, getDoc, Timestamp, orderBy } from '@/lib/supabase/records';
 import type { 
     KpiThreshold, KpiVisibilitySettings, SheProgram, SheMeeting, UserRole,
     Incident, ManualRiskAssessment, SheqAudit, TrainingRecord, Contractor, PpeItem, EmergencyPlan, SimilarExposureGroup, IndustrialHygieneSample 
@@ -214,10 +215,10 @@ export default function DashboardPage() {
           const data = docSnap.data();
           // Ensure dates are consistently ISO strings or null if invalid/missing
           const startDateISO = data.startDate instanceof Timestamp 
-                               ? data.startDate.toDate().toISOString() 
+                               ? toIso(data.startDate)
                                : (typeof data.startDate === 'string' && isValid(parseISO(data.startDate)) ? data.startDate : null);
           const endDateISO = data.endDate instanceof Timestamp 
-                             ? data.endDate.toDate().toISOString() 
+                             ? toIso(data.endDate)
                              : (typeof data.endDate === 'string' && isValid(parseISO(data.endDate)) ? data.endDate : null);
           
           return { 
@@ -260,7 +261,7 @@ export default function DashboardPage() {
     queryKey: [MEETINGS_COLLECTION, 'upcoming', user?.uid],
     queryFn: async () => {
       if (!user?.uid) return [];
-      const todayForQuery = Timestamp.fromDate(startOfToday()); // Firestore Timestamp for query
+      const todayForQuery = Timestamp.fromDate(startOfToday()); // PostgreSQL Timestamp for query
       const q = query(
         collection(db, MEETINGS_COLLECTION),
         where("userId", "==", user.uid),
@@ -272,13 +273,13 @@ export default function DashboardPage() {
           const data = docSnap.data();
           // Ensure meetingDate is consistently an ISO string or null
           const meetingDateISO = data.meetingDate instanceof Timestamp 
-                                 ? data.meetingDate.toDate().toISOString() 
+                                 ? toIso(data.meetingDate)
                                  : (typeof data.meetingDate === 'string' && isValid(parseISO(data.meetingDate)) ? data.meetingDate : null);
           
           const actionItems = (data.actionItems || []).map((ai: any) => ({
             ...ai,
             dueDate: ai.dueDate instanceof Timestamp 
-                     ? ai.dueDate.toDate().toISOString() 
+                     ? toIso(ai.dueDate)
                      : (typeof ai.dueDate === 'string' && isValid(parseISO(ai.dueDate)) ? ai.dueDate : null),
           }));
 

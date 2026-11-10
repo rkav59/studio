@@ -7,8 +7,8 @@ import { Card, CardHeader, CardDescription, CardContent } from "@/components/ui/
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, Timestamp, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, addDoc, Timestamp, query, where, getDocs, orderBy } from '@/lib/supabase/records';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SheMeeting, SheProgram, MeetingActionItem } from '@/lib/types';
 import { ArrowLeft, Users } from 'lucide-react';

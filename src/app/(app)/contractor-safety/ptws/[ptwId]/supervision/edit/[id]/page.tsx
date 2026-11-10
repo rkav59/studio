@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter, useParams } from 'next/navigation';
 import { PtwSupervisionForm, type PtwSupervisionFormValues } from "@/components/contractor-safety/ptw-supervision-form";
@@ -8,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PtwSupervisionRecord, PermitToWork } from '@/lib/types';
 import { parseISO, format } from 'date-fns';
@@ -39,10 +40,10 @@ export default function EditPtwSupervisionPage() {
         return { 
           id: ptwSnap.id, 
           ...data,
-          startDate: (data.startDate as Timestamp)?.toDate().toISOString(),
-          endDate: (data.endDate as Timestamp)?.toDate().toISOString(),
-          authorizationDate: data.authorizationDate ? (data.authorizationDate as Timestamp).toDate().toISOString() : undefined,
-          closureDate: data.closureDate ? (data.closureDate as Timestamp).toDate().toISOString() : undefined,
+          startDate: toIso(data.startDate),
+          endDate: toIso(data.endDate),
+          authorizationDate: data.authorizationDate ? toIso(data.authorizationDate) : undefined,
+          closureDate: data.closureDate ? toIso(data.closureDate) : undefined,
         } as PermitToWork;
       }
       return null;
@@ -61,7 +62,7 @@ export default function EditPtwSupervisionPage() {
         return { 
           id: recordSnap.id, 
           ...data,
-          supervisionDate: (data.supervisionDate as Timestamp)?.toDate().toISOString(),
+          supervisionDate: toIso(data.supervisionDate),
         } as PtwSupervisionRecord;
       }
       return null;

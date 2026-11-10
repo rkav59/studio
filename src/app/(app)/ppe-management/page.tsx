@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useState, useEffect, useMemo } from 'react';
 import Image from "next/image";
@@ -29,8 +30,8 @@ import { PpeIssuanceDetailsDialog } from '@/components/ppe-management/ppe-issuan
 import { PpeInspectionDetailsDialog } from '@/components/ppe-management/ppe-inspection-details-dialog'; 
 import { PpeJobRoleMatrixDetailsDialog } from '@/components/ppe-management/ppe-job-role-matrix-details-dialog';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
@@ -45,7 +46,7 @@ const REMINDER_LEAD_DAYS = 7;
 
 interface PpeItemWithInspectionInfo extends PpeItem {
   latestInspection?: PpeInspectionRecord;
-  nextInspectionDueDate?: string; 
+  nextInspectionDate?: string;
   dueStatus?: 'Overdue' | 'Due Soon' | 'Scheduled' | 'OK';
 }
 
@@ -64,7 +65,7 @@ export default function PpeManagementPage() {
   const [inspectionSearchTerm, setInspectionSearchTerm] = useState("");
   const [jobRoleSearchTerm, setJobRoleSearchTerm] = useState("");
 
-  const canManage = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [user, userProfile]);
+  const canManage = useMemo(() => (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [userProfile]);
   const disabledTooltipContent = "You do not have permission to perform this action.";
 
   // Fetch PPE Items
@@ -91,7 +92,7 @@ export default function PpeManagementPage() {
           return {
             id: doc.id,
             ...data,
-            issuedDate: (data.issuedDate as Timestamp)?.toDate().toISOString(),
+            issuedDate: toIso(data.issuedDate),
           } as PpeIssuanceRecord;
       });
     },
@@ -110,8 +111,8 @@ export default function PpeManagementPage() {
         return {
           id: doc.id,
           ...data,
-          inspectionDate: (data.inspectionDate as Timestamp)?.toDate().toISOString(),
-          nextInspectionDate: data.nextInspectionDate ? data.nextInspectionDate.toDate().toISOString() : undefined,
+          inspectionDate: toIso(data.inspectionDate),
+          nextInspectionDate: data.nextInspectionDate ? toIso(data.nextInspectionDate) : undefined,
         } as PpeInspectionRecord
       });
     },
@@ -188,16 +189,16 @@ export default function PpeManagementPage() {
   const ppeItemsWithInspectionInfo = useMemo((): PpeItemWithInspectionInfo[] => {
     return ppeItems.map(item => {
       const itemInspections = ppeInspections
-        .filter(insp => insp.ppeItemId === item.id && insp.nextInspectionDueDate && isValid(parseISO(insp.nextInspectionDueDate)))
+        .filter(insp => insp.ppeItemId === item.id && insp.nextInspectionDate && isValid(parseISO(insp.nextInspectionDate)))
         .sort((a, b) => parseISO(b.inspectionDate).getTime() - parseISO(a.inspectionDate).getTime()); 
       
-      const latestRelevantInspection = itemInspections.find(insp => insp.nextInspectionDueDate); 
+      const latestRelevantInspection = itemInspections.find(insp => insp.nextInspectionDate);
 
       let dueStatus: PpeItemWithInspectionInfo['dueStatus'] = 'OK';
       let nextDueDate: string | undefined = undefined;
 
-      if (latestRelevantInspection?.nextInspectionDueDate) {
-        nextDueDate = latestRelevantInspection.nextInspectionDueDate;
+      if (latestRelevantInspection?.nextInspectionDate) {
+        nextDueDate = latestRelevantInspection.nextInspectionDate;
         const dueDate = parseISO(nextDueDate);
         const today = new Date();
         today.setHours(0,0,0,0); 
@@ -213,7 +214,7 @@ export default function PpeManagementPage() {
       return {
         ...item,
         latestInspection: latestRelevantInspection,
-        nextInspectionDueDate: nextDueDate,
+        nextInspectionDate: nextDueDate,
         dueStatus: (item.status && !['Available', 'Under Inspection'].includes(item.status || '')) ? undefined : dueStatus,
       };
     });
@@ -223,8 +224,8 @@ export default function PpeManagementPage() {
     return ppeItemsWithInspectionInfo
       .filter(item => ['Overdue', 'Due Soon', 'Scheduled'].includes(item.dueStatus || ''))
       .sort((a, b) => {
-        const dateA = a.nextInspectionDueDate ? parseISO(a.nextInspectionDueDate).getTime() : Infinity;
-        const dateB = b.nextInspectionDueDate ? parseISO(b.nextInspectionDueDate).getTime() : Infinity;
+        const dateA = a.nextInspectionDate ? parseISO(a.nextInspectionDate).getTime() : Infinity;
+        const dateB = b.nextInspectionDate ? parseISO(b.nextInspectionDate).getTime() : Infinity;
         return dateA - dateB;
       });
   }, [ppeItemsWithInspectionInfo]);
@@ -350,7 +351,7 @@ export default function PpeManagementPage() {
           <HardHat className="h-8 w-8"/> PPE Management
         </h1>
         <p className="text-muted-foreground">
-          Track inventory, issuance, inspections, and compliance for Personal Protective Equipment. Data stored in Firestore.
+          Track inventory, issuance, inspections, and compliance for Personal Protective Equipment. Data stored in PostgreSQL.
         </p>
       </div>
       
@@ -419,7 +420,7 @@ export default function PpeManagementPage() {
                           <h4 className="font-semibold text-md">{item.name} {item.latestInspection?.uniquePpeIdentifier ? `(ID: ${item.latestInspection.uniquePpeIdentifier})` : ''}</h4>
                           <p className={`text-xs font-semibold ${getDueDateStatusColor(item.dueStatus)}`}>
                             Status: {item.dueStatus}
-                            {item.nextInspectionDueDate && ` (Due: ${format(parseISO(item.nextInspectionDueDate), "PPP")})`}
+                            {item.nextInspectionDate && ` (Due: ${format(parseISO(item.nextInspectionDate), "PPP")})`}
                           </p>
                           <p className="text-xs text-muted-foreground">Last Inspected: {item.latestInspection ? format(parseISO(item.latestInspection.inspectionDate), "PPP") : "N/A"}</p>
                         </div>
@@ -461,10 +462,10 @@ export default function PpeManagementPage() {
                           {item.currentStock < item.reorderLevel && <span className="ml-2 text-red-500 font-bold">(Low Stock!)</span>}
                         </p>
                          <p className={`text-xs font-semibold ${getPpeItemStatusColor(item.status)} flex items-center gap-1`}><Activity className="h-3 w-3"/>Status: {item.status || 'Available'}</p>
-                         {item.nextInspectionDueDate && ['Available', 'Under Inspection'].includes(item.status || '') && (
+                         {item.nextInspectionDate && ['Available', 'Under Inspection'].includes(item.status || '') && (
                            <p className={`text-xs flex items-center gap-1 ${getDueDateStatusColor(item.dueStatus)}`}>
                              <ClockIcon className="h-3 w-3"/>
-                             Next Inspection: {format(parseISO(item.nextInspectionDueDate), "PPP")}
+                             Next Inspection: {format(parseISO(item.nextInspectionDate), "PPP")}
                              {item.dueStatus && ` (${item.dueStatus})`}
                            </p>
                          )}

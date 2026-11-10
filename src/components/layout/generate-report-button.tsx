@@ -43,7 +43,7 @@ function markdownToHtml(markdown: string): string {
   // Unordered lists
   html = html.replace(/^\s*[-*+] (.*$)/gim, '<li>$1</li>');
   // Wrap consecutive <li> blocks with <ul>.
-  html = html.replace(/((?:<li>.*?<\/li>\s*)+)/gis, '<ul>$1</ul>');
+  html = html.replace(/((?:<li>[\s\S]*?<\/li>\s*)+)/gi, '<ul>$1</ul>');
   
   // Replace escaped newlines with actual newlines for paragraph splitting
   html = html.replace(/\\n/g, '\n');

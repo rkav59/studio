@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter, useParams } from 'next/navigation';
 import { IncidentForm, type IncidentFormValues } from "@/components/risk-management/incident-form";
@@ -8,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Incident } from '@/lib/types';
 import { ArrowLeft, Megaphone } from 'lucide-react';
@@ -35,7 +36,7 @@ export default function EditIncidentPage() {
       if (incidentSnap.exists() && incidentSnap.data().userId === user.uid) {
         const data = incidentSnap.data();
         // Ensure timestamp is converted to Date object for the form if it's a string or Timestamp
-        const timestamp = data.timestamp instanceof Timestamp ? data.timestamp.toDate().toISOString() : data.timestamp;
+        const timestamp = data.timestamp instanceof Timestamp ? toIso(data.timestamp) : data.timestamp;
         return { 
           id: incidentSnap.id, 
           ...data,

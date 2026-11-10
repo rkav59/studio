@@ -7,8 +7,8 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, addDoc, Timestamp } from '@/lib/supabase/records';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { WellnessProgram } from '@/lib/types';
 import { parseISO } from 'date-fns';

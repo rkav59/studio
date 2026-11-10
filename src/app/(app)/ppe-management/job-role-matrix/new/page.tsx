@@ -1,12 +1,13 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter } from 'next/navigation';
 import { PpeJobRoleMatrixForm, type PpeJobRoleMatrixFormValues } from "@/components/ppe-management/ppe-job-role-matrix-form";
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, addDoc, query, where, getDocs, Timestamp } from '@/lib/supabase/records';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PpeItem, PpeJobRoleMatrixEntry, ManualRiskAssessment } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -45,7 +46,7 @@ export default function NewJobRoleMatrixPage() {
       return snapshot.docs.map(doc => ({ 
         id: doc.id, 
         ...doc.data(),
-        assessmentDate: (doc.data().assessmentDate as Timestamp)?.toDate().toISOString(),
+        assessmentDate: toIso(doc.data().assessmentDate),
       } as ManualRiskAssessment));
     },
     enabled: !!user?.uid,

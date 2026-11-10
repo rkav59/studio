@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter, useParams } from 'next/navigation';
 import { TrainingRecordForm, type TrainingRecordFormValues } from "@/components/training-competence/training-record-form";
@@ -8,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { TrainingCourse, TrainingRecord, TrainingRecordStatus, TrainingJobRoleMatrixEntry } from '@/lib/types';
 import { parseISO, format } from 'date-fns';
@@ -62,8 +63,8 @@ export default function EditTrainingRecordPage() {
         return { 
           id: recordSnap.id, 
           ...data,
-          trainingDate: (data.trainingDate as Timestamp)?.toDate().toISOString(),
-          expiryDate: data.expiryDate ? (data.expiryDate as Timestamp).toDate().toISOString() : null,
+          trainingDate: toIso(data.trainingDate),
+          expiryDate: data.expiryDate ? toIso(data.expiryDate) : null,
         } as TrainingRecord;
       }
       return null;

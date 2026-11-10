@@ -1,11 +1,12 @@
 
 "use client";
+import { getSupabase } from "@/lib/supabase/client";
 
 import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, addDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, addDoc } from "@/lib/supabase/records";
+import { db } from "@/lib/supabase/client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
@@ -26,7 +27,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 
 const USER_PROFILES_COLLECTION = 'userProfiles';
-const MAIL_COLLECTION = 'mail';
+
 const USER_ROLES: UserRole[] = ['admin', 'she_officer', 'authorizer', 'she_rep', 'visitor'];
 
 export default function UserManagementPage() {
@@ -39,11 +40,12 @@ export default function UserManagementPage() {
     const [inviteEmail, setInviteEmail] = useState("");
     const [inviteRole, setInviteRole] = useState<UserRole>("visitor");
     const [isInviting, setIsInviting] = useState(false);
+    const [invitationResult, setInvitationResult] = useState<{inviteUrl:string;emailSent:boolean}|null>(null);
 
     const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
     const [newRole, setNewRole] = useState<UserRole>('visitor');
 
-    const canManageUsers = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile?.role === 'admin'), [user, userProfile]);
+    const canManageUsers = useMemo(() => (userProfile?.role === 'admin'), [userProfile]);
     const disabledTooltipContent = "You do not have permission to perform this action.";
 
     const { data: organizationUsers = [], isLoading: isLoadingOrgUsers } = useQuery<UserProfile[]>({
@@ -111,51 +113,16 @@ export default function UserManagementPage() {
         }
         setIsInviting(true);
         try {
-            const appName = "SHEiQpro";
-            const primaryColor = "#3498DB";
-            const backgroundColor = "#ECF0F1";
-            const textColor = "#2C3E50";
-            const accentColor = "#E67E22";
-            const inviteUrl = `${window.location.origin}/sign-up`;
-            const roleName = inviteRole.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const {data:{session}}=await getSupabase().auth.getSession();
+            if(!session)throw new Error('Sign in to continue.');
+            const response=await fetch('/api/invitations',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({email:inviteEmail,role:inviteRole})});
+            const result=await response.json();if(!response.ok)throw new Error(result.error);
+            setInvitationResult(result);
+            toast({title:result.emailSent?'Invitation emailed':'Invitation created',description:result.emailSent?'The invitation email has been sent.':'Copy the invitation link below and share it with the invited colleague.'});
 
-            const emailHtmlBody = `
-<div style="font-family: Arial, sans-serif; line-height: 1.6; color: ${textColor}; background-color: ${backgroundColor}; padding: 20px;">
-    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-        <div style="text-align: center; padding-bottom: 20px; border-bottom: 1px solid #dddddd;">
-            <h1 style="color: ${primaryColor}; font-size: 24px;">You're Invited to Join ${appName}</h1>
-        </div>
-        <div style="padding: 20px 0;">
-            <p>Hello,</p>
-            <p>You have been invited by <strong>${user?.displayName || user?.email}</strong> to join their organization on ${appName}, a comprehensive platform for managing Safety, Health, Environment, and Quality.</p>
-            <p>You have been assigned the role of <strong>${roleName}</strong>.</p>
-            <p style="text-align: center; margin: 30px 0;">
-                <a href="${inviteUrl}" style="background-color: ${accentColor}; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-                    Accept Invitation & Create Account
-                </a>
-            </p>
-            <p>If you were not expecting this invitation, you can safely ignore this email.</p>
-            <p>Best regards,<br>The ${appName} Team</p>
-        </div>
-        <div style="text-align: center; font-size: 12px; color: #777777; padding-top: 20px; border-top: 1px solid #dddddd;">
-            <p>&copy; ${new Date().getFullYear()} ${appName}. All rights reserved.</p>
-        </div>
-    </div>
-</div>
-`;
-
-            await addDoc(collection(db, MAIL_COLLECTION), {
-                to: [inviteEmail],
-                message: {
-                    subject: `You've been invited to SHEiQpro by ${user?.displayName || user?.email}`,
-                    html: emailHtmlBody,
-                }
-            });
-            toast({ title: "Invitation Sent", description: `An invitation has been sent to ${inviteEmail}.` });
-            setIsInviteDialogOpen(false); setInviteEmail(""); setInviteRole("visitor");
         } catch (error) {
             console.error("Error creating invitation document:", error);
-            toast({ title: "Invitation Failed", description: "Could not create the invitation record. Please ensure the Firebase Mail extension is configured correctly.", variant: "destructive", duration: 7000 });
+            toast({ title: "Invitation Failed", description: (error as Error).message, variant: "destructive", duration: 7000 });
         } finally {
             setIsInviting(false);
         }
@@ -186,9 +153,9 @@ export default function UserManagementPage() {
         <div className="space-y-6">
             <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2"><Users className="h-8 w-8"/> User Management</h1>
-                <p className="text-muted-foreground">Invite and manage users in your organization. Role-based access will be enforced in future updates.</p>
+                <p className="text-muted-foreground">Invite and manage users in your organization. Roles determine which records users can create or update.</p>
             </div>
-            <Alert variant="info"><Mail className="h-4 w-4" /><AlertTitle>Email Invitations</AlertTitle><AlertDescription>This feature uses the Firebase 'Send an email from Firestore' extension. Ensure it is configured for invites to be sent.</AlertDescription></Alert>
+            <Alert><Mail className="h-4 w-4" /><AlertTitle>Organisation invitations</AlertTitle><AlertDescription>Invited colleagues join using a verified email address. Invitations expire after seven days.</AlertDescription></Alert>
             <Card>
                 <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div><CardTitle>Organization Users</CardTitle><CardDescription>Manage users in your organization.</CardDescription></div>
@@ -199,6 +166,7 @@ export default function UserManagementPage() {
                              <DialogContent>
                                 <DialogHeader><DialogTitle>Invite New User</DialogTitle><DialogDescription>Enter the user's email and assign them a role. An invitation email will be sent.</DialogDescription></DialogHeader>
                                 <div className="space-y-4 py-4">
+                                    {invitationResult && <div className="space-y-2"><p>{invitationResult.emailSent?'Invitation emailed. You can also copy the link.':'Email was not sent. Share this link with the invited colleague.'}</p><Input aria-label="Invitation link" readOnly value={invitationResult.inviteUrl}/><Button type="button" variant="outline" onClick={()=>navigator.clipboard.writeText(invitationResult.inviteUrl).then(()=>toast({title:'Link copied'})).catch(()=>toast({title:'Select and copy the link above'}))}>Copy link</Button></div>}
                                     <div className="space-y-2"><Label htmlFor="email" className="flex items-center gap-1"><Mail className="h-4 w-4"/>Email</Label><Input id="email" type="email" placeholder="new.user@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} /></div>
                                     <div className="space-y-2"><Label htmlFor="role" className="flex items-center gap-1"><KeyRound className="h-4 w-4"/>Role</Label>
                                         <Select value={inviteRole} onValueChange={(value: UserRole) => setInviteRole(value)}>

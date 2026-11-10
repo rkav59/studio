@@ -1,5 +1,6 @@
 
 "use client";
+import { CardContent } from "@/components/ui/card";
 
 import { useRouter } from 'next/navigation';
 import { PermitToWorkForm } from "@/components/contractor-safety/permit-to-work-form";
@@ -7,8 +8,8 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, addDoc, Timestamp, query, where, getDocs } from '@/lib/supabase/records';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parseISO } from 'date-fns';
 import type { PermitToWork, Contractor } from '@/lib/types';

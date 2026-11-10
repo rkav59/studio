@@ -1,6 +1,7 @@
 
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
@@ -15,8 +16,8 @@ import { format, parseISO, isValid, isBefore, differenceInDays } from 'date-fns'
 import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp, orderBy } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation'; // Added useRouter
 import { Input } from '@/components/ui/input';
@@ -46,8 +47,8 @@ export default function TrainingCompetencePage() {
   const [jobRoleSearchTerm, setJobRoleSearchTerm] = useState("");
   const [viewingJobRoleEntry, setViewingJobRoleEntry] = useState<TrainingJobRoleMatrixEntry | null>(null);
 
-  const canManageCourses = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [user, userProfile]);
-  const canManageRecords = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [user, userProfile]);
+  const canManageCourses = useMemo(() => (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [userProfile]);
+  const canManageRecords = useMemo(() => (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [userProfile]);
   const disabledTooltipContent = "You do not have permission to perform this action.";
 
   // Fetch Courses
@@ -76,8 +77,8 @@ export default function TrainingCompetencePage() {
         return {
           id: doc.id,
           ...data,
-          trainingDate: trainingDate instanceof Timestamp ? trainingDate.toDate().toISOString() : trainingDate,
-          expiryDate: expiryDate instanceof Timestamp ? expiryDate.toDate().toISOString() : (expiryDate || null),
+          trainingDate: trainingDate instanceof Timestamp ? toIso(trainingDate) : trainingDate,
+          expiryDate: expiryDate instanceof Timestamp ? toIso(expiryDate) : (expiryDate || null),
         } as TrainingRecord;
       });
     },
@@ -271,7 +272,7 @@ export default function TrainingCompetencePage() {
       const requiredCourseIds = jobRole ? jobRoleRequirements.get(jobRole) : undefined;
       
       const employeeRecords = trainingRecords.filter(r => r.employeeName === employeeName);
-      const courseStatuses: Record<string, { record?: TrainingRecord; derivedStatus: TrainingRecordStatus | 'Not Taken', complianceStatus: 'Compliant' | 'Gap' | 'Extra' | 'Not Applicable' }> = {};
+      const courseStatuses: Record<string, { record?: TrainingRecord; derivedStatus: TrainingRecordStatus | 'Not Taken', complianceStatus: 'Compliant' | 'Gap' | 'Extra' | 'Not Applicable' | 'Renewal Due' | 'Expired' | 'N/A' }> = {};
       
       courses.forEach(course => {
         const isRequired = !!requiredCourseIds?.has(course.id);
@@ -281,7 +282,7 @@ export default function TrainingCompetencePage() {
         
         const derivedStatus = latestRecord ? getDerivedStatus(latestRecord) : 'Not Taken';
         
-        let complianceStatus: 'Compliant' | 'Gap' | 'Extra' | 'Not Applicable' = 'Not Applicable';
+        let complianceStatus: 'Compliant' | 'Gap' | 'Extra' | 'Not Applicable' | 'Renewal Due' | 'Expired' | 'N/A' = 'Not Applicable';
         
         if (isRequired) {
           if (derivedStatus === 'Completed' || derivedStatus === 'Requires Renewal') {
