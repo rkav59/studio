@@ -6,11 +6,11 @@ import { useToast } from "@/hooks/use-toast";
 export function SocialButtons({ isSignUp = false }: { isSignUp?: boolean }) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  async function signIn(provider: "google" | "facebook") {
+  async function signIn() {
     setLoading(true);
     try {
       const { error } = await getSupabase().auth.signInWithOAuth({
-        provider,
+        provider: "google",
         options: { redirectTo: `${location.origin}/auth/callback` },
       });
       if (error) throw error;
@@ -24,20 +24,13 @@ export function SocialButtons({ isSignUp = false }: { isSignUp?: boolean }) {
     }
   }
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 gap-3">
       <Button
         variant="outline"
         disabled={loading}
-        onClick={() => signIn("google")}
+        onClick={signIn}
       >
         Google
-      </Button>
-      <Button
-        variant="outline"
-        disabled={loading}
-        onClick={() => signIn("facebook")}
-      >
-        Facebook
       </Button>
     </div>
   );
