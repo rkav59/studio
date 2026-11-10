@@ -16,8 +16,10 @@ This branch replaces the application's Firebase database, authentication and con
 
 ## Configure a fresh project
 
+The SHEiQpro project has now been created; see [project configuration and rollout status](supabase-project.md). Its migrations are already applied. The steps below also describe provisioning another fresh environment.
+
 1. Create a new Supabase project in the chosen organisation. Do not apply this initial migration over an unrelated existing schema.
-2. Apply `supabase/migrations/202611100001_supabase_backend.sql` using the Supabase migration tooling or SQL editor. It creates the schema, RPCs, Auth trigger, permissions and private bucket. Supabase supplies the `auth` and `storage` schemas.
+2. Apply the SQL files in `supabase/migrations/` in filename order using the Supabase migration tooling or SQL editor. They create the schema, RPCs, Auth trigger, permissions and private bucket, then optimize access policies and invitation indexes. Supabase supplies the `auth` and `storage` schemas.
 3. Copy `.env.example` to `.env.local`. Set `NEXT_PUBLIC_SUPABASE_URL` and the project's enabled **publishable** key in `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. A legacy anon key works too, but never use a service-role or secret key in a `NEXT_PUBLIC_` variable.
 4. Set `NEXT_PUBLIC_APP_URL` to the canonical app origin. Configure the same origin as Supabase Auth's Site URL. Allow the exact deployed `/auth/callback` and `/reset-password` URLs, plus their localhost equivalents for development. Local development uses port 9002.
 5. Enable email/password authentication. Email confirmation is supported; signup shows a confirmation message instead of opening protected pages without a session. Configure production SMTP in Supabase for reliable verification and recovery email delivery.
