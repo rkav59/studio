@@ -21,8 +21,8 @@ import { UserCircle, LogOut } from 'lucide-react';
 import { GenerateReportButton } from './generate-report-button';
 import { ThemeToggle } from './theme-toggle'; // Import the new ThemeToggle
 import { useAuth } from '@/contexts/auth-context';
-import { auth } from '@/lib/firebase';
-import { signOut } from 'firebase/auth';
+
+
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import type { UserProfile } from '@/lib/types';
@@ -34,13 +34,13 @@ interface AppLayoutInternalProps { // Changed name
 }
 
 export default function AppLayoutInternal({ children, userProfile }: AppLayoutInternalProps) { // Changed name
-  const { user } = useAuth();
+  const { user, signOutUser } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      await signOutUser();
       toast({ title: "Signed Out", description: "You have been successfully signed out." });
       router.push('/sign-in');
     } catch (error: any) {

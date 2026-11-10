@@ -26,7 +26,7 @@ import { format, parseISO, isValid } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as UiCardDescription } from "@/components/ui/card"; // Renamed CardDescription to avoid conflict
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
-const ppeItemStatuses: PpeItemStatus[] = ['Available', 'Under Inspection', 'Awaiting Repair', 'Awaiting Replacement', 'Discarded'];
+const ppeItemStatuses = ['Available', 'Under Inspection', 'Awaiting Repair', 'Awaiting Replacement', 'Discarded'] as const;
 
 const ppeItemFormSchema = z.object({
   name: z.string().min(2, "Name is required.").max(150),

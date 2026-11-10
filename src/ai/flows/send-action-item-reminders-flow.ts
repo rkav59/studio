@@ -8,15 +8,16 @@
  * - SendActionItemRemindersOutput - The return type for the function.
  */
 
-import {ai} from '@/ai/genkit';
+import { verifiedClient } from '@/lib/supabase/server';
+import { sendEmail, escapeHtml } from '@/lib/email';
 import {z} from 'genkit';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc, addDoc, Timestamp } from 'firebase/firestore';
+
+import { collection, query, where, getDocs, doc, getDoc, addDoc, Timestamp } from '@/lib/supabase/records';
 import type { SheMeeting, MeetingActionItem, UserProfile } from '@/lib/types';
 import { format, parseISO, differenceInDays, isPast, isValid } from 'date-fns';
 
 const SendActionItemRemindersInputSchema = z.object({
-  userId: z.string().describe("The UID of the user to send the reminder email to and whose meetings to scan."),
+  accessToken: z.string().min(1),
 });
 export type SendActionItemRemindersInput = z.infer<typeof SendActionItemRemindersInputSchema>;
 
@@ -30,17 +31,9 @@ export type SendActionItemRemindersOutput = z.infer<typeof SendActionItemReminde
 export async function sendActionItemReminders(
   input: SendActionItemRemindersInput
 ): Promise<SendActionItemRemindersOutput> {
-  return sendActionItemRemindersFlow(input);
-}
-
-const sendActionItemRemindersFlow = ai.defineFlow(
-  {
-    name: 'sendActionItemRemindersFlow',
-    inputSchema: SendActionItemRemindersInputSchema,
-    outputSchema: SendActionItemRemindersOutputSchema,
-  },
-  async (input) => {
-    const { userId } = input;
+    const {client,user}=await verifiedClient(input.accessToken);
+    const userId=user.id;
+    const db={client};
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const REMINDER_DAYS = 7;
@@ -64,11 +57,11 @@ const sendActionItemRemindersFlow = ai.defineFlow(
     meetings.forEach(meeting => {
       (meeting.actionItems || []).forEach(item => {
         if ((item.status === 'Open' || item.status === 'In Progress') && item.dueDate) {
-          const dueDateObj = parseISO(item.dueDate);
+          const dueDateObj = (item.dueDate as unknown) instanceof Timestamp ? (item.dueDate as unknown as Timestamp).toDate() : parseISO(item.dueDate);
           if (isValid(dueDateObj)) {
             const daysUntilDue = differenceInDays(dueDateObj, today);
             if (isPast(dueDateObj) || (daysUntilDue >= 0 && daysUntilDue <= REMINDER_DAYS)) {
-              dueActionItems.push({ ...item, meetingTitle: meeting.title });
+              dueActionItems.push({ ...item, dueDate: dueDateObj.toISOString(), meetingTitle: meeting.title });
             }
           }
         }
@@ -97,11 +90,11 @@ const sendActionItemRemindersFlow = ai.defineFlow(
                 <tbody>
                     ${dueActionItems.map(item => `
                         <tr>
-                            <td>${item.description}</td>
-                            <td>${item.assignedTo}</td>
+                            <td>${escapeHtml(item.description)}</td>
+                            <td>${escapeHtml(item.assignedTo)}</td>
                             <td style="${isPast(parseISO(item.dueDate!)) ? 'color: red; font-weight: bold;' : ''}">${format(parseISO(item.dueDate!), 'PPP')}</td>
-                            <td>${item.status}</td>
-                            <td>${item.meetingTitle}</td>
+                            <td>${escapeHtml(item.status)}</td>
+                            <td>${escapeHtml(item.meetingTitle)}</td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -110,18 +103,10 @@ const sendActionItemRemindersFlow = ai.defineFlow(
         </div>
     `;
 
-    // 5. Create a document in the 'mail' collection for the Firebase Send Email extension
-    await addDoc(collection(db, 'mail'), {
-      to: [recipientEmail],
-      message: {
-        subject: `[Reminder] ${dueActionItems.length} SHE Action Items Due`,
-        html: emailHtmlBody,
-      },
-    });
+    await sendEmail(recipientEmail,`[Reminder] ${dueActionItems.length} SHE Action Items Due`,emailHtmlBody);
 
     return {
       message: `Reminder email for ${dueActionItems.length} action item(s) has been sent to ${recipientEmail}.`,
       remindersSent: dueActionItems.length,
     };
-  }
-);
+}

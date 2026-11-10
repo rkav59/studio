@@ -6,8 +6,8 @@ import type { PpeItem } from "@/lib/types";
 import { PpeItemForm, type PpeItemFormValues } from "@/components/ppe-management/ppe-item-form";
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, addDoc, Timestamp } from '@/lib/supabase/records';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { parseISO } from 'date-fns';
 
@@ -25,7 +25,7 @@ export default function NewPpeItemPage() {
       return addDoc(collection(db, PPE_ITEMS_COLLECTION), { 
         ...newItemData, 
         userId: user.uid,
-        // Convert date strings to Firestore Timestamps if needed, or ensure they are ISO strings
+        // Convert date strings to PostgreSQL Timestamps if needed, or ensure they are ISO strings
         lastStocktakeDate: newItemData.lastStocktakeDate ? Timestamp.fromDate(parseISO(newItemData.lastStocktakeDate)) : null,
       });
     },

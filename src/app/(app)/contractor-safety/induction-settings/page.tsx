@@ -1,11 +1,12 @@
 
 "use client";
+import { cn } from "@/lib/utils";
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc } from '@/lib/supabase/records';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import type { InductionQuestion } from '@/lib/types';

@@ -1,6 +1,8 @@
 
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
+import { getSupabase } from "@/lib/supabase/client";
 
 import { useState, useMemo } from 'react';
 import Image from "next/image";
@@ -17,8 +19,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { SheProgramDetailsDialog } from '@/components/she-meetings/she-program-details-dialog';
 import { SheMeetingDetailsDialog } from '@/components/she-meetings/she-meeting-details-dialog';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
@@ -42,14 +44,16 @@ export default function SheMeetingsPage() {
   const [isRefreshingUpcomingMeetings, setIsRefreshingUpcomingMeetings] = useState(false); // State for upcoming meetings refresh
   const [meetingSearchTerm, setMeetingSearchTerm] = useState("");
 
-  const canCreate = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [user, userProfile]);
-  const canManage = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [user, userProfile]);
+  const canCreate = useMemo(() => (userProfile && ['admin', 'she_officer', 'she_rep'].includes(userProfile.role)), [userProfile]);
+  const canManage = useMemo(() => (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [userProfile]);
   const disabledTooltipContent = "You do not have permission to perform this action.";
 
     const sendRemindersMutation = useMutation({
     mutationFn: async () => {
       if (!user?.uid) throw new Error("User not authenticated.");
-      return sendActionItemReminders({ userId: user.uid });
+      const {data:{session}}=await getSupabase().auth.getSession();
+      if(!session)throw new Error("Sign in to continue.");
+      return sendActionItemReminders({ accessToken: session.access_token });
     },
     onSuccess: (data: SendActionItemRemindersOutput) => {
       toast({
@@ -77,8 +81,8 @@ export default function SheMeetingsPage() {
         const data = docSnap.data();
         return {
           id: docSnap.id, ...data,
-          startDate: (data.startDate as Timestamp)?.toDate().toISOString(),
-          endDate: data.endDate ? (data.endDate as Timestamp).toDate().toISOString() : undefined,
+          startDate: toIso(data.startDate),
+          endDate: data.endDate ? toIso(data.endDate) : undefined,
         } as SheProgram;
       });
     },
@@ -96,10 +100,10 @@ export default function SheMeetingsPage() {
         const data = docSnap.data();
         return {
           id: docSnap.id, ...data,
-          meetingDate: (data.meetingDate as Timestamp)?.toDate().toISOString(),
+          meetingDate: toIso(data.meetingDate),
           actionItems: (data.actionItems || []).map((ai: any) => ({
             ...ai,
-            dueDate: ai.dueDate ? (ai.dueDate as Timestamp).toDate().toISOString() : undefined,
+            dueDate: ai.dueDate ? toIso(ai.dueDate) : undefined,
           })),
         } as SheMeeting;
       });
@@ -402,7 +406,7 @@ export default function SheMeetingsPage() {
           <CalendarRange className="h-8 w-8"/> SHE Meetings & Programs
         </h1>
         <p className="text-muted-foreground">
-          Organize, track, and manage safety, health, and environmental initiatives and communication. Data stored in Firestore.
+          Organize, track, and manage safety, health, and environmental initiatives and communication. Data stored in PostgreSQL.
         </p>
       </div>
       

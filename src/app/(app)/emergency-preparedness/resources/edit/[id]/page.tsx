@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter, useParams } from 'next/navigation';
 import { EmergencyResourceForm } from "@/components/emergency-preparedness/emergency-resource-form";
@@ -8,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { EmergencyResource } from '@/lib/types';
 import { ArrowLeft, Box } from 'lucide-react';
@@ -37,8 +38,8 @@ export default function EditEmergencyResourcePage() {
         return { 
           id: resourceSnap.id, 
           ...data,
-          lastCheckedDate: data.lastCheckedDate instanceof Timestamp ? data.lastCheckedDate.toDate().toISOString() : data.lastCheckedDate,
-          nextCheckDate: data.nextCheckDate instanceof Timestamp ? data.nextCheckDate.toDate().toISOString() : data.nextCheckDate,
+          lastCheckedDate: data.lastCheckedDate instanceof Timestamp ? toIso(data.lastCheckedDate) : data.lastCheckedDate,
+          nextCheckDate: data.nextCheckDate instanceof Timestamp ? toIso(data.nextCheckDate) : data.nextCheckDate,
         } as EmergencyResource;
       }
       return null;

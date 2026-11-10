@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter, useParams } from 'next/navigation';
 import { WellnessProgramForm, type WellnessProgramFormValues } from "@/components/health-monitoring/wellness-program-form";
@@ -8,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { WellnessProgram } from '@/lib/types';
 import { parseISO, format } from 'date-fns';
@@ -37,8 +38,8 @@ export default function EditWellnessProgramPage() {
         return { 
           id: programSnap.id, 
           ...data,
-          startDate: (data.startDate as Timestamp)?.toDate().toISOString(),
-          endDate: data.endDate ? (data.endDate as Timestamp).toDate().toISOString() : undefined,
+          startDate: toIso(data.startDate),
+          endDate: data.endDate ? toIso(data.endDate) : undefined,
         } as WellnessProgram;
       }
       return null;

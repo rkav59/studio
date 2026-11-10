@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation';
 import { ContractorForm, type ContractorFormDataWithFiles } from "@/components/contractor-safety/contractor-form";
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, Timestamp, doc, setDoc } from 'firebase/firestore'; 
-import { ref as storageRef, uploadBytesResumable, getDownloadURL, type UploadTaskSnapshot } from "firebase/storage";
+import { db, storage } from '@/lib/supabase/client';
+import { collection, addDoc, Timestamp, doc, setDoc } from '@/lib/supabase/records';
+import { uploadContractorDocument, ref as storageRef } from "@/lib/supabase/storage";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { parseISO } from 'date-fns';
 import type { ContractorDocument } from '@/lib/types';
@@ -24,35 +24,6 @@ export default function NewContractorPage() {
   const queryClient = useQueryClient();
   const [uploadProgress, setUploadProgress] = useState<Map<string, number>>(new Map());
 
-  async function uploadContractorDocument(
-    file: File, 
-    userId: string, 
-    contractorId: string, 
-    documentId: string,
-    onProgress: (progress: number) => void
-  ): Promise<{ url: string, path: string, name: string, type: string, size: number }> {
-    const filePath = `contractor_documents/${userId}/${contractorId}/${documentId}/${file.name}`;
-    const fileStorageRef = storageRef(storage, filePath);
-    
-    return new Promise((resolve, reject) => {
-        const uploadTask = uploadBytesResumable(fileStorageRef, file);
-
-        uploadTask.on('state_changed',
-            (snapshot: UploadTaskSnapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                onProgress(progress);
-            },
-            (error) => {
-                console.error("Upload failed:", error);
-                reject(error);
-            },
-            async () => {
-                const url = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve({ url, path: filePath, name: file.name, type: file.type, size: file.size });
-            }
-        );
-    });
-  }
 
   const addContractorMutation = useMutation({
     mutationFn: async (formData: ContractorFormDataWithFiles) => {
@@ -89,7 +60,7 @@ export default function NewContractorPage() {
       };
        dataToSave.documents = dataToSave.documents.map(d => {
         const { fileUrl, filePath, fileName, fileSize, fileType, ...rest } = d;
-        if (d.fileUrl) return d; 
+        if (d.filePath) return d;
         return rest;
       });
 

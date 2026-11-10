@@ -35,16 +35,17 @@ import { format, parseISO, isValid } from 'date-fns';
 import { followUpKeywords } from "@/lib/health-config";
 
 
-const medicalTestTypes: MedicalTestRecordType[] = ['Audiometry', 'Spirometry (Lung Function)', 'Vision Test', 'Blood Test', 'Urine Test', 'Biological Monitoring', 'X-Ray', 'Musculoskeletal Assessment', 'Fitness to Work Assessment', 'Other'];
+const medicalTestTypes = ['Audiometry', 'Spirometry (Lung Function)', 'Vision Test', 'Blood Test', 'Urine Test', 'Biological Monitoring', 'X-Ray', 'Musculoskeletal Assessment', 'Fitness to Work Assessment', 'Other'] as const;
 const medicalScreeningPurposes: MedicalScreeningPurpose[] = ['Pre-employment', 'Periodic', 'Exit', 'Post-Incident', 'Exposure-Specific', 'Return-to-Work', 'Other'];
 
+const NO_SELECTION_VALUE = "__NONE__";
 const medicalTestFormSchema = z.object({
   employeeName: z.string().min(2, "Employee name is required.").max(150),
   employeeId: z.string().max(50).optional(),
   testType: z.enum(medicalTestTypes, { required_error: "Please select a test type." }),
   specificTestName: z.string().max(100).optional(),
   testDate: z.string().refine(val => isValid(parseISO(val)), { message: "Test date is required." }),
-  screeningPurpose: z.string().optional(),
+  screeningPurpose: z.union([z.enum(medicalScreeningPurposes as [MedicalScreeningPurpose, ...MedicalScreeningPurpose[]]), z.literal(NO_SELECTION_VALUE)]).optional(),
   linkedExposure: z.string().max(200).optional(),
   resultSummary: z.string().min(5, "Result summary is required.").max(2000),
   referenceRange: z.string().max(200).optional(),
@@ -66,7 +67,6 @@ interface MedicalTestFormProps {
   isSubmitting?: boolean; // Added for button state
 }
 
-const NO_SELECTION_VALUE = "__NONE__"; // Placeholder for 'None' option
 
 export function MedicalTestForm({ segs, initialData, onSave, onCancel, isEditing, isSubmitting }: MedicalTestFormProps) {
   const form = useForm<MedicalTestFormValues>({

@@ -1,5 +1,7 @@
 
 "use client";
+import { CheckSquare } from "lucide-react";
+import { DocumentLink } from "@/components/storage/document-link";
 
 import {
   Dialog,
@@ -130,11 +132,11 @@ export function ContractorDetailsDialog({ contractor, onClose }: ContractorDetai
                                                 </p>
                                             )}
                                         </div>
-                                        {doc.fileUrl && (
+                                        {doc.filePath && (
                                             <Button asChild variant="outline" size="sm" className="shrink-0">
-                                                <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
+                                                <DocumentLink path={doc.filePath!}>
                                                     <Download className="mr-1 h-3 w-3" /> Download
-                                                </a>
+                                                </DocumentLink>
                                             </Button>
                                         )}
                                     </div>

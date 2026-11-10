@@ -83,7 +83,7 @@ interface AuditExecutionFormProps {
   onSaveAudit: (auditData: SheqAudit) => void;
 }
 
-const getDefaultNonConformanceValues = (): NonConformance => ({
+const getDefaultNonConformanceValues = (): z.infer<typeof nonConformanceSchema> => ({
     id: crypto.randomUUID(),
     description: "",
     severity: "Minor",
@@ -189,166 +189,7 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
             <CardDescription>Go through each item, edit as needed, update status, and add relevant notes and observations.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {checklistFields.map((item, checklistIndex) => {
-               const { fields: observationFields, append: appendObservation, remove: removeObservation } = useFieldArray({
-                control: form.control,
-                name: `checklist.${checklistIndex}.observations`
-              });
-
-              return (
-              <Card key={item.id} className="p-4 bg-secondary/40 space-y-3">
-                <div className="flex justify-between items-start mb-2">
-                    <div className="flex-grow mr-2">
-                        <FormField
-                            control={form.control}
-                            name={`checklist.${checklistIndex}.text`}
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel className="font-medium">Item {checklistIndex + 1}</FormLabel>
-                                <FormControl>
-                                    <Textarea 
-                                        placeholder="Checklist item description..." 
-                                        {...field} 
-                                        rows={2}
-                                        className="bg-background"
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                    <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => removeChecklistItem(checklistIndex)}
-                        className="text-destructive hover:bg-destructive/10 mt-1"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Remove Item</span>
-                    </Button>
-                </div>
-                
-                {item.auditCriteriaReference && (
-                    <p className="text-xs text-muted-foreground italic flex items-center gap-1">
-                        <BookCheck className="h-3 w-3"/> 
-                        <strong>Criteria:</strong> {item.auditCriteriaReference}
-                    </p>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name={`checklist.${checklistIndex}.status`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Pending">Pending</SelectItem>
-                            <SelectItem value="Compliant">Compliant</SelectItem>
-                            <SelectItem value="Non-Compliant">Non-Compliant</SelectItem>
-                            <SelectItem value="Not Applicable">Not Applicable</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                   <FormField
-                    control={form.control}
-                    name={`checklist.${checklistIndex}.responsiblePerson`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-1"><User className="h-4 w-4 text-muted-foreground"/>Responsible Person</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Site Manager" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name={`checklist.${checklistIndex}.evidenceNotes`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1"><SearchCheck className="h-4 w-4 text-muted-foreground"/>Evidence Notes</FormLabel>
-                      {item.evidenceGatheringPrompt && <FormDescription className="text-xs italic mb-1">{item.evidenceGatheringPrompt}</FormDescription>}
-                      <FormControl>
-                        <Textarea placeholder="Record objective evidence found..." rows={2} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="space-y-2">
-                  <FormLabel className="flex items-center gap-1"><FileText className="h-4 w-4 text-muted-foreground"/>Observations</FormLabel>
-                  {observationFields.map((observationItem, observationIndex) => (
-                    <div key={observationItem.id} className="flex items-start gap-2 pl-4 border-l-2 border-muted/50 py-1">
-                      <FormField
-                        control={form.control}
-                        name={`checklist.${checklistIndex}.observations.${observationIndex}.text`}
-                        render={({ field }) => (
-                          <FormItem className="flex-grow">
-                             <FormLabel className="sr-only">Observation {observationIndex + 1}</FormLabel>
-                            <FormControl>
-                              <Textarea placeholder={`Observation ${observationIndex + 1}...`} rows={2} {...field} className="bg-background"/>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeObservation(observationIndex)}
-                        className="text-destructive hover:bg-destructive/10 mt-1 shrink-0"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        <span className="sr-only">Remove Observation</span>
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => appendObservation(getDefaultObservationEntry())}
-                    className="text-primary border-primary hover:bg-primary/10"
-                  >
-                    <ListPlus className="mr-2 h-4 w-4" /> Add Observation
-                  </Button>
-                  <FormField name={`checklist.${checklistIndex}.observations`} control={form.control} render={() => <FormMessage />} />
-                </div>
-
-
-                <FormField
-                  control={form.control}
-                  name={`checklist.${checklistIndex}.comments`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1"><MessageSquare className="h-4 w-4 text-muted-foreground"/>Comments</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Additional comments or context..." rows={2} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </Card>
-              )
-            })}
+            {checklistFields.map((item, checklistIndex) => <ChecklistItemEditor key={`${item.id}-${checklistIndex}`} item={item} checklistIndex={checklistIndex} form={form} removeChecklistItem={removeChecklistItem} />)}
             <Button
                 type="button"
                 variant="outline"
@@ -677,3 +518,164 @@ export function AuditExecutionForm({ audit, onSaveAudit }: AuditExecutionFormPro
 }
 
     
+
+function ChecklistItemEditor({item,checklistIndex,form,removeChecklistItem}:{
+ item:AuditExecutionFormValues['checklist'][number]; checklistIndex:number;
+ form:import('react-hook-form').UseFormReturn<AuditExecutionFormValues>;
+ removeChecklistItem:(index:number)=>void;
+}) {
+ const {fields:observationFields,append:appendObservation,remove:removeObservation}=useFieldArray({control:form.control,name:`checklist.${checklistIndex}.observations`});
+ return (
+              <Card className="p-4 bg-secondary/40 space-y-3">
+                <div className="flex justify-between items-start mb-2">
+                    <div className="flex-grow mr-2">
+                        <FormField
+                            control={form.control}
+                            name={`checklist.${checklistIndex}.text`}
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel className="font-medium">Item {checklistIndex + 1}</FormLabel>
+                                <FormControl>
+                                    <Textarea
+                                        placeholder="Checklist item description..."
+                                        {...field}
+                                        rows={2}
+                                        className="bg-background"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeChecklistItem(checklistIndex)}
+                        className="text-destructive hover:bg-destructive/10 mt-1"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Remove Item</span>
+                    </Button>
+                </div>
+
+                {item.auditCriteriaReference && (
+                    <p className="text-xs text-muted-foreground italic flex items-center gap-1">
+                        <BookCheck className="h-3 w-3"/>
+                        <strong>Criteria:</strong> {item.auditCriteriaReference}
+                    </p>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name={`checklist.${checklistIndex}.status`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Pending">Pending</SelectItem>
+                            <SelectItem value="Compliant">Compliant</SelectItem>
+                            <SelectItem value="Non-Compliant">Non-Compliant</SelectItem>
+                            <SelectItem value="Not Applicable">Not Applicable</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                   <FormField
+                    control={form.control}
+                    name={`checklist.${checklistIndex}.responsiblePerson`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1"><User className="h-4 w-4 text-muted-foreground"/>Responsible Person</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Site Manager" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name={`checklist.${checklistIndex}.evidenceNotes`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1"><SearchCheck className="h-4 w-4 text-muted-foreground"/>Evidence Notes</FormLabel>
+                      {item.evidenceGatheringPrompt && <FormDescription className="text-xs italic mb-1">{item.evidenceGatheringPrompt}</FormDescription>}
+                      <FormControl>
+                        <Textarea placeholder="Record objective evidence found..." rows={2} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="space-y-2">
+                  <FormLabel className="flex items-center gap-1"><FileText className="h-4 w-4 text-muted-foreground"/>Observations</FormLabel>
+                  {observationFields.map((observationItem, observationIndex) => (
+                    <div key={observationItem.id} className="flex items-start gap-2 pl-4 border-l-2 border-muted/50 py-1">
+                      <FormField
+                        control={form.control}
+                        name={`checklist.${checklistIndex}.observations.${observationIndex}.text`}
+                        render={({ field }) => (
+                          <FormItem className="flex-grow">
+                             <FormLabel className="sr-only">Observation {observationIndex + 1}</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder={`Observation ${observationIndex + 1}...`} rows={2} {...field} className="bg-background"/>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeObservation(observationIndex)}
+                        className="text-destructive hover:bg-destructive/10 mt-1 shrink-0"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        <span className="sr-only">Remove Observation</span>
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => appendObservation(getDefaultObservationEntry())}
+                    className="text-primary border-primary hover:bg-primary/10"
+                  >
+                    <ListPlus className="mr-2 h-4 w-4" /> Add Observation
+                  </Button>
+                  <FormField name={`checklist.${checklistIndex}.observations`} control={form.control} render={() => <FormMessage />} />
+                </div>
+
+
+                <FormField
+                  control={form.control}
+                  name={`checklist.${checklistIndex}.comments`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1"><MessageSquare className="h-4 w-4 text-muted-foreground"/>Comments</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Additional comments or context..." rows={2} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </Card>
+ );
+}

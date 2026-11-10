@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { Incident } from "@/lib/types";
 import { format, parseISO } from 'date-fns';
-import { Map, Megaphone, CalendarDays, MapPin, User, TypeRows, ShieldAlert, Briefcase, LinkIcon, Activity, BarChart3, Info, AlertTriangle, CheckSquare, XCircle, FileDown } from "lucide-react";
+import { Map, Megaphone, CalendarDays, MapPin, User, Rows3, ShieldAlert, Briefcase, LinkIcon, Activity, BarChart3, Info, AlertTriangle, CheckSquare, XCircle, FileDown } from "lucide-react";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 

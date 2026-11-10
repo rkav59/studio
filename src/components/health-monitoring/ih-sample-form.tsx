@@ -32,7 +32,7 @@ import type { IndustrialHygieneSample, IndustrialHygieneSampleAgent, SimilarExpo
 import { format, parseISO, isValid } from 'date-fns';
 import { Card, CardContent, CardDescription as UiCardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-const ihSampleAgents: IndustrialHygieneSampleAgent[] = ['Noise', 'Dust (Respirable)', 'Dust (Inhalable)', 'Silica', 'Asbestos', 'VOCs', 'Lead', 'Welding Fumes', 'Specific Chemical', 'Ergonomic Strain', 'Other'];
+const ihSampleAgents = ['Noise', 'Dust (Respirable)', 'Dust (Inhalable)', 'Silica', 'Asbestos', 'VOCs', 'Lead', 'Welding Fumes', 'Specific Chemical', 'Ergonomic Strain', 'Other'] as const;
 
 const ihSampleFormSchema = z.object({
   segId: z.string().optional(),
@@ -58,7 +58,7 @@ const ihSampleFormSchema = z.object({
     path: ["oelUnits"],
 });
 
-type IhSampleFormValues = z.infer<typeof ihSampleFormSchema>;
+export type IhSampleFormValues = z.infer<typeof ihSampleFormSchema>;
 
 interface IhSampleFormProps {
   segs: SimilarExposureGroup[];

@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter, useParams } from 'next/navigation';
 import { IhSampleForm, type IhSampleFormValues } from "@/components/health-monitoring/ih-sample-form";
@@ -8,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { SimilarExposureGroup, IndustrialHygieneSample } from '@/lib/types';
 import { parseISO, format } from 'date-fns';
@@ -49,7 +50,7 @@ export default function EditIhSamplePage() {
         return { 
           id: sampleSnap.id, 
           ...data,
-          sampleDate: (data.sampleDate as Timestamp)?.toDate().toISOString(),
+          sampleDate: toIso(data.sampleDate),
         } as IndustrialHygieneSample;
       }
       return null;

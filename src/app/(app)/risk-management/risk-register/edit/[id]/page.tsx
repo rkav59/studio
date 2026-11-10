@@ -1,5 +1,7 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
+import { CardTitle } from "@/components/ui/card";
 
 import { useRouter, useParams } from 'next/navigation';
 import { RiskRegisterEntryForm, type RiskRegisterEntryFormValues } from "@/components/risk-management/risk-register-entry-form";
@@ -8,8 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { RiskRegisterEntry, SheqAudit } from '@/lib/types';
 import { ArrowLeft, BookOpen, FileDown } from 'lucide-react';
@@ -38,7 +40,7 @@ export default function EditRiskRegisterEntryPage() {
       return snapshot.docs.map(docSnap => ({ 
         id: docSnap.id, 
         ...docSnap.data(),
-        auditDate: (docSnap.data().auditDate as Timestamp)?.toDate().toISOString(),
+        auditDate: toIso(docSnap.data().auditDate),
       } as SheqAudit));
     },
     enabled: !!user?.uid,
@@ -55,10 +57,10 @@ export default function EditRiskRegisterEntryPage() {
         return { 
           id: entrySnap.id, 
           ...data,
-          dateIdentified: (data.dateIdentified as Timestamp)?.toDate().toISOString(),
-          treatmentDueDate: data.treatmentDueDate ? (data.treatmentDueDate as Timestamp).toDate().toISOString() : undefined,
-          lastReviewedDate: data.lastReviewedDate ? (data.lastReviewedDate as Timestamp).toDate().toISOString() : undefined,
-          nextReviewDate: data.nextReviewDate ? (data.nextReviewDate as Timestamp).toDate().toISOString() : undefined,
+          dateIdentified: toIso(data.dateIdentified),
+          treatmentDueDate: data.treatmentDueDate ? toIso(data.treatmentDueDate) : undefined,
+          lastReviewedDate: data.lastReviewedDate ? toIso(data.lastReviewedDate) : undefined,
+          nextReviewDate: data.nextReviewDate ? toIso(data.nextReviewDate) : undefined,
         } as RiskRegisterEntry;
       }
       return null;

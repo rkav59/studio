@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -10,8 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 
@@ -34,9 +35,9 @@ export default function EditPpeItemPage() {
       const itemSnap = await getDoc(itemRef);
       if (itemSnap.exists() && itemSnap.data().userId === user.uid) {
         const data = itemSnap.data();
-        // Convert Firestore Timestamp to ISO string for form compatibility
+        // Convert PostgreSQL Timestamp to ISO string for form compatibility
         const lastStocktakeDate = data.lastStocktakeDate instanceof Timestamp 
-            ? data.lastStocktakeDate.toDate().toISOString() 
+            ? toIso(data.lastStocktakeDate)
             : data.lastStocktakeDate;
         return { id: itemSnap.id, ...data, lastStocktakeDate } as PpeItem;
       }

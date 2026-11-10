@@ -32,8 +32,8 @@ import { format, parseISO, isValid } from 'date-fns';
 import { ScrollArea } from "../ui/scroll-area";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-const resourceTypes: EmergencyResourceType[] = ['First Aid Kit', 'Fire Extinguisher', 'Spill Kit', 'AED', 'Evacuation Chair', 'Emergency Lighting', 'Alarm System', 'Communication Device', 'Other'];
-const resourceStatuses: EmergencyResourceStatus[] = ['Operational', 'Requires Maintenance', 'Requires Refill', 'Out of Service', 'Expired'];
+const resourceTypes = ['First Aid Kit', 'Fire Extinguisher', 'Spill Kit', 'AED', 'Evacuation Chair', 'Emergency Lighting', 'Alarm System', 'Communication Device', 'Other'] as const;
+const resourceStatuses = ['Operational', 'Requires Maintenance', 'Requires Refill', 'Out of Service', 'Expired'] as const;
 
 const resourceFormSchema = z.object({
   name: z.string().min(2, "Resource name is required.").max(150),

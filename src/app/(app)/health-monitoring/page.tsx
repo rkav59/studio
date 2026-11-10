@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useState, useEffect, useMemo } from 'react';
 import Image from "next/image";
@@ -21,8 +22,8 @@ import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 // Removed agentToMedicalTestMap import as prefill button is removed for now
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp, orderBy } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
@@ -50,7 +51,7 @@ export default function HealthMonitoringPage() {
   const [medicalTestSearchTerm, setMedicalTestSearchTerm] = useState("");
   const [wellnessProgramSearchTerm, setWellnessProgramSearchTerm] = useState("");
 
-  const canManage = useMemo(() => user?.email === 'sentriq263@gmail.com' || (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [user, userProfile]);
+  const canManage = useMemo(() => (userProfile && ['admin', 'she_officer'].includes(userProfile.role)), [userProfile]);
   const disabledTooltipContent = "You do not have permission to perform this action.";
 
 
@@ -75,7 +76,7 @@ export default function HealthMonitoringPage() {
       const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => {
         const data = doc.data();
-        return { id: doc.id, ...data, sampleDate: (data.sampleDate as Timestamp)?.toDate().toISOString() } as IndustrialHygieneSample;
+        return { id: doc.id, ...data, sampleDate: toIso(data.sampleDate) } as IndustrialHygieneSample;
       });
     },
     enabled: !!user?.uid,
@@ -92,8 +93,8 @@ export default function HealthMonitoringPage() {
         const data = doc.data();
         return { 
           id: doc.id, ...data, 
-          testDate: (data.testDate as Timestamp)?.toDate().toISOString(),
-          certificateExpiryDate: data.certificateExpiryDate ? (data.certificateExpiryDate as Timestamp).toDate().toISOString() : null,
+          testDate: toIso(data.testDate),
+          certificateExpiryDate: data.certificateExpiryDate ? toIso(data.certificateExpiryDate) : null,
         } as MedicalTestRecord;
       });
     },
@@ -111,8 +112,8 @@ export default function HealthMonitoringPage() {
         const data = doc.data();
         return { 
           id: doc.id, ...data, 
-          startDate: (data.startDate as Timestamp)?.toDate().toISOString(),
-          endDate: data.endDate ? (data.endDate as Timestamp).toDate().toISOString() : undefined,
+          startDate: toIso(data.startDate),
+          endDate: data.endDate ? toIso(data.endDate) : undefined,
         } as WellnessProgram;
       });
     },
@@ -228,7 +229,7 @@ export default function HealthMonitoringPage() {
           <HeartPulse className="h-8 w-8"/> Proactive Health Management
         </h1>
         <p className="text-muted-foreground">
-          Monitor occupational health, exposure data, medical screenings, and wellness. This module facilitates health monitoring including SEGs, IH sampling, medical tests, and wellness programs. Data is stored in Firebase Firestore.
+          Monitor occupational health, exposure data, medical screenings, and wellness. This module facilitates health monitoring including SEGs, IH sampling, medical tests, and wellness programs. Data is stored in Supabase PostgreSQL.
         </p>
       </div>
 

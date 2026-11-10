@@ -31,8 +31,8 @@ import type { SheProgram, SheProgramType, SheProgramStatus } from "@/lib/types";
 import { format, parseISO, isValid } from 'date-fns';
 import { CardContent } from "@/components/ui/card";
 
-const programTypes: SheProgramType[] = ['Safety Campaign', 'Health Initiative', 'Environmental Drive', 'Training Program', 'Awareness Program', 'Other'];
-const programStatuses: SheProgramStatus[] = ['Planned', 'Ongoing', 'Completed', 'On Hold', 'Cancelled'];
+const programTypes = ['Safety Campaign', 'Health Initiative', 'Environmental Drive', 'Training Program', 'Awareness Program', 'Other'] as const;
+const programStatuses = ['Planned', 'Ongoing', 'Completed', 'On Hold', 'Cancelled'] as const;
 
 const sheProgramFormSchema = z.object({
   programName: z.string().min(3, "Program name is required.").max(200),

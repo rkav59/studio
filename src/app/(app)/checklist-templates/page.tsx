@@ -23,8 +23,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const USER_TEMPLATES_COLLECTION = 'userChecklistTemplates';
@@ -205,7 +205,7 @@ export default function ChecklistTemplatesPage() {
             <Library className="h-8 w-8" /> Checklist Template Library
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage your reusable checklist templates. System templates can be copied. Custom templates are stored in Firestore.
+            Manage your reusable checklist templates. System templates can be copied. Custom templates are stored in PostgreSQL.
           </p>
         </div>
         <Button onClick={handleCreateNew} className="bg-primary hover:bg-primary/90">
@@ -224,7 +224,7 @@ export default function ChecklistTemplatesPage() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span className="truncate mr-2">{template.name}</span>
-                  {template.isSystemDefault && <Lock className="h-4 w-4 text-muted-foreground shrink-0" title="System Default Template (Read-Only)" />}
+                  {template.isSystemDefault && <Lock className="h-4 w-4 text-muted-foreground shrink-0" aria-label="System Default Template (Read-Only)" />}
                 </CardTitle>
                 <CardDescription>{template.items.length} item(s)</CardDescription>
               </CardHeader>

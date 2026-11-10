@@ -1,4 +1,5 @@
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter } from 'next/navigation';
 import { RiskRegisterEntryForm, type RiskRegisterEntryFormValues } from "@/components/risk-management/risk-register-entry-form";
@@ -6,8 +7,8 @@ import { Card, CardHeader, CardDescription, CardContent } from "@/components/ui/
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, addDoc, Timestamp, query, where, getDocs } from '@/lib/supabase/records';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { RiskRegisterEntry, SheqAudit } from '@/lib/types';
 import { ArrowLeft, BookOpen, Loader2 } from 'lucide-react';
@@ -33,7 +34,7 @@ export default function NewRiskRegisterEntryPage() {
       return snapshot.docs.map(docSnap => ({ 
         id: docSnap.id, 
         ...docSnap.data(),
-        auditDate: (docSnap.data().auditDate as Timestamp)?.toDate().toISOString(),
+        auditDate: toIso(docSnap.data().auditDate),
       } as SheqAudit));
     },
     enabled: !!user?.uid,
@@ -42,7 +43,7 @@ export default function NewRiskRegisterEntryPage() {
   const addEntryMutation = useMutation({
     mutationFn: async (newEntryData: RiskRegisterEntryFormValues) => {
       if (!user?.uid) throw new Error("User not authenticated.");
-      const dataForDb: Omit<RiskRegisterEntry, 'id'> = {
+      const dataForDb = {
         userId: user.uid,
         ...newEntryData,
         dateIdentified: newEntryData.dateIdentified ? Timestamp.fromDate(parseISO(newEntryData.dateIdentified as string)) : Timestamp.now(),

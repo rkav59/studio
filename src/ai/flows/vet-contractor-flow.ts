@@ -112,7 +112,7 @@ const vetContractorFlow = ai.defineFlow(
         overallAssessment: "Insufficient historical data available to form an assessment.",
         positivePoints: ["No performance history recorded in the system."],
         areasForConcern: ["Lack of data makes it impossible to verify past performance."],
-        suggestedVettingStatus: "Pending",
+        suggestedVettingStatus: "Pending" as const,
         recommendationReasoning: "No PTWs, Job Cards, or Supervision records found for this contractor. Vetting status cannot be determined without performance data.",
       };
     }

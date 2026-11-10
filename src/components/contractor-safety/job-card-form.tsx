@@ -44,7 +44,7 @@ const jobCardFormSchema = z.object({
   workDate: z.date({ required_error: "Work date is required."}),
   jobDescription: z.string().min(10, "Job description is required.").max(1000),
   location: z.string().min(3, "Location is required.").max(200),
-  status: z.enum(['Draft', 'Issued', 'Completed', 'Cancelled']),
+  status: z.enum(['Draft', 'Issued', 'In Progress', 'Completed', 'Cancelled']),
   requiredPpe: z.string().min(3, "Required PPE is required.").max(500),
   safetyChecks: z.array(jobCardCheckSchema).optional().default([]),
   supervisorSignOffName: z.string().max(100).optional(),
@@ -52,15 +52,13 @@ const jobCardFormSchema = z.object({
   notes: z.string().max(2000).optional(),
 });
 
-export type JobCardFormValues = Omit<JobCard, 'id' | 'userId' | 'workDate'> & {
-  workDate: Date;
-};
+export type JobCardFormValues = z.infer<typeof jobCardFormSchema>;
 
 
 interface JobCardFormProps {
   contractors: Contractor[];
   initialData?: JobCard | null;
-  onSave: (data: Omit<JobCard, 'id'| 'userId'>) => void;
+  onSave: (data: Omit<JobCard, 'id' | 'userId'>) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
 }
@@ -122,7 +120,7 @@ export function JobCardForm({ contractors, initialData, onSave, onCancel, isSubm
                   <FormItem><FormLabel>Status</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
-                      <SelectContent>{(['Draft', 'Issued', 'Completed', 'Cancelled'] as JobCardStatus[]).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                      <SelectContent>{(['Draft', 'Issued', 'In Progress', 'Completed', 'Cancelled'] as JobCardStatus[]).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                   </Select><FormMessage /></FormItem>
               )}/>
             </div>
@@ -141,7 +139,7 @@ export function JobCardForm({ contractors, initialData, onSave, onCancel, isSubm
                     <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
                     {field.value ? format(field.value, "PPP") : <span>Pick a date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button></FormControl></PopoverTrigger>
-                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent>
+                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value ?? undefined} onSelect={field.onChange} /></PopoverContent>
                 </Popover><FormMessage /></FormItem>
             )}/>
             

@@ -20,8 +20,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/supabase/client";
+import { Timestamp, collection, addDoc } from "@/lib/supabase/records";
 
 const KPI_SUGGESTIONS_COLLECTION = "kpiSuggestions";
 
@@ -62,7 +62,7 @@ export function SuggestIndicatorForm() {
       await addDoc(collection(db, KPI_SUGGESTIONS_COLLECTION), {
         userId: user.uid,
         suggestionText: data.suggestionText,
-        timestamp: serverTimestamp(),
+        timestamp: Timestamp.now(),
         status: "New", // Initial status
       });
       toast({

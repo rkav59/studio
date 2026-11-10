@@ -1,4 +1,6 @@
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
+import { CardTitle } from "@/components/ui/card";
 
 import { useRouter, useParams } from 'next/navigation';
 import { ManualRiskAssessmentForm, type ManualRiskAssessmentFormValues } from "@/components/risk-management/manual-risk-assessment-form";
@@ -7,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, orderBy, getDocs } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ManualRiskAssessment, RiskRegisterEntry, ManualHazard } from '@/lib/types';
 import { ArrowLeft } from 'lucide-react';
@@ -34,7 +36,7 @@ export default function EditManualRiskAssessmentPage() {
       if (!user?.uid) return [];
       const q = query(collection(db, MANUAL_HAZARDS_COLLECTION), where("userId", "==", user.uid), orderBy("dateIdentified", "desc"));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), dateIdentified: (doc.data().dateIdentified as Timestamp)?.toDate().toISOString() } as ManualHazard));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), dateIdentified: toIso(doc.data().dateIdentified) } as ManualHazard));
     },
     enabled: !!user?.uid,
   });
@@ -50,11 +52,11 @@ export default function EditManualRiskAssessmentPage() {
         return { 
           id: assessmentSnap.id, 
           ...data,
-          assessmentDate: (data.assessmentDate as Timestamp)?.toDate().toISOString(),
-          reviewDate: data.reviewDate ? (data.reviewDate as Timestamp).toDate().toISOString() : undefined,
+          assessmentDate: toIso(data.assessmentDate),
+          reviewDate: data.reviewDate ? toIso(data.reviewDate) : undefined,
           additionalControls: (data.additionalControls || []).map((control: any) => ({
               ...control,
-              dueDate: control.dueDate ? (control.dueDate as Timestamp).toDate().toISOString() : undefined,
+              dueDate: control.dueDate ? toIso(control.dueDate) : undefined,
           })),
         } as ManualRiskAssessment;
       }
@@ -93,7 +95,7 @@ export default function EditManualRiskAssessmentPage() {
         const registerUpdateData: Partial<RiskRegisterEntry> = {
           riskTitle: dataForDb.activityOrProcess,
           riskDescription: linkedHazard?.hazardDescription || 'N/A',
-          dateIdentified: dataForDb.assessmentDate.toDate().toISOString(),
+          dateIdentified: toIso(dataForDb.assessmentDate),
           identifiedBy: dataForDb.assessedBy,
           initialLikelihood: dataForDb.initialLikelihood,
           initialSeverity: dataForDb.initialSeverity,
@@ -104,7 +106,7 @@ export default function EditManualRiskAssessmentPage() {
           residualLikelihood: dataForDb.residualLikelihood,
           residualSeverity: dataForDb.residualSeverity,
           residualRiskLevel: dataForDb.residualRiskLevel,
-          nextReviewDate: dataForDb.reviewDate ? dataForDb.reviewDate.toDate().toISOString() : undefined,
+          nextReviewDate: dataForDb.reviewDate ? toIso(dataForDb.reviewDate) : undefined,
           notes: dataForDb.overallComments,
         };
         await updateDoc(doc(db, RISK_REGISTER_ENTRIES_COLLECTION, registerDoc.id), registerUpdateData);

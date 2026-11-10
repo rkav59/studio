@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter, useParams } from 'next/navigation';
 import type { PpeInspectionRecord, PpeItem, PpeItemStatus, PpeInspectionOverallStatus } from "@/lib/types";
@@ -10,8 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 
@@ -49,8 +50,8 @@ export default function EditPpeInspectionPage() {
         return { 
           id: inspectionSnap.id, 
           ...data,
-          inspectionDate: (data.inspectionDate as Timestamp)?.toDate().toISOString(),
-          nextInspectionDate: data.nextInspectionDate ? (data.nextInspectionDate as Timestamp).toDate().toISOString() : undefined,
+          inspectionDate: toIso(data.inspectionDate),
+          nextInspectionDate: data.nextInspectionDate ? toIso(data.nextInspectionDate) : undefined,
         } as PpeInspectionRecord;
       }
       return null;

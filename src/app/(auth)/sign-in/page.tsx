@@ -52,7 +52,7 @@ export default function SignInPage() {
     try {
       await signIn(data.email, data.password);
       // No success toast here, context handles it.
-      router.push("/dashboard"); // Redirect to dashboard after successful login
+      router.push(sessionStorage.getItem("sheiq-invitation") ? "/join" : "/dashboard"); // Redirect to dashboard after successful login
     } catch (error: any) {
       // Error toast is handled by the context now.
     } finally {

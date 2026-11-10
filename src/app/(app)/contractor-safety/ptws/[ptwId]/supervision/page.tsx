@@ -1,5 +1,7 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
+import { getDoc } from "@/lib/supabase/records";
 
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
@@ -22,8 +24,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, query, where, getDocs, doc, deleteDoc, Timestamp, orderBy } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -63,10 +65,10 @@ export default function PtwSupervisionListPage() {
         return { 
           id: ptwSnap.id, 
           ...data,
-          startDate: (data.startDate as Timestamp)?.toDate().toISOString(),
-          endDate: (data.endDate as Timestamp)?.toDate().toISOString(),
-          authorizationDate: data.authorizationDate ? (data.authorizationDate as Timestamp).toDate().toISOString() : undefined,
-          closureDate: data.closureDate ? (data.closureDate as Timestamp).toDate().toISOString() : undefined,
+          startDate: toIso(data.startDate),
+          endDate: toIso(data.endDate),
+          authorizationDate: data.authorizationDate ? toIso(data.authorizationDate) : undefined,
+          closureDate: data.closureDate ? toIso(data.closureDate) : undefined,
         } as PermitToWork;
       }
       return null;
@@ -90,7 +92,7 @@ export default function PtwSupervisionListPage() {
         return {
           id: docSnap.id,
           ...data,
-          supervisionDate: (data.supervisionDate as Timestamp)?.toDate().toISOString(),
+          supervisionDate: toIso(data.supervisionDate),
         } as PtwSupervisionRecord;
       });
     },

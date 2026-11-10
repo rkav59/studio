@@ -29,8 +29,8 @@ import { Loader2, AlertTriangle, HelpCircle } from "lucide-react";
 import type { Contractor, InductionRecord, InductionQuestion } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, doc, addDoc, updateDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, doc, addDoc, updateDoc, Timestamp, query, where, getDocs } from '@/lib/supabase/records';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from 'next/navigation';
 

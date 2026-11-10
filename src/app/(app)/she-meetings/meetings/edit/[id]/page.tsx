@@ -1,5 +1,7 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
+import { CardTitle } from "@/components/ui/card";
 
 import { useRouter, useParams } from 'next/navigation';
 import { SheMeetingForm } from "@/components/she-meetings/she-meeting-form";
@@ -8,8 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs, orderBy } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { SheMeeting, SheProgram, MeetingActionItem } from '@/lib/types';
 import { ArrowLeft, Users } from 'lucide-react';
@@ -49,10 +51,10 @@ export default function EditSheMeetingPage() {
         return {
           id: meetingSnap.id,
           ...data,
-          meetingDate: (data.meetingDate as Timestamp)?.toDate().toISOString(),
+          meetingDate: toIso(data.meetingDate),
           actionItems: (data.actionItems || []).map((ai: any) => ({
             ...ai,
-            dueDate: ai.dueDate ? (ai.dueDate as Timestamp).toDate().toISOString() : undefined,
+            dueDate: ai.dueDate ? toIso(ai.dueDate) : undefined,
           })),
         } as SheMeeting;
       }

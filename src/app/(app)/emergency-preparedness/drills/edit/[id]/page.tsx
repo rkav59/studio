@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter, useParams } from 'next/navigation';
 import { MockDrillForm } from "@/components/emergency-preparedness/mock-drill-form";
@@ -8,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs, orderBy } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { MockDrill, EmergencyPlan } from '@/lib/types';
 import { ArrowLeft, Activity } from 'lucide-react';
@@ -49,11 +50,11 @@ export default function EditMockDrillPage() {
         return { 
           id: drillSnap.id, 
           ...data,
-          scheduledDate: (data.scheduledDate as Timestamp)?.toDate().toISOString(),
-          actualDate: data.actualDate ? (data.actualDate as Timestamp).toDate().toISOString() : undefined,
+          scheduledDate: toIso(data.scheduledDate),
+          actualDate: data.actualDate ? toIso(data.actualDate) : undefined,
           actionItems: (data.actionItems || []).map((ai: any) => ({
             ...ai,
-            dueDate: ai.dueDate ? (ai.dueDate as Timestamp).toDate().toISOString() : undefined,
+            dueDate: ai.dueDate ? toIso(ai.dueDate) : undefined,
           })),
         } as MockDrill;
       }

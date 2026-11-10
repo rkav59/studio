@@ -1,10 +1,11 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, query, where, getDocs, Timestamp } from '@/lib/supabase/records';
 import { useQuery } from '@tanstack/react-query';
 import type { Contractor } from '@/lib/types';
 import { InductionForm } from '@/components/contractor-safety/induction-form';
@@ -28,7 +29,7 @@ export default function OnlineInductionPage() {
           return snapshot.docs.map(docSnap => ({ 
               id: docSnap.id, 
               ...docSnap.data(), 
-              inductionDate: docSnap.data().inductionDate instanceof Timestamp ? docSnap.data().inductionDate.toDate().toISOString() : docSnap.data().inductionDate,
+              inductionDate: docSnap.data().inductionDate instanceof Timestamp ? toIso(docSnap.data().inductionDate) : docSnap.data().inductionDate,
           } as Contractor));
         },
         enabled: !!user?.uid,

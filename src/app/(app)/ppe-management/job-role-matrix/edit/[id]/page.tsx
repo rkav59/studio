@@ -1,12 +1,13 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter, useParams } from 'next/navigation';
 import { PpeJobRoleMatrixForm, type PpeJobRoleMatrixFormValues } from "@/components/ppe-management/ppe-job-role-matrix-form";
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, updateDoc, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, doc, getDoc, updateDoc, query, where, getDocs, Timestamp } from '@/lib/supabase/records';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PpeItem, PpeJobRoleMatrixEntry, ManualRiskAssessment } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -48,7 +49,7 @@ export default function EditJobRoleMatrixPage() {
       return snapshot.docs.map(doc => ({ 
         id: doc.id, 
         ...doc.data(),
-        assessmentDate: (doc.data().assessmentDate as Timestamp)?.toDate().toISOString(),
+        assessmentDate: toIso(doc.data().assessmentDate),
       } as ManualRiskAssessment));
     },
     enabled: !!user?.uid,
@@ -73,14 +74,14 @@ export default function EditJobRoleMatrixPage() {
       if (!user?.uid || !entryToUpdate.id) throw new Error("Missing user or entry ID.");
       const { id, ...data } = entryToUpdate;
       
-      const dataForFirestore: Record<string, any> = { 
+      const dataForPostgreSQL: Record<string, any> = {
         ...data, 
         userId: user.uid,
         linkedRiskAssessmentId: data.linkedRiskAssessmentId || null,
         linkedRiskAssessmentName: data.linkedRiskAssessmentName || null,
       };
       
-      await updateDoc(doc(db, PPE_JOB_ROLE_MATRIX_COLLECTION, id), dataForFirestore);
+      await updateDoc(doc(db, PPE_JOB_ROLE_MATRIX_COLLECTION, id), dataForPostgreSQL);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [PPE_JOB_ROLE_MATRIX_COLLECTION, user?.uid] });

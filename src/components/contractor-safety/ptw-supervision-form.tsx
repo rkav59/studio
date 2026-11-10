@@ -32,8 +32,8 @@ import type { PtwSupervisionRecord, SupervisionChecklistItemInstance, PtwPerform
 import { format, parseISO, isValid } from 'date-fns';
 import { Separator } from "@/components/ui/separator";
 
-const ptwPerformanceRatings: PtwPerformanceRating[] = ['Excellent', 'Good', 'Fair', 'Poor'];
-const checklistItemResults: SupervisionChecklistItemResult[] = ['Satisfactory', 'Needs Improvement', 'Unsatisfactory', 'N/A'];
+const ptwPerformanceRatings = ['Excellent', 'Good', 'Fair', 'Poor'] as const;
+const checklistItemResults = ['Satisfactory', 'Needs Improvement', 'Unsatisfactory', 'N/A'] as const;
 
 export const defaultSupervisionChecklistTemplate: Array<Omit<SupervisionChecklistItemInstance, 'id' | 'result' | 'observations'>> = [
   { questionText: "Is the PTW displayed at the work location?" },

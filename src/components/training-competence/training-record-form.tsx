@@ -44,7 +44,7 @@ const trainingRecordFormSchema = z.object({
   notes: z.string().max(2000).optional(),
 });
 
-type TrainingRecordFormValues = z.infer<typeof trainingRecordFormSchema>;
+export type TrainingRecordFormValues = z.infer<typeof trainingRecordFormSchema>;
 
 interface TrainingRecordFormProps {
   courses: TrainingCourse[];
@@ -201,7 +201,7 @@ export function TrainingRecordForm({ courses, trainingJobRoleMatrix, initialData
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                        <Calendar mode="single" selected={field.value ?? undefined} onSelect={field.onChange} initialFocus />
                       </PopoverContent>
                     </Popover>
                     <FormMessage />
@@ -227,7 +227,7 @@ export function TrainingRecordForm({ courses, trainingJobRoleMatrix, initialData
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
+                        <Calendar mode="single" selected={field.value ?? undefined} onSelect={field.onChange} />
                       </PopoverContent>
                     </Popover>
                     <FormMessage />

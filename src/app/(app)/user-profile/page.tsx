@@ -4,8 +4,8 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, setDoc } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,19 +36,7 @@ export default function UserProfilePage() {
       if (profileSnap.exists()) {
         return { id: profileSnap.id, ...profileSnap.data() } as UserProfile;
       }
-      // If profile doesn't exist, create a basic one
-      const basicProfile: Partial<UserProfile> = {
-          email: user.email || "",
-          displayName: user.displayName || user.email?.split('@')[0] || "User",
-          country: "", // Default empty, user needs to set it
-          createdAt: new Date().toISOString(),
-          organizationId: `org_${user.uid.substring(0, 8)}_${Date.now()}`,
-          role: 'admin',
-          planId: 'free',
-      };
-      // Use setDoc without merge for initial creation, as it's a new document.
-      await setDoc(profileRef, basicProfile); 
-      return {id: user.uid, ...basicProfile } as UserProfile;
+      throw new Error('Your account profile is unavailable. Contact your administrator.');
     },
     enabled: !!user?.uid,
     retry: false,
@@ -91,7 +79,7 @@ export default function UserProfilePage() {
         successMessage = "Country updated.";
       } else if (Object.keys(updatedFields).length === 1 && 'displayNameChanged' in updatedFields ) {
         // This case handles when only displayName was changed, and it was the only potential update.
-        // No specific message beyond the generic one is needed if no actual fields were staged for Firestore.
+        // No specific message beyond the generic one is needed if no actual fields were staged for PostgreSQL.
       } else if (Object.keys(updatedFields).length === 0) {
         successMessage = "No changes were saved as the data was the same.";
       }

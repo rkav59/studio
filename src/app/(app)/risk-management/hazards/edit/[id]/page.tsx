@@ -1,4 +1,6 @@
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
+import { CardTitle } from "@/components/ui/card";
 
 import { useRouter, useParams } from 'next/navigation';
 import { ManualHazardForm, type ManualHazardFormValues } from "@/components/risk-management/manual-hazard-form";
@@ -7,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ManualHazard } from '@/lib/types';
 import { ArrowLeft, Target } from 'lucide-react';
@@ -36,7 +38,7 @@ export default function EditManualHazardPage() {
         return { 
           id: hazardSnap.id, 
           ...data,
-          dateIdentified: (data.dateIdentified as Timestamp)?.toDate().toISOString(),
+          dateIdentified: toIso(data.dateIdentified),
         } as ManualHazard;
       }
       return null;

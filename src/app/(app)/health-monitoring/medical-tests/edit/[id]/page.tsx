@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter, useParams } from 'next/navigation';
 import { MedicalTestForm, type MedicalTestFormValues } from "@/components/health-monitoring/medical-test-form";
@@ -8,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { SimilarExposureGroup, MedicalTestRecord } from '@/lib/types';
 import { parseISO, format } from 'date-fns';
@@ -49,8 +50,8 @@ export default function EditMedicalTestPage() {
         return { 
           id: recordSnap.id, 
           ...data,
-          testDate: (data.testDate as Timestamp)?.toDate().toISOString(),
-          certificateExpiryDate: data.certificateExpiryDate ? (data.certificateExpiryDate as Timestamp).toDate().toISOString() : null,
+          testDate: toIso(data.testDate),
+          certificateExpiryDate: data.certificateExpiryDate ? toIso(data.certificateExpiryDate) : null,
         } as MedicalTestRecord;
       }
       return null;
@@ -85,8 +86,9 @@ export default function EditMedicalTestPage() {
     const recordDataToSave: MedicalTestRecord = {
       ...recordToEdit, 
       ...formData,
+      screeningPurpose: formData.screeningPurpose === "__NONE__" ? undefined : formData.screeningPurpose,
       testDate: parseISO(formData.testDate).toISOString(), 
-      certificateExpiryDate: formData.certificateExpiryDate ? parseISO(formData.certificateExpiryDate).toISOString() : null,
+      certificateExpiryDate: formData.certificateExpiryDate ? parseISO(formData.certificateExpiryDate).toISOString() : undefined,
     };
     updateMedicalTestMutation.mutate(recordDataToSave);
   };

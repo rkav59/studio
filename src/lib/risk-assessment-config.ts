@@ -1,3 +1,4 @@
+import type { RiskAssessmentControl, ManualRiskAssessment } from "./types";
 
 
 import type { RiskAssessmentMethod, Likelihood, Severity, RiskLevel, RiskRegisterStatus } from "./types";
@@ -139,12 +140,12 @@ export const riskMatrix: Record<RiskLevel, { color: string; description: string 
   Extreme: { color: "bg-red-600 text-white", description: "Intolerable, activity should not proceed without substantial risk reduction. Immediate action required." },
 };
 
-export const controlActionStatuses: Array<Required<RiskAssessmentControl>['status']> = ['Open', 'In Progress', 'Completed', 'Overdue', 'Cancelled'];
-export const riskAssessmentStatuses: Array<Required<ManualRiskAssessment>['status']> = ['Open', 'Under Review', 'Closed', 'Superseded'];
+export const controlActionStatuses = ['Open', 'In Progress', 'Completed', 'Overdue', 'Cancelled'] as const;
+export const riskAssessmentStatuses = ['Open', 'Under Review', 'Closed', 'Superseded'] as const;
 // --- End Manual Risk Assessment Config ---
 
 // --- Risk Register Config ---
-export const riskRegisterStatuses: RiskRegisterStatus[] = ['Open', 'In Progress', 'Mitigated', 'Closed', 'Accepted'];
+export const riskRegisterStatuses = ['Open', 'In Progress', 'Mitigated', 'Closed', 'Accepted'] as const;
 export const riskCategories: string[] = ['Safety', 'Health', 'Environmental', 'Operational', 'Financial', 'Reputational', 'Legal/Compliance', 'Other'];
 export const riskSources: string[] = ['Audit Finding', 'Inspection Finding', 'Hazard Report', 'Risk Assessment', 'Management Review', 'External Source', 'Other'];
 // --- End Risk Register Config ---

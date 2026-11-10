@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, addDoc, Timestamp, query, where, getDocs } from '@/lib/supabase/records';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { TrainingCourse, TrainingRecord, TrainingRecordStatus, TrainingJobRoleMatrixEntry } from '@/lib/types';
 import { parseISO } from 'date-fns';
@@ -53,9 +53,9 @@ export default function NewTrainingRecordPage() {
         jobRole?: string;
         courseId: string;
         trainingDate: string; // ISO string
-        expiryDate: string | null; // ISO string or null
+        expiryDate?: string | null; // ISO string or null
         trainer?: string;
-        status: 'Planned' | 'Completed';
+        status: TrainingRecordStatus;
         certificateUrl?: string;
         notes?: string;
     }) => {

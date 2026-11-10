@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useRouter, useParams } from 'next/navigation';
 import { PermitToWorkForm } from "@/components/contractor-safety/permit-to-work-form";
@@ -8,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp, collection, query, where, getDocs } from '@/lib/supabase/records';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { parseISO, format } from 'date-fns';
 import type { PermitToWork, Contractor } from '@/lib/types';
@@ -51,10 +52,10 @@ export default function EditPtwPage() {
         return { 
           id: ptwSnap.id, 
           ...data,
-          startDate: data.startDate instanceof Timestamp ? data.startDate.toDate().toISOString() : data.startDate,
-          endDate: data.endDate instanceof Timestamp ? data.endDate.toDate().toISOString() : data.endDate,
-          authorizationDate: data.authorizationDate instanceof Timestamp ? data.authorizationDate.toDate().toISOString() : data.authorizationDate,
-          closureDate: data.closureDate instanceof Timestamp ? data.closureDate.toDate().toISOString() : data.closureDate,
+          startDate: data.startDate instanceof Timestamp ? toIso(data.startDate) : data.startDate,
+          endDate: data.endDate instanceof Timestamp ? toIso(data.endDate) : data.endDate,
+          authorizationDate: data.authorizationDate instanceof Timestamp ? toIso(data.authorizationDate) : data.authorizationDate,
+          closureDate: data.closureDate instanceof Timestamp ? toIso(data.closureDate) : data.closureDate,
         } as PermitToWork;
       }
       return null;

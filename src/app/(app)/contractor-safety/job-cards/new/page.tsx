@@ -7,8 +7,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/supabase/client';
+import { collection, addDoc, Timestamp, query, where, getDocs } from '@/lib/supabase/records';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { JobCard, Contractor } from '@/lib/types';
 import { ArrowLeft, ClipboardCheck, Loader2 } from 'lucide-react';
@@ -53,7 +53,7 @@ export default function NewJobCardPage() {
     onError: (e: Error) => toast({ title: "Error Creating Job Card", description: "An unexpected error occurred. Please try again.", variant: "destructive" }),
   });
 
-  const handleSaveJobCard = (data: JobCardFormValues) => {
+  const handleSaveJobCard = (data: Omit<JobCard, 'id' | 'userId'>) => {
     addJobCardMutation.mutate(data);
   };
 

@@ -35,9 +35,9 @@ import { format, parseISO, isValid, set } from 'date-fns';
 import { Separator } from "../ui/separator";
 import { severityOptions } from "@/lib/risk-assessment-config"; // Changed import
 
-const incidentClassifications: Array<Required<Incident>['classification']> = ['First Aid', 'Recordable', 'Lost Time', 'Fatality MVA', 'Non-Fatality MVA', 'Property Damage MVA', 'Environmental', 'Security', 'Other'];
-const incidentTypes: Array<Incident['type']> = ['Incident', 'Near Miss', 'Hazard'];
-const incidentStatuses: Array<Required<Incident>['status']> = ['Open', 'Under Investigation', 'Actions Pending', 'Closed'];
+const incidentClassifications = ['First Aid', 'Recordable', 'Lost Time', 'Fatality MVA', 'Non-Fatality MVA', 'Property Damage MVA', 'Environmental', 'Security', 'Other'] as const;
+const incidentTypes = ['Incident', 'Near Miss', 'Hazard'] as const;
+const incidentStatuses = ['Open', 'Under Investigation', 'Actions Pending', 'Closed'] as const;
 
 
 const incidentFormSchema = z.object({
@@ -102,7 +102,7 @@ export function IncidentForm({ initialData, onSave, onCancel, isSubmitting }: In
         </FormControl>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
-        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+        <Calendar mode="single" selected={field.value ?? undefined} onSelect={field.onChange} initialFocus />
         <div className="p-3 border-t border-border">
           <FormLabel className="text-sm">Time</FormLabel>
           <Input

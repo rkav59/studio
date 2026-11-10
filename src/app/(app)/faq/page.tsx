@@ -45,7 +45,7 @@ export default function FaqPage() {
     },
     {
       question: "How is my data stored and protected?",
-      answer: "Your data is stored securely using Firebase Firestore (for data like incidents, audits) and Firebase Storage (for any uploaded documents). We implement industry-standard security practices to protect your information. For more details, please see our Privacy Policy.",
+      answer: "Your data is stored securely using Supabase PostgreSQL (for data like incidents, audits) and Supabase Storage (for any uploaded documents). We implement industry-standard security practices to protect your information. For more details, please see our Privacy Policy.",
     },
     {
         question: "What is the purpose of the AI-generated Legal Register?",

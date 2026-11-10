@@ -25,7 +25,7 @@ const courseFormSchema = z.object({
   category: z.string().max(100, "Category name is too long.").optional(),
 });
 
-type CourseFormValues = z.infer<typeof courseFormSchema>;
+export type CourseFormValues = z.infer<typeof courseFormSchema>;
 
 interface CourseFormProps {
   initialData?: TrainingCourse | null;

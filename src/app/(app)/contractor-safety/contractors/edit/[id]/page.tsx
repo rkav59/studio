@@ -1,5 +1,6 @@
 
 "use client";
+import { toIso } from "@/lib/supabase/serialization";
 
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -9,9 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { db, storage } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
-import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject, type UploadTaskSnapshot } from "firebase/storage";
+import { db, storage } from '@/lib/supabase/client';
+import { doc, getDoc, updateDoc, Timestamp } from '@/lib/supabase/records';
+import { uploadContractorDocument, ref as storageRef, deleteObject } from "@/lib/supabase/storage";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { parseISO, format } from 'date-fns';
 import type { Contractor, ContractorDocument } from '@/lib/types';
@@ -52,11 +53,11 @@ export default function EditContractorPage() {
         return { 
           id: contractorSnap.id, 
           ...data, 
-          inductionDate: data.inductionDate instanceof Timestamp ? data.inductionDate.toDate().toISOString() : data.inductionDate,
+          inductionDate: data.inductionDate instanceof Timestamp ? toIso(data.inductionDate) : data.inductionDate,
           documents: (data.documents || []).map((d: any) => ({
             ...d,
-            uploadedDate: d.uploadedDate instanceof Timestamp ? d.uploadedDate.toDate().toISOString() : d.uploadedDate,
-            expiryDate: d.expiryDate instanceof Timestamp ? d.expiryDate.toDate().toISOString() : d.expiryDate,
+            uploadedDate: d.uploadedDate instanceof Timestamp ? toIso(d.uploadedDate) : d.uploadedDate,
+            expiryDate: d.expiryDate instanceof Timestamp ? toIso(d.expiryDate) : d.expiryDate,
           }))
         } as Contractor;
       }
@@ -65,35 +66,6 @@ export default function EditContractorPage() {
     enabled: !!user?.uid && !!contractorId,
   });
 
-  async function uploadContractorDocument(
-    file: File, 
-    userId: string, 
-    contractorId: string, 
-    documentId: string,
-    onProgress: (progress: number) => void
-  ): Promise<{ url: string, path: string, name: string, type: string, size: number }> {
-    const filePath = `contractor_documents/${userId}/${contractorId}/${documentId}/${file.name}`;
-    const fileStorageRef = storageRef(storage, filePath);
-    
-    return new Promise((resolve, reject) => {
-        const uploadTask = uploadBytesResumable(fileStorageRef, file);
-
-        uploadTask.on('state_changed',
-            (snapshot: UploadTaskSnapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                onProgress(progress);
-            },
-            (error) => {
-                console.error("Upload failed:", error);
-                reject(error);
-            },
-            async () => {
-                const url = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve({ url, path: filePath, name: file.name, type: file.type, size: file.size });
-            }
-        );
-    });
-  }
 
   const updateContractorMutation = useMutation({
     mutationFn: async (formData: ContractorFormDataWithFiles) => {
@@ -101,17 +73,9 @@ export default function EditContractorPage() {
       
       const { documentFiles, documentsToRemove, ...contractorData } = formData;
 
-      // 1. Delete files for documents that are being removed from the list entirely.
-      if (documentsToRemove && documentsToRemove.length > 0) {
-        await Promise.all(documentsToRemove.map(path => deleteContractorDocumentFile(path)));
-      }
-      const initialDocIds = contractorToEdit?.documents.map(d => d.id) || [];
-      const finalDocIds = contractorData.documents?.map(d => d.id) || [];
-      const removedDocEntries = contractorToEdit?.documents.filter(
-        initialDoc => !finalDocIds.includes(initialDoc.id) && initialDoc.filePath
-      ) || [];
-      await Promise.all(removedDocEntries.map(doc => deleteContractorDocumentFile(doc.filePath!)));
-
+      const filesToDelete = new Set(documentsToRemove || []);
+      const retainedIds = new Set((contractorData.documents || []).map(d => d.id));
+      for (const old of contractorToEdit?.documents || []) if (!retainedIds.has(old.id) && old.filePath) filesToDelete.add(old.filePath);
       // 2. Process documents: upload new files and create the final document array.
       const processedDocuments: ContractorDocument[] = await Promise.all(
         (contractorData.documents || []).map(async (docData) => {
@@ -121,7 +85,7 @@ export default function EditContractorPage() {
           if (fileToUpload) { 
             // If there's a new file, delete the old one first.
             if (existingDoc?.filePath) { 
-              await deleteContractorDocumentFile(existingDoc.filePath);
+              filesToDelete.add(existingDoc.filePath);
             }
             // Then upload the new one with progress.
             const { url, path, name, type, size } = await uploadContractorDocument(
@@ -136,13 +100,13 @@ export default function EditContractorPage() {
             return { ...docData, fileUrl: url, filePath: path, fileName: name, fileType: type, fileSize: size };
           } else if (existingDoc) { 
             // If no new file, retain existing file info.
-            const { file, ...restOfExisting } = existingDoc; 
-            return { ...docData, ...restOfExisting };
+            const restOfExisting = existingDoc;
+            return { ...restOfExisting, ...docData };
           }
           
           // If it's a new document entry without a file.
           const {fileUrl, filePath, fileName, fileSize, fileType, ...restOfDocData} = docData;
-          return fileUrl ? docData : restOfDocData;
+          return filePath ? docData : restOfDocData;
         })
       );
       
@@ -154,11 +118,12 @@ export default function EditContractorPage() {
       };
        dataToSave.documents = dataToSave.documents.map(d => {
         const { fileUrl, filePath, fileName, fileSize, fileType, ...rest } = d;
-        if (d.fileUrl) return d;
+        if (d.filePath) return d;
         return rest;
       });
 
       await updateDoc(doc(db, CONTRACTORS_COLLECTION, contractorId), dataToSave);
+      await Promise.all([...filesToDelete].map(path => deleteContractorDocumentFile(path)));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CONTRACTORS_COLLECTION, user?.uid] });
