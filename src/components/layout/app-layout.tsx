@@ -22,6 +22,7 @@ import { GenerateReportButton } from "@/components/layout/generate-report-button
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { VisionThemeProvider, visionColors } from "@/components/dashboard/vision-theme";
+import { BILLING_ENABLED } from "@/lib/billing/feature-flags";
 
 const width = 264;
 type NavItem = { href: string; label: string; icon: SvgIconComponent; adminOnly?: boolean };
@@ -43,7 +44,7 @@ const groups: { label: string; items: NavItem[] }[] = [
     { href: "/checklist-templates", label: "Checklist Templates", icon: LibraryBooksOutlined },
     { href: "/ai-recommendations", label: "AI Safety Assist", icon: AutoAwesomeOutlined },
     { href: "/user-management", label: "User Management", icon: GroupsOutlined, adminOnly: true },
-    { href: "/billing", label: "Subscription", icon: AdminPanelSettingsOutlined, adminOnly: true },
+    ...(BILLING_ENABLED ? [{ href: "/billing", label: "Subscription", icon: AdminPanelSettingsOutlined, adminOnly: true }] : []),
   ] },
 ];
 
