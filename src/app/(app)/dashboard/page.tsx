@@ -4,18 +4,17 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Alert, Avatar, Box, Button, Card, CardContent, Chip, CircularProgress,
-  Divider, Grid, IconButton, LinearProgress, MenuItem, Select, Skeleton,
+  Grid, IconButton, MenuItem, Select, Skeleton,
   Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Tooltip, Typography,
 } from "@mui/material";
 import {
   ArrowForwardRounded, AssignmentTurnedInOutlined, CalendarMonthRounded,
-  CheckCircleOutlineRounded, ErrorOutlineRounded, EventAvailableRounded,
-  HealthAndSafetyOutlined, MoreHorizRounded, RefreshRounded, TrendingDownRounded,
-  TrendingUpRounded, WarningAmberRounded,
+  ErrorOutlineRounded, EventAvailableRounded, HealthAndSafetyOutlined,
+  RefreshRounded, WarningAmberRounded,
 } from "@mui/icons-material";
 import type { SvgIconComponent } from "@mui/icons-material";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip as ChartTooltip,
   XAxis, YAxis,
@@ -205,10 +204,8 @@ function PerformanceTable({ rows }: { rows: { name: string; value: string; targe
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [months, setMonths] = useState(6);
-  // Anchor the date range to a query refresh or filter change rather than the chart render.
-  const now = useMemo(() => Date.now(), [months]);
+  const [now, setNow] = useState(() => Date.now());
   const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["vision-dashboard", user?.uid],
     queryFn: () => loadDashboard(user!.uid),
@@ -260,19 +257,19 @@ export default function DashboardPage() {
 
   return <Box sx={{ maxWidth: 1700, mx: "auto" }}>
     <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }} gap={2} sx={{ mb: 3 }}>
-      <Box><Typography variant="h4">Safety at a glance</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.7 }}>Monitor safety performance, team activity and what's ahead.</Typography></Box>
+      <Box><Typography variant="h4">Safety at a glance</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.7 }}>Safety performance and upcoming activities from records available to your account.</Typography></Box>
       <Stack direction="row" alignItems="center" gap={1.5}>
         <Select size="small" value={months} onChange={event => setMonths(Number(event.target.value))} aria-label="Dashboard reporting period"
           sx={{ bgcolor: "#fff", borderRadius: 2.5, minWidth: 138, fontSize: 13, "& fieldset": { borderColor: "#EEF1F5" } }}>
           <MenuItem value={6}>Last 6 months</MenuItem><MenuItem value={12}>Last 12 months</MenuItem>
         </Select>
-        <Tooltip title="Refresh dashboard"><span><IconButton aria-label="Refresh dashboard" disabled={isFetching} onClick={() => { queryClient.invalidateQueries({ queryKey: ["vision-dashboard", user?.uid] }); refetch(); }}
+        <Tooltip title="Refresh dashboard"><span><IconButton aria-label="Refresh dashboard" disabled={isFetching} onClick={() => { setNow(Date.now()); refetch(); }}
           sx={{ bgcolor: "#fff", borderRadius: 2.5, border: "1px solid #EEF1F5", width: 40, height: 40 }}><RefreshRounded fontSize="small" /></IconButton></span></Tooltip>
       </Stack>
     </Stack>
 
     {error && <Alert severity="error" sx={{ mb: 3 }} action={<Button color="inherit" size="small" onClick={() => refetch()}>Retry</Button>}>Unable to load dashboard data. Please check your connection and try again.</Alert>}
-    {isLoading || !model || !data ? <Stack spacing={2.5}>
+    {error && !data ? <Card sx={cardSx}><CardContent><Typography fontWeight={650}>Dashboard data is unavailable</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>No figures are shown until the records can be loaded securely.</Typography><Button onClick={() => refetch()} sx={{ mt: 2 }}>Retry</Button></CardContent></Card> : isLoading || !model || !data ? <Stack spacing={2.5}>
       <Grid container spacing={2.5}>{[0,1,2,3].map(n => <Grid item xs={12} sm={6} lg={3} key={n}><Skeleton variant="rounded" height={168} sx={{ borderRadius: 4 }} /></Grid>)}</Grid>
       <Skeleton variant="rounded" height={360} sx={{ borderRadius: 4 }} />
       <Skeleton variant="rounded" height={260} sx={{ borderRadius: 4 }} />
