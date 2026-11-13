@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     const identity = await billingIdentity(request.headers.get("authorization"));
     if (!identity) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (identity.developerExempt) return NextResponse.json({ error: "Developer access is already active. No subscription is needed." }, { status: 409 });
+    if (identity.developerOrganizationExempt) return NextResponse.json({ error: "This developer organisation already has subscription-free access." }, { status: 409 });
     if (identity.role !== "admin") return NextResponse.json({ error: "Only organisation administrators can subscribe" }, { status: 403 });
     const key = process.env.DODO_PAYMENTS_API_KEY;
     const product = process.env.DODO_SUBSCRIPTION_PRODUCT_ID;
