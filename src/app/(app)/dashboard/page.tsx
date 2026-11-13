@@ -408,7 +408,7 @@ export default function DashboardPage() {
        <div className="grid grid-cols-1 lg:grid-cols-4 gap-2">
         <Card className="lg:col-span-1 bg-gradient-to-r from-accent/90 to-accent text-accent-foreground shadow-lg flex flex-col justify-center">
           <CardHeader>
-            <CardTitle>Welcome back, {user?.displayName || 'User'}!</CardTitle>
+            <CardTitle> {user?.displayName || 'User'}!</CardTitle>
             <CardDescription className="text-accent-foreground/80 mt-1">
               You are logged in as an {userRoleName}.
             </CardDescription>
