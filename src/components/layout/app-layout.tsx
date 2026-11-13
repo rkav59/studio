@@ -4,12 +4,12 @@ import { useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  AppBar, Autocomplete, Avatar, Box, Breadcrumbs, Divider, Drawer, IconButton,
+  AppBar, Autocomplete, Avatar, Box, Breadcrumbs, Dialog, DialogContent, DialogTitle, Divider, Drawer, IconButton,
   List, ListItemButton, ListItemIcon, ListItemText, TextField, Toolbar, Tooltip,
   Typography, InputAdornment,
 } from "@mui/material";
 import {
-  AccountCircleOutlined, AdminPanelSettingsOutlined, AutoAwesomeOutlined,
+  AdminPanelSettingsOutlined, AutoAwesomeOutlined,
   CalendarMonthOutlined, ChecklistRtlOutlined, DashboardRounded, FactCheckOutlined,
   FavoriteBorderRounded, GroupsOutlined, HealthAndSafetyOutlined, LibraryBooksOutlined,
   LogoutRounded, MenuRounded, NotificationsNoneRounded, SearchRounded,
@@ -18,6 +18,7 @@ import {
 import type { SvgIconComponent } from "@mui/icons-material";
 import type { UserProfile } from "@/lib/types";
 import { SheiqproLogo } from "@/components/icons/sheiqpro-logo";
+import { GenerateReportButton } from "@/components/layout/generate-report-button";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { VisionThemeProvider, visionColors } from "@/components/dashboard/vision-theme";
@@ -90,6 +91,7 @@ function Shell({ children, userProfile }: { children: ReactNode; userProfile: Us
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const nav = groups.flatMap(g => g.items).filter(i => !i.adminOnly || userProfile?.role === "admin");
   const current = nav.find(n => pathname === n.href || pathname.startsWith(n.href + "/"));
   const title = current?.label ?? "Workspace";
@@ -131,6 +133,8 @@ function Shell({ children, userProfile }: { children: ReactNode; userProfile: Us
             renderInput={params => <TextField {...params} placeholder="Find a page" inputProps={{ ...params.inputProps, "aria-label": "Find a page" }}
               InputProps={{ ...params.InputProps, startAdornment: <InputAdornment position="start"><SearchRounded sx={{ color: "#A0AEC0", fontSize: 20 }} /></InputAdornment> }} />}
           />
+          <IconButton aria-label="Search navigation" onClick={() => setSearchOpen(true)} sx={{ display: { sm: "none" } }}><SearchRounded /></IconButton>
+          <Box sx={{ display: { xs: "none", lg: "block" } }}><GenerateReportButton /></Box>
           <Tooltip title="SHE meetings and programmes"><IconButton aria-label="Open SHE events" component={Link} href="/she-meetings" sx={{ color: "#64748B" }}><NotificationsNoneRounded /></IconButton></Tooltip>
           <Tooltip title="Profile"><IconButton aria-label="Open profile" component={Link} href="/user-profile">
             <Avatar sx={{ bgcolor: "#E5F0FF", color: visionColors.primary, height: 36, width: 36, fontSize: 14, fontWeight: 800 }}>
@@ -139,6 +143,12 @@ function Shell({ children, userProfile }: { children: ReactNode; userProfile: Us
           </IconButton></Tooltip>
         </Toolbar>
       </AppBar>
+      <Dialog open={searchOpen} onClose={() => setSearchOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Find a page</DialogTitle>
+        <DialogContent>
+          <Autocomplete options={nav} getOptionLabel={option => option.label} onChange={(_, option) => { if (option) { setSearchOpen(false); router.push(option.href); } }} renderInput={params => <TextField {...params} autoFocus placeholder="Search SHEiQpro pages" sx={{ mt: 1 }} />} />
+        </DialogContent>
+      </Dialog>
       <Box component="main" id="main-content" sx={{ flex: 1, minWidth: 0, px: { xs: 2, sm: 3, lg: 4 }, pt: { xs: 3, md: 4 }, pb: 6 }}>
         {children}
       </Box>
