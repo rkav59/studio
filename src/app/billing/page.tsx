@@ -21,7 +21,7 @@ export default function BillingPage() {
     let cancelled = false;
     authHeaders().then(headers => fetch("/api/billing/status", { headers, cache: "no-store" }))
       .then(async response => { if (!response.ok) throw new Error("Unable to check billing"); return response.json(); })
-      .then(result => { if (!cancelled) { setActive(result.active); setDeveloperExempt(result.exemption === true); setStatus(result.exemption ? "Developer access enabled — no subscription required" : result.active ? "Subscription active" : "Subscription required"); } })
+      .then(result => { if (!cancelled) { setActive(result.active); setDeveloperExempt(result.exemption === true); setStatus(result.exemption ? "Developer organisation access enabled — no subscription required" : result.active ? "Subscription active" : "Subscription required"); } })
       .catch(() => { if (!cancelled) setStatus("Billing status unavailable"); });
     return () => { cancelled = true; };
   }, [user]);
