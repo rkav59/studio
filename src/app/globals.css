@@ -36,13 +36,13 @@
     --radius: 0.5rem;
 
     /* Sidebar specific colors */
-    --sidebar-background: 210 30% 22%; /* Dark Slate Blue/Gray */
-    --sidebar-foreground: 204 17% 85%; /* Light Gray for text */
+    --sidebar-background: 204 17% 96%; /* Match main display background */
+    --sidebar-foreground: 210 29% 29%; /* Match main foreground */
     --sidebar-primary: 207 68% 53%; /* Strong Blue */
     --sidebar-primary-foreground: 0 0% 100%; /* White */
-    --sidebar-accent: 45 85% 55%; /* Mustard Yellow */
-    --sidebar-accent-foreground: 210 29% 15%; /* Dark Gray for contrast */
-    --sidebar-border: 210 30% 30%; /* Slightly lighter than sidebar bg */
+    --sidebar-accent: 210 16% 90%; /* Subtle navigation highlight */
+    --sidebar-accent-foreground: 210 29% 29%;
+    --sidebar-border: 204 17% 88%;
     --sidebar-ring: 207 68% 53%; /* Primary Blue for focus rings */
 
     --chart-1: 207 68% 53%; /* Primary Blue */
@@ -83,13 +83,13 @@
     --ring: 207 72% 60%; /* Brighter Primary Blue for rings */
     
     /* Sidebar specific colors - Dark Theme */
-    --sidebar-background: 210 30% 17%; /* Very Dark Blue/Gray */
-    --sidebar-foreground: 204 17% 75%; /* Medium Light Gray for text */
+    --sidebar-background: 210 29% 29%; /* Match dark main display background */
+    --sidebar-foreground: 204 17% 96%;
     --sidebar-primary: 207 72% 60%; /* Brighter Strong Blue */
     --sidebar-primary-foreground: 0 0% 100%; /* White */
-    --sidebar-accent: 45 85% 60%; /* Mustard Yellow (Dark Mode) */
-    --sidebar-accent-foreground: 210 29% 15%; /* Dark Gray for contrast */
-    --sidebar-border: 210 30% 25%; /* Slightly lighter than dark sidebar bg */
+    --sidebar-accent: 210 25% 40%;
+    --sidebar-accent-foreground: 204 17% 96%;
+    --sidebar-border: 210 20% 50%;
     --sidebar-ring: 207 72% 60%; /* Brighter Primary Blue for rings */
 
     --chart-1: 207 72% 60%;
