@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { billingDb, billingIdentity, isEntitled } from "@/lib/billing/server";
+import { BILLING_ENABLED } from "@/lib/billing/feature-flags";
 export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   try {
     const identity = await billingIdentity(request.headers.get("authorization"));
     if (!identity) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!BILLING_ENABLED) {
+      return NextResponse.json({ active: true, status: "free_access", plan: "free", exemption: true }, {
+        headers: { "Cache-Control": "private, no-store" }
+      });
+    }
     if (identity.developerOrganizationExempt) {
       return NextResponse.json({ active: true, status: "developer_organization", plan: "developer_organization", exemption: true }, {
         headers: { "Cache-Control": "private, no-store" }
