@@ -1,163 +1,50 @@
-
 "use client";
-
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from '@/contexts/auth-context'; // Import useAuth
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useState } from "react";
-import { Loader2, Mail, Lock } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
+import { z } from "zod";
+import { useAuth } from "@/contexts/auth-context";
 import { SocialButtons } from "@/components/auth/social-buttons";
-import { Separator } from "@/components/ui/separator";
-
-const signInFormSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(1, { message: "Password is required." }),
-});
-
-type SignInFormValues = z.infer<typeof signInFormSchema>;
-
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+const emailSchema = z.string().email();
 export default function SignInPage() {
-  const { toast } = useToast();
   const router = useRouter();
-  const { signIn, resetPassword } = useAuth(); // Use signIn from context
-  const [loading, setLoading] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
-  const [resetLoading, setResetLoading] = useState(false);
-
-
-  const form = useForm<SignInFormValues>({
-    resolver: zodResolver(signInFormSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
-
-  async function onSubmit(data: SignInFormValues) {
-    setLoading(true);
-    try {
-      await signIn(data.email, data.password);
-      // No success toast here, context handles it.
-      router.push(sessionStorage.getItem("sheiq-invitation") ? "/join" : "/dashboard"); // Redirect to dashboard after successful login
-    } catch (error: any) {
-      // Error toast is handled by the context now.
-    } finally {
-      setLoading(false);
-    }
+  const { signIn, resetPassword } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  async function submit(e: React.FormEvent) {
+    e.preventDefault(); setError(""); setNotice("");
+    if (!emailSchema.safeParse(email.trim()).success) { setError("Enter a valid email address."); return; }
+    setBusy(true);
+    try { await signIn(email.trim(), password); router.replace(sessionStorage.getItem("sheiq-invitation") ? "/join" : "/dashboard"); }
+    catch (err) { setError((err as Error).message); } finally { setBusy(false); }
   }
-
-  const handlePasswordReset = async () => {
-    if (!resetEmail) {
-      toast({ title: "Email Required", description: "Please enter your email address to reset password.", variant: "destructive" });
-      return;
-    }
-    setResetLoading(true);
-    try {
-      await resetPassword(resetEmail);
-      // Success toast handled by context
-    } catch (error) {
-      // Error toast handled by context
-    } finally {
-      setResetLoading(false);
-    }
-  };
-
-
-  return (
-    <>
-      <h2 className="text-2xl font-semibold tracking-tight text-center text-foreground">Welcome Back</h2>
-      <p className="text-sm text-muted-foreground text-center mt-1 mb-6">
-        sign in to access your SHEiQpro account
-      </p>
-      
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="sr-only">Email</FormLabel>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <FormControl>
-                    <Input type="email" placeholder="Email address" {...field} className="pl-10" />
-                  </FormControl>
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="sr-only">Password</FormLabel>
-                 <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <FormControl>
-                      <Input type="password" placeholder="Password" {...field} className="pl-10" />
-                    </FormControl>
-                  </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Sign In
-          </Button>
-        </form>
-      </Form>
-
-      <div className="mt-4 text-right">
-        <Input 
-            type="email" 
-            placeholder="Enter email for password reset" 
-            value={resetEmail} 
-            onChange={(e) => setResetEmail(e.target.value)} 
-            className="text-sm mb-2"
-        />
-        <Button variant="link" onClick={handlePasswordReset} className="text-sm px-0" disabled={resetLoading}>
-            {resetLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Forgot Password?
-        </Button>
+  async function reset() {
+    setError(""); setNotice("");
+    if (!emailSchema.safeParse(email.trim()).success) { setError("Enter your email address above to reset your password."); return; }
+    setResetBusy(true);
+    try { await resetPassword(email.trim()); setNotice("If the account exists, a reset link has been sent."); }
+    catch (err) { setError((err as Error).message); } finally { setResetBusy(false); }
+  }
+  return <div className="space-y-7">
+    <div className="space-y-2"><p className="text-sm font-semibold text-primary">WELCOME BACK</p><h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Sign in to SHEiQpro</h2><p className="text-muted-foreground">Your safer workplace starts here.</p></div>
+    <form onSubmit={submit} className="space-y-5">
+      <div className="space-y-2"><label htmlFor="email" className="text-sm font-medium">Work email</label><Input id="email" type="email" autoComplete="email" placeholder="you@company.com" required value={email} onChange={e => setEmail(e.target.value)} className="h-12" /></div>
+      <div className="space-y-2"><div className="flex items-center justify-between"><label htmlFor="password" className="text-sm font-medium">Password</label><button type="button" onClick={reset} disabled={resetBusy} className="text-xs font-semibold text-primary hover:underline">{resetBusy ? "Sending…" : "Forgot password?"}</button></div>
+        <div className="relative"><Input id="password" type={show ? "text" : "password"} autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} className="h-12 pr-12" /><button type="button" aria-label={show ? "Hide password" : "Show password"} onClick={() => setShow(!show)} className="absolute inset-y-0 right-3 text-muted-foreground">{show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button></div>
       </div>
-
-      <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
-          <Separator />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">
-            Or continue with
-          </span>
-        </div>
-      </div>
-
-      <SocialButtons />
-
-      <p className="mt-8 text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
-        <Link href="/sign-up" className="font-medium text-primary hover:underline">
-          Sign up
-        </Link>
-      </p>
-    </>
-  );
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}{notice && <p role="status" className="text-sm text-emerald-600">{notice}</p>}
+      <Button type="submit" disabled={busy} className="h-12 w-full text-base">{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Sign in <ArrowRight className="ml-2 h-4 w-4" /></>}</Button>
+    </form>
+    <div className="flex items-center gap-4 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />or continue with<span className="h-px flex-1 bg-border" /></div>
+    <SocialButtons />
+    <p className="text-center text-sm text-muted-foreground">New to SHEiQpro? <Link href="/sign-up" className="font-semibold text-primary hover:underline">Create an account</Link></p>
+  </div>;
 }
