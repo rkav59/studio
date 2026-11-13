@@ -1,633 +1,293 @@
-
 "use client";
-import { toIso } from "@/lib/supabase/serialization";
 
-import { useState, useEffect, useMemo } from 'react';
-import { OverviewCards, kpiInfoMap } from "@/components/dashboard/overview-cards";
-import { KpiTrendChart } from "@/components/dashboard/kpi-trend-chart";
-import { AppUsageProgress } from "@/components/dashboard/app-usage-progress"; // Import new component
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { LayoutDashboard, CalendarIcon, Filter, Settings, Loader2 as PageLoader, Activity, Users as UsersIcon, RefreshCw, Lightbulb, BarChart3 } from "lucide-react"; 
-import { cn } from "@/lib/utils";
-import { format, parseISO, startOfToday, isValid, isAfter, isBefore } from "date-fns"; 
-import { Label } from '@/components/ui/label';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { useAuth } from '@/contexts/auth-context';
-import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/supabase/client';
-import { collection, query, where, getDocs, doc, getDoc, Timestamp, orderBy } from '@/lib/supabase/records';
-import type { 
-    KpiThreshold, KpiVisibilitySettings, SheProgram, SheMeeting, UserRole,
-    Incident, ManualRiskAssessment, SheqAudit, TrainingRecord, Contractor, PpeItem, EmergencyPlan, SimilarExposureGroup, IndustrialHygieneSample 
-} from '@/lib/types'; // Import all necessary types
-import { useRouter } from 'next/navigation';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { SuggestIndicatorForm } from '@/components/dashboard/suggest-indicator-form';
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-import { Bar, BarChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts"
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  Alert, Avatar, Box, Button, Card, CardContent, Chip, CircularProgress,
+  Divider, Grid, IconButton, LinearProgress, MenuItem, Select, Skeleton,
+  Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Tooltip, Typography,
+} from "@mui/material";
+import {
+  ArrowForwardRounded, AssignmentTurnedInOutlined, CalendarMonthRounded,
+  CheckCircleOutlineRounded, ErrorOutlineRounded, EventAvailableRounded,
+  HealthAndSafetyOutlined, MoreHorizRounded, RefreshRounded, TrendingDownRounded,
+  TrendingUpRounded, WarningAmberRounded,
+} from "@mui/icons-material";
+import type { SvgIconComponent } from "@mui/icons-material";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip as ChartTooltip,
+  XAxis, YAxis,
+} from "recharts";
+import { useAuth } from "@/contexts/auth-context";
+import { db } from "@/lib/supabase/client";
+import { collection, getDocs, query, where } from "@/lib/supabase/records";
+import { visionColors as c } from "@/components/dashboard/vision-theme";
+import type { Incident, SheqAudit, SheMeeting, SheProgram, TrainingRecord, KpiThreshold } from "@/lib/types";
 
-const mockLocations = ["All Locations", "Warehouse A", "Office Block", "Factory Floor", "Loading Bay"];
-const incidentCategories = ["All Categories", "Incident", "Near Miss", "Hazard"];
+type DashboardData = {
+  incidents: Incident[];
+  audits: SheqAudit[];
+  meetings: SheMeeting[];
+  programs: SheProgram[];
+  training: TrainingRecord[];
+  targets: KpiThreshold[];
+};
+type EventItem = { id: string; title: string; type: "Meeting" | "Programme"; date: number; href: string };
+const cardSx = { height: "100%", borderRadius: "16px", bgcolor: c.paper, boxShadow: "0 7px 32px rgba(37,64,97,0.055)" };
+const shortDate = new Intl.DateTimeFormat("en", { day: "numeric", month: "short", year: "numeric" });
+const monthName = new Intl.DateTimeFormat("en", { month: "short" });
 
-const incidentChartConfig = {
-  count: {
-    label: "Count",
-  },
-  Incident: {
-    label: "Incidents",
-    color: "hsl(var(--destructive))",
-  },
-  'Near Miss': {
-    label: "Near Misses",
-    color: "hsl(var(--chart-2))",
-  },
-  Hazard: {
-    label: "Hazards",
-    color: "hsl(var(--chart-1))",
-  },
-} satisfies ChartConfig
-
-// Collection constants
-const KPI_THRESHOLDS_COLLECTION = 'kpiThresholds';
-const KPI_VISIBILITY_COLLECTION = 'kpiVisibilitySettings';
-const PROGRAMS_COLLECTION = 'shePrograms';
-const MEETINGS_COLLECTION = 'sheMeetings';
-const INCIDENTS_COLLECTION = 'incidents';
-const MANUAL_RISK_ASSESSMENTS_COLLECTION = 'manualRiskAssessments';
-const SHEQ_AUDITS_COLLECTION = 'sheqAudits';
-const TRAINING_RECORDS_COLLECTION = 'trainingRecords';
-const CONTRACTORS_COLLECTION = 'contractors';
-const PPE_ITEMS_COLLECTION = 'ppeItems';
-const EMERGENCY_PLANS_COLLECTION = 'emergencyPlans';
-const SEGS_COLLECTION = 'similarExposureGroups';
-const IH_SAMPLES_COLLECTION = 'industrialHygieneSamples';
-
-
-interface UpcomingEvent {
-  id: string;
-  type: 'Program' | 'Meeting';
-  title: string;
-  date: string; // ISO string for sorting
-  dateDisplay: string; // Formatted for display
-  icon: React.ElementType;
-  path?: string;
+function ms(value: unknown): number {
+  if (typeof value !== "string" && typeof value !== "number") return NaN;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : NaN;
+}
+function inRange(date: unknown, start: number, end: number) {
+  const n = ms(date); return Number.isFinite(n) && n >= start && n < end;
+}
+async function read<T>(name: string, uid: string): Promise<T[]> {
+  const snap = await getDocs(query(collection(db, name), where("userId", "==", uid)));
+  return snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as T));
+}
+async function loadDashboard(uid: string): Promise<DashboardData> {
+  const [incidents, audits, meetings, programs, training, targets] = await Promise.all([
+    read<Incident>("incidents", uid),
+    read<SheqAudit>("sheqAudits", uid),
+    read<SheMeeting>("sheMeetings", uid),
+    read<SheProgram>("shePrograms", uid),
+    read<TrainingRecord>("trainingRecords", uid),
+    read<KpiThreshold>("kpiThresholds", uid),
+  ]);
+  return { incidents, audits, meetings, programs, training, targets };
+}
+function changeLabel(now: number, before: number) {
+  if (before === 0) return now === 0 ? "No change" : "New this period";
+  const change = Math.round(((now - before) / before) * 100);
+  return (change > 0 ? "+" : "") + change + "% vs prior period";
+}
+function SurfaceHeading({ title, subtitle, action }: { title: string; subtitle?: string; action?: React.ReactNode }) {
+  return <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1} sx={{ mb: 2.5 }}>
+    <Box sx={{ minWidth: 0 }}><Typography variant="h6">{title}</Typography>{subtitle && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{subtitle}</Typography>}</Box>
+    {action}
+  </Stack>;
+}
+function MetricCard({ label, value, detail, trend, icon: Icon, tint }: {
+  label: string; value: string; detail: string; trend?: string; icon: SvgIconComponent; tint: string;
+}) {
+  return <Card sx={cardSx}><CardContent sx={{ p: 2.75, "&:last-child": { pb: 2.75 } }}>
+    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography sx={{ fontSize: 12.5, fontWeight: 650, color: c.muted }}>{label}</Typography>
+        <Typography sx={{ mt: 0.85, mb: 0.65, fontSize: { xs: 27, lg: 30 }, fontWeight: 800, letterSpacing: "-0.05em", color: c.heading }}>{value}</Typography>
+      </Box>
+      <Avatar variant="rounded" sx={{ bgcolor: tint, color: c.primary, borderRadius: 2.5, width: 45, height: 45 }}><Icon /></Avatar>
+    </Stack>
+    <Typography variant="caption" color="text.secondary" sx={{ display: "block", minHeight: 20 }}>{detail}</Typography>
+    {trend && <Typography sx={{ mt: 1, fontSize: 11, color: "#64748B", fontWeight: 600 }}>{trend}</Typography>}
+  </CardContent></Card>;
+}
+function ChartPanel({ incidents, months, now }: { incidents: Incident[]; months: number; now: number }) {
+  const points = useMemo(() => {
+    const today = new Date(now);
+    const map = new Map<string, { key: string; month: string; incidents: number; nearMisses: number; hazards: number }>();
+    for (let offset = months - 1; offset >= 0; offset--) {
+      const date = new Date(today.getFullYear(), today.getMonth() - offset, 1);
+      const key = date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+      map.set(key, { key, month: monthName.format(date), incidents: 0, nearMisses: 0, hazards: 0 });
+    }
+    incidents.forEach(incident => {
+      const date = new Date(incident.timestamp);
+      if (Number.isNaN(date.getTime())) return;
+      const key = date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+      const row = map.get(key);
+      if (!row) return;
+      if (incident.type === "Incident") row.incidents++;
+      else if (incident.type === "Near Miss") row.nearMisses++;
+      else if (incident.type === "Hazard") row.hazards++;
+    });
+    return [...map.values()];
+  }, [incidents, months, now]);
+  const hasAny = points.some(row => row.incidents || row.nearMisses || row.hazards);
+  return <Card sx={cardSx}><CardContent sx={{ p: { xs: 2.5, sm: 3 }, "&:last-child": { pb: 3 } }}>
+    <SurfaceHeading title="Incident & reporting trends" subtitle="Recorded incidents, near misses and hazards over time" />
+    {hasAny ? <Box role="img" aria-label="Monthly trend chart of incidents, near misses and hazards" sx={{ width: "100%", height: { xs: 270, sm: 330 } }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={points} margin={{ top: 12, right: 8, bottom: 0, left: -22 }}>
+          <defs>
+            <linearGradient id="incidentArea" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#0075FF" stopOpacity={0.22} /><stop offset="100%" stopColor="#0075FF" stopOpacity={0} /></linearGradient>
+            <linearGradient id="nearArea" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#22B8A8" stopOpacity={0.12} /><stop offset="100%" stopColor="#22B8A8" stopOpacity={0} /></linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} stroke="#EEF1F6" strokeDasharray="4 4" />
+          <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "#91A0B3", fontSize: 11 }} />
+          <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: "#91A0B3", fontSize: 11 }} />
+          <ChartTooltip contentStyle={{ border: "1px solid #EEF1F5", borderRadius: 12, boxShadow: "0 8px 20px #00000010" }} />
+          <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
+          <Area type="monotone" dataKey="incidents" name="Incidents" stroke="#0075FF" strokeWidth={2.6} fill="url(#incidentArea)" />
+          <Area type="monotone" dataKey="nearMisses" name="Near misses" stroke="#22B8A8" strokeWidth={2.4} fill="url(#nearArea)" />
+          <Area type="monotone" dataKey="hazards" name="Hazards" stroke="#F5AB45" strokeWidth={2.2} fill="none" />
+        </AreaChart>
+      </ResponsiveContainer>
+    </Box> : <Stack alignItems="center" justifyContent="center" sx={{ height: 310, color: c.subtle }}>
+      <HealthAndSafetyOutlined sx={{ fontSize: 36, mb: 1 }} /><Typography fontWeight={650} color="text.primary">No reports for this period</Typography>
+      <Typography variant="body2">Incident trends will appear after reports are recorded.</Typography>
+    </Stack>}
+  </CardContent></Card>;
+}
+function EventsPanel({ events }: { events: EventItem[] }) {
+  return <Card sx={cardSx}><CardContent sx={{ p: 2.75, "&:last-child": { pb: 2.75 } }}>
+    <SurfaceHeading title="Upcoming SHE events" subtitle="Meetings and programmes" action={
+      <Tooltip title="View SHE meetings and programmes"><IconButton component={Link} href="/she-meetings" aria-label="View all SHE events" size="small"><ArrowForwardRounded fontSize="small" /></IconButton></Tooltip>
+    } />
+    {events.length ? <Stack spacing={1.8}>
+      {events.slice(0, 4).map(event => <Stack key={event.id} direction="row" spacing={1.5} alignItems="center">
+        <Avatar variant="rounded" sx={{ borderRadius: 2.5, width: 42, height: 42, bgcolor: event.type === "Meeting" ? "#EAF3FF" : "#E9FBF6", color: event.type === "Meeting" ? "#0075FF" : "#1DAF75" }}>
+          {event.type === "Meeting" ? <CalendarMonthRounded fontSize="small" /> : <EventAvailableRounded fontSize="small" />}
+        </Avatar>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography fontSize={13} fontWeight={700} noWrap>{event.title}</Typography>
+          <Typography fontSize={11.5} color="text.secondary">{shortDate.format(event.date)} · {event.type}</Typography>
+        </Box>
+        <IconButton component={Link} href={event.href} aria-label={"Open " + event.title} size="small"><ArrowForwardRounded sx={{ fontSize: 16 }} /></IconButton>
+      </Stack>)}
+    </Stack> : <Stack alignItems="center" justifyContent="center" sx={{ py: 3, textAlign: "center" }}>
+      <CalendarMonthRounded sx={{ color: "#A0AEC0", mb: 1 }} />
+      <Typography fontSize={13} fontWeight={650}>Nothing scheduled yet</Typography>
+      <Typography fontSize={12} color="text.secondary" sx={{ mb: 1.5 }}>Schedule meetings and programmes to see them here.</Typography>
+      <Button component={Link} href="/she-meetings" size="small">Schedule an event</Button>
+    </Stack>}
+  </CardContent></Card>;
+}
+function ProgressPanel({ audits }: { audits: SheqAudit[] }) {
+  const completed = audits.filter(a => a.status === "Completed" || a.status === "Closed").length;
+  const percent = audits.length ? Math.round(completed / audits.length * 100) : null;
+  return <Card sx={cardSx}><CardContent sx={{ p: 2.75, "&:last-child": { pb: 2.75 } }}>
+    <SurfaceHeading title="Audit progress" subtitle="Completion across recorded audits" />
+    <Stack direction={{ xs: "row", lg: "row" }} spacing={2.5} alignItems="center">
+      <Box sx={{ position: "relative", display: "inline-flex", flexShrink: 0 }}>
+        <CircularProgress variant="determinate" value={100} size={102} thickness={5} sx={{ color: "#EAF1FA" }} />
+        <CircularProgress variant="determinate" value={percent ?? 0} size={102} thickness={5} sx={{ color: c.primary, position: "absolute", left: 0, "& .MuiCircularProgress-circle": { strokeLinecap: "round" } }} />
+        <Box sx={{ inset: 0, position: "absolute", display: "grid", placeItems: "center" }}>
+          <Typography fontSize={24} fontWeight={800}>{percent === null ? "—" : percent + "%"}</Typography>
+        </Box>
+      </Box>
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Typography fontWeight={700} fontSize={14}>{audits.length ? completed + " of " + audits.length + " complete" : "No audits recorded"}</Typography>
+        <Typography color="text.secondary" sx={{ fontSize: 12, mt: 0.75 }}>Track completion through your SHEQ audit workspace.</Typography>
+        <Button size="small" component={Link} href="/sheq-audit" endIcon={<ArrowForwardRounded />} sx={{ mt: 1.5, px: 0 }}>Open audits</Button>
+      </Box>
+    </Stack>
+  </CardContent></Card>;
+}
+function StatusChip({ status }: { status: "On target" | "Below target" | "Above target" | "No target" | "Not available" }) {
+  const color = status === "On target" ? "success" : status === "No target" || status === "Not available" ? "default" : "warning";
+  return <Chip label={status} color={color} size="small" sx={{ bgcolor: color === "default" ? "#F0F3F8" : undefined, fontSize: 11 }} />;
+}
+function PerformanceTable({ rows }: { rows: { name: string; value: string; target: number | null; unit: string; status: "On target" | "Below target" | "Above target" | "No target" | "Not available" }[] }) {
+  return <Card sx={cardSx}><CardContent sx={{ p: { xs: 2.5, sm: 3 }, "&:last-child": { pb: 2 } }}>
+    <SurfaceHeading title="SHEQ performance overview" subtitle="Operational KPIs based on your recorded data and configured targets"
+      action={<Button component={Link} href="/dashboard/kpi-settings" size="small" endIcon={<ArrowForwardRounded />} sx={{ whiteSpace: "nowrap" }}>KPI targets</Button>} />
+    <TableContainer sx={{ maxWidth: "100%", overflowX: "auto" }}>
+      <Table size="small" sx={{ minWidth: 560 }} aria-label="SHEQ KPI performance table">
+        <TableHead><TableRow sx={{ bgcolor: "#FAFBFD" }}>{["INDICATOR", "CURRENT VALUE", "TARGET", "STATUS"].map(h => <TableCell key={h} sx={{ fontSize: 10, letterSpacing: 0.6, fontWeight: 800, color: "#9AA6B8", py: 1.6 }}>{h}</TableCell>)}</TableRow></TableHead>
+        <TableBody>{rows.map(row => <TableRow key={row.name} hover>
+          <TableCell sx={{ fontSize: 13, fontWeight: 700, py: 2 }}>{row.name}</TableCell>
+          <TableCell sx={{ fontSize: 13, fontWeight: 750 }}>{row.value}</TableCell>
+          <TableCell sx={{ fontSize: 12.5, color: c.muted }}>{row.target === null ? "Not set" : row.target + row.unit}</TableCell>
+          <TableCell><StatusChip status={row.status} /></TableCell>
+        </TableRow>)}</TableBody>
+      </Table>
+    </TableContainer>
+    <Typography sx={{ fontSize: 11.5, mt: 2, color: c.muted }}>Injury severity rate requires verified hours worked. It is intentionally not estimated from incident counts alone.</Typography>
+  </CardContent></Card>;
 }
 
-
 export default function DashboardPage() {
-  const { user, userProfile } = useAuth();
-  const { toast } = useToast();
-  const router = useRouter(); 
+  const { user } = useAuth();
   const queryClient = useQueryClient();
-
-  const [selectedLocation, setSelectedLocation] = useState<string | undefined>(mockLocations[0]);
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(incidentCategories[0]);
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-  
-  const [kpiThresholds, setKpiThresholds] = useState<KpiThreshold[]>([]);
-  const [kpiVisibility, setKpiVisibility] = useState<Record<string, boolean>>({});
-  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
-  const [isRefreshingEvents, setIsRefreshingEvents] = useState(false);
-
-  const [tipOfTheDay, setTipOfTheDay] = useState("");
-
-  const tips = [
-    "Use the AI Hazard Identification tool in Risk Management to quickly brainstorm potential hazards for a new task.",
-    "Regularly review your overdue action items from SHE Meetings to ensure timely closure.",
-    "Check the Training Matrix to identify any compliance gaps for critical job roles.",
-    "Low on PPE? The PPE Management dashboard highlights items below their reorder level.",
-    "Schedule recurring audits to maintain consistent oversight of your safety management system.",
-    "Use the 'AI Vetting Suggestion' in Contractor Safety to get a quick performance summary before approving a contractor.",
-    "Link SHEQ Audits to your Risk Register entries to provide context and evidence for your risk assessments."
-  ];
-
-  useEffect(() => {
-    const randomIndex = Math.floor(Math.random() * tips.length);
-    setTipOfTheDay(tips[randomIndex]);
-  }, []);
-
-  const roleDisplayNames: Record<UserRole, string> = {
-    admin: 'Administrator',
-    she_officer: 'SHE Officer',
-    authorizer: 'Authorizer',
-    she_rep: 'SHE Representative',
-    visitor: 'Visitor'
-  };
-
-  const userRoleName = userProfile?.role ? roleDisplayNames[userProfile.role] : 'User';
-  
-
-  // Fetch thresholds and visibility settings
-  useEffect(() => {
-    if (!user?.uid) return;
-    const fetchAllSettings = async () => {
-      setIsLoadingSettings(true);
-      try {
-        // Fetch Thresholds
-        const thresholdQuery = query(collection(db, KPI_THRESHOLDS_COLLECTION), where("userId", "==", user.uid));
-        const thresholdSnapshot = await getDocs(thresholdQuery);
-        const fetchedThresholds: KpiThreshold[] = [];
-        thresholdSnapshot.forEach((docSnap) => {
-          fetchedThresholds.push({ id: docSnap.id, ...docSnap.data() } as KpiThreshold);
-        });
-        setKpiThresholds(fetchedThresholds);
-
-        // Fetch Visibility Settings
-        const visibilityDocRef = doc(db, KPI_VISIBILITY_COLLECTION, user.uid);
-        const visibilitySnap = await getDoc(visibilityDocRef);
-        if (visibilitySnap.exists()) {
-          setKpiVisibility(visibilitySnap.data().visibility || {});
-        } else {
-          // Default to all visible if no settings found
-          const defaultVisibility: Record<string, boolean> = {};
-          Object.keys(kpiInfoMap).forEach(key => defaultVisibility[key] = true);
-          setKpiVisibility(defaultVisibility);
-        }
-
-      } catch (error) {
-        console.error("Error fetching KPI settings for dashboard:", error);
-        toast({ title: "Error", description: "Could not load KPI settings.", variant: "destructive" });
-      } finally {
-        setIsLoadingSettings(false);
-      }
+  const [months, setMonths] = useState(6);
+  // Anchor the date range to a query refresh or filter change rather than the chart render.
+  const now = useMemo(() => Date.now(), [months]);
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: ["vision-dashboard", user?.uid],
+    queryFn: () => loadDashboard(user!.uid),
+    enabled: Boolean(user?.uid),
+    staleTime: 60_000,
+  });
+  const model = useMemo(() => {
+    if (!data) return null;
+    const date = new Date(now);
+    const currentStart = new Date(date.getFullYear(), date.getMonth() - months + 1, 1).getTime();
+    const previousStart = new Date(date.getFullYear(), date.getMonth() - months * 2 + 1, 1).getTime();
+    const inc = data.incidents.filter(i => inRange(i.timestamp, currentStart, now + 1));
+    const prevInc = data.incidents.filter(i => inRange(i.timestamp, previousStart, currentStart));
+    const isRecorded = (i: Incident) => i.type === "Incident" && (i.isRecordable === true || i.classification === "Recordable" || i.classification === "Lost Time");
+    const recordables = inc.filter(isRecorded).length, previousRecordables = prevInc.filter(isRecorded).length;
+    const nearMisses = inc.filter(i => i.type === "Near Miss").length, previousNearMisses = prevInc.filter(i => i.type === "Near Miss").length;
+    const lostDays = inc.filter(i => i.type === "Incident").reduce((sum, i) => sum + Math.max(0, Number(i.lostWorkDays) || 0), 0);
+    const prevLostDays = prevInc.filter(i => i.type === "Incident").reduce((sum, i) => sum + Math.max(0, Number(i.lostWorkDays) || 0), 0);
+    const audits = data.audits.filter(a => inRange(a.auditDate, currentStart, now + 1));
+    const closedAudits = audits.filter(a => a.status === "Closed" || a.status === "Completed").length;
+    const auditPct = audits.length ? Math.round(closedAudits / audits.length * 100) : null;
+    const tracked = inc.filter(i => i.type !== "Hazard");
+    const closed = tracked.filter(i => i.status === "Closed").length;
+    const closurePct = tracked.length ? Math.round(closed / tracked.length * 100) : null;
+    const training = data.training.filter(t => inRange(t.trainingDate, currentStart, now + 1));
+    const trainingPct = training.length ? Math.round(training.filter(t => t.status === "Completed").length / training.length * 100) : null;
+    const threshold = (key: string) => data.targets.find(t => t.kpiKey === key)?.value ?? null;
+    const result = (value: number | null, target: number | null, direction: "above" | "below") => {
+      if (value === null) return "Not available" as const;
+      if (target === null) return "No target" as const;
+      if ((direction === "above" && value >= target) || (direction === "below" && value <= target)) return "On target" as const;
+      return direction === "above" ? "Below target" as const : "Above target" as const;
     };
-    fetchAllSettings();
-  }, [user?.uid, toast]);
-
-  // Fetch all necessary data for the AppUsageProgress component
-  const { data: usageData, isLoading: isLoadingUsageData } = useQuery({
-    queryKey: ['dashboardUsageData', user?.uid],
-    queryFn: async () => {
-        if (!user?.uid) return null;
-        
-        const collectionsToFetch = [
-            INCIDENTS_COLLECTION, MANUAL_RISK_ASSESSMENTS_COLLECTION, SHEQ_AUDITS_COLLECTION,
-            TRAINING_RECORDS_COLLECTION, CONTRACTORS_COLLECTION, PPE_ITEMS_COLLECTION,
-            EMERGENCY_PLANS_COLLECTION, SEGS_COLLECTION, IH_SAMPLES_COLLECTION, MEETINGS_COLLECTION
-        ];
-
-        const promises = collectionsToFetch.map(coll => {
-            const q = query(collection(db, coll), where("userId", "==", user.uid));
-            return getDocs(q);
-        });
-
-        const snapshots = await Promise.all(promises);
-
-        return {
-            incidentCount: snapshots[0].size,
-            riskAssessmentCount: snapshots[1].size,
-            auditCount: snapshots[2].size,
-            trainingRecordCount: snapshots[3].size,
-            contractorCount: snapshots[4].size,
-            ppeItemCount: snapshots[5].size,
-            emergencyPlanCount: snapshots[6].size,
-            healthRecordCount: snapshots[7].size + snapshots[8].size, // Combining SEGs and IH Samples
-            meetingCount: snapshots[9].size,
-        };
-    },
-    enabled: !!user?.uid,
-  });
-
-
-  // Fetch Upcoming SHE Programs
-  const { data: upcomingPrograms = [], isLoading: isLoadingPrograms, error: programsError } = useQuery<SheProgram[]>({
-    queryKey: [PROGRAMS_COLLECTION, 'upcoming', user?.uid],
-    queryFn: async () => {
-      if (!user?.uid) return [];
-      const today = startOfToday(); 
-
-      const q = query(
-        collection(db, PROGRAMS_COLLECTION),
-        where("userId", "==", user.uid),
-        where("status", "in", ["Planned", "Ongoing"]),
-        orderBy("startDate", "asc") 
-      );
-      const snapshot = await getDocs(q);
-      
-      const mappedPrograms = snapshot.docs.map(docSnap => {
-          const data = docSnap.data();
-          // Ensure dates are consistently ISO strings or null if invalid/missing
-          const startDateISO = data.startDate instanceof Timestamp 
-                               ? toIso(data.startDate)
-                               : (typeof data.startDate === 'string' && isValid(parseISO(data.startDate)) ? data.startDate : null);
-          const endDateISO = data.endDate instanceof Timestamp 
-                             ? toIso(data.endDate)
-                             : (typeof data.endDate === 'string' && isValid(parseISO(data.endDate)) ? data.endDate : null);
-          
-          return { 
-              id: docSnap.id, 
-              ...data, 
-              startDate: startDateISO, 
-              endDate: endDateISO     
-          } as SheProgram; 
-      });
-
-      // Client-side filtering for "upcoming" based on JS Dates
-      return mappedPrograms.filter(program => {
-        if (!program.startDate || !isValid(parseISO(program.startDate))) {
-          // console.warn(`Program ${program.id} filtered out due to invalid or missing startDate: ${program.startDate}`);
-          return false; // Skip if startDate is invalid or missing
-        }
-        const progStartDate = parseISO(program.startDate);
-
-        if (program.status === 'Planned') {
-          return progStartDate >= today;
-        }
-        if (program.status === 'Ongoing') {
-          if (program.endDate) { // If there's an end date
-            if (!isValid(parseISO(program.endDate))) {
-                // console.warn(`Program ${program.id} filtered out due to invalid endDate: ${program.endDate}`);
-                return false; // Skip if endDate is invalid
-            }
-            return parseISO(program.endDate) >= today; // Must not have ended yet
-          }
-          return true; // Ongoing with no end date means it's current
-        }
-        return false; // Should not happen if query restricts status
-      });
-    },
-    enabled: !!user?.uid,
-  });
-
-  // Fetch Upcoming SHE Meetings
-  const { data: upcomingMeetingsData = [], isLoading: isLoadingMeetings, error: meetingsError } = useQuery<SheMeeting[]>({
-    queryKey: [MEETINGS_COLLECTION, 'upcoming', user?.uid],
-    queryFn: async () => {
-      if (!user?.uid) return [];
-      const todayForQuery = Timestamp.fromDate(startOfToday()); // PostgreSQL Timestamp for query
-      const q = query(
-        collection(db, MEETINGS_COLLECTION),
-        where("userId", "==", user.uid),
-        where("meetingDate", ">=", todayForQuery), // Query for meetingDate on or after start of today
-        orderBy("meetingDate", "asc")
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(docSnap => {
-          const data = docSnap.data();
-          // Ensure meetingDate is consistently an ISO string or null
-          const meetingDateISO = data.meetingDate instanceof Timestamp 
-                                 ? toIso(data.meetingDate)
-                                 : (typeof data.meetingDate === 'string' && isValid(parseISO(data.meetingDate)) ? data.meetingDate : null);
-          
-          const actionItems = (data.actionItems || []).map((ai: any) => ({
-            ...ai,
-            dueDate: ai.dueDate instanceof Timestamp 
-                     ? toIso(ai.dueDate)
-                     : (typeof ai.dueDate === 'string' && isValid(parseISO(ai.dueDate)) ? ai.dueDate : null),
-          }));
-
-          return { 
-            id: docSnap.id, 
-            ...data, 
-            meetingDate: meetingDateISO,
-            actionItems
-          } as SheMeeting;
-      }).filter(meeting => meeting.meetingDate != null && isValid(parseISO(meeting.meetingDate))); // Filter out meetings with invalid/missing dates post-mapping
-    },
-    enabled: !!user?.uid,
-  });
-
-  const upcomingEvents = useMemo(() => {
-    const events: UpcomingEvent[] = [];
-    (upcomingPrograms || []).forEach(program => {
-      if (program.startDate && isValid(parseISO(program.startDate))) {
-        events.push({
-          id: program.id,
-          type: 'Program',
-          title: program.programName,
-          date: program.startDate, // This is already a validated ISO string or null
-          dateDisplay: format(parseISO(program.startDate), "MMM d, yyyy"),
-          icon: Activity,
-          path: `/she-meetings#program-${program.id}`
-        });
-      }
-    });
-    (upcomingMeetingsData || []).forEach(meeting => {
-      if (meeting.meetingDate && isValid(parseISO(meeting.meetingDate))) { // meeting.meetingDate is already validated ISO string or null
-        events.push({
-          id: meeting.id,
-          type: 'Meeting',
-          title: meeting.title,
-          date: meeting.meetingDate, 
-          dateDisplay: format(parseISO(meeting.meetingDate), "MMM d, yyyy 'at' p"),
-          icon: UsersIcon,
-          path: `/she-meetings#meeting-${meeting.id}`
-        });
-      }
-    });
-    return events.sort((a, b) => {
-        // Dates are already confirmed valid ISO strings by the time they are pushed to events array
-        const dateA = parseISO(a.date).getTime();
-        const dateB = parseISO(b.date).getTime();
-        return dateA - dateB;
-    }).slice(0, 5);
-  }, [upcomingPrograms, upcomingMeetingsData]);
-
-  const isLoadingUpcomingEvents = isLoadingPrograms || isLoadingMeetings;
-
-  const handleRefreshEvents = async () => {
-    setIsRefreshingEvents(true);
-    try {
-      await queryClient.invalidateQueries({ queryKey: [PROGRAMS_COLLECTION, 'upcoming', user?.uid] });
-      await queryClient.invalidateQueries({ queryKey: [MEETINGS_COLLECTION, 'upcoming', user?.uid] });
-      toast({ title: "Events Refreshed", description: "Upcoming SHE events have been updated."});
-    } catch (e) {
-      toast({ title: "Error Refreshing", description: "Could not refresh events.", variant: "destructive"});
-    } finally {
-      setIsRefreshingEvents(false);
-    }
-  };
-  
-  // --- Incident Chart Data & Logic ---
-  const { data: incidents = [], isLoading: isLoadingIncidents } = useQuery<Incident[]>({
-    queryKey: [INCIDENTS_COLLECTION, user?.uid],
-    queryFn: async () => {
-        if (!user?.uid) return [];
-        const q = query(collection(db, INCIDENTS_COLLECTION), where("userId", "==", user.uid));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Incident));
-    },
-    enabled: !!user?.uid,
-  });
-
-  const incidentChartData = useMemo(() => {
-    const filteredIncidents = incidents.filter(incident => {
-      const incidentDate = parseISO(incident.timestamp);
-      const isAfterStart = !startDate || isAfter(incidentDate, startDate) || format(incidentDate, 'yyyy-MM-dd') === format(startDate, 'yyyy-MM-dd');
-      const isBeforeEnd = !endDate || isBefore(incidentDate, endDate) || format(incidentDate, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
-      const categoryMatch = selectedCategory === 'All Categories' || incident.type === selectedCategory;
-      // Location filter is currently mocked
-      const locationMatch = selectedLocation === 'All Locations' || incident.location === selectedLocation;
-
-      return isAfterStart && isBeforeEnd && categoryMatch && locationMatch;
-    });
-
-    const counts = {
-        name: "Incidents",
-        Incident: 0,
-        'Near Miss': 0,
-        Hazard: 0,
-    };
-    filteredIncidents.forEach(incident => {
-      if (incident.type === 'Incident') counts.Incident++;
-      else if (incident.type === 'Near Miss') counts['Near Miss']++;
-      else if (incident.type === 'Hazard') counts.Hazard++;
-    });
-
-    return [
-        { type: 'Incident', count: counts.Incident, fill: "var(--color-Incident)" },
-        { type: 'Near Miss', count: counts['Near Miss'], fill: "var(--color-Near Miss)" },
-        { type: 'Hazard', count: counts.Hazard, fill: "var(--color-Hazard)" },
+    const rows = [
+      { name: "Incident closure rate", value: closurePct === null ? "—" : closurePct + "%", target: threshold("IncidentClosureRate"), unit: "%", status: result(closurePct, threshold("IncidentClosureRate"), "above") },
+      { name: "Injury severity rate (per 200,000 hrs)", value: "—", target: threshold("SeverityRate"), unit: "", status: "Not available" as const },
+      { name: "Near-miss reports", value: String(nearMisses), target: null, unit: "", status: "No target" as const },
+      { name: "Audit completion", value: auditPct === null ? "—" : auditPct + "%", target: null, unit: "%", status: auditPct === null ? "Not available" as const : "No target" as const },
+      { name: "Training completion", value: trainingPct === null ? "—" : trainingPct + "%", target: null, unit: "%", status: trainingPct === null ? "Not available" as const : "No target" as const },
     ];
-  }, [incidents, startDate, endDate, selectedCategory, selectedLocation]);
+    const todayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    const events: EventItem[] = [
+      ...data.meetings.filter(m => ms(m.meetingDate) >= todayStart).map(m => ({ id: "meeting-" + m.id, title: m.title, type: "Meeting" as const, date: ms(m.meetingDate), href: "/she-meetings" })),
+      ...data.programs.filter(p => p.status !== "Cancelled" && p.status !== "Completed" && (ms(p.startDate) >= todayStart || (p.status === "Ongoing" && ms(p.endDate) >= todayStart)))
+        .map(p => ({ id: "program-" + p.id, title: p.programName, type: "Programme" as const, date: Math.max(todayStart, ms(p.startDate)), href: "/she-meetings" })),
+    ].filter(e => Number.isFinite(e.date)).sort((a, b) => a.date - b.date);
+    return { inc, recordables, previousRecordables, nearMisses, previousNearMisses, lostDays, prevLostDays, auditPct, audits, events, rows };
+  }, [data, months, now]);
 
-  const uniqueIncidentRegions = useMemo(() => {
-    const regions = new Set(incidents.map(i => i.region));
-    return ['All Locations', ...Array.from(regions)];
-  }, [incidents]);
+  return <Box sx={{ maxWidth: 1700, mx: "auto" }}>
+    <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }} gap={2} sx={{ mb: 3 }}>
+      <Box><Typography variant="h4">Safety at a glance</Typography><Typography variant="body2" color="text.secondary" sx={{ mt: 0.7 }}>Monitor safety performance, team activity and what's ahead.</Typography></Box>
+      <Stack direction="row" alignItems="center" gap={1.5}>
+        <Select size="small" value={months} onChange={event => setMonths(Number(event.target.value))} aria-label="Dashboard reporting period"
+          sx={{ bgcolor: "#fff", borderRadius: 2.5, minWidth: 138, fontSize: 13, "& fieldset": { borderColor: "#EEF1F5" } }}>
+          <MenuItem value={6}>Last 6 months</MenuItem><MenuItem value={12}>Last 12 months</MenuItem>
+        </Select>
+        <Tooltip title="Refresh dashboard"><span><IconButton aria-label="Refresh dashboard" disabled={isFetching} onClick={() => { queryClient.invalidateQueries({ queryKey: ["vision-dashboard", user?.uid] }); refetch(); }}
+          sx={{ bgcolor: "#fff", borderRadius: 2.5, border: "1px solid #EEF1F5", width: 40, height: 40 }}><RefreshRounded fontSize="small" /></IconButton></span></Tooltip>
+      </Stack>
+    </Stack>
 
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0">
-        <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
-          <LayoutDashboard className="h-8 w-8"/> Dashboard
-        </h1>
-        <Button variant="outline" onClick={() => router.push('/dashboard/kpi-settings')}>
-          <Settings className="mr-2 h-4 w-4" />
-          Configure KPI Settings
-        </Button>
-      </div>
-      
-       <div className="grid grid-cols-1 lg:grid-cols-4 gap-2">
-        <Card className="lg:col-span-1 bg-gradient-to-r from-accent/90 to-accent text-accent-foreground shadow-lg flex flex-col justify-center">
-          <CardHeader>
-            <CardTitle> {user?.displayName || 'User'}!</CardTitle>
-            <CardDescription className="text-accent-foreground/80 mt-1">
-              You are logged in as an {userRoleName}.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-        <div className="lg:col-span-3 flex items-center p-6">
-          <div className="flex items-start gap-4">
-            <Lightbulb className="h-8 w-8 shrink-0 text-accent" />
-            <div>
-              <h4 className="font-semibold text-lg">Tip of the Day</h4>
-              <p className="text-muted-foreground">{tipOfTheDay}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <Separator />
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
-        <div className="lg:col-span-2 space-y-2">
-            <div className="space-y-2">
-              <OverviewCards 
-                  kpiThresholds={kpiThresholds} 
-                  kpiVisibility={kpiVisibility}
-                  isLoadingSettings={isLoadingSettings} 
-              />
-            </div>
-        </div>
-
-        <div className="space-y-2">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle>Upcoming SHE Events</CardTitle>
-                        <CardDescription>Key programs and meetings on the horizon.</CardDescription>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={handleRefreshEvents} disabled={isRefreshingEvents} title="Refresh Events">
-                        {isRefreshingEvents ? <PageLoader className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                    </Button>
-                </CardHeader>
-                <CardContent>
-                    {isLoadingUpcomingEvents ? (
-                        <div className="flex justify-center items-center h-24">
-                            <PageLoader className="h-6 w-6 animate-spin text-muted-foreground" />
-                        </div>
-                    ) : upcomingEvents.length > 0 ? (
-                        <ScrollArea className="h-[120px]">
-                            <ul className="space-y-3 pr-3">
-                                {upcomingEvents.map(event => (
-                                    <li key={event.id} className="flex items-start gap-3 p-2.5 rounded-md border bg-secondary/40 hover:shadow-sm transition-shadow">
-                                        <event.icon className={`h-5 w-5 mt-0.5 ${event.type === 'Program' ? 'text-primary' : 'text-accent'}`} />
-                                        <div>
-                                            <p className="font-medium text-sm leading-tight">{event.title}</p>
-                                            <p className="text-xs text-muted-foreground">{event.dateDisplay} ({event.type})</p>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </ScrollArea>
-                    ) : (
-                        <p className="text-sm text-muted-foreground text-center py-4">No upcoming events scheduled.</p>
-                    )}
-                    {(programsError || meetingsError) && (
-                        <p className="text-xs text-red-500 mt-2 text-center">Error loading events. Please try again later.</p>
-                    )}
-                </CardContent>
-            </Card>
-            <KpiTrendChart />
-            <Card>
-                <CardHeader>
-                    <CardTitle>Incidents Overview</CardTitle>
-                    <CardDescription>Filter incidents by type and date range.</CardDescription>
-                    <div className="pt-4">
-                        <div className="flex flex-wrap gap-4 items-end">
-                             <div className="flex-grow min-w-[180px]">
-                                <Label htmlFor="category-filter" className="text-xs font-medium text-muted-foreground">Category</Label>
-                                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                                    <SelectTrigger id="category-filter" className="w-full">
-                                    <SelectValue placeholder="Select Category" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                    {incidentCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="flex-grow min-w-[180px]">
-                                <Label htmlFor="start-date-filter" className="text-xs font-medium text-muted-foreground">Start Date</Label>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                        id="start-date-filter"
-                                        variant={"outline"}
-                                        className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !startDate && "text-muted-foreground"
-                                        )}
-                                        >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {startDate ? format(startDate, "PPP") : <span>Pick a start date</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0">
-                                        <Calendar
-                                        mode="single"
-                                        selected={startDate}
-                                        onSelect={setStartDate}
-                                        initialFocus
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                            <div className="flex-grow min-w-[180px]">
-                                <Label htmlFor="end-date-filter" className="text-xs font-medium text-muted-foreground">End Date</Label>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                        id="end-date-filter"
-                                        variant={"outline"}
-                                        className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !endDate && "text-muted-foreground"
-                                        )}
-                                        >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {endDate ? format(endDate, "PPP") : <span>Pick an end date</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0">
-                                        <Calendar
-                                        mode="single"
-                                        selected={endDate}
-                                        onSelect={setEndDate}
-                                        initialFocus
-                                        disabled={(date) =>
-                                            startDate ? date < startDate : false
-                                        }
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                             <Button variant="ghost" onClick={() => { setStartDate(undefined); setEndDate(undefined); setSelectedCategory('All Categories')}}>Reset</Button>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    {isLoadingIncidents ? (
-                         <div className="h-[200px] w-full flex items-center justify-center text-muted-foreground bg-muted/30 rounded-md">
-                           <PageLoader className="h-6 w-6 animate-spin" />
-                         </div>
-                    ) : (
-                        <ChartContainer config={incidentChartConfig} className="h-[200px] w-full">
-                            <ResponsiveContainer>
-                                <BarChart data={incidentChartData} layout="vertical" margin={{ left: 10, right: 10 }}>
-                                <CartesianGrid horizontal={false} />
-                                <YAxis dataKey="type" type="category" tickLine={false} axisLine={false} tickMargin={10} width={80} />
-                                <XAxis dataKey="count" type="number" hide />
-                                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
-                                <Bar dataKey="count" radius={5} >
-                                    {incidentChartData.map((entry) => (
-                                        <div key={entry.type} style={{backgroundColor: entry.fill}} />
-                                    ))}
-                                </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    )}
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Recent Activity</CardTitle>
-                    <CardDescription>Latest incidents and inspections.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ul className="space-y-3">
-                    <li className="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
-                        <div>
-                        <p className="font-medium">Near Miss: Slips, Trips, and Falls</p>
-                        <p className="text-sm text-muted-foreground">Warehouse A - 2 hours ago</p>
-                        </div>
-                        <span className="text-xs text-muted-foreground">View</span>
-                    </li>
-                    <li className="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
-                        <div>
-                        <p className="font-medium">Inspection: Fire Safety Check</p>
-                        <p className="text-sm text-muted-foreground">Office Block - Completed Yesterday</p>
-                        </div>
-                        <span className="text-xs text-muted-foreground">Details</span>
-                    </li>
-                    <li className="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
-                        <div>
-                        <p className="font-medium">Hazard Reported: Damaged Guard Rail</p>
-                        <p className="text-sm text-muted-foreground">Factory Floor, Line 3 - 3 days ago</p>
-                        </div>
-                        <span className="text-xs text-muted-foreground">View</span>
-                    </li>
-                    </ul>
-                </CardContent>
-            </Card>
-        </div>
-      </div>
-      
-      {isLoadingUsageData || !usageData ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Application Utilization</CardTitle>
-          </CardHeader>
-          <CardContent className="flex justify-center items-center h-48">
-            <PageLoader className="h-8 w-8 animate-spin" />
-            <p className="ml-2 text-muted-foreground">Loading usage data...</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <AppUsageProgress usageData={usageData} />
-      )}
-      
-      <div className="grid grid-cols-1 gap-2">
-        <SuggestIndicatorForm />
-      </div>
-    </div>
-  );
+    {error && <Alert severity="error" sx={{ mb: 3 }} action={<Button color="inherit" size="small" onClick={() => refetch()}>Retry</Button>}>Unable to load dashboard data. Please check your connection and try again.</Alert>}
+    {isLoading || !model || !data ? <Stack spacing={2.5}>
+      <Grid container spacing={2.5}>{[0,1,2,3].map(n => <Grid item xs={12} sm={6} lg={3} key={n}><Skeleton variant="rounded" height={168} sx={{ borderRadius: 4 }} /></Grid>)}</Grid>
+      <Skeleton variant="rounded" height={360} sx={{ borderRadius: 4 }} />
+      <Skeleton variant="rounded" height={260} sx={{ borderRadius: 4 }} />
+    </Stack> : <>
+      <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
+        <Grid item xs={12} sm={6} lg={3}><MetricCard label="Recordable incidents" value={String(model.recordables)} detail="In selected reporting period" trend={changeLabel(model.recordables, model.previousRecordables)} icon={ErrorOutlineRounded} tint="#EAF3FF" /></Grid>
+        <Grid item xs={12} sm={6} lg={3}><MetricCard label="Lost workdays" value={String(model.lostDays)} detail="Reported injury-related days lost" trend={changeLabel(model.lostDays, model.prevLostDays)} icon={HealthAndSafetyOutlined} tint="#E9F7F2" /></Grid>
+        <Grid item xs={12} sm={6} lg={3}><MetricCard label="Near-miss reports" value={String(model.nearMisses)} detail="Proactive safety reports" trend={changeLabel(model.nearMisses, model.previousNearMisses)} icon={WarningAmberRounded} tint="#FFF4E5" /></Grid>
+        <Grid item xs={12} sm={6} lg={3}><MetricCard label="Audits completed" value={model.auditPct === null ? "—" : model.auditPct + "%"} detail={model.audits.length ? "Of " + model.audits.length + " audits this period" : "No audits in this period"} icon={AssignmentTurnedInOutlined} tint="#F0EDFF" /></Grid>
+      </Grid>
+      <Grid container spacing={2.5} alignItems="stretch" sx={{ mb: 2.5 }}>
+        <Grid item xs={12} lg={8}><ChartPanel incidents={data.incidents} months={months} now={now} /></Grid>
+        <Grid item xs={12} lg={4}><Stack spacing={2.5} sx={{ height: "100%" }}><EventsPanel events={model.events} /><ProgressPanel audits={model.audits} /></Stack></Grid>
+      </Grid>
+      <PerformanceTable rows={model.rows} />
+    </>}
+  </Box>;
 }
