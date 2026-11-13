@@ -14,9 +14,13 @@ export async function billingIdentity(authorization: string | null) {
   const db = billingDb();
   const { data: { user }, error } = await db.auth.getUser(token);
   if (error || !user) return null;
-  const { data: profile, error: profileError } = await db.from("userProfiles").select("organizationId,role").eq("id", user.id).single();
-  if (profileError || !profile?.organizationId) return null;
-  return { user, organizationId: profile.organizationId as string, role: profile.role as string };
+  const { data: profile, error: profileError } = await db.from("profiles").select("organization_id,role,active").eq("id", user.id).single();
+  if (profileError || !profile?.organization_id || profile.active !== true) return null;
+  // Email verification and an active administrator membership are required.
+  // This exemption never changes PostgreSQL RLS or tenant membership.
+  const developerExempt = user.email?.trim().toLowerCase() === "rapportsango@gmail.com" &&
+    Boolean(user.email_confirmed_at) && profile.role === "admin";
+  return { user, organizationId: profile.organization_id as string, role: profile.role as string, developerExempt };
 }
 
 export function isEntitled(subscription: { status: string; current_period_end: string | null } | null) {
