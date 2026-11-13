@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter, usePathname } from 'next/navigation';
 import { BillingGate } from '@/components/billing/billing-gate';
+import { BILLING_ENABLED } from '@/lib/billing/feature-flags';
 import AppLayoutInternal from '@/components/layout/app-layout'; // Renamed original
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -58,5 +59,9 @@ export default function ProtectedAppLayout({ children }: { children: ReactNode }
 
 
   // If authenticated and not on welcome page, render the actual app layout and children
-  return <AppLayoutInternal userProfile={userProfile}><BillingGate>{children}</BillingGate></AppLayoutInternal>;
+  return (
+    <AppLayoutInternal userProfile={userProfile}>
+      {BILLING_ENABLED ? <BillingGate>{children}</BillingGate> : children}
+    </AppLayoutInternal>
+  );
 }
