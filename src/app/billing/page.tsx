@@ -8,6 +8,7 @@ export default function BillingPage() {
   const { user, userProfile, isAuthenticating } = useAuth();
   const [status, setStatus] = useState("Checking subscription…");
   const [active, setActive] = useState(false);
+  const [developerExempt, setDeveloperExempt] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   async function authHeaders() {
@@ -20,7 +21,7 @@ export default function BillingPage() {
     let cancelled = false;
     authHeaders().then(headers => fetch("/api/billing/status", { headers, cache: "no-store" }))
       .then(async response => { if (!response.ok) throw new Error("Unable to check billing"); return response.json(); })
-      .then(result => { if (!cancelled) { setActive(result.active); setStatus(result.active ? "Subscription active" : "Subscription required"); } })
+      .then(result => { if (!cancelled) { setActive(result.active); setDeveloperExempt(result.exemption === true); setStatus(result.exemption ? "Developer access enabled — no subscription required" : result.active ? "Subscription active" : "Subscription required"); } })
       .catch(() => { if (!cancelled) setStatus("Billing status unavailable"); });
     return () => { cancelled = true; };
   }, [user]);
@@ -43,6 +44,6 @@ export default function BillingPage() {
       active ? <Button asChild><Link href="/dashboard">Continue to dashboard</Link></Button> :
       userProfile?.role === "admin" ? <Button disabled={busy} onClick={subscribe}>{busy ? "Opening checkout…" : "Subscribe with Dodo Payments"}</Button> :
       <p>Ask your organisation administrator to activate the subscription.</p>}
-    <p className="text-sm text-muted-foreground">Payment confirmation may take a moment. Access is enabled only after verified confirmation.</p>
+    {!developerExempt && <p className="text-sm text-muted-foreground">Payment confirmation may take a moment. Access is enabled only after verified confirmation.</p>}
   </main>;
 }
