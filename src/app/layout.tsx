@@ -1,6 +1,7 @@
 
 import type {Metadata} from 'next';
 import './globals.css';
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { Providers } from '@/components/layout/providers'; // Import the new Providers component
 
 export const metadata: Metadata = {
@@ -22,9 +23,11 @@ export default function RootLayout({
         
       </head>
       <body className="font-body antialiased">
-        <Providers> {/* Use the Providers component */}
+        <AppRouterCacheProvider options={{ enableCssLayer: true }}>
+        <Providers>
           {children}
         </Providers>
+        </AppRouterCacheProvider>
       </body>
     </html>
   );
