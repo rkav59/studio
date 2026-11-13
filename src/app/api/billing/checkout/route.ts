@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { billingDb, billingIdentity } from "@/lib/billing/server";
+import { BILLING_ENABLED } from "@/lib/billing/feature-flags";
 export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
+  // No purchase can be initiated while subscriptions are paused.
+  if (!BILLING_ENABLED) {
+    return NextResponse.json({ error: "SHEiQpro is currently free to use; checkout is disabled." }, { status: 503 });
+  }
   try {
     const identity = await billingIdentity(request.headers.get("authorization"));
     if (!identity) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
