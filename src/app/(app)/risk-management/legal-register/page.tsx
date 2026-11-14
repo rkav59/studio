@@ -19,6 +19,55 @@ import { Input } from '@/components/ui/input';
 
 const USER_PROFILES_COLLECTION = 'userProfiles';
 
+const isUserCancellation = (error: unknown): boolean => {
+  const values: string[] = [];
+  if (typeof error === "string") {
+    values.push(error);
+  } else if (error && typeof error === "object") {
+    const details = error as Record<string, unknown>;
+    for (const key of ["name", "code", "message", "reason", "type"]) {
+      if (typeof details[key] === "string") values.push(details[key] as string);
+    }
+  }
+
+  const normalized = values.map((value) =>
+    value.trim().toLowerCase().replace(/[_-]+/g, " "),
+  );
+  const knownCancellationValues = new Set([
+    "aborterror",
+    "abort err",
+    "cancel",
+    "cancelled",
+    "canceled",
+    "user cancel",
+    "user cancelled",
+    "user canceled",
+    "user rejected",
+    "user declined",
+    "user denied",
+    "confirmation cancelled",
+    "confirmation canceled",
+    "confirmation rejected",
+    "confirmation declined",
+    "confirmation discarded",
+    "request cancelled",
+    "request canceled",
+    "action cancelled",
+    "action canceled",
+    "discarded",
+    "discarded by user",
+  ]);
+
+  if (normalized.some((value) => knownCancellationValues.has(value))) return true;
+
+  const message = normalized.join(" ");
+  const outcome = "cancel(?:led|ed|lation)?|reject(?:ed|ion)?|declin(?:ed|ation)?|discard(?:ed)?|den(?:ied|ial|y)";
+  return new RegExp(
+    `\\b(?:user|confirmation|approval|request|action|draft)\\b.{0,50}\\b(?:${outcome})\\b`,
+    "i",
+  ).test(message);
+};
+
 const highlightText = (text: string, highlight: string) => {
   if (!highlight.trim()) {
     return text;
@@ -91,11 +140,16 @@ export default function LegalRegisterPage() {
       const result = await generateLegalRegister({ country: userProfile.country });
       setLegalRegister(result);
     } catch (e) {
-      console.error("Error generating legal register:", e);
-      setError("Failed to generate legal register. The AI service might be temporarily unavailable or encountered an issue.");
-      toast({ title: "Generation Failed", description: "Could not generate the legal register.", variant: "destructive" });
+      if (isUserCancellation(e)) {
+        setError(null);
+      } else {
+        console.error("Error generating legal register:", e);
+        setError("Failed to generate legal register. The AI service might be temporarily unavailable or encountered an issue.");
+        toast({ title: "Generation Failed", description: "Could not generate the legal register.", variant: "destructive" });
+      }
+    } finally {
+      setIsLoadingRegister(false);
     }
-    setIsLoadingRegister(false);
   };
 
   useEffect(() => {
@@ -242,11 +296,10 @@ export default function LegalRegisterPage() {
               <Button onClick={() => router.push('/user-profile')} variant="secondary">Go to Profile</Button>
             </div>
            )}
-           {!isLoadingProfile && userProfile?.country && !isLoadingRegister && !legalRegister && !error && (
+           {!isLoadingProfile && userProfile?.country && !isLoadingRegister && !legalRegister && (
              <div className="text-center py-4 print-hide">
                 <Button onClick={fetchLegalRegister} disabled={isLoadingRegister} variant="default">
-                    {isLoadingRegister && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Generate Legal Register for {userProfile.country}
+                    {error ? "Retry Legal Register" : `Generate Legal Register for ${userProfile.country}`}
                 </Button>
              </div>
            )}
