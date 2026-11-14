@@ -74,6 +74,7 @@ const suggestRootCauseFlow = ai.defineFlow(
   },
   async (input: SuggestRootCauseInputType) => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) throw new Error("Gemini could not generate a valid response. Please retry.");
+    return output;
   }
 );
