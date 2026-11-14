@@ -14,7 +14,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { generateSheReport, type SheReportInput, type SheReportOutput } from "@/ai/flows/generate-she-report-flow";
+import { generateSheReport, type SheReportInput, type SheReportOutput } from "@/ai/client";
 import { ScrollArea } from "../ui/scroll-area";
 import { Alert, AlertDescription } from "../ui/alert";
 
