@@ -151,7 +151,7 @@ function IncidentsByTypeChart({ data }: { data: Incident[] }) {
 
 export function RiskReportingDashboard({ riskRegisterEntries, incidents }: RiskReportingDashboardProps) {
   return (
-    <Card id="risk-reporting-dashboard" className="shadow-md">
+    <Card id="risk-reporting-dashboard" className="shadow-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <LayoutDashboard className="h-6 w-6 text-primary" />

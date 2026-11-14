@@ -46,7 +46,7 @@ export function HazardIdentificationForm({ onSuggestionsGenerated }: HazardIdent
     };
 
     return (
-        <Card className="shadow-md">
+        <Card className="shadow-card">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-6 w-6 text-orange-500"/>AI-Powered Hazard Identification</CardTitle>
                 <CardDescription>Describe the activity or area to identify potential hazards.</CardDescription>
