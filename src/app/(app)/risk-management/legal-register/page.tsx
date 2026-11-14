@@ -13,7 +13,7 @@ import { db } from '@/lib/supabase/client';
 import { doc, getDoc } from "@/lib/supabase/records";
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile, GenerateLegalRegisterOutput, LegalRegisterItem } from '@/lib/types';
-import { generateLegalRegister } from '@/ai/flows/generate-legal-register-flow';
+import { generateLegalRegister } from '@/ai/client';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 
