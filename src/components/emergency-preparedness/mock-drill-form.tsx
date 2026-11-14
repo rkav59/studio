@@ -32,7 +32,7 @@ import { format, parseISO, isValid } from 'date-fns';
 import { ScrollArea } from "../ui/scroll-area";
 import { Card, CardContent, CardHeader as UiCardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from "../ui/card"; 
 import { Separator } from "../ui/separator";
-import { generateDrillScenario, type GenerateDrillScenarioInput } from "@/ai/flows/generate-drill-scenario-flow";
+import { generateDrillScenario, type GenerateDrillScenarioInput } from "@/ai/client";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
 

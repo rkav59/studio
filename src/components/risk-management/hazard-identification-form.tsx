@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Lightbulb, Loader2 } from "lucide-react";
-import { identifyHazards, type IdentifyHazardsInput, type IdentifyHazardsOutput } from "@/ai/flows/identify-hazards-flow";
+import { identifyHazards, type IdentifyHazardsInput, type IdentifyHazardsOutput } from "@/ai/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface HazardIdentificationFormProps {
