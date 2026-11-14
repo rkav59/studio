@@ -51,7 +51,7 @@ const groups: { label: string; items: NavItem[] }[] = [
 function SideNav({ currentPath, userProfile, close, signOut }: {
   currentPath: string; userProfile: UserProfile | null; close: () => void; signOut: () => void;
 }) {
-  return <Box sx={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden", bgcolor: "#FFFFFF", px: 1.5, pt: 2, pb: 1.5 }}>
+  return <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, overflow: "hidden", bgcolor: "#FFFFFF", px: 1.5, pt: 2, pb: 1.5 }}>
     <Box component={Link} href="/dashboard" onClick={close} sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1, mb: 2, flexShrink: 0, textDecoration: "none", color: "text.primary", "@media (max-height: 720px)": { mb: 1 } }}>
       <SheiqproLogo className="h-9 w-9 text-[#0075FF]" />
       <Box><Typography sx={{ fontWeight: 800, fontSize: 20, lineHeight: 1.1, letterSpacing: "-0.035em" }}>SHEiQpro</Typography><Typography variant="caption" sx={{ color: "text.secondary" }}>Safety intelligence</Typography></Box>
