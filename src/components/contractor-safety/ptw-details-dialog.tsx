@@ -156,7 +156,7 @@ export function PtwDetailsDialog({ ptw, contractorName, onClose, supervisionReco
                 {/* Supervision Records Summary */}
                 <section>
                     <h3 className="text-lg font-semibold mb-2 border-b pb-1">On-Site Supervision</h3>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                         <p className="text-sm text-muted-foreground">
                             {supervisionRecordsCount > 0 ? `${supervisionRecordsCount} supervision record(s) found.` : "No supervision records yet for this PTW."}
                         </p>

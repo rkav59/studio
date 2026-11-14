@@ -232,7 +232,7 @@ export default function EmergencyPreparednessPage() {
       
       <Separator />
 
-      {pendingDrillActions > 0 && (<Alert variant="info" className="shadow-md"><ListChecksIcon className="h-4 w-4" /><AlertTitle>Pending Drill Actions</AlertTitle><UiAlertDescription>There are <strong className="text-accent">{pendingDrillActions}</strong> pending action items from mock drills.</UiAlertDescription></Alert>)}
+      {pendingDrillActions > 0 && (<Alert variant="info" className="shadow-card"><ListChecksIcon className="h-4 w-4" /><AlertTitle>Pending Drill Actions</AlertTitle><UiAlertDescription>There are <strong className="text-accent">{pendingDrillActions}</strong> pending action items from mock drills.</UiAlertDescription></Alert>)}
       
       <Card id="emergency-plans">
         <CardHeader className="flex flex-row items-center justify-between">
