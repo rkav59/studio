@@ -42,7 +42,7 @@ const groups: { label: string; items: NavItem[] }[] = [
   ] },
   { label: "MANAGE", items: [
     { href: "/checklist-templates", label: "Checklist Templates", icon: LibraryBooksOutlined },
-    { href: "/ai-recommendations", label: "AI Safety Assist", icon: AutoAwesomeOutlined },
+    { href: "/ai-recommendations", label: "AI Safety Hub", icon: AutoAwesomeOutlined },
     { href: "/user-management", label: "User Management", icon: GroupsOutlined, adminOnly: true },
     ...(BILLING_ENABLED ? [{ href: "/billing", label: "Subscription", icon: AdminPanelSettingsOutlined, adminOnly: true }] : []),
   ] },

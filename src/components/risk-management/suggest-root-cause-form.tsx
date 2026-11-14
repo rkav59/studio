@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Brain, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { suggestRootCause, type SuggestRootCauseInput, type SuggestRootCauseOutput } from "@/ai/flows/suggest-root-cause-flow";
+import { suggestRootCause, type SuggestRootCauseInput, type SuggestRootCauseOutput } from "@/ai/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const suggestRootCauseFormSchema = z.object({
