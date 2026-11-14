@@ -18,7 +18,7 @@ export default function ContactSupportPage() {
         <p className="text-muted-foreground">We're here to help. Reach out to us with your questions or issues.</p>
       </div>
 
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
           <CardTitle>Get in Touch</CardTitle>
           <CardDescription>

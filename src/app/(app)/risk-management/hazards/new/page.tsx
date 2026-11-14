@@ -57,7 +57,7 @@ export default function NewManualHazardPage() {
                  <Target className="h-6 w-6 text-red-500" /> Log New Manual Hazard
             </h1>
         </div>
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
           <CardDescription>
             Describe the activity and the hazard you've identified.

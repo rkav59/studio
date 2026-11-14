@@ -59,7 +59,7 @@ export default function NewSheProgramPage() {
                  <Activity className="h-6 w-6 text-primary" /> Create New SHE Program
             </h1>
         </div>
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
           <CardDescription>
             Define the details for the new SHE program below.

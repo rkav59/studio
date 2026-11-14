@@ -123,7 +123,7 @@ export function IncidentForm({ initialData, onSave, onCancel, isSubmitting }: In
   );
 
   return (
-    <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+    <Card className="flex-1 flex flex-col min-h-0 shadow-card">
       <CardHeader>
         <UiCardDescription>
           {initialData ? "Update the details of this incident/event." : "Fill in the details for the new incident, near miss, or hazard observation."}
