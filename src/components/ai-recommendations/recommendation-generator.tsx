@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +44,19 @@ export function RecommendationGenerator() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<string | null>(null);
+  const [geminiReady, setGeminiReady] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/ai/status", { cache: "no-store" })
+      .then(async response => {
+        if (!response.ok) throw new Error("AI status unavailable");
+        return response.json();
+      })
+      .then(result => { if (active) setGeminiReady(result.configured === true); })
+      .catch(() => { if (active) setGeminiReady(false); });
+    return () => { active = false; };
+  }, []);
 
   const form = useForm<RecommendationFormValues>({
     resolver: zodResolver(recommendationFormSchema),
@@ -56,6 +69,7 @@ export function RecommendationGenerator() {
   });
 
   async function onSubmit(data: RecommendationFormValues) {
+    if (geminiReady !== true) return;
     setIsLoading(true);
     setRecommendations(null);
     try {
@@ -164,7 +178,7 @@ export function RecommendationGenerator() {
             />
           </div>
           
-          <Button type="submit" disabled={isLoading} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Button type="submit" disabled={isLoading || geminiReady !== true} className="bg-accent hover:bg-accent/90 text-accent-foreground">
             {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -172,6 +186,13 @@ export function RecommendationGenerator() {
             )}
             Generate Recommendations
           </Button>
+          {geminiReady !== true && (
+            <p role="status" className="text-sm text-muted-foreground">
+              {geminiReady === null
+                ? "Checking Gemini availability…"
+                : "Gemini is not configured yet. An administrator must add the server-side Gemini API key."}
+            </p>
+          )}
         </form>
       </Form>
 
