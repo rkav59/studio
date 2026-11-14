@@ -508,7 +508,7 @@ export default function TrainingCompetencePage() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div tabIndex={0} className={cn(!canManageCourses && "cursor-not-allowed")}>
-                    <Button onClick={() => canManageCourses && handleOpenNewJobRoleForm()} disabled={!canManageCourses || courses.length === 0} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                    <Button onClick={() => canManageCourses && handleOpenNewJobRoleForm()} disabled={!canManageCourses || courses.length === 0} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                         <PlusCircle className="mr-2 h-4 w-4" /> Define Job Role
                     </Button>
                 </div>
@@ -650,7 +650,7 @@ export default function TrainingCompetencePage() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div tabIndex={0} className={cn(!canManageRecords && "cursor-not-allowed")}>
-                    <Button onClick={() => canManageRecords && handleOpenNewRecordForm()} disabled={!canManageRecords || courses.length === 0} className="bg-accent hover:bg-accent/90">
+                    <Button onClick={() => canManageRecords && handleOpenNewRecordForm()} disabled={!canManageRecords || courses.length === 0} className="bg-primary hover:bg-primary/90">
                       <PlusCircle className="mr-2 h-4 w-4" /> Add New Record
                     </Button>
                 </div>

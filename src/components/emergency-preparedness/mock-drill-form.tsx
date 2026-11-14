@@ -245,7 +245,7 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitti
                           size="sm"
                           onClick={handleSuggestScenario}
                           disabled={isScenarioLoading || !form.watch("drillType")}
-                          className="text-accent border-accent hover:bg-accent/10"
+                          className="text-primary border-primary/30 hover:bg-accent/10"
                         >
                           {isScenarioLoading ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -314,7 +314,7 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitti
             </ScrollArea>
             <div className="p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
                 <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}><XCircle className="mr-2 h-4 w-4" /> Cancel</Button>
-                <Button type="submit" className="bg-teal-500 hover:bg-teal-600 text-white" disabled={isSubmitting}><Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Save Drill"}</Button>
+                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}><Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Save Drill"}</Button>
             </div>
         </form>
       </Form>
