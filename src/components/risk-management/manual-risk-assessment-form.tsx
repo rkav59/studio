@@ -389,7 +389,7 @@ export function ManualRiskAssessmentForm({ initialData, manualHazards, onSave, o
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               <XCircle className="mr-2 h-4 w-4" /> Cancel
             </Button>
-            <Button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white" disabled={isSubmitting}>
+            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
               <Save className="mr-2 h-4 w-4" /> {initialData?.id ? "Save Changes" : "Save Assessment"}
             </Button>
         </div>

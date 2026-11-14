@@ -274,7 +274,7 @@ export function PpeInspectionForm({ ppeItems, initialData, onSave, onCancel, isS
           </ScrollArea>
           <div className="p-4 md:p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
             <Button type="button" variant="outline" onClick={onCancel}><XCircle className="mr-2 h-4 w-4" />Cancel</Button>
-            <Button disabled={isSubmitting} type="submit" className="bg-teal-600 hover:bg-teal-700 text-white"><Save className="mr-2 h-4 w-4" />{isEditing ? "Save Changes" : "Log Inspection"}</Button>
+            <Button disabled={isSubmitting} type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground"><Save className="mr-2 h-4 w-4" />{isEditing ? "Save Changes" : "Log Inspection"}</Button>
           </div>
         </form>
       </Form>
