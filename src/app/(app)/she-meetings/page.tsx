@@ -659,7 +659,7 @@ export default function SheMeetingsPage() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
-                    <Button onClick={() => canCreate && handleOpenNewMeetingForm()} disabled={!canCreate} className="bg-accent hover:bg-accent/90 text-accent-foreground w-full">
+                    <Button onClick={() => canCreate && handleOpenNewMeetingForm()} disabled={!canCreate} className="bg-primary hover:bg-primary/90 text-primary-foreground w-full">
                         <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Meeting
                     </Button>
                 </div>

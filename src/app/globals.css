@@ -5,52 +5,41 @@
 
 @layer base {
   :root {
-    --background: 204 17% 96%; /* Light Gray #ECF0F1 */
-    --foreground: 210 29% 29%; /* Dark Gray #2C3E50 */
-
-    --card: 0 0% 100%; /* White */
-    --card-foreground: 210 29% 29%; /* Dark Gray */
-
-    --popover: 0 0% 100%; /* White */
-    --popover-foreground: 210 29% 29%; /* Dark Gray */
-
-    --primary: 207 68% 53%; /* Strong Blue #3498DB */
-    --primary-foreground: 0 0% 100%; /* White */
-
-    --secondary: 210 16% 93%; /* Lighter Gray */
-    --secondary-foreground: 210 29% 29%; /* Dark Gray */
-
-    --muted: 210 16% 90%; /* Muted Gray */
-    --muted-foreground: 210 15% 45%; /* Muted Gray Foreground */
-
-    --accent: 45 85% 55%; /* Mustard Yellow */
-    --accent-foreground: 210 29% 15%; /* Dark Gray for contrast */
-
-    --destructive: 0 84.2% 60.2%; /* Default Red */
-    --destructive-foreground: 0 0% 98%; /* Light color for destructive */
-
-    --border: 204 17% 88%; /* Border Gray */
-    --input: 204 17% 88%; /* Input Gray */
-    --ring: 207 68% 53%; /* Primary Blue for focus rings */
-
-    --radius: 0.5rem;
-
-    /* Sidebar specific colors */
-    --sidebar-background: 204 17% 96%; /* Match main display background */
-    --sidebar-foreground: 210 29% 29%; /* Match main foreground */
-    --sidebar-primary: 207 68% 53%; /* Strong Blue */
-    --sidebar-primary-foreground: 0 0% 100%; /* White */
-    --sidebar-accent: 210 16% 90%; /* Subtle navigation highlight */
-    --sidebar-accent-foreground: 210 29% 29%;
-    --sidebar-border: 204 17% 88%;
-    --sidebar-ring: 207 68% 53%; /* Primary Blue for focus rings */
-
-    --chart-1: 207 68% 53%; /* Primary Blue */
-    --chart-2: 45 85% 55%; /* Mustard Yellow */
-    --chart-3: 170 50% 45%; /* Teal/Greenish */
-    --chart-4: 300 50% 55%; /* Purpleish */
-    --chart-5: 50 70% 50%; /* Yellowish */
-    --chart-positive-green: 130 55% 45%; /* A distinct positive green */
+    --font-app: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --background: 210 17% 98%;
+    --foreground: 218 23% 23%;
+    --card: 0 0% 100%;
+    --card-foreground: 218 23% 23%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 218 23% 23%;
+    --primary: 212 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 100% 96%;
+    --secondary-foreground: 218 23% 23%;
+    --muted: 216 29% 96%;
+    --muted-foreground: 216 15% 43%;
+    --accent: 214 100% 96%;
+    --accent-foreground: 212 100% 40%;
+    --destructive: 355 71% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 216 29% 93%;
+    --input: 216 22% 82%;
+    --ring: 212 100% 50%;
+    --radius: 1rem;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 218 23% 23%;
+    --sidebar-primary: 212 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 214 100% 96%;
+    --sidebar-accent-foreground: 212 100% 40%;
+    --sidebar-border: 216 29% 93%;
+    --sidebar-ring: 212 100% 50%;
+    --chart-1: 212 100% 50%;
+    --chart-2: 36 79% 57%;
+    --chart-3: 157 72% 40%;
+    --chart-4: 260 66% 60%;
+    --chart-5: 355 71% 62%;
+    --chart-positive-green: 157 72% 40%;
   }
 
   .dark {
@@ -107,6 +96,74 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-app);
+    line-height: 1.5;
+    min-width: 0;
+  }
+}
+
+/* Shared workspace foundations cover legacy pages and the dashboard alike. */
+@layer components {
+  .workspace-content {
+    overflow-wrap: anywhere;
+  }
+  .workspace-content h1 {
+    @apply text-2xl font-bold leading-tight tracking-tight sm:text-3xl;
+    font-family: var(--font-app);
+    letter-spacing: -0.035em;
+  }
+  .workspace-content h1 svg {
+    @apply h-6 w-6 shrink-0 text-primary sm:h-7 sm:w-7;
+  }
+  .workspace-content form {
+    @apply min-w-0;
+  }
+  .workspace-content .grid > *,
+  [role="dialog"] .grid > *,
+  form .grid > * {
+    min-width: 0;
+  }
+  .ui-card-title {
+    overflow-wrap: anywhere;
+  }
+  .ui-tabs > [role="tab"] {
+    flex-basis: auto;
+  }
+}
+
+@layer base {
+  button, input, textarea, select {
+    font-family: inherit;
+  }
+  input[type="date"], input[type="datetime-local"], input[type="time"] {
+    min-width: 0;
+    max-width: 100%;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@media (max-width: 639px) {
+  /* Cover legacy local size overrides without affecting desktop density. */
+  .ui-input, .ui-select {
+    font-size: 16px;
+  }
+  .ui-card-footer > .ui-button,
+  .ui-card-footer > a {
+    width: 100%;
+  }
+  form > .flex:has(> button[type="submit"]) {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  form > .flex:has(> button[type="submit"]) > button,
+  form > .flex:has(> button[type="submit"]) > a {
+    width: 100%;
   }
 }
 
@@ -125,7 +182,7 @@
     top: 0;
     width: 100%;
     padding: 20px; /* Add some padding for print */
-    font-family: Arial, sans-serif; /* Use a print-friendly font */
+    font-family: var(--font-app); /* Use a print-friendly font */
     font-size: 11pt; /* Slightly smaller for more content */
     line-height: 1.3;
     background-color: white !important; /* Ensure white background */

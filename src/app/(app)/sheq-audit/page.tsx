@@ -706,7 +706,7 @@ export default function SheqAuditPage() {
       ) : (
         <Card className="shadow-lg">
            <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
                 <CardTitle>Conduct Audit: {currentAudit.auditName}</CardTitle>
                 <Button variant="outline" size="sm" onClick={handleBackToScheduler}>
                     <ChevronLeft className="mr-2 h-4 w-4" /> Back to Scheduler
