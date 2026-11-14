@@ -50,6 +50,10 @@ const isUserCancellation = (error: unknown): boolean => {
     "confirmation rejected",
     "confirmation declined",
     "confirmation discarded",
+    "confirmation dismissed",
+    "review discarded",
+    "review dismissed",
+    "user dismissed",
     "request cancelled",
     "request canceled",
     "action cancelled",
@@ -61,11 +65,17 @@ const isUserCancellation = (error: unknown): boolean => {
   if (normalized.some((value) => knownCancellationValues.has(value))) return true;
 
   const message = normalized.join(" ");
-  const outcome = "cancel(?:led|ed|lation)?|reject(?:ed|ion)?|declin(?:ed|ation)?|discard(?:ed)?|den(?:ied|ial|y)";
-  return new RegExp(
-    `\\b(?:user|confirmation|approval|request|action|draft)\\b.{0,50}\\b(?:${outcome})\\b`,
-    "i",
-  ).test(message);
+  const outcome = "cancel(?:led|ed|lation)?|dismiss(?:ed|al)?|reject(?:ed|ion)?|declin(?:ed|ation)?|discard(?:ed)?|den(?:ied|ial|y)";
+  return (
+    new RegExp(
+      `\\b(?:user|confirmation|approval|request|action|draft|review)\\b.{0,50}\\b(?:${outcome})\\b`,
+      "i",
+    ).test(message) ||
+    new RegExp(
+      `\\b(?:${outcome})\\b.{0,50}\\b(?:by user|by the user|user|confirmation|approval|draft|review)\\b`,
+      "i",
+    ).test(message)
+  );
 };
 
 const highlightText = (text: string, highlight: string) => {
