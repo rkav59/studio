@@ -178,7 +178,7 @@ export function RecommendationGenerator() {
             />
           </div>
           
-          <Button type="submit" disabled={isLoading || geminiReady !== true} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Button type="submit" disabled={isLoading || geminiReady !== true} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (

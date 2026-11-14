@@ -26,7 +26,7 @@ export default function AiRecommendationsPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Specialist AI tools">
         {capabilities.map(({ name, description, href, icon: Icon }) => (
-          <Link href={href} key={href} className="group rounded-2xl bg-card p-5 shadow-sm transition-shadow hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+          <Link href={href} key={href} className="group rounded-2xl bg-card p-5 shadow-sm transition-shadow hover:shadow-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
             <div className="flex items-start justify-between gap-2">
               <span className="rounded-xl bg-blue-50 p-2.5 text-primary"><Icon className="h-5 w-5" aria-hidden="true" /></span>
               <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />

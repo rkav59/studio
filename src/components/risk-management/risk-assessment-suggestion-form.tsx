@@ -89,7 +89,7 @@ export function RiskAssessmentSuggestionForm({ onSuggestionsGenerated }: RiskAss
   }
 
   return (
-    <Card className="shadow-md">
+    <Card className="shadow-card">
       <CardHeader>
         {/* Title moved to parent page */}
         <CardDescription>

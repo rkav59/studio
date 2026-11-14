@@ -163,7 +163,7 @@ export default function LegalRegisterPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 print-hide">
+      <div className="flex flex-wrap items-center justify-between gap-3 gap-4 print-hide">
         <div className="flex items-center gap-4">
             <Button variant="outline" size="icon" onClick={() => router.push('/risk-management')} aria-label="Back to Risk Management">
             <ArrowLeft className="h-4 w-4" />

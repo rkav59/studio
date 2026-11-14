@@ -80,7 +80,7 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Card className="shadow-md">
+        <Card className="shadow-card">
           <CardHeader>
             <CardTitle>{isEditing ? "Edit Checklist Template" : "Create New Checklist Template"}</CardTitle>
             <CardDescription>
