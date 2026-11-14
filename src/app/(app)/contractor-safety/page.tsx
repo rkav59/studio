@@ -510,7 +510,7 @@ export default function ContractorSafetyPage() {
                  <Tooltip>
                     <TooltipTrigger asChild>
                         <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
-                           <Button onClick={handleOpenNewJobCardForm} className="bg-indigo-500 hover:bg-indigo-600 text-white" disabled={!canManage || contractors.length === 0}>
+                           <Button onClick={handleOpenNewJobCardForm} className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={!canManage || contractors.length === 0}>
                                 <PlusCircle className="mr-2 h-4 w-4" /> Create New Job Card
                            </Button>
                         </div>
