@@ -84,7 +84,7 @@ export function SuggestRootCauseForm({ onSuggestionsGenerated }: SuggestRootCaus
   }
 
   return (
-    <Card className="shadow-md">
+    <Card className="shadow-card">
       <CardHeader>
         {/* Title and Description will be handled by parent page if needed */}
       </CardHeader>

@@ -118,13 +118,13 @@ function Shell({ children, userProfile }: { children: ReactNode; userProfile: Us
     </Box>
     <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
       <AppBar position="sticky" color="transparent" elevation={0} sx={{ bgcolor: "rgba(248,249,250,0.94)", backdropFilter: "blur(12px)", zIndex: theme => theme.zIndex.appBar, borderBottom: "1px solid #EEF1F5" }}>
-        <Toolbar sx={{ gap: 1.5, minHeight: { xs: 68, sm: 76 }, px: { xs: 2, md: 3, lg: 4 } }}>
+        <Toolbar sx={{ gap: { xs: 0.5, sm: 1.5 }, minHeight: { xs: 68, sm: 76 }, px: { xs: 2, md: 3, lg: 4 } }}>
           <IconButton edge="start" aria-label="Open navigation" onClick={() => setMobileOpen(true)} sx={{ display: { md: "none" } }}><MenuRounded /></IconButton>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Breadcrumbs separator="/" sx={{ "& .MuiTypography-root": { fontSize: 11, color: "#9AA6B8" } }}>
               <Typography>Workspace</Typography><Typography>{title}</Typography>
             </Breadcrumbs>
-            <Typography fontWeight={750} fontSize={17} noWrap>{title}</Typography>
+            <Typography fontWeight={750} fontSize={{ xs: 14, sm: 17 }} noWrap>{title}</Typography>
           </Box>
           <Autocomplete
             freeSolo={false}
@@ -153,7 +153,7 @@ function Shell({ children, userProfile }: { children: ReactNode; userProfile: Us
         </DialogContent>
       </Dialog>
       <Box component="main" id="main-content" sx={{ flex: 1, minWidth: 0, px: { xs: 2, sm: 3, lg: 4 }, pt: { xs: 3, md: 4 }, pb: 6 }}>
-        {children}
+        <Box className="workspace-content" sx={{ width: "100%", maxWidth: 1700, mx: "auto", minWidth: 0 }}>{children}</Box>
       </Box>
     </Box>
   </Box>;
