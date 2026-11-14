@@ -131,7 +131,7 @@ export default function EditPpeIssuancePage() {
   if (isLoading) {
     return (
       <div className="h-full flex flex-col">
-        <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+        <Card className="flex-1 flex flex-col min-h-0 shadow-card">
           <CardHeader><Skeleton className="h-8 w-3/4" /><Skeleton className="h-4 w-1/2" /></CardHeader>
           <CardContent className="space-y-6 p-4 md:p-6">{[...Array(6)].map((_, i) => (<div key={i} className="space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-10 w-full" /></div>))}</CardContent>
         </Card>
@@ -142,7 +142,7 @@ export default function EditPpeIssuancePage() {
   if (issuanceError || ppeItemsError || !issuanceToEdit || jobRoleMatrixError) {
     return (
       <div className="h-full flex items-center justify-center">
-        <Card className="w-full max-w-md shadow-lg">
+        <Card className="w-full max-w-md shadow-card">
           <CardHeader><CardTitle>Record Not Found</CardTitle></CardHeader>
           <CardContent><p>The PPE issuance record or related data could not be found.</p><Button onClick={() => router.push('/ppe-management')} className="mt-4">Back to PPE Management</Button></CardContent>
         </Card>

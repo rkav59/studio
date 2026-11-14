@@ -108,7 +108,7 @@ export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onSched
 
 
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-card">
       <CardHeader>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
             <div>

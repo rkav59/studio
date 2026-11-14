@@ -87,7 +87,7 @@ export function EmergencyPlanForm({ initialData, onSave, onCancel, isSubmitting 
   };
 
   return (
-    <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+    <Card className="flex-1 flex flex-col min-h-0 shadow-card">
         <CardHeader>
              <UiCardDescription>
                 {initialData ? "Update the details of this emergency plan." : "Fill in the details to create a new emergency plan."}

@@ -65,7 +65,7 @@ export default function NewIhSamplePage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
-        <Card className="shadow-lg">
+        <Card className="shadow-card">
           <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
            <CardContent className="p-6 space-y-4">
               {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
@@ -89,7 +89,7 @@ export default function NewIhSamplePage() {
                  <FlaskConical className="h-6 w-6 text-accent" /> Log New Industrial Hygiene Sample
             </h1>
         </div>
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
           <CardDescription>
             Enter details for a new industrial hygiene sample.

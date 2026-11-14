@@ -125,7 +125,7 @@ export default function EditPpeInspectionPage() {
   if (isLoading) {
     return (
       <div className="h-full flex flex-col">
-        <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+        <Card className="flex-1 flex flex-col min-h-0 shadow-card">
           <CardHeader>
             <Skeleton className="h-8 w-3/4" />
             <Skeleton className="h-4 w-1/2" />
@@ -146,7 +146,7 @@ export default function EditPpeInspectionPage() {
   if (inspectionError || !inspectionToEdit || ppeItemsError) {
     return (
       <div className="h-full flex items-center justify-center">
-        <Card className="w-full max-w-md shadow-lg">
+        <Card className="w-full max-w-md shadow-card">
           <CardHeader>
             <CardTitle>Error Loading Data</CardTitle>
           </CardHeader>
