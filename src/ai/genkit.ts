@@ -1,5 +1,6 @@
 import 'server-only';
 import { genkit } from 'genkit';
+import { GEMINI_MODEL } from './model-config';
 import { googleAI } from '@genkit-ai/googleai';
 
 /**
@@ -9,10 +10,6 @@ import { googleAI } from '@genkit-ai/googleai';
  * Gemini 2.0 Flash was discontinued; use a supported versioned model.
  * Set GEMINI_MODEL after evaluating a replacement across SHEQ workflows.
  */
-export const GEMINI_MODEL = process.env.GEMINI_MODEL?.startsWith('googleai/gemini-')
-  ? process.env.GEMINI_MODEL
-  : 'googleai/gemini-2.5-flash';
-
 export const ai = genkit({
   plugins: [googleAI()],
   model: GEMINI_MODEL,
