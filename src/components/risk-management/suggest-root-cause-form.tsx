@@ -129,7 +129,7 @@ export function SuggestRootCauseForm({ onSuggestionsGenerated }: SuggestRootCaus
               )}
             />
             
-            <Button type="submit" disabled={isLoading} className="w-full bg-purple-500 hover:bg-purple-600 text-white">
+            <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (

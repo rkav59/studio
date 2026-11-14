@@ -224,7 +224,7 @@ export function MedicalTestForm({ segs, initialData, onSave, onCancel, isEditing
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               <XCircle className="mr-2 h-4 w-4" /> Cancel
             </Button>
-            <Button type="submit" className="bg-teal-500 hover:bg-teal-600 text-white" disabled={isSubmitting}>
+            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
               <Save className="mr-2 h-4 w-4" /> {isEditing ? "Save Changes" : "Log Test Record"}
             </Button>
           </div>
