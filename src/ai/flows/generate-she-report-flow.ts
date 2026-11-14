@@ -94,6 +94,7 @@ const generateSheReportFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) throw new Error("Gemini could not generate a valid response. Please retry.");
+    return output;
   }
 );
