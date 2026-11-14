@@ -454,7 +454,7 @@ export default function PpeManagementPage() {
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
                 {filteredPpeItems.map(item => (
-                  <Card key={item.id} className="p-4 shadow-sm">
+                  <Card key={item.id} className="p-4 shadow-card">
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
                         <h4 className="font-semibold text-lg">{item.name} <span className="text-sm text-muted-foreground">({item.type} - {item.category})</span></h4>
@@ -513,7 +513,7 @@ export default function PpeManagementPage() {
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
                 {filteredPpeIssuances.map(issuance => (
-                  <Card key={issuance.id} className="p-4 shadow-sm">
+                  <Card key={issuance.id} className="p-4 shadow-card">
                      <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
                         <h4 className="font-semibold text-lg">{issuance.employeeName} - {getPpeItemName(issuance.ppeItemId)} (x{issuance.quantityIssued})</h4>
@@ -562,7 +562,7 @@ export default function PpeManagementPage() {
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
                 {filteredPpeInspections.map(inspection => (
-                  <Card key={inspection.id} className="p-4 shadow-sm">
+                  <Card key={inspection.id} className="p-4 shadow-card">
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
                         <h4 className="font-semibold text-lg">{getPpeItemName(inspection.ppeItemId)} {inspection.uniquePpeIdentifier ? `(ID: ${inspection.uniquePpeIdentifier})`: ''}</h4>
@@ -618,7 +618,7 @@ export default function PpeManagementPage() {
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
                 {filteredJobRoleMatrix.map(entry => (
-                  <Card key={entry.id} className="p-4 shadow-sm">
+                  <Card key={entry.id} className="p-4 shadow-card">
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
                         <h4 className="font-semibold text-lg">{entry.jobRole}</h4>

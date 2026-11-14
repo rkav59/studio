@@ -82,7 +82,7 @@ export function PpeJobRoleMatrixForm({ ppeItems, riskAssessments, initialData, o
   };
 
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-card">
       <CardHeader>
         <CardDescription>
           {isEditing ? "Update the required PPE for this job role." : "Specify the job role and select the standard PPE items required."}

@@ -71,7 +71,7 @@ export default function NewSheMeetingPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
-        <Card className="shadow-lg">
+        <Card className="shadow-card">
           <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
            <CardContent className="p-6 space-y-4">
                 {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
@@ -95,7 +95,7 @@ export default function NewSheMeetingPage() {
                  <Users className="h-6 w-6 text-accent" /> Create New SHE Meeting
             </h1>
         </div>
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
           <CardDescription>
             Define the details for the new SHE meeting below.

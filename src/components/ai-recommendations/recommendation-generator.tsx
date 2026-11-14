@@ -197,7 +197,7 @@ export function RecommendationGenerator() {
       </Form>
 
       {recommendations && (
-        <Card className="mt-8 shadow-lg">
+        <Card className="mt-8 shadow-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-6 w-6 text-primary" />

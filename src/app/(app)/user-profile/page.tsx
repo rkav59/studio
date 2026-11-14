@@ -122,7 +122,7 @@ export default function UserProfilePage() {
         <p className="text-muted-foreground">Manage your account settings and preferences.</p>
       </div>
 
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><UserIcon className="h-5 w-5 text-primary"/>Account Information</CardTitle>
           <CardDescription>View and update your personal details.</CardDescription>
@@ -141,7 +141,7 @@ export default function UserProfilePage() {
         </CardContent>
       </Card>
       
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
             <CardTitle className="flex items-center gap-2"><Crown className="h-5 w-5 text-primary"/>Organization & Role</CardTitle>
             <CardDescription>Your role and organization details.</CardDescription>
@@ -159,7 +159,7 @@ export default function UserProfilePage() {
       </Card>
 
 
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5 text-primary"/>Security</CardTitle>
           <CardDescription>Manage your account security settings.</CardDescription>
@@ -169,7 +169,7 @@ export default function UserProfilePage() {
         </CardContent>
       </Card>
       
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><HelpCircle className="h-5 w-5 text-primary"/>Support & Legal</CardTitle>
           <CardDescription>Access help resources and legal information.</CardDescription>

@@ -73,7 +73,7 @@ export default function FaqPage() {
         <p className="text-muted-foreground">Find answers to common questions about SHEiQpro.</p>
       </div>
 
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardContent className="p-6">
           <Accordion type="single" collapsible className="w-full">
             {faqs.map((faq, index) => (
