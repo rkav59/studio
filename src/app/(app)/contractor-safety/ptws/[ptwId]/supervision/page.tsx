@@ -173,7 +173,7 @@ export default function PtwSupervisionListPage() {
             <CardTitle>Supervision Log</CardTitle>
             <CardDescription>Manage on-site supervision and performance for this Permit to Work.</CardDescription>
           </div>
-          <Button onClick={handleAddNewSupervision} className="bg-blue-500 hover:bg-blue-600 text-white">
+          <Button onClick={handleAddNewSupervision} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             <PlusCircle className="mr-2 h-4 w-4" /> Add New Supervision Record
           </Button>
         </CardHeader>

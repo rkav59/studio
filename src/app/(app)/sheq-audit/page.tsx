@@ -536,7 +536,7 @@ export default function SheqAuditPage() {
               <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
                   <FileCheck2 className="h-8 w-8"/> SHEQ Audits
               </h1>
-              <Button onClick={handleGenerateAiInsights} disabled={isAiInsightsLoading || audits.length === 0} variant="outline" className="border-accent text-accent hover:bg-accent/10">
+              <Button onClick={handleGenerateAiInsights} disabled={isAiInsightsLoading || audits.length === 0} variant="outline" className="border-primary/30 text-primary hover:bg-accent/10">
                   {isAiInsightsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                   AI Audit Insights
               </Button>

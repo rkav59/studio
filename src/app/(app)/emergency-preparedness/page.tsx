@@ -261,7 +261,7 @@ export default function EmergencyPreparednessPage() {
           <Tooltip>
             <TooltipTrigger asChild>
                 <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
-                    <Button onClick={() => canManage && handleOpenNewResourceForm()} disabled={!canManage} className="bg-accent hover:bg-accent/90"><PlusCircle className="mr-2 h-4 w-4" /> Add Resource</Button>
+                    <Button onClick={() => canManage && handleOpenNewResourceForm()} disabled={!canManage} className="bg-primary hover:bg-primary/90"><PlusCircle className="mr-2 h-4 w-4" /> Add Resource</Button>
                 </div>
             </TooltipTrigger>
             {!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}
@@ -285,7 +285,7 @@ export default function EmergencyPreparednessPage() {
             <Tooltip>
                 <TooltipTrigger asChild>
                     <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
-                         <Button onClick={() => canManage && handleOpenNewDrillForm()} disabled={!canManage || plans.length === 0} className="bg-teal-500 hover:bg-teal-600 text-white">
+                         <Button onClick={() => canManage && handleOpenNewDrillForm()} disabled={!canManage || plans.length === 0} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                             <PlusCircle className="mr-2 h-4 w-4" /> Log/Schedule Drill
                         </Button>
                     </div>
