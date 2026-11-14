@@ -80,7 +80,7 @@ export function EmergencyResourceForm({ initialData, onSave, onCancel, isSubmitt
   };
 
   return (
-     <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+     <Card className="flex-1 flex flex-col min-h-0 shadow-card">
         <CardHeader>
             <CardDescription>
               {initialData ? "Update the details of this emergency resource." : "Enter details for a new emergency resource."}

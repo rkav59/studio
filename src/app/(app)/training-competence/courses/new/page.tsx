@@ -51,7 +51,7 @@ export default function NewCoursePage() {
                  <BookOpen className="h-6 w-6 text-primary" /> Add New Training Course
             </h1>
         </div>
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
           <CardDescription>
             Define the details for the new training course below.

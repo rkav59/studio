@@ -97,7 +97,7 @@ export default function NewPtwSupervisionPage() {
             <Button variant="outline" size="icon" onClick={handleCancel} aria-label="Back to Supervision List"><ArrowLeft className="h-4 w-4" /></Button>
             <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2"><Search className="h-6 w-6 text-blue-500" /> New Supervision for PTW: {ptw.ptwNumber}</h1>
         </div>
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader><CardDescription>Fill in the details for the on-site supervision record.</CardDescription></CardHeader>
         <PtwSupervisionForm 
           ptwNumber={ptw.ptwNumber}

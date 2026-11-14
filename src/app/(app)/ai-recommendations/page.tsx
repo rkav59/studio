@@ -37,7 +37,7 @@ export default function AiRecommendationsPage() {
         ))}
       </div>
 
-      <Card className="shadow-sm">
+      <Card className="shadow-card">
         <CardHeader>
           <CardTitle>Generate safety recommendations</CardTitle>
           <CardDescription>Provide incident and inspection summaries for contextual, actionable suggestions.</CardDescription>

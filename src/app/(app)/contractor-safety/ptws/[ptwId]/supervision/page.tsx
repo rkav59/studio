@@ -184,7 +184,7 @@ export default function PtwSupervisionListPage() {
             <ScrollArea className="max-h-[60vh] pr-3">
               <div className="space-y-3">
                 {supervisionRecords.map(record => (
-                  <Card key={record.id} className="p-4 shadow-sm">
+                  <Card key={record.id} className="p-4 shadow-card">
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
                         <h4 className="font-semibold text-lg">Supervision Date: {format(parseISO(record.supervisionDate), "PPP")}</h4>
