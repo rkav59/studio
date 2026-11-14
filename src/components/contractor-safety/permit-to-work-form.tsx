@@ -223,7 +223,7 @@ export function PermitToWorkForm({ contractors, initialData, onSave, onCancel, i
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               <XCircle className="mr-2 h-4 w-4" /> Cancel
             </Button>
-            <Button type="submit" className="bg-accent hover:bg-accent/90" disabled={isSubmitting}>
+            <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isSubmitting}>
               <Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Create PTW"}
             </Button>
           </div>

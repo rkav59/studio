@@ -325,7 +325,7 @@ ${result.recommendationReasoning}
                                     size="sm"
                                     onClick={handleGetAiVettingSuggestion}
                                     disabled={!initialData?.id || isAiVettingLoading}
-                                    className="text-accent border-accent hover:bg-accent/10 h-8"
+                                    className="text-primary border-primary/30 hover:bg-accent/10 h-8"
                                 >
                                     {isAiVettingLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                                     AI Vetting Suggestion

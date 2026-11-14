@@ -550,7 +550,7 @@ export default function PpeManagementPage() {
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search inspections..." className="pl-8 w-full sm:w-[200px]" value={inspectionSearchTerm} onChange={(e) => setInspectionSearchTerm(e.target.value)} /></div>
-            <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button onClick={() => canManage && handleOpenNewPpeInspectionForm()} disabled={!canManage || ppeItems.length === 0} className="bg-teal-600 hover:bg-teal-700 text-white"><PlusCircle className="mr-2 h-4 w-4" /> Log Inspection</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
+            <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button onClick={() => canManage && handleOpenNewPpeInspectionForm()} disabled={!canManage || ppeItems.length === 0} className="bg-primary hover:bg-primary/90 text-primary-foreground"><PlusCircle className="mr-2 h-4 w-4" /> Log Inspection</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
           </div>
         </CardHeader>
         <CardContent>
@@ -606,7 +606,7 @@ export default function PpeManagementPage() {
           </div>
            <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search job roles..." className="pl-8 w-full sm:w-[200px]" value={jobRoleSearchTerm} onChange={(e) => setJobRoleSearchTerm(e.target.value)} /></div>
-            <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button onClick={() => canManage && handleOpenNewJobRoleForm()} disabled={!canManage || ppeItems.length === 0} className="bg-indigo-600 hover:bg-indigo-700 text-white"><PlusCircle className="mr-2 h-4 w-4" /> Define Job Role</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
+            <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button onClick={() => canManage && handleOpenNewJobRoleForm()} disabled={!canManage || ppeItems.length === 0} className="bg-primary hover:bg-primary/90 text-primary-foreground"><PlusCircle className="mr-2 h-4 w-4" /> Define Job Role</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
           </div>
         </CardHeader>
         <CardContent>
