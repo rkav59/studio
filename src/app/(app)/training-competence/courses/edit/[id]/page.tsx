@@ -72,7 +72,7 @@ export default function EditCoursePage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
-        <Card className="shadow-lg">
+        <Card className="shadow-card">
           <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
           <CardContent className="p-0"> {/* CourseForm has its own padding now */}
             <div className="p-6 space-y-4">
@@ -106,7 +106,7 @@ export default function EditCoursePage() {
                  <BookOpen className="h-6 w-6 text-primary" /> Edit Course: {courseToEdit.name}
             </h1>
         </div>
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
          <CardHeader>
           <CardDescription>
             Modify the details for the training course below.

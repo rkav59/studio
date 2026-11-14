@@ -107,7 +107,7 @@ export function TemplateForm({ initialData, onSave, onCancel, isEditing }: Templ
               <ScrollArea className="h-[400px] pr-3 border rounded-md">
                 <div className="space-y-3 p-3">
                 {fields.map((item, index) => (
-                  <Card key={item.id} className="p-3 bg-secondary/30 shadow-sm space-y-3">
+                  <Card key={item.id} className="p-3 bg-secondary/30 shadow-card space-y-3">
                     <div className="flex items-start gap-2">
                       <FormField
                         control={form.control}

@@ -580,7 +580,7 @@ export default function SheqAuditPage() {
           </div>
           
           
-            <Card id="completed-audits" className="shadow-lg mt-6">
+            <Card id="completed-audits" className="shadow-card mt-6">
               <CardHeader>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
                     <div>
@@ -656,7 +656,7 @@ export default function SheqAuditPage() {
 
             <Accordion type="single" collapsible className="w-full" id="archived-audits">
               <AccordionItem value="archived-audits">
-                <Card className="shadow-lg mt-6">
+                <Card className="shadow-card mt-6">
                   <AccordionTrigger className="p-6 w-full">
                       <CardTitle className="flex items-center gap-2 text-muted-foreground"><Archive className="h-6 w-6"/>Archived Audits ({archivedAudits.length})</CardTitle>
                   </AccordionTrigger>
@@ -704,7 +704,7 @@ export default function SheqAuditPage() {
             </Accordion>
         </>
       ) : (
-        <Card className="shadow-lg">
+        <Card className="shadow-card">
            <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <CardTitle>Conduct Audit: {currentAudit.auditName}</CardTitle>

@@ -139,7 +139,7 @@ export default function EditRiskRegisterEntryPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
-        <Card className="shadow-lg">
+        <Card className="shadow-card">
           <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
            <CardContent className="p-6 space-y-4">
                 {[...Array(10)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
@@ -178,7 +178,7 @@ export default function EditRiskRegisterEntryPage() {
               <FileDown className="mr-2 h-4 w-4" /> Download PDF
             </Button>
         </div>
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
          <CardHeader>
           <CardDescription>
             Modify the details for this risk register entry.

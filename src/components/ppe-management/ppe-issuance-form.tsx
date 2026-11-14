@@ -120,7 +120,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
   };
 
   return (
-     <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+     <Card className="flex-1 flex flex-col min-h-0 shadow-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <PackagePlus className="h-6 w-6 text-accent" />

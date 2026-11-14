@@ -92,7 +92,7 @@ export default function NewTrainingRecordPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
-        <Card className="shadow-lg">
+        <Card className="shadow-card">
           <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
            <CardContent className="p-0">
             <div className="p-6 space-y-4">
@@ -119,7 +119,7 @@ export default function NewTrainingRecordPage() {
                     <UserCheck className="h-6 w-6 text-accent" /> Add New Training Record
                 </h1>
             </div>
-            <Card className="shadow-lg">
+            <Card className="shadow-card">
                 <CardHeader>
                     <CardTitle>Cannot Add Record</CardTitle>
                     <CardDescription>There are no courses defined in the catalog. Please add a course before logging a training record.</CardDescription>
@@ -142,7 +142,7 @@ export default function NewTrainingRecordPage() {
                  <UserCheck className="h-6 w-6 text-accent" /> Add New Training Record
             </h1>
         </div>
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
           <CardDescription>
             Select a course and enter the employee's training details.

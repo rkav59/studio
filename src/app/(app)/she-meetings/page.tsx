@@ -583,7 +583,7 @@ export default function SheMeetingsPage() {
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
                 {programs.map(program => (
-                  <Card key={program.id} className="p-4 shadow-sm">
+                  <Card key={program.id} className="p-4 shadow-card">
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
                         <h4 className="font-semibold text-lg">{program.programName} <span className="text-sm text-muted-foreground">({program.programType})</span></h4>
@@ -678,7 +678,7 @@ export default function SheMeetingsPage() {
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
                 {filteredMeetings.map(meeting => (
-                  <Card key={meeting.id} className="p-4 shadow-sm">
+                  <Card key={meeting.id} className="p-4 shadow-card">
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
                         <h4 className="font-semibold text-lg">{meeting.title}</h4>

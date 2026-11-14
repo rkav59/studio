@@ -137,7 +137,7 @@ export function PtwSupervisionForm({ ptwNumber, initialData, onSave, onCancel, i
             <ScrollArea className="max-h-[40vh] p-3 border rounded-md bg-muted/30">
               <div className="space-y-4">
                 {checklistFields.map((item, index) => (
-                  <Card key={item.id} className="p-3 bg-background shadow-sm space-y-2">
+                  <Card key={item.id} className="p-3 bg-background shadow-card space-y-2">
                     <FormLabel className="text-sm font-normal block">{index + 1}. {item.questionText}</FormLabel>
                     <FormField control={form.control} name={`checklistItems.${index}.result`} render={({ field }) => (
                       <FormItem>
