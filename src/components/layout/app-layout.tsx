@@ -137,7 +137,7 @@ function Shell({ children, userProfile }: { children: ReactNode; userProfile: Us
               InputProps={{ ...params.InputProps, startAdornment: <InputAdornment position="start"><SearchRounded sx={{ color: "#A0AEC0", fontSize: 20 }} /></InputAdornment> }} />}
           />
           <IconButton aria-label="Search navigation" onClick={() => setSearchOpen(true)} sx={{ display: { sm: "none" } }}><SearchRounded /></IconButton>
-          <Box sx={{ display: { xs: "none", lg: "block" } }}><GenerateReportButton /></Box>
+          <Box sx={{ display: "block" }}><GenerateReportButton /></Box>
           <Tooltip title="SHE meetings and programmes"><IconButton aria-label="Open SHE events" component={Link} href="/she-meetings" sx={{ color: "#64748B" }}><NotificationsNoneRounded /></IconButton></Tooltip>
           <Tooltip title="Profile"><IconButton aria-label="Open profile" component={Link} href="/user-profile">
             <Avatar sx={{ bgcolor: "#E5F0FF", color: visionColors.primary, height: 36, width: 36, fontSize: 14, fontWeight: 800 }}>

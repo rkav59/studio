@@ -23,6 +23,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { db } from "@/lib/supabase/client";
 import { collection, getDocs, query, where } from "@/lib/supabase/records";
 import { visionColors as c } from "@/components/dashboard/vision-theme";
+import { toIso } from "@/lib/supabase/serialization";
 import type { Incident, SheqAudit, SheMeeting, SheProgram, TrainingRecord, KpiThreshold } from "@/lib/types";
 
 type DashboardData = {
@@ -32,6 +33,7 @@ type DashboardData = {
   programs: SheProgram[];
   training: TrainingRecord[];
   targets: KpiThreshold[];
+  visibility: Record<string, boolean>;
 };
 type EventItem = { id: string; title: string; type: "Meeting" | "Programme"; date: number; href: string };
 const cardSx = { height: "100%", borderRadius: "16px", bgcolor: c.paper, boxShadow: "0 7px 32px rgba(37,64,97,0.055)" };
@@ -39,9 +41,10 @@ const shortDate = new Intl.DateTimeFormat("en", { day: "numeric", month: "short"
 const monthName = new Intl.DateTimeFormat("en", { month: "short" });
 
 function ms(value: unknown): number {
-  if (typeof value !== "string" && typeof value !== "number") return NaN;
-  const time = new Date(value).getTime();
-  return Number.isFinite(time) ? time : NaN;
+  try {
+    const time = Date.parse(toIso(value));
+    return Number.isFinite(time) ? time : NaN;
+  } catch { return NaN; }
 }
 function inRange(date: unknown, start: number, end: number) {
   const n = ms(date); return Number.isFinite(n) && n >= start && n < end;
@@ -51,15 +54,16 @@ async function read<T>(name: string, uid: string): Promise<T[]> {
   return snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as T));
 }
 async function loadDashboard(uid: string): Promise<DashboardData> {
-  const [incidents, audits, meetings, programs, training, targets] = await Promise.all([
+  const [incidents, audits, meetings, programs, training, targets, visibilityDocs] = await Promise.all([
     read<Incident>("incidents", uid),
     read<SheqAudit>("sheqAudits", uid),
     read<SheMeeting>("sheMeetings", uid),
     read<SheProgram>("shePrograms", uid),
     read<TrainingRecord>("trainingRecords", uid),
     read<KpiThreshold>("kpiThresholds", uid),
+    read<{ visibility?: Record<string, boolean> }>("kpiVisibilitySettings", uid),
   ]);
-  return { incidents, audits, meetings, programs, training, targets };
+  return { incidents, audits, meetings, programs, training, targets, visibility: visibilityDocs[0]?.visibility ?? {} };
 }
 function changeLabel(now: number, before: number) {
   if (before === 0) return now === 0 ? "No change" : "New this period";
@@ -187,7 +191,7 @@ function PerformanceTable({ rows }: { rows: { name: string; value: string; targe
   return <Card sx={cardSx}><CardContent sx={{ p: { xs: 2.5, sm: 3 }, "&:last-child": { pb: 2 } }}>
     <SurfaceHeading title="SHEQ performance overview" subtitle="Operational KPIs based on your recorded data and configured targets"
       action={<Button component={Link} href="/dashboard/kpi-settings" size="small" endIcon={<ArrowForwardRounded />} sx={{ whiteSpace: "nowrap" }}>KPI targets</Button>} />
-    <TableContainer sx={{ maxWidth: "100%", overflowX: "auto" }}>
+    <TableContainer role="region" tabIndex={0} aria-label="Scrollable SHEQ KPI performance table" sx={{ maxWidth: "100%", overflowX: "auto", "&:focus-visible": { outline: "2px solid #0075FF", outlineOffset: 2 } }}>
       <Table size="small" sx={{ minWidth: 560 }} aria-label="SHEQ KPI performance table">
         <TableHead><TableRow sx={{ bgcolor: "#FAFBFD" }}>{["INDICATOR", "CURRENT VALUE", "TARGET", "STATUS"].map(h => <TableCell key={h} sx={{ fontSize: 10, letterSpacing: 0.6, fontWeight: 800, color: "#9AA6B8", py: 1.6 }}>{h}</TableCell>)}</TableRow></TableHead>
         <TableBody>{rows.map(row => <TableRow key={row.name} hover>
@@ -232,7 +236,9 @@ export default function DashboardPage() {
     const closurePct = tracked.length ? Math.round(closed / tracked.length * 100) : null;
     const training = data.training.filter(t => inRange(t.trainingDate, currentStart, now + 1));
     const trainingPct = training.length ? Math.round(training.filter(t => t.status === "Completed").length / training.length * 100) : null;
-    const threshold = (key: string) => data.targets.find(t => t.kpiKey === key)?.value ?? null;
+    const target = (key: string) => data.targets.find(t => t.kpiKey === key);
+    const threshold = (key: string) => target(key)?.value ?? null;
+    const direction = (key: string): "above" | "below" => target(key)?.targetDirection === "below" ? "below" : "above";
     const result = (value: number | null, target: number | null, direction: "above" | "below") => {
       if (value === null) return "Not available" as const;
       if (target === null) return "No target" as const;
@@ -240,7 +246,7 @@ export default function DashboardPage() {
       return direction === "above" ? "Below target" as const : "Above target" as const;
     };
     const rows = [
-      { name: "Incident closure rate", value: closurePct === null ? "—" : closurePct + "%", target: threshold("IncidentClosureRate"), unit: "%", status: result(closurePct, threshold("IncidentClosureRate"), "above") },
+      { name: "Incident closure rate", value: closurePct === null ? "—" : closurePct + "%", target: threshold("IncidentClosureRate"), unit: "%", status: result(closurePct, threshold("IncidentClosureRate"), direction("IncidentClosureRate")) },
       { name: "Injury severity rate (per 200,000 hrs)", value: "—", target: threshold("SeverityRate"), unit: "", status: "Not available" as const },
       { name: "Near-miss reports", value: String(nearMisses), target: null, unit: "", status: "No target" as const },
       { name: "Audit completion", value: auditPct === null ? "—" : auditPct + "%", target: null, unit: "%", status: auditPct === null ? "Not available" as const : "No target" as const },
@@ -249,10 +255,10 @@ export default function DashboardPage() {
     const todayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
     const events: EventItem[] = [
       ...data.meetings.filter(m => ms(m.meetingDate) >= todayStart).map(m => ({ id: "meeting-" + m.id, title: m.title, type: "Meeting" as const, date: ms(m.meetingDate), href: "/she-meetings" })),
-      ...data.programs.filter(p => p.status !== "Cancelled" && p.status !== "Completed" && (ms(p.startDate) >= todayStart || (p.status === "Ongoing" && ms(p.endDate) >= todayStart)))
+      ...data.programs.filter(p => p.status !== "Cancelled" && p.status !== "Completed" && (ms(p.startDate) >= todayStart || (p.status === "Ongoing" && (!p.endDate || ms(p.endDate) >= todayStart))))
         .map(p => ({ id: "program-" + p.id, title: p.programName, type: "Programme" as const, date: Math.max(todayStart, ms(p.startDate)), href: "/she-meetings" })),
     ].filter(e => Number.isFinite(e.date)).sort((a, b) => a.date - b.date);
-    return { inc, recordables, previousRecordables, nearMisses, previousNearMisses, lostDays, prevLostDays, auditPct, audits, events, rows };
+    return { inc, recordables, previousRecordables, nearMisses, previousNearMisses, lostDays, prevLostDays, auditPct, audits, events, rows: rows.filter(row => data.visibility[row.name.replaceAll(" ", "")] !== false) };
   }, [data, months, now]);
 
   return <Box sx={{ maxWidth: 1700, mx: "auto" }}>
