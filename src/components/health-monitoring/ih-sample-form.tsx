@@ -473,7 +473,7 @@ export function IhSampleForm({ segs, initialData, onSave, onCancel, isSubmitting
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               <XCircle className="mr-2 h-4 w-4" /> Cancel
             </Button>
-            <Button type="submit" className="bg-accent hover:bg-accent/90" disabled={isSubmitting}>
+            <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isSubmitting}>
               <Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Log Sample"}
             </Button>
         </div>

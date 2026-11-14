@@ -334,7 +334,7 @@ export function RiskRegisterEntryForm({ initialData, sheqAudits, onSave, onCance
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               <XCircle className="mr-2 h-4 w-4" /> Cancel
             </Button>
-            <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white" disabled={isSubmitting}>
+            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
               <Save className="mr-2 h-4 w-4" /> {initialData?.id ? "Save Changes" : "Add Risk to Register"}
             </Button>
         </div>

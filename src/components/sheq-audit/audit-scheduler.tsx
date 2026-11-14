@@ -236,7 +236,7 @@ export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onSched
                        <Tooltip>
                         <TooltipTrigger asChild>
                           <div tabIndex={0} className={cn(!canExecute && "cursor-not-allowed")}>
-                            <Button variant="default" size="sm" onClick={() => onStartAudit(audit.id)} disabled={!canExecute} className="bg-green-600 hover:bg-green-700">
+                            <Button variant="default" size="sm" onClick={() => onStartAudit(audit.id)} disabled={!canExecute} className="bg-primary hover:bg-primary/90">
                               <PlayCircle className="h-3 w-3 mr-1" /> Start Audit
                             </Button>
                           </div>
@@ -250,7 +250,7 @@ export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onSched
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div tabIndex={0} className={cn(!canExecute && "cursor-not-allowed")}>
-                              <Button variant="default" size="sm" onClick={() => onStartAudit(audit.id)} disabled={!canExecute} className="bg-yellow-500 hover:bg-yellow-600">
+                              <Button variant="default" size="sm" onClick={() => onStartAudit(audit.id)} disabled={!canExecute} className="bg-primary hover:bg-primary/90">
                                 <PlayCircle className="h-3 w-3 mr-1" /> Continue Audit
                               </Button>
                             </div>
