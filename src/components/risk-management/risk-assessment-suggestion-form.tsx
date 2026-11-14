@@ -27,7 +27,7 @@ import {
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Lightbulb, ShieldQuestion } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateRiskAssessmentSuggestion, type RiskAssessmentSuggestionInput, type RiskAssessmentSuggestionOutput } from "@/ai/flows/generate-risk-assessment-suggestion-flow";
+import { generateRiskAssessmentSuggestion, type RiskAssessmentSuggestionInput, type RiskAssessmentSuggestionOutput } from "@/ai/client";
 import { riskAssessmentMethodsList } from "@/lib/risk-assessment-config";
 
 const suggestionFormSchema = z.object({

@@ -39,7 +39,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/auth-context";
 import { db } from "@/lib/supabase/client";
 import { collection, query, where, getDocs, Timestamp } from '@/lib/supabase/records';
-import { vetContractor, type VetContractorInput } from "@/ai/flows/vet-contractor-flow";
+import { vetContractor, type VetContractorInput } from "@/ai/client";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -244,7 +244,8 @@ ${result.recommendationReasoning}
 `;
 
         form.setValue('vettingNotes', formattedNotes);
-        form.setValue('vettingStatus', result.suggestedVettingStatus);
+        // Never auto-approve a contractor from AI output.
+        form.setValue('vettingStatus', 'Requires Review');
         
         toast({ title: "AI Suggestion Generated", description: `Suggested Status: ${result.suggestedVettingStatus}. Notes updated.` });
 
