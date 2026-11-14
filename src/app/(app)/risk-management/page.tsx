@@ -606,7 +606,7 @@ export default function RiskManagementPage() {
                 <Tooltip>
                     <TooltipTrigger asChild>
                       <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
-                        <Button onClick={() => canCreate && router.push('/risk-management/assessments/new')} disabled={!canCreate} className="bg-purple-600 hover:bg-purple-700 text-white">
+                        <Button onClick={() => canCreate && router.push('/risk-management/assessments/new')} disabled={!canCreate} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                             <PlusCircle className="mr-2 h-4 w-4" /> Conduct New Assessment
                         </Button>
                       </div>
