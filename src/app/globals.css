@@ -153,6 +153,9 @@
   .ui-input, .ui-select {
     font-size: 16px;
   }
+  input.ui-input, .ui-select {
+    min-height: 44px;
+  }
   .ui-card-footer > .ui-button,
   .ui-card-footer > a {
     width: 100%;

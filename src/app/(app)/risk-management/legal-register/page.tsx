@@ -120,7 +120,7 @@ export default function LegalRegisterPage() {
   }, [legalRegister, searchTerm]);
 
   const renderLegalItem = (item: LegalRegisterItem) => (
-    <Card key={item.title} className="shadow-sm">
+    <Card key={item.title} className="shadow-card">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold text-primary flex items-center gap-2">
           <FileText className="h-5 w-5" /> {highlightText(item.title, searchTerm)}
@@ -174,7 +174,7 @@ export default function LegalRegisterPage() {
         </div>
       </div>
 
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
           <CardTitle>Country-Specific Legal Requirements</CardTitle>
           <CardDescription>

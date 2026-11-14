@@ -502,7 +502,7 @@ export default function RiskManagementPage() {
                 <ScrollArea className="max-h-[400px] pr-3">
                     <div className="space-y-3">
                         {incidents.map(incident => (
-                           <Card key={incident.id} className="p-3 shadow-sm">
+                           <Card key={incident.id} className="p-3 shadow-card">
                                 <div className="flex flex-col gap-2">
                                     <div>
                                         <h4 className="font-semibold">{incident.type}: {incident.description.substring(0, 70)}{incident.description.length > 70 ? '...' : ''}</h4>
@@ -559,7 +559,7 @@ export default function RiskManagementPage() {
               <ScrollArea className="max-h-[400px] pr-3">
                   <div className="space-y-3">
                       {filteredHazards.map(hazard => (
-                          <Card key={hazard.id} className="p-3 shadow-sm">
+                          <Card key={hazard.id} className="p-3 shadow-card">
                               <div className="flex justify-between items-start">
                                   <div className="flex-grow">
                                       <h4 className="font-semibold">{hazard.hazardDescription}</h4>
@@ -624,7 +624,7 @@ export default function RiskManagementPage() {
                         {filteredAssessments.map(assessment => {
                             const displayRiskLevel = assessment.residualRiskLevel || assessment.initialRiskLevel;
                             return (
-                                <Card key={assessment.id} className="p-3 shadow-sm">
+                                <Card key={assessment.id} className="p-3 shadow-card">
                                     <div className="flex justify-between items-start">
                                         <div className="flex-grow">
                                             <h4 className="font-semibold">{assessment.activityOrProcess}</h4>
@@ -688,7 +688,7 @@ export default function RiskManagementPage() {
                             const displayRiskLevel = entry.residualRiskLevel || entry.initialRiskLevel;
                             const reviewDateStatus = getReviewDateStatusInfo(entry.nextReviewDate);
                             return (
-                                <Card key={entry.id} className="p-3 shadow-sm">
+                                <Card key={entry.id} className="p-3 shadow-card">
                                     <div className="flex justify-between items-start">
                                         <div className="flex-grow">
                                             <h4 className="font-semibold">{entry.riskTitle}</h4>

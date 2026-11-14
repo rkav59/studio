@@ -107,7 +107,7 @@ export default function EditSheMeetingPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
-        <Card className="shadow-lg">
+        <Card className="shadow-card">
           <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
            <CardContent className="p-6 space-y-4">
                 {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
@@ -139,7 +139,7 @@ export default function EditSheMeetingPage() {
                  <Users className="h-6 w-6 text-accent" /> Edit SHE Meeting: {meetingToEdit.title}
             </h1>
         </div>
-        <Card className="shadow-lg">
+        <Card className="shadow-card">
             <CardHeader>
                 <CardDescription>
                     Modify the details for this SHE Meeting.

@@ -70,7 +70,7 @@ export default function NewMockDrillPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
-        <Card className="shadow-lg">
+        <Card className="shadow-card">
           <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
            <CardContent className="p-0">
             <div className="p-6 space-y-4">
@@ -97,7 +97,7 @@ export default function NewMockDrillPage() {
                     Schedule/Log New Mock Drill
                 </h1>
             </div>
-            <Card className="shadow-lg">
+            <Card className="shadow-card">
                 <CardHeader>
                     <CardTitle>Cannot Log Drill</CardTitle>
                     <CardDescription>There are no emergency plans defined. Please create an emergency plan before scheduling or logging a mock drill.</CardDescription>

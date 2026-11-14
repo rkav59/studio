@@ -92,7 +92,7 @@ export default function NewRiskRegisterEntryPage() {
                  <BookOpen className="h-6 w-6 text-green-600" /> Add New Risk to Register
             </h1>
         </div>
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
           <CardDescription>
             Define a new risk entry for the organization's risk register.

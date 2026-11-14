@@ -72,7 +72,7 @@ export function PpeItemForm({ initialData, onSave, onCancel }: PpeItemFormProps)
   };
 
   return (
-    <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+    <Card className="flex-1 flex flex-col min-h-0 shadow-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <Package className="h-6 w-6 text-primary" />
