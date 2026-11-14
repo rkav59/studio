@@ -6,6 +6,10 @@ import { Providers } from '@/components/layout/providers'; // Import the new Pro
 export const metadata: Metadata = {
   title: 'SHEiQpro - Safety, Health & Environment',
   description: 'Comprehensive SHE management platform by SHEiQpro',
+  icons: {
+    icon: '/sheiqpro-logo.png',
+    apple: '/sheiqpro-logo.png',
+  },
 };
 
 export default function RootLayout({
@@ -22,7 +26,7 @@ export default function RootLayout({
         
       </head>
       <body className="font-body antialiased">
-        <Providers> {/* Use the Providers component */}
+        <Providers> {/* Use the new Providers component */}
           {children}
         </Providers>
       </body>
