@@ -97,7 +97,7 @@ export default function InductionSettingsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-4">
                     <Button variant="outline" size="icon" onClick={() => router.push('/contractor-safety')} aria-label="Back to Contractor Safety"><ArrowLeft className="h-4 w-4" /></Button>
                     <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">

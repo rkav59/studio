@@ -356,7 +356,7 @@ export default function PpeManagementPage() {
       </div>
       
       {lowStockItems.length > 0 && (
-        <Alert variant="destructive" className="shadow-md">
+        <Alert variant="destructive" className="shadow-card">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Low Stock Warning!</AlertTitle>
           <AlertDescription>
