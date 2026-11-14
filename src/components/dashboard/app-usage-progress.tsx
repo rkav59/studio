@@ -79,7 +79,7 @@ export function AppUsageProgress({ usageData }: AppUsageProgressProps) {
           {features.map((feature) => (
             <div key={feature.name} className={cn("p-4 rounded-lg flex flex-col justify-between border", feature.isUsed ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" : "bg-secondary/50")}>
               <div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <h4 className="font-semibold flex items-center gap-2">
                     <feature.icon className="h-5 w-5" />
                     {feature.name}

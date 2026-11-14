@@ -600,7 +600,7 @@ export default function ContractorSafetyPage() {
                  <Tooltip>
                     <TooltipTrigger asChild>
                         <div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}>
-                           <Button onClick={handleOpenNewPtwForm} className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={!canManage || contractors.length === 0}>
+                           <Button onClick={handleOpenNewPtwForm} className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={!canManage || contractors.length === 0}>
                                 <PlusCircle className="mr-2 h-4 w-4" /> Create New PTW
                            </Button>
                         </div>
