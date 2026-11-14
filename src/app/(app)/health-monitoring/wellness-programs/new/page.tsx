@@ -59,7 +59,7 @@ export default function NewWellnessProgramPage() {
                  <Award className="h-6 w-6 text-purple-500" /> Add New Wellness Program
             </h1>
         </div>
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
           <CardDescription>
             Define a new employee wellness program.

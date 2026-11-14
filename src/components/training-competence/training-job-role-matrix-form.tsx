@@ -52,7 +52,7 @@ export function TrainingJobRoleMatrixForm({ courses, initialData, onSave, onCanc
   };
 
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-card">
       <CardHeader>
         <CardDescription>
           {isEditing ? "Update the required training for this job role." : "Specify the job role and select the standard courses required."}
