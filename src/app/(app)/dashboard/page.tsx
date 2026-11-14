@@ -258,7 +258,14 @@ export default function DashboardPage() {
       ...data.programs.filter(p => p.status !== "Cancelled" && p.status !== "Completed" && (ms(p.startDate) >= todayStart || (p.status === "Ongoing" && (!p.endDate || ms(p.endDate) >= todayStart))))
         .map(p => ({ id: "program-" + p.id, title: p.programName, type: "Programme" as const, date: Math.max(todayStart, ms(p.startDate)), href: "/she-meetings" })),
     ].filter(e => Number.isFinite(e.date)).sort((a, b) => a.date - b.date);
-    return { inc, recordables, previousRecordables, nearMisses, previousNearMisses, lostDays, prevLostDays, auditPct, audits, events, rows: rows.filter(row => {\n      const visibilityKey: Record<string, string> = { "Incident closure rate": "IncidentClosureRate", "Injury severity rate (per 200,000 hrs)": "SeverityRate", "Near-miss reports": "NMFR", "Audit completion": "AuditCompletion", "Training completion": "TrainingCompletion" };\n      return data.visibility[visibilityKey[row.name] ?? row.name] !== false;\n    }) };
+    const visibilityKey: Record<string, string> = {
+      "Incident closure rate": "IncidentClosureRate",
+      "Injury severity rate (per 200,000 hrs)": "SeverityRate",
+      "Near-miss reports": "NMFR",
+      "Audit completion": "AuditCompletion",
+      "Training completion": "TrainingCompletion",
+    };
+    return { inc, recordables, previousRecordables, nearMisses, previousNearMisses, lostDays, prevLostDays, auditPct, audits, events, rows: rows.filter(row => data.visibility[visibilityKey[row.name] ?? row.name] !== false) };
   }, [data, months, now]);
 
   return <Box sx={{ maxWidth: 1700, mx: "auto" }}>
