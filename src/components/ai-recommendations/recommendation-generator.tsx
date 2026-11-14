@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateSafetyRecommendation, type SafetyRecommendationInput, type SafetyRecommendationOutput } from "@/ai/flows/generate-safety-recommendation";
+import { generateSafetyRecommendation, type SafetyRecommendationInput, type SafetyRecommendationOutput } from "@/ai/client";
 
 const recommendationFormSchema = z.object({
   incidentLogs: z.string().min(20, {
@@ -190,7 +190,7 @@ export function RecommendationGenerator() {
             <p role="status" className="text-sm text-muted-foreground">
               {geminiReady === null
                 ? "Checking Gemini availability…"
-                : "Gemini is not configured yet. An administrator must add the server-side Gemini API key."}
+                : "AI is not ready. An administrator must complete the paid API and usage-control setup."}
             </p>
           )}
         </form>

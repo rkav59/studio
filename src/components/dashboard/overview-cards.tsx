@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator"; 
 import type { KpiThreshold, KpiRecommendationInput, KpiRecommendationOutput } from '@/lib/types';
 import React, { useState, useMemo } from "react"; 
-import { generateKpiRecommendation } from "@/ai/flows/generate-kpi-recommendation-flow";
+import { generateKpiRecommendation } from "@/ai/client";
 import {
   AlertDialog,
   AlertDialogContent,
