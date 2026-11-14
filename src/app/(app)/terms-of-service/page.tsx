@@ -14,7 +14,7 @@ export default function TermsOfServicePage() {
         <p className="text-muted-foreground">Please read these terms carefully before using SHEiQpro.</p>
       </div>
 
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardContent className="p-6">
           <ScrollArea className="h-[60vh] pr-4">
             <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none">

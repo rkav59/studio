@@ -14,7 +14,7 @@ export default function PrivacyPolicyPage() {
         <p className="text-muted-foreground">Your privacy is important to us. This policy explains how we handle your data.</p>
       </div>
 
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardContent className="p-6">
           <ScrollArea className="h-[60vh] pr-4">
             <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none">

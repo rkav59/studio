@@ -670,7 +670,7 @@ export default function TrainingCompetencePage() {
                 {filteredTrainingRecords.map(record => {
                   const derivedStatus = getDerivedStatus(record);
                   return (
-                    <Card key={record.id} className="p-4 shadow-sm border">
+                    <Card key={record.id} className="p-4 shadow-card border">
                       <div className="flex flex-col sm:flex-row justify-between items-start">
                         <div className="mb-2 sm:mb-0">
                           <h4 className="font-semibold text-lg">{record.employeeName}</h4>

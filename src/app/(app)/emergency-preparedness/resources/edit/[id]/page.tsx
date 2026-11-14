@@ -86,7 +86,7 @@ export default function EditEmergencyResourcePage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
-        <Card className="shadow-lg">
+        <Card className="shadow-card">
           <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
           <CardContent className="p-0">
              <div className="p-6 space-y-4">

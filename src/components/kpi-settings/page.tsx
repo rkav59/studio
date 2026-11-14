@@ -219,7 +219,7 @@ export default function KpiSettingsPage() {
                 <form id="thresholdsForm" className="space-y-6"> {/* No onSubmit here, handled by master button */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {thresholdFields.map((field, index) => (
-                      <Card key={field.id} className="p-3 bg-background shadow">
+                      <Card key={field.id} className="p-3 bg-background shadow-card">
                         <h4 className="text-sm font-medium mb-2 text-primary">{field.title}</h4>
                           <div className="grid grid-cols-2 gap-3 items-end">
                               <FormField

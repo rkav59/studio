@@ -443,7 +443,7 @@ export default function ContractorSafetyPage() {
                 <ScrollArea className="max-h-[400px] pr-3">
                     <div className="space-y-3">
                         {filteredContractors.map(contractor => (
-                            <Card key={contractor.id} className="p-4 shadow-sm">
+                            <Card key={contractor.id} className="p-4 shadow-card">
                                 <div className="flex flex-col sm:flex-row justify-between items-start">
                                     <div className="mb-2 sm:mb-0">
                                         <h4 className="font-semibold text-lg">{contractor.companyName}</h4>
@@ -528,7 +528,7 @@ export default function ContractorSafetyPage() {
               <ScrollArea className="max-h-[400px] pr-3">
                   <div className="space-y-3">
                       {filteredJobCards.map(jc => (
-                          <Card key={jc.id} className="p-4 shadow-sm">
+                          <Card key={jc.id} className="p-4 shadow-card">
                               <div className="flex flex-col sm:flex-row justify-between items-start">
                                   <div className="mb-2 sm:mb-0">
                                       <h4 className="font-semibold text-lg">Job Card #: {jc.jobCardNumber}</h4>
@@ -620,7 +620,7 @@ export default function ContractorSafetyPage() {
                         {filteredPtws.map(ptw => {
                           const supervisionCount = ptwSupervisionRecords.filter(sr => sr.ptwId === ptw.id).length;
                           return (
-                            <Card key={ptw.id} className="p-4 shadow-sm">
+                            <Card key={ptw.id} className="p-4 shadow-card">
                                 <div className="flex flex-col sm:flex-row justify-between items-start">
                                     <div className="mb-2 sm:mb-0">
                                         <h4 className="font-semibold text-lg">PTW #: {ptw.ptwNumber}</h4>

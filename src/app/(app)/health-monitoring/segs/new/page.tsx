@@ -52,7 +52,7 @@ export default function NewSegPage() {
                  <Users className="h-6 w-6 text-primary" /> Add New Similar Exposure Group (SEG)
             </h1>
         </div>
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
           <CardDescription>
             Define a new SEG for grouping employees with similar health exposures.
