@@ -27,7 +27,7 @@ import {
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Lightbulb, ShieldQuestion } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateRiskAssessmentSuggestion, type RiskAssessmentSuggestionInput, type RiskAssessmentSuggestionOutput } from "@/ai/flows/generate-risk-assessment-suggestion-flow";
+import { generateRiskAssessmentSuggestion, type RiskAssessmentSuggestionInput, type RiskAssessmentSuggestionOutput } from "@/ai/client";
 import { riskAssessmentMethodsList } from "@/lib/risk-assessment-config";
 
 const suggestionFormSchema = z.object({
@@ -89,7 +89,7 @@ export function RiskAssessmentSuggestionForm({ onSuggestionsGenerated }: RiskAss
   }
 
   return (
-    <Card className="shadow-md">
+    <Card className="shadow-card">
       <CardHeader>
         {/* Title moved to parent page */}
         <CardDescription>
@@ -162,7 +162,7 @@ export function RiskAssessmentSuggestionForm({ onSuggestionsGenerated }: RiskAss
               )}
             />
             
-            <Button type="submit" disabled={isLoading} className="w-full bg-blue-500 hover:bg-blue-600 text-white">
+            <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (

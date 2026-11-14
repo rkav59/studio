@@ -356,7 +356,7 @@ export default function PpeManagementPage() {
       </div>
       
       {lowStockItems.length > 0 && (
-        <Alert variant="destructive" className="shadow-md">
+        <Alert variant="destructive" className="shadow-card">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Low Stock Warning!</AlertTitle>
           <AlertDescription>
@@ -454,7 +454,7 @@ export default function PpeManagementPage() {
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
                 {filteredPpeItems.map(item => (
-                  <Card key={item.id} className="p-4 shadow-sm">
+                  <Card key={item.id} className="p-4 shadow-card">
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
                         <h4 className="font-semibold text-lg">{item.name} <span className="text-sm text-muted-foreground">({item.type} - {item.category})</span></h4>
@@ -513,7 +513,7 @@ export default function PpeManagementPage() {
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
                 {filteredPpeIssuances.map(issuance => (
-                  <Card key={issuance.id} className="p-4 shadow-sm">
+                  <Card key={issuance.id} className="p-4 shadow-card">
                      <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
                         <h4 className="font-semibold text-lg">{issuance.employeeName} - {getPpeItemName(issuance.ppeItemId)} (x{issuance.quantityIssued})</h4>
@@ -550,7 +550,7 @@ export default function PpeManagementPage() {
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search inspections..." className="pl-8 w-full sm:w-[200px]" value={inspectionSearchTerm} onChange={(e) => setInspectionSearchTerm(e.target.value)} /></div>
-            <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button onClick={() => canManage && handleOpenNewPpeInspectionForm()} disabled={!canManage || ppeItems.length === 0} className="bg-teal-600 hover:bg-teal-700 text-white"><PlusCircle className="mr-2 h-4 w-4" /> Log Inspection</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
+            <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button onClick={() => canManage && handleOpenNewPpeInspectionForm()} disabled={!canManage || ppeItems.length === 0} className="bg-primary hover:bg-primary/90 text-primary-foreground"><PlusCircle className="mr-2 h-4 w-4" /> Log Inspection</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
           </div>
         </CardHeader>
         <CardContent>
@@ -562,7 +562,7 @@ export default function PpeManagementPage() {
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
                 {filteredPpeInspections.map(inspection => (
-                  <Card key={inspection.id} className="p-4 shadow-sm">
+                  <Card key={inspection.id} className="p-4 shadow-card">
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
                         <h4 className="font-semibold text-lg">{getPpeItemName(inspection.ppeItemId)} {inspection.uniquePpeIdentifier ? `(ID: ${inspection.uniquePpeIdentifier})`: ''}</h4>
@@ -606,7 +606,7 @@ export default function PpeManagementPage() {
           </div>
            <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-grow sm:flex-grow-0"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input type="search" placeholder="Search job roles..." className="pl-8 w-full sm:w-[200px]" value={jobRoleSearchTerm} onChange={(e) => setJobRoleSearchTerm(e.target.value)} /></div>
-            <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button onClick={() => canManage && handleOpenNewJobRoleForm()} disabled={!canManage || ppeItems.length === 0} className="bg-indigo-600 hover:bg-indigo-700 text-white"><PlusCircle className="mr-2 h-4 w-4" /> Define Job Role</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
+            <Tooltip><TooltipTrigger asChild><div tabIndex={0} className={cn(!canManage && "cursor-not-allowed")}><Button onClick={() => canManage && handleOpenNewJobRoleForm()} disabled={!canManage || ppeItems.length === 0} className="bg-primary hover:bg-primary/90 text-primary-foreground"><PlusCircle className="mr-2 h-4 w-4" /> Define Job Role</Button></div></TooltipTrigger>{!canManage && <TooltipContent><p>{disabledTooltipContent}</p></TooltipContent>}</Tooltip>
           </div>
         </CardHeader>
         <CardContent>
@@ -618,7 +618,7 @@ export default function PpeManagementPage() {
             <ScrollArea className="max-h-[400px] pr-3">
               <div className="space-y-3">
                 {filteredJobRoleMatrix.map(entry => (
-                  <Card key={entry.id} className="p-4 shadow-sm">
+                  <Card key={entry.id} className="p-4 shadow-card">
                     <div className="flex flex-col sm:flex-row justify-between items-start">
                       <div className="mb-2 sm:mb-0">
                         <h4 className="font-semibold text-lg">{entry.jobRole}</h4>

@@ -39,7 +39,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/auth-context";
 import { db } from "@/lib/supabase/client";
 import { collection, query, where, getDocs, Timestamp } from '@/lib/supabase/records';
-import { vetContractor, type VetContractorInput } from "@/ai/flows/vet-contractor-flow";
+import { vetContractor, type VetContractorInput } from "@/ai/client";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -244,7 +244,8 @@ ${result.recommendationReasoning}
 `;
 
         form.setValue('vettingNotes', formattedNotes);
-        form.setValue('vettingStatus', result.suggestedVettingStatus);
+        // Never auto-approve a contractor from AI output.
+        form.setValue('vettingStatus', 'Requires Review');
         
         toast({ title: "AI Suggestion Generated", description: `Suggested Status: ${result.suggestedVettingStatus}. Notes updated.` });
 
@@ -258,7 +259,7 @@ ${result.recommendationReasoning}
 
 
   return (
-    <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+    <Card className="flex-1 flex flex-col min-h-0 shadow-card">
       <CardHeader>
         <UiCardDescription>
           {initialData ? "Update the contractor's details below." : "Enter details for the new contractor."}
@@ -324,7 +325,7 @@ ${result.recommendationReasoning}
                                     size="sm"
                                     onClick={handleGetAiVettingSuggestion}
                                     disabled={!initialData?.id || isAiVettingLoading}
-                                    className="text-accent border-accent hover:bg-accent/10 h-8"
+                                    className="text-primary border-primary/30 hover:bg-accent/10 h-8"
                                 >
                                     {isAiVettingLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                                     AI Vetting Suggestion

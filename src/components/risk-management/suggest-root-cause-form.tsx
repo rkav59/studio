@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Brain, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { suggestRootCause, type SuggestRootCauseInput, type SuggestRootCauseOutput } from "@/ai/flows/suggest-root-cause-flow";
+import { suggestRootCause, type SuggestRootCauseInput, type SuggestRootCauseOutput } from "@/ai/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const suggestRootCauseFormSchema = z.object({
@@ -84,7 +84,7 @@ export function SuggestRootCauseForm({ onSuggestionsGenerated }: SuggestRootCaus
   }
 
   return (
-    <Card className="shadow-md">
+    <Card className="shadow-card">
       <CardHeader>
         {/* Title and Description will be handled by parent page if needed */}
       </CardHeader>
@@ -129,7 +129,7 @@ export function SuggestRootCauseForm({ onSuggestionsGenerated }: SuggestRootCaus
               )}
             />
             
-            <Button type="submit" disabled={isLoading} className="w-full bg-purple-500 hover:bg-purple-600 text-white">
+            <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (

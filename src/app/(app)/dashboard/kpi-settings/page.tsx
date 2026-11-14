@@ -194,7 +194,7 @@ export default function KpiSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-bold tracking-tight font-headline">KPI Settings</h1>
         <Button variant="outline" onClick={() => router.push('/dashboard')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -219,7 +219,7 @@ export default function KpiSettingsPage() {
                 <form id="thresholdsForm" className="space-y-6"> {/* No onSubmit here, handled by master button */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
                     {thresholdFields.map((field, index) => (
-                      <Card key={field.id} className="p-3 bg-background shadow">
+                      <Card key={field.id} className="p-3 bg-background shadow-card">
                         <h4 className="text-sm font-medium mb-2 text-primary">{field.title}</h4>
                           <div className="grid grid-cols-2 gap-3 items-end">
                               <FormField

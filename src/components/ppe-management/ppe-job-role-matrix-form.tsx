@@ -82,7 +82,7 @@ export function PpeJobRoleMatrixForm({ ppeItems, riskAssessments, initialData, o
   };
 
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-card">
       <CardHeader>
         <CardDescription>
           {isEditing ? "Update the required PPE for this job role." : "Specify the job role and select the standard PPE items required."}
@@ -184,7 +184,7 @@ export function PpeJobRoleMatrixForm({ ppeItems, riskAssessments, initialData, o
           </CardContent>
           <div className="p-6 border-t flex justify-end gap-2 bg-background">
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}><XCircle className="mr-2 h-4 w-4" />Cancel</Button>
-            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={isSubmitting}><Save className="mr-2 h-4 w-4" />{isEditing ? "Save Changes" : "Define Requirements"}</Button>
+            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}><Save className="mr-2 h-4 w-4" />{isEditing ? "Save Changes" : "Define Requirements"}</Button>
           </div>
         </form>
       </Form>

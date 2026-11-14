@@ -352,7 +352,7 @@ export default function TrainingCompetencePage() {
       <Separator />
 
       {recordsRequiringAttention.length > 0 && (
-        <Card id="reminders-section" className="border-orange-500/50 shadow-md">
+        <Card id="reminders-section" className="border-orange-500/50 shadow-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
               <AlertTriangle className="h-6 w-6"/> Training Reminders
@@ -508,7 +508,7 @@ export default function TrainingCompetencePage() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div tabIndex={0} className={cn(!canManageCourses && "cursor-not-allowed")}>
-                    <Button onClick={() => canManageCourses && handleOpenNewJobRoleForm()} disabled={!canManageCourses || courses.length === 0} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                    <Button onClick={() => canManageCourses && handleOpenNewJobRoleForm()} disabled={!canManageCourses || courses.length === 0} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                         <PlusCircle className="mr-2 h-4 w-4" /> Define Job Role
                     </Button>
                 </div>
@@ -650,7 +650,7 @@ export default function TrainingCompetencePage() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div tabIndex={0} className={cn(!canManageRecords && "cursor-not-allowed")}>
-                    <Button onClick={() => canManageRecords && handleOpenNewRecordForm()} disabled={!canManageRecords || courses.length === 0} className="bg-accent hover:bg-accent/90">
+                    <Button onClick={() => canManageRecords && handleOpenNewRecordForm()} disabled={!canManageRecords || courses.length === 0} className="bg-primary hover:bg-primary/90">
                       <PlusCircle className="mr-2 h-4 w-4" /> Add New Record
                     </Button>
                 </div>
@@ -670,7 +670,7 @@ export default function TrainingCompetencePage() {
                 {filteredTrainingRecords.map(record => {
                   const derivedStatus = getDerivedStatus(record);
                   return (
-                    <Card key={record.id} className="p-4 shadow-sm border">
+                    <Card key={record.id} className="p-4 shadow-card border">
                       <div className="flex flex-col sm:flex-row justify-between items-start">
                         <div className="mb-2 sm:mb-0">
                           <h4 className="font-semibold text-lg">{record.employeeName}</h4>

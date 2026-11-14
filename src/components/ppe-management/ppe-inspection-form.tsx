@@ -143,7 +143,7 @@ export function PpeInspectionForm({ ppeItems, initialData, onSave, onCancel, isS
   };
 
   return (
-     <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+     <Card className="flex-1 flex flex-col min-h-0 shadow-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="h-6 w-6 text-teal-600" />
@@ -274,7 +274,7 @@ export function PpeInspectionForm({ ppeItems, initialData, onSave, onCancel, isS
           </ScrollArea>
           <div className="p-4 md:p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
             <Button type="button" variant="outline" onClick={onCancel}><XCircle className="mr-2 h-4 w-4" />Cancel</Button>
-            <Button disabled={isSubmitting} type="submit" className="bg-teal-600 hover:bg-teal-700 text-white"><Save className="mr-2 h-4 w-4" />{isEditing ? "Save Changes" : "Log Inspection"}</Button>
+            <Button disabled={isSubmitting} type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground"><Save className="mr-2 h-4 w-4" />{isEditing ? "Save Changes" : "Log Inspection"}</Button>
           </div>
         </form>
       </Form>

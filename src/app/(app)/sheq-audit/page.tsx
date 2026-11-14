@@ -16,7 +16,7 @@ import { ChevronLeft, Eye, ListChecks, CheckSquare, BrainCircuit, Sparkles, Load
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { analyzeSheqAuditData } from '@/ai/flows/analyze-audit-data-flow';
+import { analyzeSheqAuditData } from '@/ai/client';
 import { Alert, AlertTitle, AlertDescription as UIAlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/supabase/client';
@@ -536,7 +536,7 @@ export default function SheqAuditPage() {
               <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
                   <FileCheck2 className="h-8 w-8"/> SHEQ Audits
               </h1>
-              <Button onClick={handleGenerateAiInsights} disabled={isAiInsightsLoading || audits.length === 0} variant="outline" className="border-accent text-accent hover:bg-accent/10">
+              <Button onClick={handleGenerateAiInsights} disabled={isAiInsightsLoading || audits.length === 0} variant="outline" className="border-primary/30 text-primary hover:bg-accent/10">
                   {isAiInsightsLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                   AI Audit Insights
               </Button>
@@ -580,7 +580,7 @@ export default function SheqAuditPage() {
           </div>
           
           
-            <Card id="completed-audits" className="shadow-lg mt-6">
+            <Card id="completed-audits" className="shadow-card mt-6">
               <CardHeader>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
                     <div>
@@ -656,7 +656,7 @@ export default function SheqAuditPage() {
 
             <Accordion type="single" collapsible className="w-full" id="archived-audits">
               <AccordionItem value="archived-audits">
-                <Card className="shadow-lg mt-6">
+                <Card className="shadow-card mt-6">
                   <AccordionTrigger className="p-6 w-full">
                       <CardTitle className="flex items-center gap-2 text-muted-foreground"><Archive className="h-6 w-6"/>Archived Audits ({archivedAudits.length})</CardTitle>
                   </AccordionTrigger>
@@ -704,9 +704,9 @@ export default function SheqAuditPage() {
             </Accordion>
         </>
       ) : (
-        <Card className="shadow-lg">
+        <Card className="shadow-card">
            <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
                 <CardTitle>Conduct Audit: {currentAudit.auditName}</CardTitle>
                 <Button variant="outline" size="sm" onClick={handleBackToScheduler}>
                     <ChevronLeft className="mr-2 h-4 w-4" /> Back to Scheduler

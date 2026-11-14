@@ -126,7 +126,7 @@ export function PermitToWorkForm({ contractors, initialData, onSave, onCancel, i
   );
 
   return (
-    <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+    <Card className="flex-1 flex flex-col min-h-0 shadow-card">
       <CardHeader>
         <UiCardDescription>
           {initialData ? "Update the details of this PTW below." : "Fill in the details for the new PTW."}
@@ -223,7 +223,7 @@ export function PermitToWorkForm({ contractors, initialData, onSave, onCancel, i
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               <XCircle className="mr-2 h-4 w-4" /> Cancel
             </Button>
-            <Button type="submit" className="bg-accent hover:bg-accent/90" disabled={isSubmitting}>
+            <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isSubmitting}>
               <Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Create PTW"}
             </Button>
           </div>

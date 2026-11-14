@@ -108,7 +108,7 @@ export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onSched
 
 
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-card">
       <CardHeader>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
             <div>
@@ -132,7 +132,7 @@ export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onSched
                         <TooltipTrigger asChild>
                            <div tabIndex={0} className={cn(!canSchedule && "cursor-not-allowed")}>
                             <DialogTrigger asChild>
-                                <Button className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={!canSchedule}>
+                                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={!canSchedule}>
                                     <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Audit
                                 </Button>
                             </DialogTrigger>
@@ -205,7 +205,7 @@ export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onSched
         ) : (
           <ul className="space-y-4">
             {filteredPendingAudits.map((audit) => (
-              <li key={audit.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow bg-secondary/30">
+              <li key={audit.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg hover:shadow-card transition-shadow bg-secondary/30">
                 <div className="flex-grow mb-2 sm:mb-0">
                   <div className="flex items-center gap-2">
                     <BookOpenCheck className="h-5 w-5 text-primary" />
@@ -236,7 +236,7 @@ export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onSched
                        <Tooltip>
                         <TooltipTrigger asChild>
                           <div tabIndex={0} className={cn(!canExecute && "cursor-not-allowed")}>
-                            <Button variant="default" size="sm" onClick={() => onStartAudit(audit.id)} disabled={!canExecute} className="bg-green-600 hover:bg-green-700">
+                            <Button variant="default" size="sm" onClick={() => onStartAudit(audit.id)} disabled={!canExecute} className="bg-primary hover:bg-primary/90">
                               <PlayCircle className="h-3 w-3 mr-1" /> Start Audit
                             </Button>
                           </div>
@@ -250,7 +250,7 @@ export function AuditScheduler({ scheduledAudits, allChecklistTemplates, onSched
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div tabIndex={0} className={cn(!canExecute && "cursor-not-allowed")}>
-                              <Button variant="default" size="sm" onClick={() => onStartAudit(audit.id)} disabled={!canExecute} className="bg-yellow-500 hover:bg-yellow-600">
+                              <Button variant="default" size="sm" onClick={() => onStartAudit(audit.id)} disabled={!canExecute} className="bg-primary hover:bg-primary/90">
                                 <PlayCircle className="h-3 w-3 mr-1" /> Continue Audit
                               </Button>
                             </div>

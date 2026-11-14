@@ -1,6 +1,7 @@
 
 import type {Metadata} from 'next';
 import './globals.css';
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { Providers } from '@/components/layout/providers'; // Import the new Providers component
 
 export const metadata: Metadata = {
@@ -22,13 +23,16 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700;750;800&display=swap" rel="stylesheet" />
         
       </head>
       <body className="font-body antialiased">
-        <Providers> {/* Use the new Providers component */}
+        {/* Tailwind v3 emits an unlayered reset; a named MUI layer loses to it. */}
+        <AppRouterCacheProvider options={{ enableCssLayer: false }}>
+        <Providers>
           {children}
         </Providers>
+        </AppRouterCacheProvider>
       </body>
     </html>
   );

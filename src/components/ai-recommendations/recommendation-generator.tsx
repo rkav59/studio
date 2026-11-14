@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateSafetyRecommendation, type SafetyRecommendationInput, type SafetyRecommendationOutput } from "@/ai/flows/generate-safety-recommendation";
+import { generateSafetyRecommendation, type SafetyRecommendationInput, type SafetyRecommendationOutput } from "@/ai/client";
 
 const recommendationFormSchema = z.object({
   incidentLogs: z.string().min(20, {
@@ -44,6 +44,19 @@ export function RecommendationGenerator() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<string | null>(null);
+  const [geminiReady, setGeminiReady] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/ai/status", { cache: "no-store" })
+      .then(async response => {
+        if (!response.ok) throw new Error("AI status unavailable");
+        return response.json();
+      })
+      .then(result => { if (active) setGeminiReady(result.configured === true); })
+      .catch(() => { if (active) setGeminiReady(false); });
+    return () => { active = false; };
+  }, []);
 
   const form = useForm<RecommendationFormValues>({
     resolver: zodResolver(recommendationFormSchema),
@@ -56,6 +69,7 @@ export function RecommendationGenerator() {
   });
 
   async function onSubmit(data: RecommendationFormValues) {
+    if (geminiReady !== true) return;
     setIsLoading(true);
     setRecommendations(null);
     try {
@@ -164,7 +178,7 @@ export function RecommendationGenerator() {
             />
           </div>
           
-          <Button type="submit" disabled={isLoading} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Button type="submit" disabled={isLoading || geminiReady !== true} className="bg-primary hover:bg-primary/90 text-primary-foreground">
             {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -172,11 +186,18 @@ export function RecommendationGenerator() {
             )}
             Generate Recommendations
           </Button>
+          {geminiReady !== true && (
+            <p role="status" className="text-sm text-muted-foreground">
+              {geminiReady === null
+                ? "Checking Gemini availability…"
+                : "AI is not ready. An administrator must complete the paid API and usage-control setup."}
+            </p>
+          )}
         </form>
       </Form>
 
       {recommendations && (
-        <Card className="mt-8 shadow-lg">
+        <Card className="mt-8 shadow-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-6 w-6 text-primary" />

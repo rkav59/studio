@@ -123,7 +123,7 @@ export function IncidentForm({ initialData, onSave, onCancel, isSubmitting }: In
   );
 
   return (
-    <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+    <Card className="flex-1 flex flex-col min-h-0 shadow-card">
       <CardHeader>
         <UiCardDescription>
           {initialData ? "Update the details of this incident/event." : "Fill in the details for the new incident, near miss, or hazard observation."}
@@ -217,7 +217,7 @@ export function IncidentForm({ initialData, onSave, onCancel, isSubmitting }: In
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               <XCircle className="mr-2 h-4 w-4" /> Cancel
             </Button>
-            <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white" disabled={isSubmitting}>
+            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
               <Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Log Incident"}
             </Button>
           </div>

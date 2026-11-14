@@ -13,7 +13,7 @@ import { db } from '@/lib/supabase/client';
 import { doc, getDoc } from "@/lib/supabase/records";
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile, GenerateLegalRegisterOutput, LegalRegisterItem } from '@/lib/types';
-import { generateLegalRegister } from '@/ai/flows/generate-legal-register-flow';
+import { generateLegalRegister } from '@/ai/client';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 
@@ -184,7 +184,7 @@ export default function LegalRegisterPage() {
   }, [legalRegister, searchTerm]);
 
   const renderLegalItem = (item: LegalRegisterItem) => (
-    <Card key={item.title} className="shadow-sm">
+    <Card key={item.title} className="shadow-card">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold text-primary flex items-center gap-2">
           <FileText className="h-5 w-5" /> {highlightText(item.title, searchTerm)}
@@ -227,7 +227,7 @@ export default function LegalRegisterPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 print-hide">
+      <div className="flex flex-wrap items-center justify-between gap-3 gap-4 print-hide">
         <div className="flex items-center gap-4">
             <Button variant="outline" size="icon" onClick={() => router.push('/risk-management')} aria-label="Back to Risk Management">
             <ArrowLeft className="h-4 w-4" />
@@ -238,7 +238,7 @@ export default function LegalRegisterPage() {
         </div>
       </div>
 
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
         <CardHeader>
           <CardTitle>Country-Specific Legal Requirements</CardTitle>
           <CardDescription>

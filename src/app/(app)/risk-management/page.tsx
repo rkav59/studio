@@ -474,7 +474,7 @@ export default function RiskManagementPage() {
       <Separator />
 
     {/* Incident Log Section */}
-    <Card id="incident-log" className="shadow-md">
+    <Card id="incident-log" className="shadow-card">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
                 <CardTitle className="flex items-center gap-2">Incident Log</CardTitle>
@@ -483,7 +483,7 @@ export default function RiskManagementPage() {
              <Tooltip>
               <TooltipTrigger asChild>
                 <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
-                  <Button onClick={() => canCreate && router.push('/risk-management/incidents/new')} disabled={!canCreate} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+                  <Button onClick={() => canCreate && router.push('/risk-management/incidents/new')} disabled={!canCreate} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                       <PlusCircle className="mr-2 h-4 w-4" /> Log New Incident/Event
                   </Button>
                 </div>
@@ -502,7 +502,7 @@ export default function RiskManagementPage() {
                 <ScrollArea className="max-h-[400px] pr-3">
                     <div className="space-y-3">
                         {incidents.map(incident => (
-                           <Card key={incident.id} className="p-3 shadow-sm">
+                           <Card key={incident.id} className="p-3 shadow-card">
                                 <div className="flex flex-col gap-2">
                                     <div>
                                         <h4 className="font-semibold">{incident.type}: {incident.description.substring(0, 70)}{incident.description.length > 70 ? '...' : ''}</h4>
@@ -538,7 +538,7 @@ export default function RiskManagementPage() {
     <Separator/>
     
     {/* Manual Hazard Log Section */}
-    <Card id="manual-hazard-log" className="shadow-md">
+    <Card id="manual-hazard-log" className="shadow-card">
       <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
           <div>
               <CardTitle className="flex items-center gap-2">Hazard Log</CardTitle>
@@ -559,7 +559,7 @@ export default function RiskManagementPage() {
               <ScrollArea className="max-h-[400px] pr-3">
                   <div className="space-y-3">
                       {filteredHazards.map(hazard => (
-                          <Card key={hazard.id} className="p-3 shadow-sm">
+                          <Card key={hazard.id} className="p-3 shadow-card">
                               <div className="flex justify-between items-start">
                                   <div className="flex-grow">
                                       <h4 className="font-semibold">{hazard.hazardDescription}</h4>
@@ -586,7 +586,7 @@ export default function RiskManagementPage() {
     </Card>
 
       {/* Manual Risk Assessments Section */}
-       <Card id="manual-risk-assessments" className="shadow-md">
+       <Card id="manual-risk-assessments" className="shadow-card">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
                 <CardTitle className="flex items-center gap-2">Risk Assessments</CardTitle>
@@ -606,7 +606,7 @@ export default function RiskManagementPage() {
                 <Tooltip>
                     <TooltipTrigger asChild>
                       <div tabIndex={0} className={cn(!canCreate && "cursor-not-allowed")}>
-                        <Button onClick={() => canCreate && router.push('/risk-management/assessments/new')} disabled={!canCreate} className="bg-purple-600 hover:bg-purple-700 text-white">
+                        <Button onClick={() => canCreate && router.push('/risk-management/assessments/new')} disabled={!canCreate} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                             <PlusCircle className="mr-2 h-4 w-4" /> Conduct New Assessment
                         </Button>
                       </div>
@@ -624,7 +624,7 @@ export default function RiskManagementPage() {
                         {filteredAssessments.map(assessment => {
                             const displayRiskLevel = assessment.residualRiskLevel || assessment.initialRiskLevel;
                             return (
-                                <Card key={assessment.id} className="p-3 shadow-sm">
+                                <Card key={assessment.id} className="p-3 shadow-card">
                                     <div className="flex justify-between items-start">
                                         <div className="flex-grow">
                                             <h4 className="font-semibold">{assessment.activityOrProcess}</h4>
@@ -662,7 +662,7 @@ export default function RiskManagementPage() {
     </Card>
 
       {/* Risk Register Section */}
-      <Card id="risk-register" className="shadow-md">
+      <Card id="risk-register" className="shadow-card">
         <CardHeader className="flex flex-col gap-4">
             <div>
                 <CardTitle className="flex items-center gap-2">Risk Register (Centralized Risk Recording &amp; Reporting)</CardTitle>
@@ -688,7 +688,7 @@ export default function RiskManagementPage() {
                             const displayRiskLevel = entry.residualRiskLevel || entry.initialRiskLevel;
                             const reviewDateStatus = getReviewDateStatusInfo(entry.nextReviewDate);
                             return (
-                                <Card key={entry.id} className="p-3 shadow-sm">
+                                <Card key={entry.id} className="p-3 shadow-card">
                                     <div className="flex justify-between items-start">
                                         <div className="flex-grow">
                                             <h4 className="font-semibold">{entry.riskTitle}</h4>
@@ -719,7 +719,7 @@ export default function RiskManagementPage() {
       </Card>
 
       {/* Active Risk Control Actions Section */}
-      <Card id="control-monitoring" className="shadow-md">
+      <Card id="control-monitoring" className="shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Risk Treatment &amp; Control Monitoring
@@ -807,7 +807,7 @@ export default function RiskManagementPage() {
       <Separator />
 
       {/* AI Assisted Tools & Legal Register */}
-        <Card id="ai-tools" className="shadow-md">
+        <Card id="ai-tools" className="shadow-card">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">Intelligent Risk Tools</CardTitle>
                 <CardDescription>Utilize AI for deeper insights and access relevant legal information (ISO 31000: Risk Analysis &amp; Evaluation Support, Establishing Context).</CardDescription>

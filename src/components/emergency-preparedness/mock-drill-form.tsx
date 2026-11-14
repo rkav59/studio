@@ -32,7 +32,7 @@ import { format, parseISO, isValid } from 'date-fns';
 import { ScrollArea } from "../ui/scroll-area";
 import { Card, CardContent, CardHeader as UiCardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from "../ui/card"; 
 import { Separator } from "../ui/separator";
-import { generateDrillScenario, type GenerateDrillScenarioInput } from "@/ai/flows/generate-drill-scenario-flow";
+import { generateDrillScenario, type GenerateDrillScenarioInput } from "@/ai/client";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
 
@@ -245,7 +245,7 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitti
                           size="sm"
                           onClick={handleSuggestScenario}
                           disabled={isScenarioLoading || !form.watch("drillType")}
-                          className="text-accent border-accent hover:bg-accent/10"
+                          className="text-primary border-primary/30 hover:bg-accent/10"
                         >
                           {isScenarioLoading ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -278,7 +278,7 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitti
                   </UiCardHeader>
                   <CardContent className="space-y-3">
                       {actionItemFields.map((item, index) => (
-                          <Card key={item.id} className="p-3 bg-background shadow-sm space-y-3">
+                          <Card key={item.id} className="p-3 bg-background shadow-card space-y-3">
                               <div className="flex justify-between items-center"><FormLabel className="text-sm font-medium">Action Item #{index + 1}</FormLabel><Button type="button" variant="ghost" size="icon" onClick={() => removeActionItem(index)} className="text-destructive h-6 w-6"><Trash2 className="h-4 w-4"/></Button></div>
                               <FormField control={form.control} name={`actionItems.${index}.description`} render={({ field }) => (
                                   <FormItem><FormLabel className="text-xs">Description</FormLabel><FormControl><Textarea placeholder="Specific action required" rows={2} {...field} /></FormControl><FormMessage /></FormItem>
@@ -314,7 +314,7 @@ export function MockDrillForm({ plans, initialData, onSave, onCancel, isSubmitti
             </ScrollArea>
             <div className="p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
                 <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}><XCircle className="mr-2 h-4 w-4" /> Cancel</Button>
-                <Button type="submit" className="bg-teal-500 hover:bg-teal-600 text-white" disabled={isSubmitting}><Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Save Drill"}</Button>
+                <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}><Save className="mr-2 h-4 w-4" /> {initialData ? "Save Changes" : "Save Drill"}</Button>
             </div>
         </form>
       </Form>

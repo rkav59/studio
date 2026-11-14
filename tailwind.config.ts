@@ -69,9 +69,11 @@ export default {
         sm: 'calc(var(--radius) - 4px)'
       },
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
+        sans: ['var(--font-app)'],
+        body: ['var(--font-app)'],
+        headline: ['var(--font-app)'],
       },
+      boxShadow: { card: "0 7px 32px rgba(37, 64, 97, 0.055)" },
       keyframes: {
         'accordion-down': {
           from: {

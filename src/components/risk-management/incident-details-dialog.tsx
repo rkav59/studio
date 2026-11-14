@@ -180,7 +180,7 @@ export function IncidentDetailsDialog({ incident, onClose }: IncidentDetailsDial
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-3 gap-y-2">
                         <p><strong className="text-muted-foreground">Type:</strong> {incident.type}</p>
                         <p><CalendarDays className="inline h-4 w-4 mr-1 text-muted-foreground" /><strong>Date & Time:</strong> {format(parseISO(incident.timestamp), "PPPp")}</p>
-                        <div className="md:col-span-2 flex items-center justify-between">
+                        <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-3">
                             <p><MapPin className="inline h-4 w-4 mr-1 text-muted-foreground" /><strong>Location:</strong> {incident.location}</p>
                             <Button
                                 variant="outline"

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Lightbulb, Loader2 } from "lucide-react";
-import { identifyHazards, type IdentifyHazardsInput, type IdentifyHazardsOutput } from "@/ai/flows/identify-hazards-flow";
+import { identifyHazards, type IdentifyHazardsInput, type IdentifyHazardsOutput } from "@/ai/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface HazardIdentificationFormProps {
@@ -46,7 +46,7 @@ export function HazardIdentificationForm({ onSuggestionsGenerated }: HazardIdent
     };
 
     return (
-        <Card className="shadow-md">
+        <Card className="shadow-card">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-6 w-6 text-orange-500"/>AI-Powered Hazard Identification</CardTitle>
                 <CardDescription>Describe the activity or area to identify potential hazards.</CardDescription>
@@ -60,7 +60,7 @@ export function HazardIdentificationForm({ onSuggestionsGenerated }: HazardIdent
                         rows={3}
                         disabled={isLoading}
                     />
-                    <Button type="submit" disabled={isLoading} className="w-full bg-orange-500 hover:bg-orange-600 text-white">
+                    <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                         {isLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

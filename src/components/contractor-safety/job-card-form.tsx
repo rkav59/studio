@@ -106,7 +106,7 @@ export function JobCardForm({ contractors, initialData, onSave, onCancel, isSubm
   };
 
   return (
-    <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+    <Card className="flex-1 flex flex-col min-h-0 shadow-card">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
           <ScrollArea className="flex-1">
@@ -199,7 +199,7 @@ export function JobCardForm({ contractors, initialData, onSave, onCancel, isSubm
           </ScrollArea>
           <div className="p-4 md:p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}><XCircle className="mr-2 h-4 w-4" /> Cancel</Button>
-            <Button type="submit" className="bg-indigo-500 hover:bg-indigo-600 text-white" disabled={isSubmitting}><Save className="mr-2 h-4 w-4" /> {isEditing ? "Save Changes" : "Create Job Card"}</Button>
+            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}><Save className="mr-2 h-4 w-4" /> {isEditing ? "Save Changes" : "Create Job Card"}</Button>
           </div>
         </form>
       </Form>

@@ -120,7 +120,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
   };
 
   return (
-     <Card className="flex-1 flex flex-col min-h-0 shadow-lg">
+     <Card className="flex-1 flex flex-col min-h-0 shadow-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <PackagePlus className="h-6 w-6 text-accent" />
@@ -236,7 +236,7 @@ export function PpeIssuanceForm({ ppeItems, ppeJobRoleMatrix, initialData, onSav
           </ScrollArea>
           <div className="p-4 md:p-6 border-t flex-shrink-0 flex justify-end gap-2 bg-background">
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}><XCircle className="mr-2 h-4 w-4" />Cancel</Button>
-            <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isSubmitting}><Save className="mr-2 h-4 w-4" />{isEditing ? "Save Changes" : "Log Issuance"}</Button>
+            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}><Save className="mr-2 h-4 w-4" />{isEditing ? "Save Changes" : "Log Issuance"}</Button>
           </div>
         </form>
       </Form>

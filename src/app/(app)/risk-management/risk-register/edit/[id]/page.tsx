@@ -139,7 +139,7 @@ export default function EditRiskRegisterEntryPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
-        <Card className="shadow-lg">
+        <Card className="shadow-card">
           <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
            <CardContent className="p-6 space-y-4">
                 {[...Array(10)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
@@ -165,7 +165,7 @@ export default function EditRiskRegisterEntryPage() {
     <>
     <RiskRegisterEntryPdfReport entry={entryToEdit} />
     <div className="space-y-6">
-       <div className="flex items-center justify-between gap-4">
+       <div className="flex flex-wrap items-center justify-between gap-3 gap-4">
             <div className="flex items-center gap-4">
               <Button variant="outline" size="icon" onClick={handleCancel} aria-label="Back to Risk Management">
                   <ArrowLeft className="h-4 w-4" />
@@ -178,7 +178,7 @@ export default function EditRiskRegisterEntryPage() {
               <FileDown className="mr-2 h-4 w-4" /> Download PDF
             </Button>
         </div>
-      <Card className="shadow-lg">
+      <Card className="shadow-card">
          <CardHeader>
           <CardDescription>
             Modify the details for this risk register entry.

@@ -220,9 +220,9 @@ export default function ChecklistTemplatesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {allTemplates.map(template => (
-            <Card key={template.id} className="shadow-lg flex flex-col">
+            <Card key={template.id} className="shadow-card flex flex-col">
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex flex-wrap items-center justify-between gap-3">
                   <span className="truncate mr-2">{template.name}</span>
                   {template.isSystemDefault && <Lock className="h-4 w-4 text-muted-foreground shrink-0" aria-label="System Default Template (Read-Only)" />}
                 </CardTitle>

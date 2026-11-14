@@ -292,7 +292,7 @@ export function ManualRiskAssessmentForm({ initialData, manualHazards, onSave, o
                 <CardHeader><CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary"/>Additional Control Measures Required</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                     {controlFields.map((item, index) => (
-                        <Card key={item.id} className="p-3 bg-muted/20 shadow-sm space-y-3">
+                        <Card key={item.id} className="p-3 bg-muted/20 shadow-card space-y-3">
                             <div className="flex justify-between items-center"><FormLabel className="text-sm font-medium">Control #{index + 1}</FormLabel><Button type="button" variant="ghost" size="icon" onClick={() => removeControl(index)} className="text-destructive h-6 w-6"><Trash2 className="h-4 w-4"/></Button></div>
                             <FormField control={form.control} name={`additionalControls.${index}.description`} render={({ field }) => (
                                 <FormItem><FormLabel className="text-xs">Control Description</FormLabel><FormControl><Textarea placeholder="Specific action to implement" rows={2} {...field} /></FormControl><FormMessage /></FormItem>
@@ -389,7 +389,7 @@ export function ManualRiskAssessmentForm({ initialData, manualHazards, onSave, o
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               <XCircle className="mr-2 h-4 w-4" /> Cancel
             </Button>
-            <Button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white" disabled={isSubmitting}>
+            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
               <Save className="mr-2 h-4 w-4" /> {initialData?.id ? "Save Changes" : "Save Assessment"}
             </Button>
         </div>
