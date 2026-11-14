@@ -51,38 +51,40 @@ const groups: { label: string; items: NavItem[] }[] = [
 function SideNav({ currentPath, userProfile, close, signOut }: {
   currentPath: string; userProfile: UserProfile | null; close: () => void; signOut: () => void;
 }) {
-  return <Box sx={{ display: "flex", flexDirection: "column", height: "100%", bgcolor: "#FFFFFF", px: 2, py: 3 }}>
-    <Box component={Link} href="/dashboard" onClick={close} sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, mb: 4, textDecoration: "none", color: "text.primary" }}>
+  return <Box sx={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden", bgcolor: "#FFFFFF", px: 1.5, pt: 2, pb: 1.5 }}>
+    <Box component={Link} href="/dashboard" onClick={close} sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1, mb: 2, flexShrink: 0, textDecoration: "none", color: "text.primary", "@media (max-height: 720px)": { mb: 1 } }}>
       <SheiqproLogo className="h-9 w-9 text-[#0075FF]" />
       <Box><Typography sx={{ fontWeight: 800, fontSize: 20, lineHeight: 1.1, letterSpacing: "-0.035em" }}>SHEiQpro</Typography><Typography variant="caption" sx={{ color: "text.secondary" }}>Safety intelligence</Typography></Box>
     </Box>
-    <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+    <Box component="div" role="group" aria-label="Application pages" tabIndex={0} sx={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", scrollbarWidth: "none", msOverflowStyle: "none", "&::-webkit-scrollbar": { display: "none" }, "&:focus-visible": { outline: "2px solid #0075FF", outlineOffset: -2, borderRadius: 2 } }}>
       {groups.map(group => {
         const items = group.items.filter(i => !i.adminOnly || userProfile?.role === "admin");
         if (!items.length) return null;
-        return <Box key={group.label} sx={{ mb: 3 }}>
-          <Typography sx={{ px: 2, mb: 1.25, color: "#9AA6B8", fontSize: 10, fontWeight: 800, letterSpacing: 1.25 }}>{group.label}</Typography>
-          <List disablePadding sx={{ display: "grid", gap: 0.5 }}>
+        return <Box key={group.label} sx={{ mb: 1.5, "@media (max-height: 720px)": { mb: 0.5 } }}>
+          <Typography sx={{ px: 1.5, mb: 0.5, color: "#9AA6B8", fontSize: 10, fontWeight: 800, letterSpacing: 1.1, "@media (max-height: 660px)": { mb: 0.15, fontSize: 9 } }}>{group.label}</Typography>
+          <List disablePadding sx={{ display: "grid", gap: 0.15 }}>
             {items.map(item => {
               const active = currentPath === item.href || currentPath.startsWith(item.href + "/");
               const Icon = item.icon;
               return <ListItemButton key={item.href} component={Link} href={item.href} onClick={close} selected={active}
-                sx={{ borderRadius: 2.5, px: 1.5, minHeight: 44, color: active ? visionColors.primary : "#64748B",
+                sx={{ borderRadius: 2.5, px: 1.25, py: 0.35, minHeight: 37, color: active ? visionColors.primary : "#64748B", "@media (max-height: 720px)": { minHeight: 31, py: 0.1 },
                   "&.Mui-selected": { bgcolor: "#EAF3FF", color: visionColors.primary },
                   "&.Mui-selected:hover": { bgcolor: "#DDEEFF" }, "&:hover": { bgcolor: "#F3F7FC" } }}>
-                <ListItemIcon sx={{ minWidth: 38, color: "inherit" }}><Icon fontSize="small" /></ListItemIcon>
-                <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: 13, fontWeight: active ? 750 : 550, noWrap: true }} />
+                <ListItemIcon sx={{ minWidth: 32, color: "inherit" }}><Icon sx={{ fontSize: 19 }} /></ListItemIcon>
+                <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: 12.75, fontWeight: active ? 750 : 550, noWrap: true }} />
               </ListItemButton>;
             })}
           </List>
         </Box>;
       })}
     </Box>
-    <Divider sx={{ my: 1.5 }} />
-    <ListItemButton onClick={signOut} sx={{ borderRadius: 2.5, color: "#64748B" }}>
-      <ListItemIcon sx={{ minWidth: 38, color: "inherit" }}><LogoutRounded fontSize="small" /></ListItemIcon>
-      <ListItemText primary="Sign out" primaryTypographyProps={{ fontSize: 13, fontWeight: 650 }} />
-    </ListItemButton>
+    <Box sx={{ flexShrink: 0, mt: "auto", pt: 1, bgcolor: "#FFFFFF" }}>
+      <Divider sx={{ mb: 1 }} />
+      <ListItemButton onClick={signOut} sx={{ borderRadius: 2.5, minHeight: 40, px: 1.25, color: "#64748B" }}>
+        <ListItemIcon sx={{ minWidth: 32, color: "inherit" }}><LogoutRounded sx={{ fontSize: 19 }} /></ListItemIcon>
+        <ListItemText primary="Sign out" primaryTypographyProps={{ fontSize: 12.75, fontWeight: 650 }} />
+      </ListItemButton>
+    </Box>
   </Box>;
 }
 
