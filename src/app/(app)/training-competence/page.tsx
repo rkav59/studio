@@ -352,7 +352,7 @@ export default function TrainingCompetencePage() {
       <Separator />
 
       {recordsRequiringAttention.length > 0 && (
-        <Card id="reminders-section" className="border-orange-500/50 shadow-md">
+        <Card id="reminders-section" className="border-orange-500/50 shadow-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
               <AlertTriangle className="h-6 w-6"/> Training Reminders
